@@ -26,18 +26,17 @@ export default function Login() {
       </span>
 
       {/* LEFT — Branded illustration block */}
-      <div className="hidden lg:flex flex-1 flex-col items-center justify-center relative overflow-hidden px-12" style={{ backgroundColor: 'rgb(241, 236, 225)' }}>
-        <div className="flex flex-col items-center">
+      <div className="hidden lg:flex flex-1 relative overflow-hidden" style={{ backgroundColor: 'rgb(241, 236, 225)' }}>
+        <div className="absolute bottom-12 left-12 flex flex-col items-start" style={{ gap: '8px' }}>
           <img
             src={makoIllustration}
             alt="MakoVote"
-            className="w-full max-w-[2400px]"
+            style={{ width: '700px', display: 'block' }}
           />
-          <img
-            src={makovoteLogo}
-            alt="MakoVote"
-            className="-mt-2 h-12"
-          />
+          <span style={{ fontSize: '48px', fontWeight: 600, lineHeight: 1, letterSpacing: '-0.5px', display: 'block' }}>
+            <span style={{ color: '#111111' }}>Mako</span>
+            <span style={{ color: '#E8743B' }}>Vote</span>
+          </span>
         </div>
       </div>
 
