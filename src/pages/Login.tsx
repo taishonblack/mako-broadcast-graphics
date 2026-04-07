@@ -25,7 +25,7 @@ export default function Login() {
       </span>
 
       {/* LEFT — Branded illustration block */}
-      <div className="hidden lg:flex flex-1 flex-col items-center justify-center relative overflow-hidden px-12">
+      <div className="hidden lg:flex flex-1 flex-col items-center justify-center relative overflow-hidden px-12" style={{ backgroundColor: 'rgb(241, 236, 225)' }}>
         <img
           src={makoIllustration}
           alt="MakoVote"
