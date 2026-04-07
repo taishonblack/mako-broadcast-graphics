@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import makoIllustration from '@/assets/mako-illustration.png';
+import makovoteLogo from '@/assets/makovote-logo.svg';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -26,36 +27,16 @@ export default function Login() {
 
       {/* LEFT — Branded illustration block */}
       <div className="hidden lg:flex flex-1 relative overflow-hidden" style={{ backgroundColor: 'rgb(241, 236, 225)' }}>
-        <div
-          className="absolute flex flex-col items-start"
-          style={{ bottom: '10%', left: '-40px' }}
-        >
+        <div className="absolute bottom-12 left-12 flex flex-col items-start" style={{ gap: '8px' }}>
           <img
             src={makoIllustration}
             alt="MakoVote"
-            style={{ width: '980px', display: 'block', marginLeft: '-60px' }}
+            style={{ width: '700px', display: 'block' }}
           />
-          <div style={{ marginTop: '-12px', paddingLeft: '24px' }}>
-            <span style={{
-              fontSize: '56px',
-              fontWeight: 600,
-              lineHeight: 1,
-              letterSpacing: '-2px',
-              fontFamily: 'Inter, sans-serif',
-            }}>
-              <span style={{ color: '#111111' }}>Mako</span>
-              <span style={{ color: '#E8743B' }}>Vote</span>
-            </span>
-            <div style={{
-              fontSize: '13px',
-              color: '#9CA3AF',
-              marginTop: '6px',
-              letterSpacing: '0.5px',
-              fontFamily: 'Inter, sans-serif',
-            }}>
-              Broadcast polling system
-            </div>
-          </div>
+          <span style={{ fontSize: '48px', fontWeight: 600, lineHeight: 1, letterSpacing: '-0.5px', display: 'block' }}>
+            <span style={{ color: '#111111' }}>Mako</span>
+            <span style={{ color: '#E8743B' }}>Vote</span>
+          </span>
         </div>
       </div>
 
