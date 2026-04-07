@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 import makoIllustration from '@/assets/mako-illustration.png';
 import heroCityscape from '@/assets/hero-cityscape.png';
 
@@ -7,9 +9,24 @@ export default function Login() {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [loading, setLoading] = useState(false);
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
+    setLoading(true);
+
+    const { error } = await supabase.auth.signInWithPassword({
+      email,
+      password,
+    });
+
+    if (error) {
+      toast.error(error.message);
+      setLoading(false);
+      return;
+    }
+
+    toast.success('Signed in successfully');
     navigate('/dashboard');
   };
 
@@ -99,12 +116,13 @@ export default function Login() {
               </div>
               <button
                 type="submit"
-                className="h-11 mt-2 rounded-lg font-medium text-sm transition-all active:scale-[0.98]"
+                disabled={loading}
+                className="h-11 mt-2 rounded-lg font-medium text-sm transition-all active:scale-[0.98] disabled:opacity-60"
                 style={{ background: '#F97316', color: '#FFFFFF' }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = '#EA580C')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = '#F97316')}
               >
-                Sign In
+                {loading ? 'Signing in…' : 'Sign In'}
               </button>
             </form>
           </div>
