@@ -13,7 +13,7 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: '#F7F7F7' }}>
+    <div className="flex min-h-screen relative" style={{ backgroundColor: '#F7F7F7' }}>
       {/* System identity — top left */}
       <span className="absolute top-6 left-8 font-mono text-[12px] tracking-[0.15em] z-20" style={{ color: '#9CA3AF' }}>
         MAKO SYSTEMS
@@ -24,15 +24,23 @@ export default function Login() {
         MakoVote v0.1
       </span>
 
-      {/* LEFT — Branded illustration block */}
-      <div className="hidden lg:flex flex-1 flex-col items-center justify-center relative overflow-hidden px-12">
+      {/* LEFT — Illustration as layout composition element */}
+      <div className="hidden lg:block flex-1 relative overflow-hidden">
+        {/* Large anchored illustration — cropped at left edge */}
         <img
           src={makoIllustration}
-          alt="MakoVote"
-          className="w-[90%] max-w-[580px] -ml-4"
+          alt=""
+          className="absolute pointer-events-none select-none"
+          style={{
+            width: '140%',
+            maxWidth: 'none',
+            bottom: '8%',
+            left: '-25%',
+            opacity: 0.9,
+          }}
         />
-        {/* Product lockup */}
-        <div className="mt-6 -ml-4 text-center">
+        {/* Product lockup — anchored to illustration */}
+        <div className="absolute bottom-[6%] left-0 right-0 flex flex-col items-center z-10">
           <h2 className="text-[22px] font-semibold tracking-tight" style={{ color: '#111111', fontFamily: 'Inter, sans-serif' }}>
             MakoVote
           </h2>
@@ -44,12 +52,12 @@ export default function Login() {
 
       {/* Divider */}
       <div
-        className="hidden lg:block w-px self-stretch my-16 shrink-0"
+        className="hidden lg:block w-px self-stretch my-16 shrink-0 z-10"
         style={{ background: 'linear-gradient(to bottom, transparent, #E5E7EB, transparent)' }}
       />
 
       {/* RIGHT — Login Form */}
-      <div className="flex-1 flex items-center justify-center px-8 lg:px-16 lg:max-w-[520px]">
+      <div className="flex-1 flex items-center justify-center px-8 lg:px-16 lg:max-w-[520px] z-10">
         <div className="w-full max-w-sm">
           <div
             className="rounded-2xl p-8 border"
@@ -61,12 +69,8 @@ export default function Login() {
             }}
           >
             <div className="mb-8">
-              <h1 className="text-xl font-semibold tracking-tight" style={{ color: '#111111' }}>
-                MakoVote
-              </h1>
-              <p className="text-[13px] mt-1" style={{ color: '#6B7280' }}>
-                Broadcast polling control system
-              </p>
+              <h1 className="text-xl font-semibold tracking-tight" style={{ color: '#111111' }}>MakoVote</h1>
+              <p className="text-[13px] mt-1" style={{ color: '#6B7280' }}>Broadcast polling control system</p>
             </div>
 
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
