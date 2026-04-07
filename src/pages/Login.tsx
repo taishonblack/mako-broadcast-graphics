@@ -32,11 +32,12 @@ export default function Login() {
           alt=""
           className="absolute pointer-events-none select-none"
           style={{
-            width: '140%',
+            width: '110%',
             maxWidth: 'none',
-            bottom: '8%',
-            left: '-25%',
-            opacity: 0.9,
+            top: '50%',
+            left: '-10%',
+            transform: 'translateY(-48%)',
+            opacity: 0.92,
           }}
         />
         {/* Product lockup — anchored to illustration */}
