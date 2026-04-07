@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import makoIllustration from '@/assets/mako-illustration.png';
+import makoIllustration from '@/assets/mako-illustration-transparent.png';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -20,36 +20,36 @@ export default function Login() {
       </span>
 
       {/* Version — bottom left */}
-      <span className="absolute bottom-6 left-8 font-mono text-[11px] z-20" style={{ color: '#D1D5DB' }}>
+      <span className="absolute bottom-6 left-8 font-mono text-[11px] z-20" style={{ color: '#C4B9A8' }}>
         MakoVote v0.1
       </span>
 
-      {/* LEFT — Illustration + branding lockup */}
-      <div className="hidden lg:flex flex-1 flex-col items-center justify-center relative overflow-hidden">
-        <img
-          src={makoIllustration}
-          alt=""
-          className="pointer-events-none select-none"
-          style={{
-            width: '75%',
-            maxWidth: '480px',
-            opacity: 1,
-          }}
-        />
-        <div className="flex flex-col items-center mt-6">
-          <h2 className="text-[32px] font-semibold tracking-tight" style={{ color: '#111111', fontFamily: 'Inter, sans-serif' }}>
-            MakoVote
-          </h2>
-          <p className="text-[13px] mt-1.5" style={{ color: '#6B7280' }}>
-            Broadcast polling system
-          </p>
+      {/* LEFT — Composed identity block, left-aligned */}
+      <div className="hidden lg:flex flex-1 items-center justify-start pl-[10%] relative overflow-hidden">
+        <div className="flex flex-col items-start">
+          <img
+            src={makoIllustration}
+            alt=""
+            width={1024}
+            height={1024}
+            className="pointer-events-none select-none"
+            style={{ width: '340px', marginLeft: '-20px' }}
+          />
+          <div className="flex flex-col items-start mt-4 ml-1">
+            <h2 className="text-[36px] font-semibold tracking-tight" style={{ color: '#111111', fontFamily: 'Inter, sans-serif' }}>
+              MakoVote
+            </h2>
+            <p className="text-[13px] mt-1" style={{ color: '#6B7280' }}>
+              Broadcast polling system
+            </p>
+          </div>
         </div>
       </div>
 
       {/* Divider */}
       <div
         className="hidden lg:block w-px self-stretch my-16 shrink-0 z-10"
-        style={{ background: 'linear-gradient(to bottom, transparent, #E5E7EB, transparent)' }}
+        style={{ background: 'linear-gradient(to bottom, transparent, #D5CCBF, transparent)' }}
       />
 
       {/* RIGHT — Login Form */}
@@ -58,7 +58,7 @@ export default function Login() {
           <div
             className="rounded-2xl p-8 border"
             style={{
-              background: 'rgba(255, 255, 255, 0.75)',
+              background: 'rgba(255, 255, 255, 0.6)',
               backdropFilter: 'blur(12px)',
               borderColor: 'rgba(0, 0, 0, 0.06)',
               boxShadow: '0 10px 40px -12px rgba(0, 0, 0, 0.08)',
