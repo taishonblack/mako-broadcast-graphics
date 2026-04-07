@@ -15,77 +15,121 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen" style={{ background: 'hsl(220, 20%, 7%)' }}>
-      {/* Left — Illustration */}
+    <div className="flex min-h-screen" style={{ backgroundColor: '#F7F7F7' }}>
+      {/* System identity — top left */}
+      <span className="absolute top-6 left-8 font-mono text-[12px] tracking-[0.15em] z-20" style={{ color: '#9CA3AF' }}>
+        MAKO SYSTEMS
+      </span>
+
+      {/* Version — bottom left */}
+      <span className="absolute bottom-6 left-8 font-mono text-[11px] z-20" style={{ color: '#D1D5DB' }}>
+        MakoVote v0.1
+      </span>
+
+      {/* LEFT — Illustration */}
       <div className="hidden lg:flex flex-1 items-center justify-center relative overflow-hidden">
-        <div
-          className="absolute inset-0"
-          style={{
-            background: 'linear-gradient(135deg, hsla(220, 20%, 10%, 1) 0%, hsla(220, 20%, 7%, 0.8) 100%)',
-          }}
-        />
         <img
           src={makoIllustration}
           alt="MakoVote"
-          className="relative z-10 w-[60%] max-w-[480px] opacity-80"
-          style={{ filter: 'drop-shadow(0 0 40px hsla(24, 95%, 53%, 0.15))' }}
+          className="relative z-10 w-[85%] max-w-[640px] -ml-12"
+          style={{
+            filter: 'drop-shadow(0 20px 60px rgba(0,0,0,0.08))',
+          }}
         />
-        {/* Version label */}
-        <span className="absolute bottom-6 left-6 z-10 font-mono text-[11px] text-muted-foreground/40">
-          MakoVote v0.1
-        </span>
       </div>
 
       {/* Divider */}
-      <div className="hidden lg:block w-px self-stretch my-12" style={{ background: 'linear-gradient(to bottom, transparent, hsla(220, 14%, 25%, 0.4), transparent)' }} />
+      <div
+        className="hidden lg:block w-px self-stretch my-16 shrink-0"
+        style={{
+          background: 'linear-gradient(to bottom, transparent, #E5E7EB, transparent)',
+        }}
+      />
 
-      {/* Right — Login Form */}
-      <div className="flex-1 flex flex-col items-center justify-center px-8 lg:max-w-lg">
-        {/* System identity */}
-        <span className="absolute top-6 right-6 lg:top-6 lg:left-auto font-mono text-[12px] text-muted-foreground/40 tracking-wider">
-          MAKO SYSTEMS
-        </span>
-
+      {/* RIGHT — Login Form */}
+      <div className="flex-1 flex items-center justify-center px-8 lg:px-16 lg:max-w-[520px]">
         <div className="w-full max-w-sm">
           {/* Glass panel */}
           <div
             className="rounded-2xl p-8 border"
             style={{
-              background: 'hsla(220, 18%, 13%, 0.75)',
+              background: 'rgba(255, 255, 255, 0.75)',
               backdropFilter: 'blur(12px)',
-              borderColor: 'hsla(220, 14%, 25%, 0.3)',
-              boxShadow: '0 8px 32px -8px hsla(0, 0%, 0%, 0.5)',
+              borderColor: 'rgba(0, 0, 0, 0.06)',
+              boxShadow: '0 10px 40px -12px rgba(0, 0, 0, 0.08)',
             }}
           >
             <div className="mb-8">
-              <h1 className="text-xl font-semibold text-foreground tracking-tight">MakoVote</h1>
-              <p className="text-sm text-muted-foreground mt-1">Broadcast polling control system</p>
+              <h1 className="text-xl font-semibold tracking-tight" style={{ color: '#111111' }}>
+                MakoVote
+              </h1>
+              <p className="text-[13px] mt-1" style={{ color: '#6B7280' }}>
+                Broadcast polling control system
+              </p>
             </div>
 
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Email</label>
-                <Input
+                <label className="text-xs font-medium" style={{ color: '#9CA3AF' }}>Email</label>
+                <input
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="operator@makosystems.tv"
-                  className="bg-background/50 border-border/50 focus:border-primary focus:ring-primary/15 h-11"
+                  className="flex h-11 w-full rounded-lg px-3 py-2 text-sm outline-none transition-all"
+                  style={{
+                    border: '1px solid #E5E7EB',
+                    color: '#111111',
+                    background: 'rgba(255,255,255,0.6)',
+                    letterSpacing: '-0.01em',
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#F97316';
+                    e.target.style.boxShadow = '0 0 0 2px rgba(249,115,22,0.15)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#E5E7EB';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
-                <label className="text-xs font-medium text-muted-foreground">Password</label>
-                <Input
+                <label className="text-xs font-medium" style={{ color: '#9CA3AF' }}>Password</label>
+                <input
                   type="password"
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
-                  className="bg-background/50 border-border/50 focus:border-primary focus:ring-primary/15 h-11"
+                  className="flex h-11 w-full rounded-lg px-3 py-2 text-sm outline-none transition-all"
+                  style={{
+                    border: '1px solid #E5E7EB',
+                    color: '#111111',
+                    background: 'rgba(255,255,255,0.6)',
+                    letterSpacing: '-0.01em',
+                  }}
+                  onFocus={(e) => {
+                    e.target.style.borderColor = '#F97316';
+                    e.target.style.boxShadow = '0 0 0 2px rgba(249,115,22,0.15)';
+                  }}
+                  onBlur={(e) => {
+                    e.target.style.borderColor = '#E5E7EB';
+                    e.target.style.boxShadow = 'none';
+                  }}
                 />
               </div>
-              <Button type="submit" className="h-11 mt-2 font-medium">
+              <button
+                type="submit"
+                className="h-11 mt-2 rounded-lg font-medium text-sm transition-all active:scale-[0.98]"
+                style={{
+                  background: '#F97316',
+                  color: '#FFFFFF',
+                  fontWeight: 500,
+                }}
+                onMouseEnter={(e) => (e.currentTarget.style.background = '#EA580C')}
+                onMouseLeave={(e) => (e.currentTarget.style.background = '#F97316')}
+              >
                 Sign In
-              </Button>
+              </button>
             </form>
           </div>
         </div>
