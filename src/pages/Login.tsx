@@ -34,7 +34,7 @@ export default function Login() {
       </span>
 
       {/* LEFT — Hero illustration area */}
-      <div className="hidden lg:flex flex-1 relative overflow-hidden" style={{ backgroundColor: 'rgb(241, 236, 225)' }}>
+      <div className="hidden lg:flex flex-1 relative overflow-hidden" style={{ backgroundColor: 'rgb(249, 242, 222)' }}>
         <img
           src={heroCityscape}
           alt=""
