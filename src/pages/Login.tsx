@@ -16,13 +16,13 @@ export default function Login() {
   return (
     <div className="flex min-h-screen relative" style={{ backgroundColor: '#F7F7F7' }}>
       {/* Top-left brand lockup */}
-      <div className="absolute top-6 left-8 flex items-center z-20" style={{ gap: '8px' }}>
+      <div className="absolute top-6 left-8 flex items-center z-20" style={{ gap: '20px' }}>
         <img
           src={makoIllustration}
           alt="MakoVote"
-          style={{ width: '36px', height: 'auto' }}
+          style={{ width: '360px', height: 'auto' }}
         />
-        <span style={{ fontSize: '20px', fontWeight: 600, lineHeight: 1, letterSpacing: '-0.3px' }}>
+        <span style={{ fontSize: '200px', fontWeight: 600, lineHeight: 1, letterSpacing: '-3px' }}>
           <span style={{ color: '#111111' }}>Mako</span>
           <span style={{ color: '#E8743B' }}>Vote</span>
         </span>
