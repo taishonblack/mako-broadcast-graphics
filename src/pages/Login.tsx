@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import makoIllustration from '@/assets/mako-illustration-transparent.png';
+import makoIllustration from '@/assets/mako-illustration.png';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -13,60 +13,60 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen relative" style={{ backgroundColor: '#EDE5D8' }}>
+    <div className="flex min-h-screen" style={{ backgroundColor: '#F7F7F7' }}>
       {/* System identity — top left */}
       <span className="absolute top-6 left-8 font-mono text-[12px] tracking-[0.15em] z-20" style={{ color: '#9CA3AF' }}>
         MAKO SYSTEMS
       </span>
 
       {/* Version — bottom left */}
-      <span className="absolute bottom-6 left-8 font-mono text-[11px] z-20" style={{ color: '#C4B9A8' }}>
+      <span className="absolute bottom-6 left-8 font-mono text-[11px] z-20" style={{ color: '#D1D5DB' }}>
         MakoVote v0.1
       </span>
 
-      {/* LEFT — Composed identity block, left-aligned */}
-      <div className="hidden lg:flex flex-1 items-center justify-start pl-[10%] relative overflow-hidden">
-        <div className="flex flex-col items-start">
-          <img
-            src={makoIllustration}
-            alt=""
-            width={1024}
-            height={1024}
-            className="pointer-events-none select-none"
-            style={{ width: '340px', marginLeft: '-20px' }}
-          />
-          <div className="flex flex-col items-start mt-4 ml-1">
-            <h2 className="text-[36px] font-semibold tracking-tight" style={{ color: '#111111', fontFamily: 'Inter, sans-serif' }}>
-              MakoVote
-            </h2>
-            <p className="text-[13px] mt-1" style={{ color: '#6B7280' }}>
-              Broadcast polling system
-            </p>
-          </div>
+      {/* LEFT — Branded illustration block */}
+      <div className="hidden lg:flex flex-1 flex-col items-center justify-center relative overflow-hidden px-12">
+        <img
+          src={makoIllustration}
+          alt="MakoVote"
+          className="w-[90%] max-w-[580px] -ml-4"
+        />
+        {/* Product lockup */}
+        <div className="mt-6 -ml-4 text-center">
+          <h2 className="text-[22px] font-semibold tracking-tight" style={{ color: '#111111', fontFamily: 'Inter, sans-serif' }}>
+            MakoVote
+          </h2>
+          <p className="text-[13px] mt-1" style={{ color: '#6B7280' }}>
+            Broadcast polling system
+          </p>
         </div>
       </div>
 
       {/* Divider */}
       <div
-        className="hidden lg:block w-px self-stretch my-16 shrink-0 z-10"
-        style={{ background: 'linear-gradient(to bottom, transparent, #D5CCBF, transparent)' }}
+        className="hidden lg:block w-px self-stretch my-16 shrink-0"
+        style={{ background: 'linear-gradient(to bottom, transparent, #E5E7EB, transparent)' }}
       />
 
       {/* RIGHT — Login Form */}
-      <div className="flex-1 flex items-center justify-center px-8 lg:px-16 lg:max-w-[520px] z-10">
+      <div className="flex-1 flex items-center justify-center px-8 lg:px-16 lg:max-w-[520px]">
         <div className="w-full max-w-sm">
           <div
             className="rounded-2xl p-8 border"
             style={{
-              background: 'rgba(255, 255, 255, 0.6)',
+              background: 'rgba(255, 255, 255, 0.75)',
               backdropFilter: 'blur(12px)',
               borderColor: 'rgba(0, 0, 0, 0.06)',
               boxShadow: '0 10px 40px -12px rgba(0, 0, 0, 0.08)',
             }}
           >
             <div className="mb-8">
-              <h1 className="text-xl font-semibold tracking-tight" style={{ color: '#111111' }}>MakoVote</h1>
-              <p className="text-[13px] mt-1" style={{ color: '#6B7280' }}>Broadcast polling control system</p>
+              <h1 className="text-xl font-semibold tracking-tight" style={{ color: '#111111' }}>
+                MakoVote
+              </h1>
+              <p className="text-[13px] mt-1" style={{ color: '#6B7280' }}>
+                Broadcast polling control system
+              </p>
             </div>
 
             <form onSubmit={handleLogin} className="flex flex-col gap-4">
