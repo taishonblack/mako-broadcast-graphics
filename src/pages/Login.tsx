@@ -25,24 +25,26 @@ export default function Login() {
       </span>
 
       {/* LEFT — Illustration as layout composition element */}
-      <div className="hidden lg:block flex-1 relative overflow-hidden">
-        {/* Large anchored illustration — cropped at left edge */}
+      <div className="hidden lg:flex flex-1 relative overflow-hidden items-end justify-center pb-[8%]">
+        {/* Large anchored illustration — faded edges, no bounding box */}
         <img
           src={makoIllustration}
           alt=""
           className="absolute pointer-events-none select-none"
           style={{
-            width: '110%',
+            width: '120%',
             maxWidth: 'none',
             top: '50%',
-            left: '-10%',
-            transform: 'translateY(-48%)',
-            opacity: 0.92,
+            left: '-15%',
+            transform: 'translateY(-50%)',
+            opacity: 0.88,
+            maskImage: 'radial-gradient(ellipse 80% 80% at 55% 50%, black 40%, transparent 100%)',
+            WebkitMaskImage: 'radial-gradient(ellipse 80% 80% at 55% 50%, black 40%, transparent 100%)',
           }}
         />
-        {/* Product lockup — anchored to illustration */}
-        <div className="absolute bottom-[6%] left-0 right-0 flex flex-col items-center z-10">
-          <h2 className="text-[22px] font-semibold tracking-tight" style={{ color: '#111111', fontFamily: 'Inter, sans-serif' }}>
+        {/* Product lockup — anchored bottom-center of left column */}
+        <div className="relative z-10 flex flex-col items-center">
+          <h2 className="text-[30px] font-semibold tracking-tight" style={{ color: '#111111', fontFamily: 'Inter, sans-serif' }}>
             MakoVote
           </h2>
           <p className="text-[13px] mt-1" style={{ color: '#6B7280' }}>
