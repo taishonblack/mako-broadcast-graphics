@@ -29,7 +29,7 @@ export default function Login() {
         <img
           src={makoIllustration}
           alt="MakoVote"
-          className="w-[95%] max-w-[1015px] -ml-4"
+          className="w-[95%] max-w-[1320px] -ml-4"
         />
       </div>
 
