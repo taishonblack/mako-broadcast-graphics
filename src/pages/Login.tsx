@@ -29,17 +29,8 @@ export default function Login() {
         <img
           src={makoIllustration}
           alt="MakoVote"
-          className="w-[90%] max-w-[580px] -ml-4"
+          className="w-[95%] max-w-[1015px] -ml-4"
         />
-        {/* Product lockup */}
-        <div className="mt-6 -ml-4 text-center">
-          <h2 className="text-[22px] font-semibold tracking-tight" style={{ color: '#111111', fontFamily: 'Inter, sans-serif' }}>
-            MakoVote
-          </h2>
-          <p className="text-[13px] mt-1" style={{ color: '#6B7280' }}>
-            Broadcast polling system
-          </p>
-        </div>
       </div>
 
       {/* Divider */}
