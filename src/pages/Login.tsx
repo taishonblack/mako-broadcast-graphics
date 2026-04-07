@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import makoIllustration from '@/assets/mako-illustration.png';
 
 export default function Login() {
@@ -26,30 +24,33 @@ export default function Login() {
         MakoVote v0.1
       </span>
 
-      {/* LEFT — Illustration */}
-      <div className="hidden lg:flex flex-1 items-center justify-center relative overflow-hidden">
+      {/* LEFT — Branded illustration block */}
+      <div className="hidden lg:flex flex-1 flex-col items-center justify-center relative overflow-hidden px-12">
         <img
           src={makoIllustration}
           alt="MakoVote"
-          className="relative z-10 w-[85%] max-w-[640px] -ml-12"
-          style={{
-            filter: 'drop-shadow(0 20px 60px rgba(0,0,0,0.08))',
-          }}
+          className="w-[90%] max-w-[580px] -ml-4"
         />
+        {/* Product lockup */}
+        <div className="mt-6 -ml-4 text-center">
+          <h2 className="text-[22px] font-semibold tracking-tight" style={{ color: '#111111', fontFamily: 'Inter, sans-serif' }}>
+            MakoVote
+          </h2>
+          <p className="text-[13px] mt-1" style={{ color: '#6B7280' }}>
+            Broadcast polling system
+          </p>
+        </div>
       </div>
 
       {/* Divider */}
       <div
         className="hidden lg:block w-px self-stretch my-16 shrink-0"
-        style={{
-          background: 'linear-gradient(to bottom, transparent, #E5E7EB, transparent)',
-        }}
+        style={{ background: 'linear-gradient(to bottom, transparent, #E5E7EB, transparent)' }}
       />
 
       {/* RIGHT — Login Form */}
       <div className="flex-1 flex items-center justify-center px-8 lg:px-16 lg:max-w-[520px]">
         <div className="w-full max-w-sm">
-          {/* Glass panel */}
           <div
             className="rounded-2xl p-8 border"
             style={{
@@ -77,20 +78,9 @@ export default function Login() {
                   onChange={(e) => setEmail(e.target.value)}
                   placeholder="operator@makosystems.tv"
                   className="flex h-11 w-full rounded-lg px-3 py-2 text-sm outline-none transition-all"
-                  style={{
-                    border: '1px solid #E5E7EB',
-                    color: '#111111',
-                    background: 'rgba(255,255,255,0.6)',
-                    letterSpacing: '-0.01em',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#F97316';
-                    e.target.style.boxShadow = '0 0 0 2px rgba(249,115,22,0.15)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#E5E7EB';
-                    e.target.style.boxShadow = 'none';
-                  }}
+                  style={{ border: '1px solid #E5E7EB', color: '#111111', background: 'rgba(255,255,255,0.6)' }}
+                  onFocus={(e) => { e.target.style.borderColor = '#F97316'; e.target.style.boxShadow = '0 0 0 2px rgba(249,115,22,0.15)'; }}
+                  onBlur={(e) => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none'; }}
                 />
               </div>
               <div className="flex flex-col gap-1.5">
@@ -101,30 +91,15 @@ export default function Login() {
                   onChange={(e) => setPassword(e.target.value)}
                   placeholder="••••••••"
                   className="flex h-11 w-full rounded-lg px-3 py-2 text-sm outline-none transition-all"
-                  style={{
-                    border: '1px solid #E5E7EB',
-                    color: '#111111',
-                    background: 'rgba(255,255,255,0.6)',
-                    letterSpacing: '-0.01em',
-                  }}
-                  onFocus={(e) => {
-                    e.target.style.borderColor = '#F97316';
-                    e.target.style.boxShadow = '0 0 0 2px rgba(249,115,22,0.15)';
-                  }}
-                  onBlur={(e) => {
-                    e.target.style.borderColor = '#E5E7EB';
-                    e.target.style.boxShadow = 'none';
-                  }}
+                  style={{ border: '1px solid #E5E7EB', color: '#111111', background: 'rgba(255,255,255,0.6)' }}
+                  onFocus={(e) => { e.target.style.borderColor = '#F97316'; e.target.style.boxShadow = '0 0 0 2px rgba(249,115,22,0.15)'; }}
+                  onBlur={(e) => { e.target.style.borderColor = '#E5E7EB'; e.target.style.boxShadow = 'none'; }}
                 />
               </div>
               <button
                 type="submit"
                 className="h-11 mt-2 rounded-lg font-medium text-sm transition-all active:scale-[0.98]"
-                style={{
-                  background: '#F97316',
-                  color: '#FFFFFF',
-                  fontWeight: 500,
-                }}
+                style={{ background: '#F97316', color: '#FFFFFF' }}
                 onMouseEnter={(e) => (e.currentTarget.style.background = '#EA580C')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = '#F97316')}
               >
