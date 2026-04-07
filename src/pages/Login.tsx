@@ -13,7 +13,7 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen relative" style={{ backgroundColor: '#F7F7F7' }}>
+    <div className="flex min-h-screen relative" style={{ backgroundColor: '#EDE5D8' }}>
       {/* System identity — top left */}
       <span className="absolute top-6 left-8 font-mono text-[12px] tracking-[0.15em] z-20" style={{ color: '#9CA3AF' }}>
         MAKO SYSTEMS
@@ -24,30 +24,23 @@ export default function Login() {
         MakoVote v0.1
       </span>
 
-      {/* LEFT — Illustration as layout composition element */}
-      <div className="hidden lg:flex flex-1 relative overflow-hidden items-end justify-center pb-[8%]">
-        {/* Large anchored illustration — faded edges, no bounding box */}
+      {/* LEFT — Illustration + branding lockup */}
+      <div className="hidden lg:flex flex-1 flex-col items-center justify-center relative overflow-hidden">
         <img
           src={makoIllustration}
           alt=""
-          className="absolute pointer-events-none select-none"
+          className="pointer-events-none select-none"
           style={{
-            width: '120%',
-            maxWidth: 'none',
-            top: '50%',
-            left: '-15%',
-            transform: 'translateY(-50%)',
-            opacity: 0.88,
-            maskImage: 'radial-gradient(ellipse 80% 80% at 55% 50%, black 40%, transparent 100%)',
-            WebkitMaskImage: 'radial-gradient(ellipse 80% 80% at 55% 50%, black 40%, transparent 100%)',
+            width: '75%',
+            maxWidth: '480px',
+            opacity: 1,
           }}
         />
-        {/* Product lockup — anchored bottom-center of left column */}
-        <div className="relative z-10 flex flex-col items-center">
-          <h2 className="text-[30px] font-semibold tracking-tight" style={{ color: '#111111', fontFamily: 'Inter, sans-serif' }}>
+        <div className="flex flex-col items-center mt-6">
+          <h2 className="text-[32px] font-semibold tracking-tight" style={{ color: '#111111', fontFamily: 'Inter, sans-serif' }}>
             MakoVote
           </h2>
-          <p className="text-[13px] mt-1" style={{ color: '#6B7280' }}>
+          <p className="text-[13px] mt-1.5" style={{ color: '#6B7280' }}>
             Broadcast polling system
           </p>
         </div>
