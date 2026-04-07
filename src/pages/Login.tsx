@@ -36,7 +36,7 @@ export default function Login() {
           <img
             src={makovoteLogo}
             alt="MakoVote"
-            className="mt-6 h-16"
+            className="mt-1.5 h-16"
           />
         </div>
       </div>
