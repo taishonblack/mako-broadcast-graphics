@@ -31,12 +31,12 @@ export default function Login() {
           <img
             src={makoIllustration}
             alt="MakoVote"
-            className="w-[95%] max-w-[1320px] -ml-4"
+            className="w-full max-w-[2400px]"
           />
           <img
             src={makovoteLogo}
             alt="MakoVote"
-            className="mt-1.5 h-16"
+            className="-mt-2 h-12"
           />
         </div>
       </div>
