@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import makoIllustration from '@/assets/mako-illustration.png';
-import makovoteLogo from '@/assets/makovote-logo.svg';
+import heroCityscape from '@/assets/hero-cityscape.png';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -14,30 +14,33 @@ export default function Login() {
   };
 
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: '#F7F7F7' }}>
-      {/* System identity — top left */}
-      <span className="absolute top-6 left-8 font-mono text-[12px] tracking-[0.15em] z-20" style={{ color: '#9CA3AF' }}>
-        MAKO SYSTEMS
-      </span>
+    <div className="flex min-h-screen relative" style={{ backgroundColor: '#F7F7F7' }}>
+      {/* Top-left brand lockup */}
+      <div className="absolute top-6 left-8 flex items-center z-20" style={{ gap: '8px' }}>
+        <img
+          src={makoIllustration}
+          alt="MakoVote"
+          style={{ width: '36px', height: 'auto' }}
+        />
+        <span style={{ fontSize: '20px', fontWeight: 600, lineHeight: 1, letterSpacing: '-0.3px' }}>
+          <span style={{ color: '#111111' }}>Mako</span>
+          <span style={{ color: '#E8743B' }}>Vote</span>
+        </span>
+      </div>
 
       {/* Version — bottom left */}
       <span className="absolute bottom-6 left-8 font-mono text-[11px] z-20" style={{ color: '#D1D5DB' }}>
         MakoVote v0.1
       </span>
 
-      {/* LEFT — Branded illustration block */}
+      {/* LEFT — Hero illustration area */}
       <div className="hidden lg:flex flex-1 relative overflow-hidden" style={{ backgroundColor: 'rgb(241, 236, 225)' }}>
-        <div className="absolute bottom-12 left-12 flex flex-col items-start" style={{ gap: '8px' }}>
-          <img
-            src={makoIllustration}
-            alt="MakoVote"
-            style={{ width: '700px', display: 'block' }}
-          />
-          <span style={{ fontSize: '48px', fontWeight: 600, lineHeight: 1, letterSpacing: '-0.5px', display: 'block' }}>
-            <span style={{ color: '#111111' }}>Mako</span>
-            <span style={{ color: '#E8743B' }}>Vote</span>
-          </span>
-        </div>
+        <img
+          src={heroCityscape}
+          alt=""
+          className="absolute inset-0 w-full h-full object-cover"
+          style={{ opacity: 0.85 }}
+        />
       </div>
 
       {/* Divider */}
@@ -60,7 +63,7 @@ export default function Login() {
           >
             <div className="mb-8">
               <h1 className="text-xl font-semibold tracking-tight" style={{ color: '#111111' }}>
-                MakoVote
+                Sign In
               </h1>
               <p className="text-[13px] mt-1" style={{ color: '#6B7280' }}>
                 Broadcast polling control system
