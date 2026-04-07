@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import makoIllustration from '@/assets/mako-illustration.png';
+import makovoteLogo from '@/assets/makovote-logo.svg';
 
 export default function Login() {
   const navigate = useNavigate();
@@ -26,11 +27,18 @@ export default function Login() {
 
       {/* LEFT — Branded illustration block */}
       <div className="hidden lg:flex flex-1 flex-col items-center justify-center relative overflow-hidden px-12" style={{ backgroundColor: 'rgb(241, 236, 225)' }}>
-        <img
-          src={makoIllustration}
-          alt="MakoVote"
-          className="w-[95%] max-w-[1320px] -ml-4"
-        />
+        <div className="flex flex-col items-center">
+          <img
+            src={makoIllustration}
+            alt="MakoVote"
+            className="w-[95%] max-w-[1320px] -ml-4"
+          />
+          <img
+            src={makovoteLogo}
+            alt="MakoVote"
+            className="mt-6 h-16"
+          />
+        </div>
       </div>
 
       {/* Divider */}
