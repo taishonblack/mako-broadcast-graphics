@@ -4,11 +4,12 @@ import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { PollStatusChip } from '@/components/broadcast/PollStatusChip';
 import { OutputStatusChip } from '@/components/broadcast/OutputStatusChip';
 import { BroadcastPreviewFrame } from '@/components/broadcast/BroadcastPreviewFrame';
+import { SceneSelector } from '@/components/broadcast/SceneSelector';
 import { HorizontalBarChart } from '@/components/charts/HorizontalBarChart';
-import { DonutChart } from '@/components/charts/DonutChart';
 import { Button } from '@/components/ui/button';
 import { mockPolls, recentPolls, templateLabels } from '@/lib/mock-data';
 import { OutputState } from '@/lib/types';
+import { SceneType } from '@/lib/scenes';
 import {
   PlusCircle, Copy, Play, Square, RotateCcw, QrCode, Monitor,
   ExternalLink, Eye, EyeOff, ChevronRight
@@ -19,6 +20,14 @@ export default function Dashboard() {
   const [outputState] = useState<OutputState>('live_output');
   const [showTitleSafe, setShowTitleSafe] = useState(false);
   const [showActionSafe, setShowActionSafe] = useState(false);
+  const [activeScene, setActiveScene] = useState<SceneType>('fullscreen');
+
+  const handleSceneChange = (scene: SceneType) => {
+    setActiveScene(scene);
+    // Broadcast to output window via localStorage
+    localStorage.setItem('mako-scene', scene);
+    window.dispatchEvent(new StorageEvent('storage', { key: 'mako-scene', newValue: scene }));
+  };
 
   return (
     <OperatorLayout>
@@ -62,12 +71,15 @@ export default function Dashboard() {
               <p className="text-base font-semibold text-foreground mt-1">{activePoll.question}</p>
             </div>
 
-            <HorizontalBarChart
-              options={activePoll.options}
-              totalVotes={activePoll.totalVotes}
-              showPercent
-              showVotes
-            />
+            {/* Live shimmer effect on active poll */}
+            <div className="relative">
+              <HorizontalBarChart
+                options={activePoll.options}
+                totalVotes={activePoll.totalVotes}
+                showPercent
+                showVotes
+              />
+            </div>
 
             <div className="grid grid-cols-2 gap-3 pt-2 border-t border-border">
               <div>
@@ -81,7 +93,7 @@ export default function Dashboard() {
             </div>
           </div>
 
-          {/* Center — Preview */}
+          {/* Center — Preview + Scenes */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
               <h2 className="text-sm font-semibold text-foreground">Program Preview</h2>
@@ -119,6 +131,12 @@ export default function Dashboard() {
                 </div>
               </div>
             </BroadcastPreviewFrame>
+
+            {/* Scene Selector */}
+            <div className="mako-panel p-3 flex items-center justify-between">
+              <span className="text-[10px] text-muted-foreground font-mono uppercase">Scenes</span>
+              <SceneSelector activeScene={activeScene} onSceneChange={handleSceneChange} />
+            </div>
           </div>
 
           {/* Right — Quick Actions */}

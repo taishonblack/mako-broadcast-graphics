@@ -32,12 +32,12 @@ export default function Login() {
 
   return (
     <div className="flex min-h-screen relative" style={{ backgroundColor: '#F7F7F7' }}>
-      {/* Top-left brand lockup */}
-      <div className="absolute top-6 left-8 flex items-center z-20" style={{ gap: '12px' }}>
+      {/* Top-left brand lockup — tightened */}
+      <div className="absolute top-6 left-8 flex items-center z-20" style={{ gap: '6px' }}>
         <img
           src={makoIllustration}
           alt="MakoVote"
-          style={{ width: '120px', height: 'auto' }}
+          style={{ width: '108px', height: 'auto' }}
         />
         <span style={{ fontSize: '64px', fontWeight: 600, lineHeight: 1, letterSpacing: '-1px' }}>
           <span style={{ color: '#111111' }}>Mako</span>
@@ -56,7 +56,14 @@ export default function Login() {
           src={heroCityscape}
           alt=""
           className="absolute inset-0 w-full h-full object-cover"
-          style={{ opacity: 0.85 }}
+          style={{ opacity: 0.85, filter: 'blur(3px)' }}
+        />
+        {/* Overlay gradient: left transparent → right dark */}
+        <div
+          className="absolute inset-0 z-10 pointer-events-none"
+          style={{
+            background: 'linear-gradient(to right, transparent 30%, rgba(0,0,0,0.25) 100%)',
+          }}
         />
       </div>
 
