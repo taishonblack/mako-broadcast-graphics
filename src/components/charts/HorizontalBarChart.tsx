@@ -44,7 +44,8 @@ export function HorizontalBarChart({
                 style={{
                   width: `${pct}%`,
                   backgroundColor: colors[i % colors.length],
-                  transition: animated ? 'width 0.5s ease-out' : 'none',
+                  boxShadow: pct > 0 ? `0 0 12px -2px ${colors[i % colors.length]}` : 'none',
+                  transition: animated ? 'width 0.5s ease-out, box-shadow 0.3s ease' : 'none',
                 }}
               />
             </div>
