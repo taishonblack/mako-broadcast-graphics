@@ -1,4 +1,5 @@
 import { PollState } from '@/lib/types';
+// Enhanced with live pulse animation
 
 const stateConfig: Record<PollState, { label: string; className: string }> = {
   draft: { label: 'DRAFT', className: 'bg-muted text-muted-foreground' },

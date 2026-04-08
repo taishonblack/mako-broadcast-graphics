@@ -1,16 +1,29 @@
 import { useState, useEffect } from 'react';
-import { HorizontalBarChart } from '@/components/charts/HorizontalBarChart';
-import { DonutChart } from '@/components/charts/DonutChart';
-import { QRPreviewCard } from '@/components/broadcast/QRPreviewCard';
 import { mockPolls } from '@/lib/mock-data';
 import { themePresets } from '@/lib/themes';
-import { QRCodeSVG } from 'qrcode.react';
+import { SceneType } from '@/lib/scenes';
+import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
+import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
+import { QRScene } from '@/components/broadcast/scenes/QRScene';
+import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
 
 export default function ProgramOutput() {
   const poll = mockPolls[0];
   const theme = themePresets[0];
   const [liveVotes, setLiveVotes] = useState(poll.options.map(o => o.votes));
   const [total, setTotal] = useState(poll.totalVotes);
+  const [scene, setScene] = useState<SceneType>('fullscreen');
+
+  // Listen for scene changes from dashboard
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === 'mako-scene' && e.newValue) {
+        setScene(e.newValue as SceneType);
+      }
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, []);
 
   // Simulate live vote updates
   useEffect(() => {
@@ -27,55 +40,34 @@ export default function ProgramOutput() {
   const liveOptions = poll.options.map((o, i) => ({ ...o, votes: liveVotes[i] }));
   const colors = [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
 
+  const renderScene = () => {
+    const baseProps = { question: poll.question, options: liveOptions, totalVotes: total, colors, theme };
+
+    switch (scene) {
+      case 'lowerThird':
+        return <LowerThirdScene {...baseProps} />;
+      case 'qr':
+        return <QRScene slug={poll.slug} theme={theme} />;
+      case 'results':
+        return <ResultsScene {...baseProps} />;
+      case 'fullscreen':
+      default:
+        return <FullscreenScene {...baseProps} />;
+    }
+  };
+
   return (
     <div
-      className="w-screen h-screen overflow-hidden relative flex flex-col items-center justify-center"
-      style={{
-        background: `linear-gradient(135deg, ${theme.tintColor}, hsl(220, 25%, 6%))`,
-        cursor: 'none',
-      }}
+      className="w-screen h-screen overflow-hidden relative"
+      style={{ cursor: 'none' }}
     >
-      {/* Question */}
-      <div className="text-center mb-10 px-16">
-        <h1
-          className="text-4xl md:text-5xl font-bold leading-tight"
-          style={{ color: theme.textPrimary }}
-        >
-          {poll.question}
-        </h1>
-      </div>
-
-      {/* Chart */}
-      <div className="w-full max-w-2xl px-16">
-        <HorizontalBarChart
-          options={liveOptions}
-          totalVotes={total}
-          colors={colors}
-          showPercent
-          showVotes
-        />
-      </div>
-
-      {/* Total votes */}
-      <div className="mt-8">
-        <span className="font-mono text-sm" style={{ color: theme.textSecondary }}>
-          {total.toLocaleString()} total votes
-        </span>
-      </div>
-
-      {/* QR Code — bottom right */}
-      <div className="absolute bottom-8 right-8">
-        <div className="p-2 rounded-xl" style={{ backgroundColor: 'hsla(0, 0%, 100%, 0.95)' }}>
-          <QRCodeSVG value="https://makovote.tv/vote/penalty-call" size={80} level="M" />
-        </div>
-      </div>
-
-      {/* Bug — bottom left */}
-      <div className="absolute bottom-8 left-8 flex items-center gap-2 opacity-50">
-        <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
-          <span className="text-primary-foreground font-bold text-[10px]">M</span>
-        </div>
-        <span className="font-mono text-[10px]" style={{ color: theme.textSecondary }}>MakoVote</span>
+      {/* Scene with transition */}
+      <div
+        key={scene}
+        className="absolute inset-0 animate-fade-in"
+        style={{ animationDuration: '300ms' }}
+      >
+        {renderScene()}
       </div>
     </div>
   );
