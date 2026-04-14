@@ -4,6 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Login from "./pages/Login";
+import ProjectLauncher from "./pages/ProjectLauncher";
 import Dashboard from "./pages/Dashboard";
 import PollCreate from "./pages/PollCreate";
 import GraphicsEditor from "./pages/GraphicsEditor";
@@ -21,6 +22,7 @@ const App = () => (
       <BrowserRouter>
         <Routes>
           <Route path="/" element={<Login />} />
+          <Route path="/projects" element={<ProjectLauncher />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/polls/new" element={<PollCreate />} />
           <Route path="/polls/:id/edit" element={<PollCreate />} />

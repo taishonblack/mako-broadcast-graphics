@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { Link } from 'react-router-dom';
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { LiveStatusIndicator } from '@/components/broadcast/LiveStatusIndicator';
@@ -14,15 +14,16 @@ import { QRScene } from '@/components/broadcast/scenes/QRScene';
 import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
 import { GraphicsWorkspace, DraftState } from '@/components/broadcast/GraphicsWorkspace';
 import { Button } from '@/components/ui/button';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { mockProject, templateLabels } from '@/lib/mock-data';
-import { LiveState, VotingState, QRPosition, Poll } from '@/lib/types';
+import { LiveState, VotingState, QRPosition, Poll, PollQueue as PollQueueType } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
 import { themePresets } from '@/lib/themes';
 import {
   PlusCircle, Copy, Play, Square, Monitor,
   ExternalLink, ChevronRight, Vote, XCircle, Eye,
-  Maximize2, RotateCcw, Layout, Palette, Radio
+  Maximize2, RotateCcw, Palette, Radio, Layers
 } from 'lucide-react';
 
 type WorkspaceMode = 'operator' | 'graphics';
@@ -33,8 +34,6 @@ interface WorkspaceLayout {
   leftSize: number;
   centerSize: number;
   rightSize: number;
-  leftTopSize: number;
-  leftBottomSize: number;
   maximized: boolean;
 }
 
@@ -42,8 +41,6 @@ const DEFAULT_LAYOUT: WorkspaceLayout = {
   leftSize: 22,
   centerSize: 56,
   rightSize: 22,
-  leftTopSize: 40,
-  leftBottomSize: 60,
   maximized: false,
 };
 
@@ -62,9 +59,26 @@ function saveLayout(layout: Partial<WorkspaceLayout>) {
   } catch {}
 }
 
+/** Tooltip-wrapped button helper */
+function TipButton({ tip, children, ...props }: { tip: string; children: React.ReactNode } & React.ComponentProps<typeof Button>) {
+  return (
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <Button {...props}>{children}</Button>
+      </TooltipTrigger>
+      <TooltipContent side="bottom" className="text-xs max-w-[220px]">{tip}</TooltipContent>
+    </Tooltip>
+  );
+}
+
 export default function Dashboard() {
   const [project, setProject] = useState(mockProject);
-  const [activePollId, setActivePollId] = useState(project.polls[0].id);
+  const [activeQueueId, setActiveQueueId] = useState(project.queues[0]?.id ?? '');
+  const activeQueue = project.queues.find(q => q.id === activeQueueId) || project.queues[0];
+  const allPolls = useMemo(() => project.queues.flatMap(q => q.polls), [project.queues]);
+  const [activePollId, setActivePollId] = useState(allPolls[0]?.id ?? '');
+  const activePoll = allPolls.find(p => p.id === activePollId) || allPolls[0];
+
   const [liveState, setLiveState] = useState<LiveState>('not_live');
   const [previewScene, setPreviewScene] = useState<SceneType>('fullscreen');
   const [programScene, setProgramScene] = useState<SceneType>('fullscreen');
@@ -78,15 +92,21 @@ export default function Dashboard() {
   const [layoutKey, setLayoutKey] = useState(0);
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('operator');
 
-  const activePoll = project.polls.find(p => p.id === activePollId) || project.polls[0];
   const previewTheme = themePresets[0];
   const previewColors = [previewTheme.chartColorA, previewTheme.chartColorB, previewTheme.chartColorC, previewTheme.chartColorD];
 
-  const updatePollVotingState = (pollId: string, votingState: VotingState) => {
+  const updatePollInProject = (pollId: string, updater: (p: Poll) => Poll) => {
     setProject(prev => ({
       ...prev,
-      polls: prev.polls.map(p => p.id === pollId ? { ...p, votingState } : p),
+      queues: prev.queues.map(q => ({
+        ...q,
+        polls: q.polls.map(p => p.id === pollId ? updater(p) : p),
+      })),
     }));
+  };
+
+  const updatePollVotingState = (pollId: string, votingState: VotingState) => {
+    updatePollInProject(pollId, p => ({ ...p, votingState }));
   };
 
   const broadcastScene = useCallback((scene: SceneType, transition: 'take' | 'cut') => {
@@ -140,7 +160,9 @@ export default function Dashboard() {
     };
     setProject(prev => ({
       ...prev,
-      polls: [...prev.polls, newPoll],
+      queues: prev.queues.map(q =>
+        q.id === activeQueueId ? { ...q, polls: [...q.polls, newPoll] } : q
+      ),
     }));
   };
 
@@ -161,12 +183,12 @@ export default function Dashboard() {
   };
 
   const handleApplyDraft = (draft: DraftState) => {
-    setProject(prev => ({
-      ...prev,
-      polls: prev.polls.map(p => p.id === activePollId
-        ? { ...p, question: draft.question, options: draft.options, template: draft.template, themeId: draft.themeId }
-        : p
-      ),
+    updatePollInProject(activePollId, p => ({
+      ...p,
+      question: draft.question,
+      options: draft.options,
+      template: draft.template,
+      themeId: draft.themeId,
     }));
   };
 
@@ -192,15 +214,12 @@ export default function Dashboard() {
   }, [broadcastScene]);
 
   const renderPreviewScene = () => {
+    const props = { question: activePoll.question, options: activePoll.options, totalVotes: activePoll.totalVotes, colors: previewColors, theme: previewTheme };
     switch (previewScene) {
-      case 'lowerThird':
-        return <LowerThirdScene question={activePoll.question} options={activePoll.options} totalVotes={activePoll.totalVotes} colors={previewColors} theme={previewTheme} />;
-      case 'qr':
-        return <QRScene slug={activePoll.slug} theme={previewTheme} />;
-      case 'results':
-        return <ResultsScene question={activePoll.question} options={activePoll.options} totalVotes={activePoll.totalVotes} colors={previewColors} theme={previewTheme} />;
-      default:
-        return <FullscreenScene question={activePoll.question} options={activePoll.options} totalVotes={activePoll.totalVotes} colors={previewColors} theme={previewTheme} />;
+      case 'lowerThird': return <LowerThirdScene {...props} />;
+      case 'qr': return <QRScene slug={activePoll.slug} theme={previewTheme} />;
+      case 'results': return <ResultsScene {...props} />;
+      default: return <FullscreenScene {...props} />;
     }
   };
 
@@ -211,25 +230,19 @@ export default function Dashboard() {
         <div className="flex items-center gap-3">
           {/* Workspace Mode Toggle */}
           <div className="flex items-center gap-0.5 bg-muted/50 rounded-lg p-0.5 mr-2">
-            <button
-              onClick={() => setWorkspaceMode('operator')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
-                workspaceMode === 'operator' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Radio className="w-3 h-3" /> Operator
-            </button>
-            <button
-              onClick={() => setWorkspaceMode('graphics')}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
-                workspaceMode === 'graphics' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
-              }`}
-            >
-              <Palette className="w-3 h-3" /> Graphics
-            </button>
+            <Tooltip><TooltipTrigger asChild>
+              <button onClick={() => setWorkspaceMode('operator')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${workspaceMode === 'operator' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                <Radio className="w-3 h-3" /> Operator
+              </button>
+            </TooltipTrigger><TooltipContent side="bottom">Live broadcast control workspace</TooltipContent></Tooltip>
+            <Tooltip><TooltipTrigger asChild>
+              <button onClick={() => setWorkspaceMode('graphics')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${workspaceMode === 'graphics' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+                <Palette className="w-3 h-3" /> Graphics
+              </button>
+            </TooltipTrigger><TooltipContent side="bottom">Design and refine poll graphics</TooltipContent></Tooltip>
           </div>
           <div className="w-px h-6 bg-border" />
-          <span className="font-semibold text-foreground text-sm">{project.name}</span>
+          <Link to="/projects" className="text-sm font-semibold text-foreground hover:text-primary transition-colors">{project.name}</Link>
           <span className="text-muted-foreground text-xs">·</span>
           <span className="text-xs text-muted-foreground truncate max-w-[200px]">{activePoll.internalName}</span>
           <LiveStatusIndicator state={liveState} />
@@ -239,26 +252,26 @@ export default function Dashboard() {
         <div className="flex items-center gap-2">
           {workspaceMode === 'operator' && (
             <>
-              <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground" onClick={handleResetLayout} title="Reset Layout">
+              <TipButton tip="Reset workspace panels to default layout" variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground" onClick={handleResetLayout}>
                 <RotateCcw className="w-3.5 h-3.5" />
-              </Button>
-              <Button variant="ghost" size="sm" className={`gap-1.5 text-xs ${layout.maximized ? 'text-primary' : 'text-muted-foreground'}`} onClick={handleMaximizePreview} title="Maximize Preview">
+              </TipButton>
+              <TipButton tip="Expand Program Preview to full width" variant="ghost" size="sm" className={`gap-1.5 text-xs ${layout.maximized ? 'text-primary' : 'text-muted-foreground'}`} onClick={handleMaximizePreview}>
                 <Maximize2 className="w-3.5 h-3.5" />
-              </Button>
+              </TipButton>
               <div className="w-px h-6 bg-border mx-1" />
             </>
           )}
-          <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleOpenOutput}>
+          <TipButton tip="Launch dedicated program output window for secondary display" variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleOpenOutput}>
             <Monitor className="w-3.5 h-3.5" /> Open Output
-          </Button>
+          </TipButton>
           {liveState === 'not_live' ? (
-            <Button size="sm" className="gap-1.5 text-xs" onClick={handleGoLive}>
+            <TipButton tip="Send current preview to the output window" size="sm" className="gap-1.5 text-xs" onClick={handleGoLive}>
               <Play className="w-3.5 h-3.5" /> Go Live
-            </Button>
+            </TipButton>
           ) : (
-            <Button variant="destructive" size="sm" className="gap-1.5 text-xs" onClick={handleEndPoll}>
+            <TipButton tip="End current poll on output and return to preview" variant="destructive" size="sm" className="gap-1.5 text-xs" onClick={handleEndPoll}>
               <Square className="w-3.5 h-3.5" /> End Poll
-            </Button>
+            </TipButton>
           )}
         </div>
       </header>
@@ -285,23 +298,50 @@ export default function Dashboard() {
           direction="horizontal"
           className="h-full"
           onLayout={(sizes) => {
-            if (sizes.length === 3) {
-              saveLayout({ leftSize: sizes[0], centerSize: sizes[1], rightSize: sizes[2] });
-            }
+            if (sizes.length === 3) saveLayout({ leftSize: sizes[0], centerSize: sizes[1], rightSize: sizes[2] });
           }}
         >
-          {/* Left Panel — Poll Queue + Active Poll */}
+          {/* Left Panel — Queue Selector + Poll Queue + Active Poll */}
           {!layout.maximized && (
             <>
               <ResizablePanel defaultSize={layout.leftSize} minSize={16} maxSize={35} className="p-3">
                 <div className="h-full overflow-auto space-y-3">
-                  {/* Poll Queue */}
+                  {/* Queue Selector */}
                   <div className="mako-panel p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-xs font-semibold text-foreground font-mono uppercase">Poll Queue</h2>
-                      <span className="text-[10px] text-muted-foreground font-mono">{project.polls.length} polls</span>
+                      <h2 className="text-xs font-semibold text-foreground font-mono uppercase">Poll Queues</h2>
+                      <span className="text-[10px] text-muted-foreground font-mono">{project.queues.length} queues</span>
                     </div>
-                    <PollQueue polls={project.polls} activePollId={activePollId} onSelectPoll={setActivePollId} />
+                    <div className="flex flex-col gap-1">
+                      {project.queues.map(q => (
+                        <button
+                          key={q.id}
+                          onClick={() => {
+                            setActiveQueueId(q.id);
+                            if (q.polls.length > 0) setActivePollId(q.polls[0].id);
+                          }}
+                          className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors border ${
+                            q.id === activeQueueId
+                              ? 'bg-primary/10 border-primary/30 text-primary'
+                              : 'bg-transparent border-transparent text-muted-foreground hover:bg-accent/30'
+                          }`}
+                        >
+                          <div className="flex items-center justify-between">
+                            <span className="flex items-center gap-1.5"><Layers className="w-3 h-3" />{q.name}</span>
+                            <span className="font-mono text-[10px]">{q.polls.length}</span>
+                          </div>
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Polls in active queue */}
+                  <div className="mako-panel p-3 space-y-2">
+                    <div className="flex items-center justify-between">
+                      <h2 className="text-xs font-semibold text-foreground font-mono uppercase">{activeQueue?.name ?? 'Polls'}</h2>
+                      <span className="text-[10px] text-muted-foreground font-mono">{activeQueue?.polls.length ?? 0} polls</span>
+                    </div>
+                    <PollQueue polls={activeQueue?.polls ?? []} activePollId={activePollId} onSelectPoll={setActivePollId} />
                   </div>
 
                   {/* Active Poll Details */}
@@ -339,24 +379,16 @@ export default function Dashboard() {
                 <div className="flex items-center gap-3">
                   <h2 className="text-sm font-semibold text-foreground">Program Preview</h2>
                   {previewScene !== programScene && (
-                    <span className="mako-chip bg-[hsl(var(--mako-warning)/0.2)] text-[hsl(var(--mako-warning))] text-[10px]">
-                      PREVIEW ≠ PROGRAM
-                    </span>
+                    <span className="mako-chip bg-[hsl(var(--mako-warning)/0.2)] text-[hsl(var(--mako-warning))] text-[10px]">PREVIEW ≠ PROGRAM</span>
                   )}
                 </div>
                 <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => setShowTitleSafe(!showTitleSafe)}
-                    className={`mako-chip cursor-pointer transition-colors ${showTitleSafe ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}
-                  >
-                    Title Safe
-                  </button>
-                  <button
-                    onClick={() => setShowActionSafe(!showActionSafe)}
-                    className={`mako-chip cursor-pointer transition-colors ${showActionSafe ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}
-                  >
-                    Action Safe
-                  </button>
+                  <Tooltip><TooltipTrigger asChild>
+                    <button onClick={() => setShowTitleSafe(!showTitleSafe)} className={`mako-chip cursor-pointer transition-colors ${showTitleSafe ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>Title Safe</button>
+                  </TooltipTrigger><TooltipContent>Toggle title safe area guide (10% inset)</TooltipContent></Tooltip>
+                  <Tooltip><TooltipTrigger asChild>
+                    <button onClick={() => setShowActionSafe(!showActionSafe)} className={`mako-chip cursor-pointer transition-colors ${showActionSafe ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>Action Safe</button>
+                  </TooltipTrigger><TooltipContent>Toggle action safe area guide (5% inset)</TooltipContent></Tooltip>
                 </div>
               </div>
 
@@ -394,7 +426,7 @@ export default function Dashboard() {
 
           <ResizableHandle withHandle />
 
-          {/* Right Panel — Quick Actions + Project Polls */}
+          {/* Right Panel — Quick Actions */}
           <ResizablePanel defaultSize={layout.rightSize} minSize={14} maxSize={30} className="p-3">
             <div className="h-full overflow-auto space-y-3">
               {/* Quick Actions */}
@@ -402,40 +434,40 @@ export default function Dashboard() {
                 <h2 className="text-xs font-semibold text-foreground font-mono uppercase">Quick Actions</h2>
                 <div className="flex flex-col gap-1.5">
                   <Link to="/polls/new">
-                    <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9">
+                    <TipButton tip="Create a new poll in the current queue" variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9">
                       <PlusCircle className="w-3.5 h-3.5" /> New Poll
-                    </Button>
+                    </TipButton>
                   </Link>
-                  <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9" onClick={handleDuplicatePoll}>
+                  <TipButton tip="Duplicate the active poll into the current queue" variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9" onClick={handleDuplicatePoll}>
                     <Copy className="w-3.5 h-3.5" /> Duplicate Poll
-                  </Button>
+                  </TipButton>
                   <div className="border-t border-border my-1" />
                   {activePoll.votingState !== 'open' ? (
-                    <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9 text-[hsl(var(--mako-success))]" onClick={handleOpenVoting}>
+                    <TipButton tip="Allow mobile users to submit responses" variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9 text-[hsl(var(--mako-success))]" onClick={handleOpenVoting}>
                       <Vote className="w-3.5 h-3.5" /> Open Voting
-                    </Button>
+                    </TipButton>
                   ) : (
-                    <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9 text-[hsl(var(--mako-warning))]" onClick={handleCloseVoting}>
+                    <TipButton tip="Stop accepting new responses from mobile users" variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9 text-[hsl(var(--mako-warning))]" onClick={handleCloseVoting}>
                       <XCircle className="w-3.5 h-3.5" /> Close Voting
-                    </Button>
+                    </TipButton>
                   )}
                   <div className="border-t border-border my-1" />
-                  <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9">
+                  <TipButton tip="Preview mobile slate states before sending" variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9">
                     <Eye className="w-3.5 h-3.5" /> Preview Slate
-                  </Button>
+                  </TipButton>
                   <Link to={`/graphics/${activePoll.id}`}>
-                    <Button variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9">
+                    <TipButton tip="Open the visual design editor for this poll" variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9">
                       <ExternalLink className="w-3.5 h-3.5" /> Graphics Editor
-                    </Button>
+                    </TipButton>
                   </Link>
                 </div>
               </div>
 
-              {/* Project Polls Table */}
+              {/* All Project Polls */}
               <div className="mako-panel p-4">
-                <h2 className="text-xs font-semibold text-foreground font-mono uppercase mb-3">Project Polls</h2>
+                <h2 className="text-xs font-semibold text-foreground font-mono uppercase mb-3">All Project Polls</h2>
                 <div className="flex flex-col gap-1">
-                  {project.polls.map((poll) => (
+                  {allPolls.map((poll) => (
                     <button
                       key={poll.id}
                       onClick={() => setActivePollId(poll.id)}
