@@ -1,6 +1,6 @@
-import { Poll, Project, RecentPoll } from './types';
+import { Poll, PollQueue, Project, RecentPoll } from './types';
 
-export const mockPolls: Poll[] = [
+const pollsSegment1: Poll[] = [
   {
     id: 'poll-1',
     internalName: 'Penalty Call Q1',
@@ -49,6 +49,9 @@ export const mockPolls: Poll[] = [
     showFinalResults: true,
     createdAt: '2025-01-15T18:00:00Z',
   },
+];
+
+const pollsSegment2: Poll[] = [
   {
     id: 'poll-3',
     internalName: 'Key Factor',
@@ -75,6 +78,9 @@ export const mockPolls: Poll[] = [
     openedAt: '2025-01-14T20:15:00Z',
     closedAt: '2025-01-14T20:45:00Z',
   },
+];
+
+const pollsSegment3: Poll[] = [
   {
     id: 'poll-4',
     internalName: 'Coach Challenge',
@@ -100,18 +106,63 @@ export const mockPolls: Poll[] = [
   },
 ];
 
+export const mockQueues: PollQueue[] = [
+  { id: 'queue-1', name: 'Opening Segment', polls: pollsSegment1, order: 0 },
+  { id: 'queue-2', name: 'Mid-Show Polls', polls: pollsSegment2, order: 1 },
+  { id: 'queue-3', name: 'Final Segment', polls: pollsSegment3, order: 2 },
+];
+
+// Flatten for backward compat
+export const mockPolls: Poll[] = [...pollsSegment1, ...pollsSegment2, ...pollsSegment3];
+
 export const mockProject: Project = {
   id: 'project-1',
-  name: 'XYZ Show — April 13',
+  name: 'XYZ Show — April 14',
   description: 'Live intermission broadcast',
   themeId: 'broadcast-clean',
-  polls: mockPolls,
+  queues: mockQueues,
   qrSize: 120,
   qrPosition: 'bottom-right',
   showBranding: true,
   brandingPosition: 'bottom-left',
   createdAt: '2025-01-15T17:00:00Z',
+  lastOpenedAt: '2025-04-14T19:00:00Z',
 };
+
+export const mockProjects: Project[] = [
+  mockProject,
+  {
+    id: 'project-2',
+    name: 'Game Night Live — April 12',
+    description: 'Saturday night broadcast',
+    themeId: 'dark-ice',
+    queues: [
+      { id: 'queue-4', name: 'Pre-Game', polls: [], order: 0 },
+    ],
+    qrSize: 120,
+    qrPosition: 'bottom-right',
+    showBranding: true,
+    brandingPosition: 'bottom-left',
+    createdAt: '2025-04-12T16:00:00Z',
+    lastOpenedAt: '2025-04-12T22:30:00Z',
+  },
+  {
+    id: 'project-3',
+    name: 'Studio Show B — April 10',
+    description: 'Studio panel discussion',
+    themeId: 'silver-neutral',
+    queues: [
+      { id: 'queue-5', name: 'Segment 1', polls: [], order: 0 },
+      { id: 'queue-6', name: 'Segment 2', polls: [], order: 1 },
+    ],
+    qrSize: 100,
+    qrPosition: 'bottom-left',
+    showBranding: true,
+    brandingPosition: 'bottom-right',
+    createdAt: '2025-04-10T14:00:00Z',
+    lastOpenedAt: '2025-04-10T18:00:00Z',
+  },
+];
 
 export const recentPolls: RecentPoll[] = [
   { id: 'poll-1', name: 'Penalty Call Q1', date: '2025-01-15', template: 'horizontal-bar', totalVotes: 7983, state: 'live' },
