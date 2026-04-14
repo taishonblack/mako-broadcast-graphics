@@ -1,4 +1,4 @@
-import { ReactNode, useState } from 'react';
+import { ReactNode } from 'react';
 
 interface BroadcastPreviewFrameProps {
   children: ReactNode;
@@ -9,6 +9,13 @@ interface BroadcastPreviewFrameProps {
   className?: string;
 }
 
+/**
+ * Unified broadcast monitor frame.
+ * Always renders at 16:9 using CSS aspect-ratio.
+ * Wraps in a max-width container so it scales proportionally
+ * regardless of parent size — keeping Draft and Dashboard previews
+ * feeling like the same monitor family.
+ */
 export function BroadcastPreviewFrame({
   children,
   showTitleSafe = false,
@@ -27,6 +34,32 @@ export function BroadcastPreviewFrame({
           {label}
         </div>
       )}
+    </div>
+  );
+}
+
+/**
+ * Constrained monitor wrapper that centers the preview and caps its max width.
+ * Use `variant` to control how large the monitor appears:
+ * - "operator"  — dashboard context, ~75-85% of draft size
+ * - "draft"     — build workspace, larger but not unlimited
+ * Both use the same BroadcastPreviewFrame inside.
+ */
+export function MonitorContainer({
+  children,
+  variant = 'draft',
+  className = '',
+}: {
+  children: ReactNode;
+  variant?: 'operator' | 'draft';
+  className?: string;
+}) {
+  const maxW = variant === 'operator' ? 'max-w-[720px]' : 'max-w-[880px]';
+  return (
+    <div className={`w-full flex justify-center ${className}`}>
+      <div className={`w-full ${maxW}`}>
+        {children}
+      </div>
     </div>
   );
 }

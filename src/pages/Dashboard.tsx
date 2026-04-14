@@ -5,7 +5,7 @@ import { LiveStatusIndicator } from '@/components/broadcast/LiveStatusIndicator'
 import { VotingStatusChip } from '@/components/broadcast/VotingStatusChip';
 import { PollQueue } from '@/components/broadcast/PollQueue';
 import { AssetControls } from '@/components/broadcast/AssetControls';
-import { BroadcastPreviewFrame } from '@/components/broadcast/BroadcastPreviewFrame';
+import { BroadcastPreviewFrame, MonitorContainer } from '@/components/broadcast/BroadcastPreviewFrame';
 import { SceneSelector } from '@/components/broadcast/SceneSelector';
 import { HorizontalBarChart } from '@/components/charts/HorizontalBarChart';
 import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
@@ -392,9 +392,11 @@ export default function Dashboard() {
                 </div>
               </div>
 
-              <BroadcastPreviewFrame showTitleSafe={showTitleSafe} showActionSafe={showActionSafe} showLabel>
-                {renderPreviewScene()}
-              </BroadcastPreviewFrame>
+              <MonitorContainer variant="operator">
+                <BroadcastPreviewFrame showTitleSafe={showTitleSafe} showActionSafe={showActionSafe} showLabel>
+                  {renderPreviewScene()}
+                </BroadcastPreviewFrame>
+              </MonitorContainer>
 
               {/* Scene Selector */}
               <div className="mako-panel p-3">
