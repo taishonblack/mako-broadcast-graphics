@@ -126,17 +126,18 @@ export function GraphicsWorkspace({
   const renderScene = () => {
     const displayQuestion = viewMode === 'draft' ? draft.question : poll.question;
     const displayOptions = viewMode === 'draft' ? draft.options : poll.options;
+    const displayTemplate = viewMode === 'draft' ? draft.template : poll.template;
     const totalVotes = displayOptions.reduce((sum, o) => sum + o.votes, 0);
 
     switch (previewScene) {
       case 'lowerThird':
-        return <LowerThirdScene question={displayQuestion} options={displayOptions} totalVotes={totalVotes} colors={colors} theme={selectedTheme} />;
+        return <LowerThirdScene question={displayQuestion} options={displayOptions} totalVotes={totalVotes} colors={colors} theme={selectedTheme} template={displayTemplate} />;
       case 'qr':
         return <QRScene slug={poll.slug} theme={selectedTheme} />;
       case 'results':
         return <ResultsScene question={displayQuestion} options={displayOptions} totalVotes={totalVotes} colors={colors} theme={selectedTheme} />;
       default:
-        return <FullscreenScene question={displayQuestion} options={displayOptions} totalVotes={totalVotes} colors={colors} theme={selectedTheme} />;
+        return <FullscreenScene question={displayQuestion} options={displayOptions} totalVotes={totalVotes} colors={colors} theme={selectedTheme} template={displayTemplate} />;
     }
   };
 
