@@ -209,6 +209,26 @@ export default function Dashboard() {
       {/* Top Bar */}
       <header className="h-14 border-b border-border flex items-center justify-between px-4 shrink-0 bg-card/50">
         <div className="flex items-center gap-3">
+          {/* Workspace Mode Toggle */}
+          <div className="flex items-center gap-0.5 bg-muted/50 rounded-lg p-0.5 mr-2">
+            <button
+              onClick={() => setWorkspaceMode('operator')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                workspaceMode === 'operator' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Radio className="w-3 h-3" /> Operator
+            </button>
+            <button
+              onClick={() => setWorkspaceMode('graphics')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                workspaceMode === 'graphics' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Palette className="w-3 h-3" /> Graphics
+            </button>
+          </div>
+          <div className="w-px h-6 bg-border" />
           <span className="font-semibold text-foreground text-sm">{project.name}</span>
           <span className="text-muted-foreground text-xs">·</span>
           <span className="text-xs text-muted-foreground truncate max-w-[200px]">{activePoll.internalName}</span>
@@ -217,14 +237,17 @@ export default function Dashboard() {
           <span className="mako-chip bg-muted text-muted-foreground">1920×1080</span>
         </div>
         <div className="flex items-center gap-2">
-          {/* Workspace controls */}
-          <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground" onClick={handleResetLayout} title="Reset Layout">
-            <RotateCcw className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="ghost" size="sm" className={`gap-1.5 text-xs ${layout.maximized ? 'text-primary' : 'text-muted-foreground'}`} onClick={handleMaximizePreview} title="Maximize Preview">
-            <Maximize2 className="w-3.5 h-3.5" />
-          </Button>
-          <div className="w-px h-6 bg-border mx-1" />
+          {workspaceMode === 'operator' && (
+            <>
+              <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground" onClick={handleResetLayout} title="Reset Layout">
+                <RotateCcw className="w-3.5 h-3.5" />
+              </Button>
+              <Button variant="ghost" size="sm" className={`gap-1.5 text-xs ${layout.maximized ? 'text-primary' : 'text-muted-foreground'}`} onClick={handleMaximizePreview} title="Maximize Preview">
+                <Maximize2 className="w-3.5 h-3.5" />
+              </Button>
+              <div className="w-px h-6 bg-border mx-1" />
+            </>
+          )}
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleOpenOutput}>
             <Monitor className="w-3.5 h-3.5" /> Open Output
           </Button>
@@ -240,7 +263,22 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Resizable Workspace */}
+      {/* Workspace Body */}
+      {workspaceMode === 'graphics' ? (
+        <GraphicsWorkspace
+          poll={activePoll}
+          previewScene={previewScene}
+          qrSize={qrSize}
+          qrPosition={qrPosition}
+          showBranding={showBranding}
+          brandingPosition={brandingPosition}
+          onQrSizeChange={setQrSize}
+          onQrPositionChange={setQrPosition}
+          onShowBrandingChange={setShowBranding}
+          onBrandingPositionChange={setBrandingPosition}
+          onApplyToProgram={handleApplyDraft}
+        />
+      ) : (
       <div className="h-[calc(100vh-3.5rem)] overflow-hidden">
         <ResizablePanelGroup
           key={layoutKey}
