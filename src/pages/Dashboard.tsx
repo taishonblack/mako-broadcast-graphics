@@ -160,6 +160,16 @@ export default function Dashboard() {
     setLayoutKey(k => k + 1);
   };
 
+  const handleApplyDraft = (draft: DraftState) => {
+    setProject(prev => ({
+      ...prev,
+      polls: prev.polls.map(p => p.id === activePollId
+        ? { ...p, question: draft.question, options: draft.options, template: draft.template, themeId: draft.themeId }
+        : p
+      ),
+    }));
+  };
+
   // Hotkeys
   useEffect(() => {
     const sceneMap: Record<string, SceneType> = {
