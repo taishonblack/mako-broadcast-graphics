@@ -12,6 +12,7 @@ import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
 import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
 import { QRScene } from '@/components/broadcast/scenes/QRScene';
 import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
+import { GraphicsWorkspace, DraftState } from '@/components/broadcast/GraphicsWorkspace';
 import { Button } from '@/components/ui/button';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { mockProject, templateLabels } from '@/lib/mock-data';
@@ -21,8 +22,10 @@ import { themePresets } from '@/lib/themes';
 import {
   PlusCircle, Copy, Play, Square, Monitor,
   ExternalLink, ChevronRight, Vote, XCircle, Eye,
-  Maximize2, RotateCcw, Layout
+  Maximize2, RotateCcw, Layout, Palette, Radio
 } from 'lucide-react';
+
+type WorkspaceMode = 'operator' | 'graphics';
 
 const LAYOUT_STORAGE_KEY = 'mako-workspace-layout';
 
@@ -73,6 +76,7 @@ export default function Dashboard() {
   const [brandingPosition, setBrandingPosition] = useState<QRPosition>(project.brandingPosition);
   const [layout, setLayout] = useState<WorkspaceLayout>(loadLayout);
   const [layoutKey, setLayoutKey] = useState(0);
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('operator');
 
   const activePoll = project.polls.find(p => p.id === activePollId) || project.polls[0];
   const previewTheme = themePresets[0];
@@ -156,6 +160,16 @@ export default function Dashboard() {
     setLayoutKey(k => k + 1);
   };
 
+  const handleApplyDraft = (draft: DraftState) => {
+    setProject(prev => ({
+      ...prev,
+      polls: prev.polls.map(p => p.id === activePollId
+        ? { ...p, question: draft.question, options: draft.options, template: draft.template, themeId: draft.themeId }
+        : p
+      ),
+    }));
+  };
+
   // Hotkeys
   useEffect(() => {
     const sceneMap: Record<string, SceneType> = {
@@ -195,6 +209,26 @@ export default function Dashboard() {
       {/* Top Bar */}
       <header className="h-14 border-b border-border flex items-center justify-between px-4 shrink-0 bg-card/50">
         <div className="flex items-center gap-3">
+          {/* Workspace Mode Toggle */}
+          <div className="flex items-center gap-0.5 bg-muted/50 rounded-lg p-0.5 mr-2">
+            <button
+              onClick={() => setWorkspaceMode('operator')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                workspaceMode === 'operator' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Radio className="w-3 h-3" /> Operator
+            </button>
+            <button
+              onClick={() => setWorkspaceMode('graphics')}
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${
+                workspaceMode === 'graphics' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'
+              }`}
+            >
+              <Palette className="w-3 h-3" /> Graphics
+            </button>
+          </div>
+          <div className="w-px h-6 bg-border" />
           <span className="font-semibold text-foreground text-sm">{project.name}</span>
           <span className="text-muted-foreground text-xs">·</span>
           <span className="text-xs text-muted-foreground truncate max-w-[200px]">{activePoll.internalName}</span>
@@ -203,14 +237,17 @@ export default function Dashboard() {
           <span className="mako-chip bg-muted text-muted-foreground">1920×1080</span>
         </div>
         <div className="flex items-center gap-2">
-          {/* Workspace controls */}
-          <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground" onClick={handleResetLayout} title="Reset Layout">
-            <RotateCcw className="w-3.5 h-3.5" />
-          </Button>
-          <Button variant="ghost" size="sm" className={`gap-1.5 text-xs ${layout.maximized ? 'text-primary' : 'text-muted-foreground'}`} onClick={handleMaximizePreview} title="Maximize Preview">
-            <Maximize2 className="w-3.5 h-3.5" />
-          </Button>
-          <div className="w-px h-6 bg-border mx-1" />
+          {workspaceMode === 'operator' && (
+            <>
+              <Button variant="ghost" size="sm" className="gap-1.5 text-xs text-muted-foreground" onClick={handleResetLayout} title="Reset Layout">
+                <RotateCcw className="w-3.5 h-3.5" />
+              </Button>
+              <Button variant="ghost" size="sm" className={`gap-1.5 text-xs ${layout.maximized ? 'text-primary' : 'text-muted-foreground'}`} onClick={handleMaximizePreview} title="Maximize Preview">
+                <Maximize2 className="w-3.5 h-3.5" />
+              </Button>
+              <div className="w-px h-6 bg-border mx-1" />
+            </>
+          )}
           <Button variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleOpenOutput}>
             <Monitor className="w-3.5 h-3.5" /> Open Output
           </Button>
@@ -226,7 +263,22 @@ export default function Dashboard() {
         </div>
       </header>
 
-      {/* Resizable Workspace */}
+      {/* Workspace Body */}
+      {workspaceMode === 'graphics' ? (
+        <GraphicsWorkspace
+          poll={activePoll}
+          previewScene={previewScene}
+          qrSize={qrSize}
+          qrPosition={qrPosition}
+          showBranding={showBranding}
+          brandingPosition={brandingPosition}
+          onQrSizeChange={setQrSize}
+          onQrPositionChange={setQrPosition}
+          onShowBrandingChange={setShowBranding}
+          onBrandingPositionChange={setBrandingPosition}
+          onApplyToProgram={handleApplyDraft}
+        />
+      ) : (
       <div className="h-[calc(100vh-3.5rem)] overflow-hidden">
         <ResizablePanelGroup
           key={layoutKey}
@@ -406,6 +458,7 @@ export default function Dashboard() {
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
+      )}
     </OperatorLayout>
   );
 }
