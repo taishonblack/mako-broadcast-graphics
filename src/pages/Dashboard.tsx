@@ -6,10 +6,15 @@ import { OutputStatusChip } from '@/components/broadcast/OutputStatusChip';
 import { BroadcastPreviewFrame } from '@/components/broadcast/BroadcastPreviewFrame';
 import { SceneSelector } from '@/components/broadcast/SceneSelector';
 import { HorizontalBarChart } from '@/components/charts/HorizontalBarChart';
+import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
+import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
+import { QRScene } from '@/components/broadcast/scenes/QRScene';
+import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
 import { Button } from '@/components/ui/button';
 import { mockPolls, recentPolls, templateLabels } from '@/lib/mock-data';
 import { OutputState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
+import { themePresets } from '@/lib/themes';
 import {
   PlusCircle, Copy, Play, Square, RotateCcw, QrCode, Monitor,
   ExternalLink, Eye, EyeOff, ChevronRight
