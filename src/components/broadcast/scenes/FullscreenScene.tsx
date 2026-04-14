@@ -1,5 +1,5 @@
-import { HorizontalBarChart } from '@/components/charts/HorizontalBarChart';
-import { ThemePreset, PollOption } from '@/lib/types';
+import { renderChart } from '@/lib/render-chart';
+import { ThemePreset, PollOption, TemplateName } from '@/lib/types';
 import { QRCodeSVG } from 'qrcode.react';
 
 interface FullscreenSceneProps {
@@ -8,9 +8,10 @@ interface FullscreenSceneProps {
   totalVotes: number;
   colors: string[];
   theme: ThemePreset;
+  template?: TemplateName;
 }
 
-export function FullscreenScene({ question, options, totalVotes, colors, theme }: FullscreenSceneProps) {
+export function FullscreenScene({ question, options, totalVotes, colors, theme, template = 'horizontal-bar' }: FullscreenSceneProps) {
   return (
     <div
       className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden"
@@ -37,13 +38,7 @@ export function FullscreenScene({ question, options, totalVotes, colors, theme }
         </div>
 
         <div className="w-full max-w-2xl px-16">
-          <HorizontalBarChart
-            options={options}
-            totalVotes={totalVotes}
-            colors={colors}
-            showPercent
-            showVotes
-          />
+          {renderChart({ template, options, totalVotes, colors })}
         </div>
 
         <div className="mt-8">

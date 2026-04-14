@@ -214,7 +214,7 @@ export default function Dashboard() {
   }, [broadcastScene]);
 
   const renderPreviewScene = () => {
-    const props = { question: activePoll.question, options: activePoll.options, totalVotes: activePoll.totalVotes, colors: previewColors, theme: previewTheme };
+    const props = { question: activePoll.question, options: activePoll.options, totalVotes: activePoll.totalVotes, colors: previewColors, theme: previewTheme, template: activePoll.template };
     switch (previewScene) {
       case 'lowerThird': return <LowerThirdScene {...props} />;
       case 'qr': return <QRScene slug={activePoll.slug} theme={previewTheme} />;
@@ -465,7 +465,7 @@ export default function Dashboard() {
 
               {/* All Project Polls */}
               <div className="mako-panel p-4">
-                <h2 className="text-xs font-semibold text-foreground font-mono uppercase mb-3">All Project Polls</h2>
+                <h2 className="text-xs font-semibold text-foreground font-mono uppercase mb-3">All Polls</h2>
                 <div className="flex flex-col gap-1">
                   {allPolls.map((poll) => (
                     <button
