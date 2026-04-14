@@ -20,9 +20,9 @@ export function LowerThirdScene({ question, options, totalVotes, colors, theme }
       {/* Top area — empty (camera/video would show here) */}
       <div className="absolute inset-0" />
 
-      {/* Lower third panel */}
+      {/* Lower third panel — slides up */}
       <div
-        className="absolute bottom-0 left-0 right-0 z-20"
+        className="absolute bottom-0 left-0 right-0 z-20 animate-slide-up"
         style={{
           background: `linear-gradient(to top, hsla(220, 20%, 6%, 0.95), hsla(220, 20%, 6%, 0.85))`,
           backdropFilter: 'blur(16px)',

@@ -13,12 +13,17 @@ export default function ProgramOutput() {
   const [liveVotes, setLiveVotes] = useState(poll.options.map(o => o.votes));
   const [total, setTotal] = useState(poll.totalVotes);
   const [scene, setScene] = useState<SceneType>('fullscreen');
+  const [transitionType, setTransitionType] = useState<'take' | 'cut'>('take');
+  const [sceneKey, setSceneKey] = useState(0);
 
   // Listen for scene changes from dashboard
   useEffect(() => {
     const handler = (e: StorageEvent) => {
       if (e.key === 'mako-scene' && e.newValue) {
-        setScene(e.newValue as SceneType);
+        const [newScene, transition] = e.newValue.split('|') as [SceneType, string];
+        setTransitionType((transition as 'take' | 'cut') || 'take');
+        setScene(newScene);
+        setSceneKey(k => k + 1);
       }
     };
     window.addEventListener('storage', handler);
@@ -56,15 +61,25 @@ export default function ProgramOutput() {
     }
   };
 
+  const animClass = transitionType === 'cut' ? '' : 'animate-fade-in';
+
   return (
     <div
       className="w-screen h-screen overflow-hidden relative"
       style={{ cursor: 'none' }}
     >
+      {/* ON AIR indicator */}
+      <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+        <span className="w-2 h-2 rounded-full bg-[hsl(var(--mako-live))] animate-live-pulse" />
+        <span className="font-mono text-[10px] font-bold tracking-widest text-[hsl(var(--mako-live))] animate-live-pulse">
+          ON AIR
+        </span>
+      </div>
+
       {/* Scene with transition */}
       <div
-        key={scene}
-        className="absolute inset-0 animate-fade-in"
+        key={sceneKey}
+        className={`absolute inset-0 ${animClass}`}
         style={{ animationDuration: '300ms' }}
       >
         {renderScene()}
