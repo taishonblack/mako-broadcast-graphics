@@ -458,6 +458,7 @@ export default function Dashboard() {
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
+      )}
     </OperatorLayout>
   );
 }
