@@ -22,6 +22,8 @@ import {
 
 export default function Dashboard() {
   const activePoll = mockPolls[0];
+  const previewTheme = themePresets[0];
+  const previewColors = [previewTheme.chartColorA, previewTheme.chartColorB, previewTheme.chartColorC, previewTheme.chartColorD];
   const [outputState] = useState<OutputState>('live_output');
   const [showTitleSafe, setShowTitleSafe] = useState(false);
   const [showActionSafe, setShowActionSafe] = useState(false);
