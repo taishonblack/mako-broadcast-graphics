@@ -41,17 +41,25 @@ export interface Poll {
   closedAt?: string;
 }
 
+export interface PollQueue {
+  id: string;
+  name: string;
+  polls: Poll[];
+  order: number;
+}
+
 export interface Project {
   id: string;
   name: string;
   description?: string;
   themeId: string;
-  polls: Poll[];
+  queues: PollQueue[];
   qrSize: number;
   qrPosition: QRPosition;
   showBranding: boolean;
   brandingPosition: QRPosition;
   createdAt: string;
+  lastOpenedAt: string;
 }
 
 export interface ThemePreset {
