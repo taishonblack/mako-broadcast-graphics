@@ -1,5 +1,5 @@
-import { useState, useMemo } from 'react';
-import { BroadcastPreviewFrame } from '@/components/broadcast/BroadcastPreviewFrame';
+import { useState } from 'react';
+import { BroadcastPreviewFrame, MonitorContainer } from '@/components/broadcast/BroadcastPreviewFrame';
 import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
 import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
 import { renderChart } from '@/lib/render-chart';
@@ -29,7 +29,7 @@ export function DraftPreviewMonitor({
   const renderContent = () => {
     if (!hasContent) {
       return (
-        <div className="flex items-center justify-center h-full bg-background/80">
+        <div className="absolute inset-0 flex items-center justify-center bg-background/80">
           <div className="text-center space-y-2">
             <p className="text-lg font-bold text-primary font-mono tracking-wider">MakoVote</p>
             <p className="text-[10px] text-muted-foreground">Start building your poll to see a preview</p>
@@ -46,7 +46,7 @@ export function DraftPreviewMonitor({
     }
 
     return (
-      <div className="flex items-center justify-center h-full p-4" style={{ background: `linear-gradient(135deg, ${theme.tintColor}, hsla(220, 20%, 8%, 0.95))` }}>
+      <div className="absolute inset-0 flex items-center justify-center p-6" style={{ background: `linear-gradient(135deg, ${theme.tintColor}, hsla(220, 20%, 8%, 0.95))` }}>
         <div className="w-full max-w-md space-y-3">
           <p className="text-sm font-bold text-center" style={{ color: theme.textPrimary }}>{question}</p>
           {renderChart({ template, options, totalVotes, colors })}
@@ -64,7 +64,7 @@ export function DraftPreviewMonitor({
   return (
     <div className="flex flex-col h-full">
       {/* Mode toggles */}
-      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card/50">
+      <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card/50 shrink-0">
         <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Preview</h2>
         <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5">
           {modeButtons.map(({ mode, icon: Icon, label, tooltip }) => (
@@ -89,11 +89,13 @@ export function DraftPreviewMonitor({
       </div>
 
       {/* Preview area */}
-      <div className="flex-1 flex items-center justify-center p-3 bg-background/30 min-h-0">
+      <div className="flex-1 flex items-center justify-center p-4 bg-background/30 min-h-0 overflow-auto">
         {previewMode === 'program' ? (
-          <BroadcastPreviewFrame showLabel className="w-full h-full">
-            {renderContent()}
-          </BroadcastPreviewFrame>
+          <MonitorContainer variant="draft">
+            <BroadcastPreviewFrame showLabel>
+              {renderContent()}
+            </BroadcastPreviewFrame>
+          </MonitorContainer>
         ) : (
           <div className={`bg-background border border-border rounded-lg overflow-hidden shadow-xl ${
             previewMode === 'mobile' ? 'w-[280px] h-[500px]' : 'w-full max-w-lg h-[360px]'
@@ -109,7 +111,7 @@ export function DraftPreviewMonitor({
                 <div className="space-y-4">
                   <p className="text-sm font-bold text-foreground">{question}</p>
                   <div className="space-y-2">
-                    {options.map((opt, i) => (
+                    {options.map((opt) => (
                       <button key={opt.id} className="w-full text-left p-3 rounded-lg border border-border hover:border-primary/50 transition-colors text-xs text-foreground bg-card/50">
                         {opt.text}
                       </button>
