@@ -56,7 +56,7 @@ export function OperatorLayout({ children }: { children: ReactNode }) {
       </aside>
 
       {/* Main content */}
-      <main className="flex-1 overflow-auto">
+      <main className="flex-1 flex flex-col min-h-0 min-w-0">
         {children}
       </main>
     </div>
