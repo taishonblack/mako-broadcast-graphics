@@ -161,23 +161,18 @@ export default function Dashboard() {
               </div>
             </div>
             <BroadcastPreviewFrame showTitleSafe={showTitleSafe} showActionSafe={showActionSafe} showLabel>
-              {/* Preview content */}
-              <div
-                className="absolute inset-0 flex flex-col items-center justify-center p-8"
-                style={{ background: 'linear-gradient(135deg, hsl(220, 25%, 8%) 0%, hsl(220, 20%, 12%) 100%)' }}
-              >
-                <div className="text-center mb-6">
-                  <h3 className="text-xl lg:text-2xl font-bold text-foreground">{activePoll.question}</h3>
-                </div>
-                <div className="w-full max-w-sm">
-                  <HorizontalBarChart options={activePoll.options} totalVotes={activePoll.totalVotes} />
-                </div>
-                <div className="absolute bottom-4 right-4 opacity-60">
-                  <div className="w-12 h-12 bg-foreground/10 rounded-lg flex items-center justify-center">
-                    <QrCode className="w-8 h-8 text-foreground/40" />
-                  </div>
-                </div>
-              </div>
+              {previewScene === 'lowerThird' && (
+                <LowerThirdScene question={activePoll.question} options={activePoll.options} totalVotes={activePoll.totalVotes} colors={previewColors} theme={previewTheme} />
+              )}
+              {previewScene === 'qr' && (
+                <QRScene slug={activePoll.slug} theme={previewTheme} />
+              )}
+              {previewScene === 'results' && (
+                <ResultsScene question={activePoll.question} options={activePoll.options} totalVotes={activePoll.totalVotes} colors={previewColors} theme={previewTheme} />
+              )}
+              {(previewScene === 'fullscreen' || !previewScene) && (
+                <FullscreenScene question={activePoll.question} options={activePoll.options} totalVotes={activePoll.totalVotes} colors={previewColors} theme={previewTheme} />
+              )}
             </BroadcastPreviewFrame>
 
             {/* Scene Selector */}
