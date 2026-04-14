@@ -4,6 +4,9 @@ export type TemplateName = 'horizontal-bar' | 'vertical-bar' | 'pie-donut' | 'pr
 export type BackgroundFit = 'cover' | 'contain' | 'stretch';
 export type BackgroundPosition = 'center' | 'top' | 'bottom';
 export type ValueDisplay = 'percent' | 'votes' | 'both';
+export type VotingState = 'not_open' | 'open' | 'closed';
+export type LiveState = 'not_live' | 'live';
+export type QRPosition = 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
 
 export interface PollOption {
   id: string;
@@ -20,6 +23,7 @@ export interface Poll {
   subheadline?: string;
   slug: string;
   state: PollState;
+  votingState: VotingState;
   options: PollOption[];
   totalVotes: number;
   votesPerSecond: number;
@@ -35,6 +39,19 @@ export interface Poll {
   createdAt: string;
   openedAt?: string;
   closedAt?: string;
+}
+
+export interface Project {
+  id: string;
+  name: string;
+  description?: string;
+  themeId: string;
+  polls: Poll[];
+  qrSize: number;
+  qrPosition: QRPosition;
+  showBranding: boolean;
+  brandingPosition: QRPosition;
+  createdAt: string;
 }
 
 export interface ThemePreset {

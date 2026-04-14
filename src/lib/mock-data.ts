@@ -1,4 +1,4 @@
-import { Poll, RecentPoll } from './types';
+import { Poll, Project, RecentPoll } from './types';
 
 export const mockPolls: Poll[] = [
   {
@@ -7,6 +7,7 @@ export const mockPolls: Poll[] = [
     question: 'Was that a penalty?',
     slug: 'penalty-call',
     state: 'live',
+    votingState: 'open',
     options: [
       { id: 'opt-1a', text: 'Yes', shortLabel: 'YES', votes: 4827, order: 0 },
       { id: 'opt-1b', text: 'No', shortLabel: 'NO', votes: 3156, order: 1 },
@@ -31,6 +32,7 @@ export const mockPolls: Poll[] = [
     question: 'Who wins tonight?',
     slug: 'game-winner',
     state: 'ready',
+    votingState: 'not_open',
     options: [
       { id: 'opt-2a', text: 'Rangers', shortLabel: 'NYR', votes: 0, order: 0 },
       { id: 'opt-2b', text: 'Devils', shortLabel: 'NJD', votes: 0, order: 1 },
@@ -53,6 +55,7 @@ export const mockPolls: Poll[] = [
     question: 'What matters more tonight?',
     slug: 'key-factor',
     state: 'closed',
+    votingState: 'closed',
     options: [
       { id: 'opt-3a', text: 'Goaltending', shortLabel: 'GTD', votes: 2891, order: 0 },
       { id: 'opt-3b', text: 'Special Teams', shortLabel: 'SPT', votes: 1842, order: 1 },
@@ -72,7 +75,43 @@ export const mockPolls: Poll[] = [
     openedAt: '2025-01-14T20:15:00Z',
     closedAt: '2025-01-14T20:45:00Z',
   },
+  {
+    id: 'poll-4',
+    internalName: 'Coach Challenge',
+    question: 'Should the coach challenge that call?',
+    slug: 'coach-challenge',
+    state: 'draft',
+    votingState: 'not_open',
+    options: [
+      { id: 'opt-4a', text: 'Yes, challenge it', shortLabel: 'YES', votes: 0, order: 0 },
+      { id: 'opt-4b', text: 'No, save the timeout', shortLabel: 'NO', votes: 0, order: 1 },
+    ],
+    totalVotes: 0,
+    votesPerSecond: 0,
+    template: 'horizontal-bar',
+    themeId: 'broadcast-clean',
+    showLiveResults: true,
+    hideUntilClose: false,
+    minVoteThreshold: 50,
+    allowVoteChange: false,
+    showThankYou: true,
+    showFinalResults: true,
+    createdAt: '2025-01-15T20:00:00Z',
+  },
 ];
+
+export const mockProject: Project = {
+  id: 'project-1',
+  name: 'XYZ Show — April 13',
+  description: 'Live intermission broadcast',
+  themeId: 'broadcast-clean',
+  polls: mockPolls,
+  qrSize: 120,
+  qrPosition: 'bottom-right',
+  showBranding: true,
+  brandingPosition: 'bottom-left',
+  createdAt: '2025-01-15T17:00:00Z',
+};
 
 export const recentPolls: RecentPoll[] = [
   { id: 'poll-1', name: 'Penalty Call Q1', date: '2025-01-15', template: 'horizontal-bar', totalVotes: 7983, state: 'live' },
