@@ -24,7 +24,7 @@ export function QRScene({ slug, theme }: QRSceneProps) {
         }}
       />
 
-      <div className="relative z-10 flex flex-col items-center gap-8">
+      <div className="relative z-10 flex flex-col items-center gap-8 animate-scale-in-scene">
         <h1
           className="text-5xl font-bold tracking-tight"
           style={{ color: theme.textPrimary }}
@@ -33,7 +33,7 @@ export function QRScene({ slug, theme }: QRSceneProps) {
         </h1>
 
         <div
-          className="p-6 rounded-3xl"
+          className="p-6 rounded-3xl shadow-[0_0_60px_-10px_hsla(0,0%,100%,0.15)]"
           style={{ backgroundColor: 'hsla(0, 0%, 100%, 0.95)' }}
         >
           <QRCodeSVG value={url} size={240} level="H" />

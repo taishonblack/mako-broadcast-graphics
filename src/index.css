@@ -155,3 +155,23 @@
   background-size: 200% 100%;
   animation: shimmer 3s ease-in-out infinite;
 }
+
+/* Slide up for lower third */
+@keyframes slide-up {
+  0% { transform: translateY(100%); opacity: 0; }
+  100% { transform: translateY(0); opacity: 1; }
+}
+
+.animate-slide-up {
+  animation: slide-up 400ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+/* Scale in for QR scene */
+@keyframes scale-in-scene {
+  0% { transform: scale(0.85); opacity: 0; }
+  100% { transform: scale(1); opacity: 1; }
+}
+
+.animate-scale-in-scene {
+  animation: scale-in-scene 500ms cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}

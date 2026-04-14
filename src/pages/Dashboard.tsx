@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { Link } from 'react-router-dom';
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { PollStatusChip } from '@/components/broadcast/PollStatusChip';
@@ -20,14 +20,55 @@ export default function Dashboard() {
   const [outputState] = useState<OutputState>('live_output');
   const [showTitleSafe, setShowTitleSafe] = useState(false);
   const [showActionSafe, setShowActionSafe] = useState(false);
-  const [activeScene, setActiveScene] = useState<SceneType>('fullscreen');
+  const [previewScene, setPreviewScene] = useState<SceneType>('fullscreen');
+  const [programScene, setProgramScene] = useState<SceneType>('fullscreen');
 
-  const handleSceneChange = (scene: SceneType) => {
-    setActiveScene(scene);
-    // Broadcast to output window via localStorage
-    localStorage.setItem('mako-scene', scene);
-    window.dispatchEvent(new StorageEvent('storage', { key: 'mako-scene', newValue: scene }));
-  };
+  const broadcastScene = useCallback((scene: SceneType, transition: 'take' | 'cut') => {
+    const value = `${scene}|${transition}`;
+    localStorage.setItem('mako-scene', value);
+    window.dispatchEvent(new StorageEvent('storage', { key: 'mako-scene', newValue: value }));
+  }, []);
+
+  const handleTake = useCallback(() => {
+    setProgramScene(previewScene);
+    broadcastScene(previewScene, 'take');
+  }, [previewScene, broadcastScene]);
+
+  const handleCut = useCallback(() => {
+    setProgramScene(previewScene);
+    broadcastScene(previewScene, 'cut');
+  }, [previewScene, broadcastScene]);
+
+  // Hotkeys
+  useEffect(() => {
+    const sceneMap: Record<string, SceneType> = {
+      '1': 'fullscreen',
+      '2': 'lowerThird',
+      '3': 'qr',
+      '4': 'results',
+    };
+
+    const handler = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement || e.target instanceof HTMLTextAreaElement) return;
+
+      if (sceneMap[e.key]) {
+        e.preventDefault();
+        setPreviewScene(sceneMap[e.key]);
+      }
+      if (e.key === ' ') {
+        e.preventDefault();
+        // Use functional update to get latest previewScene
+        setPreviewScene(prev => {
+          setProgramScene(prev);
+          broadcastScene(prev, 'take');
+          return prev;
+        });
+      }
+    };
+
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [broadcastScene]);
 
   return (
     <OperatorLayout>
@@ -96,7 +137,14 @@ export default function Dashboard() {
           {/* Center — Preview + Scenes */}
           <div className="space-y-3">
             <div className="flex items-center justify-between">
-              <h2 className="text-sm font-semibold text-foreground">Program Preview</h2>
+              <div className="flex items-center gap-3">
+                <h2 className="text-sm font-semibold text-foreground">Program Preview</h2>
+                {previewScene !== programScene && (
+                  <span className="mako-chip bg-mako-warning/20 text-[hsl(var(--mako-warning))] text-[10px]">
+                    PREVIEW ≠ PROGRAM
+                  </span>
+                )}
+              </div>
               <div className="flex items-center gap-2">
                 <button
                   onClick={() => setShowTitleSafe(!showTitleSafe)}
@@ -133,9 +181,14 @@ export default function Dashboard() {
             </BroadcastPreviewFrame>
 
             {/* Scene Selector */}
-            <div className="mako-panel p-3 flex items-center justify-between">
-              <span className="text-[10px] text-muted-foreground font-mono uppercase">Scenes</span>
-              <SceneSelector activeScene={activeScene} onSceneChange={handleSceneChange} />
+            <div className="mako-panel p-3">
+              <SceneSelector
+                previewScene={previewScene}
+                programScene={programScene}
+                onSceneChange={setPreviewScene}
+                onTake={handleTake}
+                onCut={handleCut}
+              />
             </div>
           </div>
 
