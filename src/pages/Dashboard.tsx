@@ -76,6 +76,7 @@ export default function Dashboard() {
   const [brandingPosition, setBrandingPosition] = useState<QRPosition>(project.brandingPosition);
   const [layout, setLayout] = useState<WorkspaceLayout>(loadLayout);
   const [layoutKey, setLayoutKey] = useState(0);
+  const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('operator');
 
   const activePoll = project.polls.find(p => p.id === activePollId) || project.polls[0];
   const previewTheme = themePresets[0];
