@@ -12,6 +12,7 @@ import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
 import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
 import { QRScene } from '@/components/broadcast/scenes/QRScene';
 import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
+import { GraphicsWorkspace, DraftState } from '@/components/broadcast/GraphicsWorkspace';
 import { Button } from '@/components/ui/button';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { mockProject, templateLabels } from '@/lib/mock-data';
@@ -21,8 +22,10 @@ import { themePresets } from '@/lib/themes';
 import {
   PlusCircle, Copy, Play, Square, Monitor,
   ExternalLink, ChevronRight, Vote, XCircle, Eye,
-  Maximize2, RotateCcw, Layout
+  Maximize2, RotateCcw, Layout, Palette, Radio
 } from 'lucide-react';
+
+type WorkspaceMode = 'operator' | 'graphics';
 
 const LAYOUT_STORAGE_KEY = 'mako-workspace-layout';
 
