@@ -7,6 +7,7 @@ import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
 import { LayerPanel } from '@/components/broadcast/layers/LayerPanel';
 import { LayerInspector } from '@/components/broadcast/layers/LayerInspector';
 import { LayerPreviewOverlay } from '@/components/broadcast/layers/LayerPreviewOverlay';
+import { ApplyDraftDialog } from '@/components/broadcast/ApplyDraftDialog';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -95,6 +96,7 @@ export function GraphicsWorkspace({
   const [isDirty, setIsDirty] = useState(false);
   const [layers, setLayers] = useState<GraphicLayer[]>(DEFAULT_LAYERS);
   const [selectedLayerId, setSelectedLayerId] = useState<LayerType | null>(null);
+  const [showApplyDialog, setShowApplyDialog] = useState(false);
 
   const selectedLayer = layers.find(l => l.id === selectedLayerId) || null;
 
@@ -125,8 +127,13 @@ export function GraphicsWorkspace({
   };
 
   const handleApply = () => {
+    setShowApplyDialog(true);
+  };
+
+  const handleConfirmApply = () => {
     onApplyToProgram(draft);
     setIsDirty(false);
+    setShowApplyDialog(false);
   };
 
   const toggleVisibility = (id: LayerType) => {
@@ -401,6 +408,14 @@ export function GraphicsWorkspace({
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
+
+      <ApplyDraftDialog
+        open={showApplyDialog}
+        onOpenChange={setShowApplyDialog}
+        poll={poll}
+        draft={draft}
+        onConfirm={handleConfirmApply}
+      />
     </div>
   );
 }
