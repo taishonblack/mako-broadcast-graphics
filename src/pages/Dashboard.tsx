@@ -101,6 +101,18 @@ export default function Dashboard() {
   const [layout, setLayout] = useState<WorkspaceLayout>(loadLayout);
   const [layoutKey, setLayoutKey] = useState(0);
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('operator');
+  const [activePreset, setActivePreset] = useState<WorkspacePreset>('operator');
+
+  const applyPreset = (preset: WorkspacePreset) => {
+    const newLayout = PRESET_LAYOUTS[preset];
+    setActivePreset(preset);
+    setLayout(newLayout);
+    saveLayout(newLayout);
+    setLayoutKey(k => k + 1);
+    // Auto-switch workspace mode based on preset
+    if (preset === 'graphics') setWorkspaceMode('graphics');
+    else if (preset === 'operator' || preset === 'focus' || preset === 'compact') setWorkspaceMode('operator');
+  };
 
   const previewTheme = themePresets[0];
   const previewColors = [previewTheme.chartColorA, previewTheme.chartColorB, previewTheme.chartColorC, previewTheme.chartColorD];
