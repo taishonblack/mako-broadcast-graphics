@@ -4,6 +4,9 @@ import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
 import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
 import { QRScene } from '@/components/broadcast/scenes/QRScene';
 import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
+import { LayerPanel } from '@/components/broadcast/layers/LayerPanel';
+import { LayerInspector } from '@/components/broadcast/layers/LayerInspector';
+import { LayerPreviewOverlay } from '@/components/broadcast/layers/LayerPreviewOverlay';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,6 +19,7 @@ import { themePresets } from '@/lib/themes';
 import { templateLabels } from '@/lib/mock-data';
 import { Poll, PollOption, QRPosition, TemplateName, ThemePreset } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
+import { GraphicLayer, LayerType, DEFAULT_LAYERS } from '@/lib/layers';
 import {
   Type, AlignLeft, AlignCenter, AlignRight, Bold, Italic,
   CaseSensitive, Save, Send, GripVertical, Plus, Trash2
@@ -89,6 +93,10 @@ export function GraphicsWorkspace({
     themePresets.find(t => t.id === poll.themeId) || themePresets[0]
   );
   const [isDirty, setIsDirty] = useState(false);
+  const [layers, setLayers] = useState<GraphicLayer[]>(DEFAULT_LAYERS);
+  const [selectedLayerId, setSelectedLayerId] = useState<LayerType | null>(null);
+
+  const selectedLayer = layers.find(l => l.id === selectedLayerId) || null;
 
   const updateDraft = (changes: Partial<DraftState>) => {
     setDraft(prev => ({ ...prev, ...changes }));
@@ -121,6 +129,19 @@ export function GraphicsWorkspace({
     setIsDirty(false);
   };
 
+  const toggleVisibility = (id: LayerType) => {
+    setLayers(prev => prev.map(l => l.id === id ? { ...l, visible: !l.visible } : l));
+  };
+
+  const toggleLock = (id: LayerType) => {
+    setLayers(prev => prev.map(l => l.id === id ? { ...l, locked: !l.locked } : l));
+  };
+
+  const updateLayer = (id: LayerType, changes: Partial<GraphicLayer>) => {
+    setLayers(prev => prev.map(l => l.id === id ? { ...l, ...changes } : l));
+    setIsDirty(true);
+  };
+
   const colors = [selectedTheme.chartColorA, selectedTheme.chartColorB, selectedTheme.chartColorC, selectedTheme.chartColorD];
 
   const renderScene = () => {
@@ -144,14 +165,24 @@ export function GraphicsWorkspace({
   return (
     <div className="h-[calc(100vh-3.5rem)] overflow-hidden">
       <ResizablePanelGroup direction="horizontal" className="h-full">
-        {/* Left Panel — Content + Typography */}
-        <ResizablePanel defaultSize={24} minSize={18} maxSize={35} className="p-3">
+        {/* Left Panel — Layers + Content */}
+        <ResizablePanel defaultSize={18} minSize={14} maxSize={28} className="p-3">
           <div className="h-full overflow-auto space-y-1">
-            <Tabs defaultValue="content" className="w-full">
+            <Tabs defaultValue="layers" className="w-full">
               <TabsList className="w-full h-8 bg-muted/50">
+                <TabsTrigger value="layers" className="text-[10px] flex-1">Layers</TabsTrigger>
                 <TabsTrigger value="content" className="text-[10px] flex-1">Content</TabsTrigger>
-                <TabsTrigger value="typography" className="text-[10px] flex-1">Typography</TabsTrigger>
               </TabsList>
+
+              <TabsContent value="layers" className="mt-2">
+                <LayerPanel
+                  layers={layers}
+                  selectedLayerId={selectedLayerId}
+                  onSelectLayer={setSelectedLayerId}
+                  onToggleVisibility={toggleVisibility}
+                  onToggleLock={toggleLock}
+                />
+              </TabsContent>
 
               <TabsContent value="content" className="mt-2 space-y-3">
                 {/* Question */}
@@ -181,12 +212,6 @@ export function GraphicsWorkspace({
                           onChange={(e) => updateOption(i, { text: e.target.value })}
                           className="h-8 text-xs flex-1"
                           placeholder="Answer text"
-                        />
-                        <Input
-                          value={opt.shortLabel || ''}
-                          onChange={(e) => updateOption(i, { shortLabel: e.target.value })}
-                          className="h-8 text-xs w-14"
-                          placeholder="Label"
                         />
                         <button
                           onClick={() => removeOption(i)}
@@ -219,114 +244,13 @@ export function GraphicsWorkspace({
                   </div>
                 </div>
               </TabsContent>
-
-              <TabsContent value="typography" className="mt-2 space-y-3">
-                {/* Font Size */}
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] text-muted-foreground font-mono uppercase">Question Size</Label>
-                  <div className="flex items-center gap-2">
-                    <Slider value={[draft.fontSize]} onValueChange={([v]) => updateDraft({ fontSize: v })} min={14} max={48} step={1} className="flex-1" />
-                    <span className="text-[10px] text-muted-foreground font-mono w-8">{draft.fontSize}px</span>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] text-muted-foreground font-mono uppercase">Answer Size</Label>
-                  <div className="flex items-center gap-2">
-                    <Slider value={[draft.answerFontSize]} onValueChange={([v]) => updateDraft({ answerFontSize: v })} min={10} max={32} step={1} className="flex-1" />
-                    <span className="text-[10px] text-muted-foreground font-mono w-8">{draft.answerFontSize}px</span>
-                  </div>
-                </div>
-
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] text-muted-foreground font-mono uppercase">Percent Size</Label>
-                  <div className="flex items-center gap-2">
-                    <Slider value={[draft.percentFontSize]} onValueChange={([v]) => updateDraft({ percentFontSize: v })} min={10} max={36} step={1} className="flex-1" />
-                    <span className="text-[10px] text-muted-foreground font-mono w-8">{draft.percentFontSize}px</span>
-                  </div>
-                </div>
-
-                {/* Weight / Style / Transform */}
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] text-muted-foreground font-mono uppercase">Style</Label>
-                  <div className="flex items-center gap-1">
-                    <button
-                      onClick={() => updateDraft({ fontWeight: draft.fontWeight === 'bold' ? 'normal' : 'bold' })}
-                      className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors border ${
-                        draft.fontWeight === 'bold' ? 'bg-primary/20 border-primary/30 text-primary' : 'bg-muted border-border text-muted-foreground'
-                      }`}
-                    >
-                      <Bold className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => updateDraft({ fontStyle: draft.fontStyle === 'italic' ? 'normal' : 'italic' })}
-                      className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors border ${
-                        draft.fontStyle === 'italic' ? 'bg-primary/20 border-primary/30 text-primary' : 'bg-muted border-border text-muted-foreground'
-                      }`}
-                    >
-                      <Italic className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => updateDraft({ textTransform: draft.textTransform === 'uppercase' ? 'none' : 'uppercase' })}
-                      className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors border ${
-                        draft.textTransform === 'uppercase' ? 'bg-primary/20 border-primary/30 text-primary' : 'bg-muted border-border text-muted-foreground'
-                      }`}
-                    >
-                      <CaseSensitive className="w-3.5 h-3.5" />
-                    </button>
-                    <div className="w-px h-6 bg-border mx-1" />
-                    <button
-                      onClick={() => updateDraft({ textAlign: 'left' })}
-                      className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors border ${
-                        draft.textAlign === 'left' ? 'bg-primary/20 border-primary/30 text-primary' : 'bg-muted border-border text-muted-foreground'
-                      }`}
-                    >
-                      <AlignLeft className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => updateDraft({ textAlign: 'center' })}
-                      className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors border ${
-                        draft.textAlign === 'center' ? 'bg-primary/20 border-primary/30 text-primary' : 'bg-muted border-border text-muted-foreground'
-                      }`}
-                    >
-                      <AlignCenter className="w-3.5 h-3.5" />
-                    </button>
-                    <button
-                      onClick={() => updateDraft({ textAlign: 'right' })}
-                      className={`w-8 h-8 rounded-md flex items-center justify-center transition-colors border ${
-                        draft.textAlign === 'right' ? 'bg-primary/20 border-primary/30 text-primary' : 'bg-muted border-border text-muted-foreground'
-                      }`}
-                    >
-                      <AlignRight className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                </div>
-
-                {/* Letter Spacing */}
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] text-muted-foreground font-mono uppercase">Letter Spacing</Label>
-                  <div className="flex items-center gap-2">
-                    <Slider value={[draft.letterSpacing]} onValueChange={([v]) => updateDraft({ letterSpacing: v })} min={-2} max={8} step={0.5} className="flex-1" />
-                    <span className="text-[10px] text-muted-foreground font-mono w-8">{draft.letterSpacing}px</span>
-                  </div>
-                </div>
-
-                {/* Line Height */}
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] text-muted-foreground font-mono uppercase">Line Height</Label>
-                  <div className="flex items-center gap-2">
-                    <Slider value={[draft.lineHeight * 10]} onValueChange={([v]) => updateDraft({ lineHeight: v / 10 })} min={8} max={24} step={1} className="flex-1" />
-                    <span className="text-[10px] text-muted-foreground font-mono w-8">{draft.lineHeight.toFixed(1)}</span>
-                  </div>
-                </div>
-              </TabsContent>
             </Tabs>
           </div>
         </ResizablePanel>
 
         <ResizableHandle withHandle />
 
-        {/* Center — Draft / Program Preview */}
+        {/* Center — Preview with Layer Overlay */}
         <ResizablePanel defaultSize={52} minSize={35}>
           <div className="h-full overflow-auto p-3 space-y-3">
             {/* Draft / Program toggle + Apply */}
@@ -364,14 +288,26 @@ export function GraphicsWorkspace({
               </div>
             </div>
 
-            {/* Preview Frame */}
-            <BroadcastPreviewFrame showLabel>
-              {renderScene()}
-            </BroadcastPreviewFrame>
+            {/* Preview Frame with Layer Overlay */}
+            <div className="relative">
+              <BroadcastPreviewFrame showLabel>
+                {renderScene()}
+              </BroadcastPreviewFrame>
+              {viewMode === 'draft' && (
+                <LayerPreviewOverlay
+                  layers={layers}
+                  selectedLayerId={selectedLayerId}
+                  onSelectLayer={setSelectedLayerId}
+                  onUpdateLayer={updateLayer}
+                />
+              )}
+            </div>
 
-            {/* Asset Controls */}
+            {/* Contextual Asset Bar */}
             <div className="mako-panel p-3">
-              <p className="text-[10px] text-muted-foreground font-mono uppercase mb-2">Output Assets</p>
+              <p className="text-[10px] text-muted-foreground font-mono uppercase mb-2">
+                {selectedLayer ? `${selectedLayer.label} Controls` : 'Output Assets'}
+              </p>
               <AssetControls
                 qrSize={qrSize}
                 qrPosition={qrPosition}
@@ -388,14 +324,21 @@ export function GraphicsWorkspace({
 
         <ResizableHandle withHandle />
 
-        {/* Right Panel — Style + Layout */}
-        <ResizablePanel defaultSize={24} minSize={16} maxSize={32} className="p-3">
+        {/* Right Panel — Inspector + Style */}
+        <ResizablePanel defaultSize={30} minSize={18} maxSize={38} className="p-3">
           <div className="h-full overflow-auto space-y-1">
-            <Tabs defaultValue="style" className="w-full">
+            <Tabs defaultValue="inspector" className="w-full">
               <TabsList className="w-full h-8 bg-muted/50">
+                <TabsTrigger value="inspector" className="text-[10px] flex-1">Inspector</TabsTrigger>
                 <TabsTrigger value="style" className="text-[10px] flex-1">Style</TabsTrigger>
-                <TabsTrigger value="layout" className="text-[10px] flex-1">Layout</TabsTrigger>
               </TabsList>
+
+              <TabsContent value="inspector" className="mt-2">
+                <LayerInspector
+                  layer={selectedLayer}
+                  onUpdateLayer={updateLayer}
+                />
+              </TabsContent>
 
               <TabsContent value="style" className="mt-2 space-y-3">
                 {/* Theme Presets */}
@@ -441,16 +384,6 @@ export function GraphicsWorkspace({
                   </div>
                 </div>
 
-                {/* Overlay / Blur */}
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] text-muted-foreground font-mono uppercase">Overlay Opacity</Label>
-                  <Slider value={[selectedTheme.overlayOpacity * 100]} max={100} step={1} className="w-full" />
-                </div>
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] text-muted-foreground font-mono uppercase">Blur</Label>
-                  <Slider value={[selectedTheme.blurAmount]} max={20} step={1} className="w-full" />
-                </div>
-
                 {/* Animation */}
                 <div className="space-y-2">
                   <Label className="text-[10px] text-muted-foreground font-mono uppercase">Animation</Label>
@@ -461,80 +394,6 @@ export function GraphicsWorkspace({
                   <div className="flex items-center justify-between">
                     <span className="text-[10px] text-muted-foreground">Count-up</span>
                     <Switch checked={selectedTheme.countUpNumbers} />
-                  </div>
-                </div>
-              </TabsContent>
-
-              <TabsContent value="layout" className="mt-2 space-y-3">
-                {/* QR Controls */}
-                <div className="space-y-1.5">
-                  <Label className="text-[10px] text-muted-foreground font-mono uppercase">QR Code</Label>
-                  <div className="space-y-2">
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] text-muted-foreground w-8">Size</span>
-                      <Slider value={[qrSize]} onValueChange={([v]) => onQrSizeChange(v)} min={60} max={200} step={5} className="flex-1" />
-                      <span className="text-[10px] text-muted-foreground font-mono w-10">{qrSize}px</span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] text-muted-foreground mr-1">Pos</span>
-                      {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as QRPosition[]).map(pos => (
-                        <button
-                          key={pos}
-                          onClick={() => onQrPositionChange(pos)}
-                          className={`px-2 py-1 rounded text-[9px] font-mono transition-colors ${
-                            qrPosition === pos ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground hover:bg-accent'
-                          }`}
-                        >
-                          {pos.split('-').map(w => w[0].toUpperCase()).join('')}
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                {/* Branding Controls */}
-                <div className="space-y-1.5">
-                  <div className="flex items-center justify-between">
-                    <Label className="text-[10px] text-muted-foreground font-mono uppercase">Branding Bug</Label>
-                    <Switch checked={showBranding} onCheckedChange={onShowBrandingChange} />
-                  </div>
-                  {showBranding && (
-                    <div className="flex items-center gap-1">
-                      <span className="text-[10px] text-muted-foreground mr-1">Pos</span>
-                      {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as QRPosition[]).map(pos => (
-                        <button
-                          key={pos}
-                          onClick={() => onBrandingPositionChange(pos)}
-                          className={`px-2 py-1 rounded text-[9px] font-mono transition-colors ${
-                            brandingPosition === pos ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground hover:bg-accent'
-                          }`}
-                        >
-                          {pos.split('-').map(w => w[0].toUpperCase()).join('')}
-                        </button>
-                      ))}
-                    </div>
-                  )}
-                </div>
-
-                {/* Safe Areas */}
-                <div className="space-y-2">
-                  <Label className="text-[10px] text-muted-foreground font-mono uppercase">Safe Areas</Label>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground">Title Safe</span>
-                    <Switch />
-                  </div>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground">Action Safe</span>
-                    <Switch />
-                  </div>
-                </div>
-
-                {/* Output Info */}
-                <div className="space-y-1.5 pt-2 border-t border-border">
-                  <Label className="text-[10px] text-muted-foreground font-mono uppercase">Output</Label>
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] text-muted-foreground">Resolution</span>
-                    <span className="mako-chip bg-muted text-muted-foreground text-[9px]">1920×1080</span>
                   </div>
                 </div>
               </TabsContent>
