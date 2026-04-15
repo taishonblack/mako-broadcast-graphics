@@ -27,6 +27,18 @@ function layerStyle(layer: GraphicLayer | undefined): React.CSSProperties {
   };
 }
 
+/** Returns absolute positioning style driven by layer x/y */
+function layerPosition(layer: GraphicLayer | undefined): React.CSSProperties {
+  if (!layer) return {};
+  return {
+    ...layerStyle(layer),
+    position: 'absolute' as const,
+    left: `${layer.transform.x}%`,
+    top: `${layer.transform.y}%`,
+    transform: `translate(-50%, -50%) scale(${layer.transform.scale})`,
+  };
+}
+
 export function FullscreenScene({ question, options, totalVotes, colors, theme, template = 'horizontal-bar', layers }: FullscreenSceneProps) {
   const bgLayer = getLayer(layers, 'background');
   const questionLayer = getLayer(layers, 'question');
