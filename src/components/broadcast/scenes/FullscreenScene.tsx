@@ -27,6 +27,18 @@ function layerStyle(layer: GraphicLayer | undefined): React.CSSProperties {
   };
 }
 
+/** Returns absolute positioning style driven by layer x/y */
+function layerPosition(layer: GraphicLayer | undefined): React.CSSProperties {
+  if (!layer) return {};
+  return {
+    ...layerStyle(layer),
+    position: 'absolute' as const,
+    left: `${layer.transform.x}%`,
+    top: `${layer.transform.y}%`,
+    transform: `translate(-50%, -50%) scale(${layer.transform.scale})`,
+  };
+}
+
 export function FullscreenScene({ question, options, totalVotes, colors, theme, template = 'horizontal-bar', layers }: FullscreenSceneProps) {
   const bgLayer = getLayer(layers, 'background');
   const questionLayer = getLayer(layers, 'question');
@@ -51,16 +63,17 @@ export function FullscreenScene({ question, options, totalVotes, colors, theme, 
         }}
       />
 
-      <div className="relative z-20 flex flex-col items-center w-full">
+      <div className="relative z-20 w-full h-full">
+        {/* Question */}
         <div
-          className="text-center mb-8 px-16"
+          className="text-center px-16"
           style={{
-            ...layerStyle(questionLayer),
+            ...layerPosition(questionLayer),
             maxWidth: questionLayer?.textProps ? `${questionLayer.textProps.maxWidth}%` : undefined,
           }}
         >
           <h1
-            className="font-bold leading-tight"
+            className="font-bold leading-tight whitespace-nowrap"
             style={{
               color: theme.textPrimary,
               fontSize: questionLayer?.textProps?.fontSize ? `${questionLayer.textProps.fontSize * 2}px` : undefined,
@@ -73,11 +86,20 @@ export function FullscreenScene({ question, options, totalVotes, colors, theme, 
           </h1>
         </div>
 
-        <div className="w-full max-w-2xl px-16" style={layerStyle(barsLayer)}>
+        {/* Answer Bars */}
+        <div
+          className="px-16"
+          style={{
+            ...layerPosition(barsLayer),
+            width: '100%',
+            maxWidth: '42rem',
+          }}
+        >
           {renderChart({ template, options, totalVotes, colors })}
         </div>
 
-        <div className="mt-8" style={layerStyle(votesLayer)}>
+        {/* Votes Text */}
+        <div style={layerPosition(votesLayer)}>
           <span
             className="font-mono"
             style={{
@@ -88,31 +110,28 @@ export function FullscreenScene({ question, options, totalVotes, colors, theme, 
             {totalVotes.toLocaleString()} total votes
           </span>
         </div>
-      </div>
 
-      {/* QR */}
-      <div
-        className="absolute bottom-8 right-8 z-20"
-        style={layerStyle(qrLayer)}
-      >
-        <div className="p-2 rounded-xl" style={{ backgroundColor: 'hsla(0, 0%, 100%, 0.95)' }}>
-          <QRCodeSVG
-            value="https://makovote.tv/vote/penalty-call"
-            size={qrLayer?.qrProps?.size ? qrLayer.qrProps.size * 0.6 : 80}
-            level="M"
-          />
+        {/* QR */}
+        <div style={layerPosition(qrLayer)}>
+          <div className="p-2 rounded-xl" style={{ backgroundColor: 'hsla(0, 0%, 100%, 0.95)' }}>
+            <QRCodeSVG
+              value="https://makovote.tv/vote/penalty-call"
+              size={qrLayer?.qrProps?.size ? qrLayer.qrProps.size * 0.6 : 80}
+              level="M"
+            />
+          </div>
         </div>
-      </div>
 
-      {/* Bug */}
-      <div
-        className="absolute bottom-8 left-8 flex items-center gap-2 z-20"
-        style={layerStyle(logoLayer)}
-      >
-        <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
-          <span className="text-primary-foreground font-bold text-[10px]">M</span>
+        {/* Logo */}
+        <div
+          className="flex items-center gap-2"
+          style={layerPosition(logoLayer)}
+        >
+          <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
+            <span className="text-primary-foreground font-bold text-[10px]">M</span>
+          </div>
+          <span className="font-mono text-[10px]" style={{ color: theme.textSecondary }}>MakoVote</span>
         </div>
-        <span className="font-mono text-[10px]" style={{ color: theme.textSecondary }}>MakoVote</span>
       </div>
     </div>
   );
