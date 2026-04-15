@@ -133,5 +133,6 @@ export function FullscreenScene({ question, options, totalVotes, colors, theme, 
           <span className="font-mono text-[10px]" style={{ color: theme.textSecondary }}>MakoVote</span>
         </div>
       </div>
+    </div>
   );
 }
