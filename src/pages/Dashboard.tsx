@@ -27,6 +27,7 @@ import {
 } from 'lucide-react';
 
 type WorkspaceMode = 'operator' | 'graphics';
+type WorkspacePreset = 'operator' | 'graphics' | 'focus' | 'compact';
 
 const LAYOUT_STORAGE_KEY = 'mako-workspace-layout';
 
@@ -37,12 +38,21 @@ interface WorkspaceLayout {
   maximized: boolean;
 }
 
-const DEFAULT_LAYOUT: WorkspaceLayout = {
-  leftSize: 22,
-  centerSize: 56,
-  rightSize: 22,
-  maximized: false,
+const PRESET_LAYOUTS: Record<WorkspacePreset, WorkspaceLayout> = {
+  operator: { leftSize: 22, centerSize: 56, rightSize: 22, maximized: false },
+  graphics: { leftSize: 18, centerSize: 52, rightSize: 30, maximized: false },
+  focus: { leftSize: 0, centerSize: 82, rightSize: 18, maximized: true },
+  compact: { leftSize: 28, centerSize: 50, rightSize: 22, maximized: false },
 };
+
+const PRESET_META: { id: WorkspacePreset; label: string; desc: string }[] = [
+  { id: 'operator', label: 'Operator', desc: 'Balanced panels for live show control' },
+  { id: 'graphics', label: 'Graphics', desc: 'Wider inspector for layer editing' },
+  { id: 'focus', label: 'Focus Preview', desc: 'Maximize program preview, collapse left' },
+  { id: 'compact', label: 'Compact', desc: 'Wider queue panel for dense poll lists' },
+];
+
+const DEFAULT_LAYOUT = PRESET_LAYOUTS.operator;
 
 function loadLayout(): WorkspaceLayout {
   try {
