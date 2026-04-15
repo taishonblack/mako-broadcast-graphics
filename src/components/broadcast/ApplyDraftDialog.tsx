@@ -46,7 +46,7 @@ function formatLayerSnapshot(layer: GraphicLayer) {
   return parts.join(' · ');
 }
 
-function buildDiff(poll: Poll, draft: DraftState, currentLayers: GraphicLayer[], draftLayers: GraphicLayer[]): DiffLine[] {
+function buildDiff(poll: Poll, draft: DraftState, currentLayers: GraphicLayer[] = [], draftLayers: GraphicLayer[] = []): DiffLine[] {
   const diffs: DiffLine[] = [];
 
   if (draft.question !== poll.question) {
@@ -75,9 +75,9 @@ function buildDiff(poll: Poll, draft: DraftState, currentLayers: GraphicLayer[],
     diffs.push({ label: 'Theme', before: poll.themeId, after: draft.themeId, type: 'changed' });
   }
 
-  const currentLayerMap = new Map(currentLayers.map((layer) => [layer.id, layer]));
+  const currentLayerMap = new Map((currentLayers ?? []).map((layer) => [layer.id, layer]));
 
-  for (const draftLayer of draftLayers) {
+  for (const draftLayer of (draftLayers ?? [])) {
     const currentLayer = currentLayerMap.get(draftLayer.id);
     if (!currentLayer) continue;
 
