@@ -156,6 +156,7 @@ export function GraphicsWorkspace({
     const displayOptions = viewMode === 'draft' ? draft.options : poll.options;
     const displayTemplate = viewMode === 'draft' ? draft.template : poll.template;
     const totalVotes = displayOptions.reduce((sum, o) => sum + o.votes, 0);
+    const sceneLayers = viewMode === 'draft' ? layers : undefined;
 
     switch (previewScene) {
       case 'lowerThird':
@@ -165,7 +166,7 @@ export function GraphicsWorkspace({
       case 'results':
         return <ResultsScene question={displayQuestion} options={displayOptions} totalVotes={totalVotes} colors={colors} theme={selectedTheme} />;
       default:
-        return <FullscreenScene question={displayQuestion} options={displayOptions} totalVotes={totalVotes} colors={colors} theme={selectedTheme} template={displayTemplate} />;
+        return <FullscreenScene question={displayQuestion} options={displayOptions} totalVotes={totalVotes} colors={colors} theme={selectedTheme} template={displayTemplate} layers={sceneLayers} />;
     }
   };
 
