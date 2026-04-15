@@ -15,6 +15,7 @@ import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
 import { GraphicsWorkspace, DraftState } from '@/components/broadcast/GraphicsWorkspace';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { mockProject, templateLabels } from '@/lib/mock-data';
 import { LiveState, VotingState, QRPosition, Poll, PollQueue as PollQueueType } from '@/lib/types';
@@ -22,11 +23,12 @@ import { SceneType } from '@/lib/scenes';
 import { themePresets } from '@/lib/themes';
 import {
   PlusCircle, Copy, Play, Square, Monitor,
-  ExternalLink, ChevronRight, Vote, XCircle, Eye,
-  Maximize2, RotateCcw, Palette, Radio, Layers
+  ExternalLink, ChevronRight, ChevronDown, Vote, XCircle, Eye,
+  Maximize2, RotateCcw, Palette, Radio, Layers, Layout
 } from 'lucide-react';
 
 type WorkspaceMode = 'operator' | 'graphics';
+type WorkspacePreset = 'operator' | 'graphics' | 'focus' | 'compact';
 
 const LAYOUT_STORAGE_KEY = 'mako-workspace-layout';
 
@@ -37,12 +39,21 @@ interface WorkspaceLayout {
   maximized: boolean;
 }
 
-const DEFAULT_LAYOUT: WorkspaceLayout = {
-  leftSize: 22,
-  centerSize: 56,
-  rightSize: 22,
-  maximized: false,
+const PRESET_LAYOUTS: Record<WorkspacePreset, WorkspaceLayout> = {
+  operator: { leftSize: 22, centerSize: 56, rightSize: 22, maximized: false },
+  graphics: { leftSize: 18, centerSize: 52, rightSize: 30, maximized: false },
+  focus: { leftSize: 0, centerSize: 82, rightSize: 18, maximized: true },
+  compact: { leftSize: 28, centerSize: 50, rightSize: 22, maximized: false },
 };
+
+const PRESET_META: { id: WorkspacePreset; label: string; desc: string }[] = [
+  { id: 'operator', label: 'Operator', desc: 'Balanced panels for live show control' },
+  { id: 'graphics', label: 'Graphics', desc: 'Wider inspector for layer editing' },
+  { id: 'focus', label: 'Focus Preview', desc: 'Maximize program preview, collapse left' },
+  { id: 'compact', label: 'Compact', desc: 'Wider queue panel for dense poll lists' },
+];
+
+const DEFAULT_LAYOUT = PRESET_LAYOUTS.operator;
 
 function loadLayout(): WorkspaceLayout {
   try {
@@ -91,6 +102,18 @@ export default function Dashboard() {
   const [layout, setLayout] = useState<WorkspaceLayout>(loadLayout);
   const [layoutKey, setLayoutKey] = useState(0);
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('operator');
+  const [activePreset, setActivePreset] = useState<WorkspacePreset>('operator');
+
+  const applyPreset = (preset: WorkspacePreset) => {
+    const newLayout = PRESET_LAYOUTS[preset];
+    setActivePreset(preset);
+    setLayout(newLayout);
+    saveLayout(newLayout);
+    setLayoutKey(k => k + 1);
+    // Auto-switch workspace mode based on preset
+    if (preset === 'graphics') setWorkspaceMode('graphics');
+    else if (preset === 'operator' || preset === 'focus' || preset === 'compact') setWorkspaceMode('operator');
+  };
 
   const previewTheme = themePresets[0];
   const previewColors = [previewTheme.chartColorA, previewTheme.chartColorB, previewTheme.chartColorC, previewTheme.chartColorD];
@@ -228,18 +251,37 @@ export default function Dashboard() {
       {/* Top Bar */}
       <header className="h-14 border-b border-border flex items-center justify-between px-4 shrink-0 bg-card/50">
         <div className="flex items-center gap-3">
-          {/* Workspace Mode Toggle */}
+          {/* Workspace Mode Toggle + Preset Dropdown */}
           <div className="flex items-center gap-0.5 bg-muted/50 rounded-lg p-0.5 mr-2">
             <Tooltip><TooltipTrigger asChild>
-              <button onClick={() => setWorkspaceMode('operator')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${workspaceMode === 'operator' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+              <button onClick={() => applyPreset('operator')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${workspaceMode === 'operator' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
                 <Radio className="w-3 h-3" /> Operator
               </button>
             </TooltipTrigger><TooltipContent side="bottom">Live broadcast control workspace</TooltipContent></Tooltip>
             <Tooltip><TooltipTrigger asChild>
-              <button onClick={() => setWorkspaceMode('graphics')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${workspaceMode === 'graphics' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+              <button onClick={() => applyPreset('graphics')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${workspaceMode === 'graphics' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
                 <Palette className="w-3 h-3" /> Graphics
               </button>
             </TooltipTrigger><TooltipContent side="bottom">Design and refine poll graphics</TooltipContent></Tooltip>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center px-1.5 py-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors">
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                {PRESET_META.map((p) => (
+                  <DropdownMenuItem
+                    key={p.id}
+                    onClick={() => applyPreset(p.id)}
+                    className={`flex flex-col items-start gap-0.5 ${activePreset === p.id ? 'bg-primary/10 text-primary' : ''}`}
+                  >
+                    <span className="text-xs font-medium">{p.label}</span>
+                    <span className="text-[10px] text-muted-foreground">{p.desc}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           <div className="w-px h-6 bg-border" />
           <Link to="/projects" className="text-sm font-semibold text-foreground hover:text-primary transition-colors">{project.name}</Link>
