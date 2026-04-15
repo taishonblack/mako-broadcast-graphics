@@ -1,5 +1,6 @@
-import { DraftState } from '@/components/broadcast/GraphicsWorkspace';
-import { Poll } from '@/lib/types';
+import type { DraftState } from '@/components/broadcast/GraphicsWorkspace';
+import type { Poll } from '@/lib/types';
+import type { GraphicLayer } from '@/lib/layers';
 import { templateLabels } from '@/lib/mock-data';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle,
@@ -13,6 +14,8 @@ interface ApplyDraftDialogProps {
   onOpenChange: (open: boolean) => void;
   poll: Poll;
   draft: DraftState;
+  currentLayers: GraphicLayer[];
+  draftLayers: GraphicLayer[];
   onConfirm: () => void;
 }
 
@@ -23,7 +26,27 @@ interface DiffLine {
   type: 'changed' | 'added' | 'removed';
 }
 
-function buildDiff(poll: Poll, draft: DraftState): DiffLine[] {
+function formatLayerSnapshot(layer: GraphicLayer) {
+  const parts = [
+    `X ${layer.transform.x.toFixed(0)}%`,
+    `Y ${layer.transform.y.toFixed(0)}%`,
+    `Scale ${(layer.transform.scale * 100).toFixed(0)}%`,
+    `Opacity ${(layer.transform.opacity * 100).toFixed(0)}%`,
+    layer.visible ? 'Visible' : 'Hidden',
+  ];
+
+  if (layer.qrProps) {
+    parts.push(`QR ${layer.qrProps.size}px`);
+  }
+
+  if (layer.textProps) {
+    parts.push(`Text ${layer.textProps.fontSize}px`);
+  }
+
+  return parts.join(' · ');
+}
+
+function buildDiff(poll: Poll, draft: DraftState, currentLayers: GraphicLayer[], draftLayers: GraphicLayer[]): DiffLine[] {
   const diffs: DiffLine[] = [];
 
   if (draft.question !== poll.question) {
@@ -52,11 +75,27 @@ function buildDiff(poll: Poll, draft: DraftState): DiffLine[] {
     diffs.push({ label: 'Theme', before: poll.themeId, after: draft.themeId, type: 'changed' });
   }
 
+  const currentLayerMap = new Map(currentLayers.map((layer) => [layer.id, layer]));
+
+  for (const draftLayer of draftLayers) {
+    const currentLayer = currentLayerMap.get(draftLayer.id);
+    if (!currentLayer) continue;
+
+    if (JSON.stringify(currentLayer) !== JSON.stringify(draftLayer)) {
+      diffs.push({
+        label: draftLayer.label,
+        before: formatLayerSnapshot(currentLayer),
+        after: formatLayerSnapshot(draftLayer),
+        type: 'changed',
+      });
+    }
+  }
+
   return diffs;
 }
 
-export function ApplyDraftDialog({ open, onOpenChange, poll, draft, onConfirm }: ApplyDraftDialogProps) {
-  const diffs = buildDiff(poll, draft);
+export function ApplyDraftDialog({ open, onOpenChange, poll, draft, currentLayers, draftLayers, onConfirm }: ApplyDraftDialogProps) {
+  const diffs = buildDiff(poll, draft, currentLayers, draftLayers);
 
   const iconForType = (type: DiffLine['type']) => {
     switch (type) {

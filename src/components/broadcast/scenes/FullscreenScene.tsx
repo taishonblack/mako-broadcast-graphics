@@ -1,7 +1,7 @@
 import { renderChart } from '@/lib/render-chart';
 import { ThemePreset, PollOption, TemplateName } from '@/lib/types';
 import { QRCodeSVG } from 'qrcode.react';
-import { GraphicLayer, LayerType } from '@/lib/layers';
+import { GraphicLayer, LayerType, LAYER_FRAME_ZONES } from '@/lib/layers';
 
 interface FullscreenSceneProps {
   question: string;
@@ -22,20 +22,20 @@ function layerStyle(layer: GraphicLayer | undefined): React.CSSProperties {
   return {
     opacity: layer.transform.opacity,
     transform: `scale(${layer.transform.scale})`,
+    transformOrigin: 'top left',
     display: layer.visible ? undefined : 'none',
-    transition: 'opacity 0.2s, transform 0.2s',
+    transition: 'left 0.2s, top 0.2s, opacity 0.2s, transform 0.2s',
   };
 }
 
 /** Returns absolute positioning style driven by layer x/y */
-function layerPosition(layer: GraphicLayer | undefined): React.CSSProperties {
-  if (!layer) return {};
+function layerPosition(layer: GraphicLayer | undefined, id: LayerType): React.CSSProperties {
+  const zone = LAYER_FRAME_ZONES[id];
   return {
     ...layerStyle(layer),
     position: 'absolute' as const,
-    left: `${layer.transform.x}%`,
-    top: `${layer.transform.y}%`,
-    transform: `translate(-50%, -50%) scale(${layer.transform.scale})`,
+    left: `${layer?.transform.x ?? zone.x}%`,
+    top: `${layer?.transform.y ?? zone.y}%`,
   };
 }
 
@@ -46,6 +46,9 @@ export function FullscreenScene({ question, options, totalVotes, colors, theme, 
   const votesLayer = getLayer(layers, 'votesText');
   const qrLayer = getLayer(layers, 'qrCode');
   const logoLayer = getLayer(layers, 'logo');
+  const questionZone = LAYER_FRAME_ZONES.question;
+  const barsZone = LAYER_FRAME_ZONES.answerBars;
+  const votesZone = LAYER_FRAME_ZONES.votesText;
 
   return (
     <div
@@ -66,14 +69,14 @@ export function FullscreenScene({ question, options, totalVotes, colors, theme, 
       <div className="relative z-20 w-full h-full">
         {/* Question */}
         <div
-          className="text-center px-16"
+          className="text-center"
           style={{
-            ...layerPosition(questionLayer),
-            maxWidth: questionLayer?.textProps ? `${questionLayer.textProps.maxWidth}%` : undefined,
+            ...layerPosition(questionLayer, 'question'),
+            width: `${questionLayer?.textProps?.maxWidth ?? questionZone.w}%`,
           }}
         >
           <h1
-            className="font-bold leading-tight whitespace-nowrap"
+            className="font-bold leading-tight whitespace-pre-wrap break-words"
             style={{
               color: theme.textPrimary,
               fontSize: questionLayer?.textProps?.fontSize ? `${questionLayer.textProps.fontSize * 2}px` : undefined,
@@ -88,10 +91,9 @@ export function FullscreenScene({ question, options, totalVotes, colors, theme, 
 
         {/* Answer Bars */}
         <div
-          className="px-16"
           style={{
-            ...layerPosition(barsLayer),
-            width: '100%',
+            ...layerPosition(barsLayer, 'answerBars'),
+            width: `${barsZone.w}%`,
             maxWidth: '42rem',
           }}
         >
@@ -99,12 +101,13 @@ export function FullscreenScene({ question, options, totalVotes, colors, theme, 
         </div>
 
         {/* Votes Text */}
-        <div style={layerPosition(votesLayer)}>
+        <div style={{ ...layerPosition(votesLayer, 'votesText'), width: `${votesZone.w}%` }}>
           <span
-            className="font-mono"
+            className="font-mono block"
             style={{
               color: theme.textSecondary,
               fontSize: votesLayer?.textProps?.fontSize ? `${votesLayer.textProps.fontSize}px` : '14px',
+              textAlign: votesLayer?.textProps?.textAlign ?? 'center',
             }}
           >
             {totalVotes.toLocaleString()} total votes
@@ -112,11 +115,11 @@ export function FullscreenScene({ question, options, totalVotes, colors, theme, 
         </div>
 
         {/* QR */}
-        <div style={layerPosition(qrLayer)}>
-          <div className="p-2 rounded-xl" style={{ backgroundColor: 'hsla(0, 0%, 100%, 0.95)' }}>
+        <div style={layerPosition(qrLayer, 'qrCode')}>
+          <div className="inline-flex p-2 rounded-xl" style={{ backgroundColor: theme.qrFrameColor }}>
             <QRCodeSVG
               value="https://makovote.tv/vote/penalty-call"
-              size={qrLayer?.qrProps?.size ? qrLayer.qrProps.size * 0.6 : 80}
+              size={qrLayer?.qrProps?.size ?? 120}
               level="M"
             />
           </div>
@@ -125,7 +128,7 @@ export function FullscreenScene({ question, options, totalVotes, colors, theme, 
         {/* Logo */}
         <div
           className="flex items-center gap-2"
-          style={layerPosition(logoLayer)}
+          style={layerPosition(logoLayer, 'logo')}
         >
           <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
             <span className="text-primary-foreground font-bold text-[10px]">M</span>

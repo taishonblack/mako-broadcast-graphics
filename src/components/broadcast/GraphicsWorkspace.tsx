@@ -20,7 +20,7 @@ import { themePresets } from '@/lib/themes';
 import { templateLabels } from '@/lib/mock-data';
 import { Poll, PollOption, QRPosition, TemplateName, ThemePreset } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { GraphicLayer, LayerType, DEFAULT_LAYERS } from '@/lib/layers';
+import { GraphicLayer, LayerType, cloneLayers } from '@/lib/layers';
 import {
   Type, AlignLeft, AlignCenter, AlignRight, Bold, Italic,
   CaseSensitive, Save, Send, GripVertical, Plus, Trash2
@@ -28,6 +28,7 @@ import {
 
 interface GraphicsWorkspaceProps {
   poll: Poll;
+  appliedLayers: GraphicLayer[];
   previewScene: SceneType;
   qrSize: number;
   qrPosition: QRPosition;
@@ -45,6 +46,7 @@ export interface DraftState {
   options: PollOption[];
   template: TemplateName;
   themeId: string;
+  layers?: GraphicLayer[];
   fontSize: number;
   answerFontSize: number;
   percentFontSize: number;
@@ -63,6 +65,7 @@ const templateOptions: TemplateName[] = [
 
 export function GraphicsWorkspace({
   poll,
+  appliedLayers,
   previewScene,
   qrSize,
   qrPosition,
@@ -94,10 +97,11 @@ export function GraphicsWorkspace({
     themePresets.find(t => t.id === poll.themeId) || themePresets[0]
   );
   const [isDirty, setIsDirty] = useState(false);
-  const [layers, setLayers] = useState<GraphicLayer[]>(DEFAULT_LAYERS);
+  const [layers, setLayers] = useState<GraphicLayer[]>(() => cloneLayers(appliedLayers));
   const [selectedLayerId, setSelectedLayerId] = useState<LayerType | null>(null);
   const [showApplyDialog, setShowApplyDialog] = useState(false);
 
+  const appliedTheme = themePresets.find(t => t.id === poll.themeId) || themePresets[0];
   const selectedLayer = layers.find(l => l.id === selectedLayerId) || null;
 
   const updateDraft = (changes: Partial<DraftState>) => {
@@ -131,7 +135,7 @@ export function GraphicsWorkspace({
   };
 
   const handleConfirmApply = () => {
-    onApplyToProgram(draft);
+    onApplyToProgram({ ...draft, themeId: selectedTheme.id, layers: cloneLayers(layers) });
     setIsDirty(false);
     setShowApplyDialog(false);
   };
@@ -149,24 +153,24 @@ export function GraphicsWorkspace({
     setIsDirty(true);
   };
 
-  const colors = [selectedTheme.chartColorA, selectedTheme.chartColorB, selectedTheme.chartColorC, selectedTheme.chartColorD];
-
   const renderScene = () => {
     const displayQuestion = viewMode === 'draft' ? draft.question : poll.question;
     const displayOptions = viewMode === 'draft' ? draft.options : poll.options;
     const displayTemplate = viewMode === 'draft' ? draft.template : poll.template;
+    const displayTheme = viewMode === 'draft' ? selectedTheme : appliedTheme;
+    const colors = [displayTheme.chartColorA, displayTheme.chartColorB, displayTheme.chartColorC, displayTheme.chartColorD];
     const totalVotes = displayOptions.reduce((sum, o) => sum + o.votes, 0);
-    const sceneLayers = viewMode === 'draft' ? layers : undefined;
+    const sceneLayers = viewMode === 'draft' ? layers : appliedLayers;
 
     switch (previewScene) {
       case 'lowerThird':
-        return <LowerThirdScene question={displayQuestion} options={displayOptions} totalVotes={totalVotes} colors={colors} theme={selectedTheme} template={displayTemplate} />;
+        return <LowerThirdScene question={displayQuestion} options={displayOptions} totalVotes={totalVotes} colors={colors} theme={displayTheme} template={displayTemplate} />;
       case 'qr':
-        return <QRScene slug={poll.slug} theme={selectedTheme} />;
+        return <QRScene slug={poll.slug} theme={displayTheme} />;
       case 'results':
-        return <ResultsScene question={displayQuestion} options={displayOptions} totalVotes={totalVotes} colors={colors} theme={selectedTheme} />;
+        return <ResultsScene question={displayQuestion} options={displayOptions} totalVotes={totalVotes} colors={colors} theme={displayTheme} />;
       default:
-        return <FullscreenScene question={displayQuestion} options={displayOptions} totalVotes={totalVotes} colors={colors} theme={selectedTheme} template={displayTemplate} layers={sceneLayers} />;
+        return <FullscreenScene question={displayQuestion} options={displayOptions} totalVotes={totalVotes} colors={colors} theme={displayTheme} template={displayTemplate} layers={sceneLayers} />;
     }
   };
 
@@ -287,7 +291,12 @@ export function GraphicsWorkspace({
                     UNSAVED CHANGES
                   </span>
                 )}
-                <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => { setDraft({ ...draft, question: poll.question, options: [...poll.options] }); setIsDirty(false); }}>
+                <Button variant="outline" size="sm" className="gap-1.5 text-xs h-7" onClick={() => {
+                  setDraft({ ...draft, question: poll.question, options: [...poll.options], template: poll.template, themeId: poll.themeId });
+                  setSelectedTheme(appliedTheme);
+                  setLayers(cloneLayers(appliedLayers));
+                  setIsDirty(false);
+                }}>
                   <Save className="w-3 h-3" /> Reset
                 </Button>
                 <Button size="sm" className="gap-1.5 text-xs h-7" onClick={handleApply} disabled={!isDirty}>
@@ -356,7 +365,10 @@ export function GraphicsWorkspace({
                     {themePresets.map(theme => (
                       <button
                         key={theme.id}
-                        onClick={() => { setSelectedTheme(theme); setIsDirty(true); }}
+                         onClick={() => {
+                           setSelectedTheme(theme);
+                           updateDraft({ themeId: theme.id });
+                         }}
                         className={`w-full text-left p-2 rounded-lg text-[11px] transition-all border ${
                           selectedTheme.id === theme.id
                             ? 'bg-primary/10 border-primary/30 text-primary'
@@ -415,6 +427,8 @@ export function GraphicsWorkspace({
         onOpenChange={setShowApplyDialog}
         poll={poll}
         draft={draft}
+        currentLayers={appliedLayers}
+        draftLayers={layers}
         onConfirm={handleConfirmApply}
       />
     </div>

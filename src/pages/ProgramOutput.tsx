@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import { mockPolls } from '@/lib/mock-data';
 import { themePresets } from '@/lib/themes';
 import { SceneType } from '@/lib/scenes';
@@ -6,19 +7,36 @@ import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
 import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
 import { QRScene } from '@/components/broadcast/scenes/QRScene';
 import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
+import { BroadcastCanvas } from '@/components/broadcast/BroadcastCanvas';
+import { DEFAULT_LAYERS, GraphicLayer, cloneLayers } from '@/lib/layers';
+import { OUTPUT_STATE_STORAGE_KEY, readOutputState } from '@/lib/output-state';
+import { Poll } from '@/lib/types';
 
 export default function ProgramOutput() {
-  const poll = mockPolls[0];
-  const theme = themePresets[0];
-  const [liveVotes, setLiveVotes] = useState(poll.options.map(o => o.votes));
-  const [total, setTotal] = useState(poll.totalVotes);
-  const [scene, setScene] = useState<SceneType>('fullscreen');
+  const { id } = useParams();
+  const fallbackPoll = useMemo(() => mockPolls.find((poll) => poll.id === id) || mockPolls[0], [id]);
+  const initialOutputState = useMemo(() => readOutputState(), []);
+  const [poll, setPoll] = useState<Poll>(initialOutputState?.poll ?? fallbackPoll);
+  const [layers, setLayers] = useState<GraphicLayer[]>(() => initialOutputState?.layers ?? cloneLayers(DEFAULT_LAYERS));
+  const [liveVotes, setLiveVotes] = useState((initialOutputState?.poll ?? fallbackPoll).options.map(o => o.votes));
+  const [total, setTotal] = useState((initialOutputState?.poll ?? fallbackPoll).totalVotes);
+  const [scene, setScene] = useState<SceneType>(initialOutputState?.scene ?? 'fullscreen');
   const [transitionType, setTransitionType] = useState<'take' | 'cut'>('take');
   const [sceneKey, setSceneKey] = useState(0);
+  const theme = themePresets.find((preset) => preset.id === poll.themeId) || themePresets[0];
 
   // Listen for scene changes from dashboard
   useEffect(() => {
     const handler = (e: StorageEvent) => {
+      if (e.key === OUTPUT_STATE_STORAGE_KEY && e.newValue) {
+        try {
+          const next = JSON.parse(e.newValue) as { poll?: Poll; scene?: SceneType; layers?: GraphicLayer[] };
+          if (next.poll) setPoll(next.poll);
+          if (next.scene) setScene(next.scene);
+          setLayers(Array.isArray(next.layers) ? cloneLayers(next.layers) : cloneLayers(DEFAULT_LAYERS));
+        } catch {}
+      }
+
       if (e.key === 'mako-scene' && e.newValue) {
         const [newScene, transition] = e.newValue.split('|') as [SceneType, string];
         setTransitionType((transition as 'take' | 'cut') || 'take');
@@ -29,6 +47,11 @@ export default function ProgramOutput() {
     window.addEventListener('storage', handler);
     return () => window.removeEventListener('storage', handler);
   }, []);
+
+  useEffect(() => {
+    setLiveVotes(poll.options.map((option) => option.votes));
+    setTotal(poll.totalVotes);
+  }, [poll]);
 
   // Simulate live vote updates
   useEffect(() => {
@@ -46,7 +69,7 @@ export default function ProgramOutput() {
   const colors = [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
 
   const renderScene = () => {
-    const baseProps = { question: poll.question, options: liveOptions, totalVotes: total, colors, theme };
+    const baseProps = { question: poll.question, options: liveOptions, totalVotes: total, colors, theme, template: poll.template };
 
     switch (scene) {
       case 'lowerThird':
@@ -57,7 +80,7 @@ export default function ProgramOutput() {
         return <ResultsScene {...baseProps} />;
       case 'fullscreen':
       default:
-        return <FullscreenScene {...baseProps} />;
+        return <FullscreenScene {...baseProps} layers={layers} />;
     }
   };
 
@@ -65,24 +88,26 @@ export default function ProgramOutput() {
 
   return (
     <div
-      className="w-screen h-screen overflow-hidden relative"
+      className="w-screen h-screen overflow-hidden relative bg-background flex items-center justify-center"
       style={{ cursor: 'none' }}
     >
-      {/* ON AIR indicator */}
-      <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
-        <span className="w-2 h-2 rounded-full bg-[hsl(var(--mako-live))] animate-live-pulse" />
-        <span className="font-mono text-[10px] font-bold tracking-widest text-[hsl(var(--mako-live))] animate-live-pulse">
-          ON AIR
-        </span>
-      </div>
+      <div style={{ width: 'min(100vw, calc(100vh * 16 / 9))', maxWidth: '1920px' }} className="w-full">
+        <BroadcastCanvas className="bg-background">
+          <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
+            <span className="w-2 h-2 rounded-full animate-live-pulse" style={{ backgroundColor: 'hsl(var(--mako-live))' }} />
+            <span className="font-mono text-[10px] font-bold tracking-widest animate-live-pulse" style={{ color: 'hsl(var(--mako-live))' }}>
+              ON AIR
+            </span>
+          </div>
 
-      {/* Scene with transition */}
-      <div
-        key={sceneKey}
-        className={`absolute inset-0 ${animClass}`}
-        style={{ animationDuration: '300ms' }}
-      >
-        {renderScene()}
+          <div
+            key={sceneKey}
+            className={`absolute inset-0 ${animClass}`}
+            style={{ animationDuration: '300ms' }}
+          >
+            {renderScene()}
+          </div>
+        </BroadcastCanvas>
       </div>
     </div>
   );
