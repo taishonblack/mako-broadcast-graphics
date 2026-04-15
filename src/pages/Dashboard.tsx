@@ -15,6 +15,7 @@ import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
 import { GraphicsWorkspace, DraftState } from '@/components/broadcast/GraphicsWorkspace';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { mockProject, templateLabels } from '@/lib/mock-data';
 import { LiveState, VotingState, QRPosition, Poll, PollQueue as PollQueueType } from '@/lib/types';
