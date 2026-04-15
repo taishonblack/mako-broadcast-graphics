@@ -251,18 +251,37 @@ export default function Dashboard() {
       {/* Top Bar */}
       <header className="h-14 border-b border-border flex items-center justify-between px-4 shrink-0 bg-card/50">
         <div className="flex items-center gap-3">
-          {/* Workspace Mode Toggle */}
+          {/* Workspace Mode Toggle + Preset Dropdown */}
           <div className="flex items-center gap-0.5 bg-muted/50 rounded-lg p-0.5 mr-2">
             <Tooltip><TooltipTrigger asChild>
-              <button onClick={() => setWorkspaceMode('operator')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${workspaceMode === 'operator' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+              <button onClick={() => applyPreset('operator')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${workspaceMode === 'operator' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
                 <Radio className="w-3 h-3" /> Operator
               </button>
             </TooltipTrigger><TooltipContent side="bottom">Live broadcast control workspace</TooltipContent></Tooltip>
             <Tooltip><TooltipTrigger asChild>
-              <button onClick={() => setWorkspaceMode('graphics')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${workspaceMode === 'graphics' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
+              <button onClick={() => applyPreset('graphics')} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-md text-[11px] font-medium transition-colors ${workspaceMode === 'graphics' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground hover:text-foreground'}`}>
                 <Palette className="w-3 h-3" /> Graphics
               </button>
             </TooltipTrigger><TooltipContent side="bottom">Design and refine poll graphics</TooltipContent></Tooltip>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button className="flex items-center px-1.5 py-1.5 rounded-md text-muted-foreground hover:text-foreground transition-colors">
+                  <ChevronDown className="w-3.5 h-3.5" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-56">
+                {PRESET_META.map((p) => (
+                  <DropdownMenuItem
+                    key={p.id}
+                    onClick={() => applyPreset(p.id)}
+                    className={`flex flex-col items-start gap-0.5 ${activePreset === p.id ? 'bg-primary/10 text-primary' : ''}`}
+                  >
+                    <span className="text-xs font-medium">{p.label}</span>
+                    <span className="text-[10px] text-muted-foreground">{p.desc}</span>
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
           </div>
           <div className="w-px h-6 bg-border" />
           <Link to="/projects" className="text-sm font-semibold text-foreground hover:text-primary transition-colors">{project.name}</Link>
