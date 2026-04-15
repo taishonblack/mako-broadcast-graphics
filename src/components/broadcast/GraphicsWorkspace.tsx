@@ -408,6 +408,14 @@ export function GraphicsWorkspace({
           </div>
         </ResizablePanel>
       </ResizablePanelGroup>
+
+      <ApplyDraftDialog
+        open={showApplyDialog}
+        onOpenChange={setShowApplyDialog}
+        poll={poll}
+        draft={draft}
+        onConfirm={handleConfirmApply}
+      />
     </div>
   );
 }
