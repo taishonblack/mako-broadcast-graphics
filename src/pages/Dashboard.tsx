@@ -23,8 +23,8 @@ import { SceneType } from '@/lib/scenes';
 import { themePresets } from '@/lib/themes';
 import {
   PlusCircle, Copy, Play, Square, Monitor,
-  ExternalLink, ChevronRight, Vote, XCircle, Eye,
-  Maximize2, RotateCcw, Palette, Radio, Layers
+  ExternalLink, ChevronRight, ChevronDown, Vote, XCircle, Eye,
+  Maximize2, RotateCcw, Palette, Radio, Layers, Layout
 } from 'lucide-react';
 
 type WorkspaceMode = 'operator' | 'graphics';
