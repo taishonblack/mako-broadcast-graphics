@@ -7,6 +7,7 @@ import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
 import { LayerPanel } from '@/components/broadcast/layers/LayerPanel';
 import { LayerInspector } from '@/components/broadcast/layers/LayerInspector';
 import { LayerPreviewOverlay } from '@/components/broadcast/layers/LayerPreviewOverlay';
+import { ApplyDraftDialog } from '@/components/broadcast/ApplyDraftDialog';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
