@@ -21,6 +21,8 @@ import { mockProject, templateLabels } from '@/lib/mock-data';
 import { LiveState, VotingState, QRPosition, Poll, PollQueue as PollQueueType } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
 import { themePresets } from '@/lib/themes';
+import { DEFAULT_LAYERS, GraphicLayer, cloneLayers } from '@/lib/layers';
+import { broadcastOutputState } from '@/lib/output-state';
 import {
   PlusCircle, Copy, Play, Square, Monitor,
   ExternalLink, ChevronRight, ChevronDown, Vote, XCircle, Eye,
@@ -103,6 +105,7 @@ export default function Dashboard() {
   const [layoutKey, setLayoutKey] = useState(0);
   const [workspaceMode, setWorkspaceMode] = useState<WorkspaceMode>('operator');
   const [activePreset, setActivePreset] = useState<WorkspacePreset>('operator');
+  const [programLayersByPollId, setProgramLayersByPollId] = useState<Record<string, GraphicLayer[]>>({});
 
   const applyPreset = (preset: WorkspacePreset) => {
     const newLayout = PRESET_LAYOUTS[preset];
@@ -115,8 +118,9 @@ export default function Dashboard() {
     else if (preset === 'operator' || preset === 'focus' || preset === 'compact') setWorkspaceMode('operator');
   };
 
-  const previewTheme = themePresets[0];
-  const previewColors = [previewTheme.chartColorA, previewTheme.chartColorB, previewTheme.chartColorC, previewTheme.chartColorD];
+  const activeTheme = themePresets.find((theme) => theme.id === activePoll.themeId) || themePresets[0];
+  const activeProgramLayers = programLayersByPollId[activePollId] ?? DEFAULT_LAYERS;
+  const previewColors = [activeTheme.chartColorA, activeTheme.chartColorB, activeTheme.chartColorC, activeTheme.chartColorD];
 
   const updatePollInProject = (pollId: string, updater: (p: Poll) => Poll) => {
     setProject(prev => ({
@@ -139,16 +143,19 @@ export default function Dashboard() {
   }, []);
 
   const handleTake = useCallback(() => {
+    broadcastOutputState({ poll: activePoll, scene: previewScene, layers: activeProgramLayers });
     setProgramScene(previewScene);
     broadcastScene(previewScene, 'take');
-  }, [previewScene, broadcastScene]);
+  }, [activePoll, activeProgramLayers, previewScene, broadcastScene]);
 
   const handleCut = useCallback(() => {
+    broadcastOutputState({ poll: activePoll, scene: previewScene, layers: activeProgramLayers });
     setProgramScene(previewScene);
     broadcastScene(previewScene, 'cut');
-  }, [previewScene, broadcastScene]);
+  }, [activePoll, activeProgramLayers, previewScene, broadcastScene]);
 
   const handleGoLive = () => {
+    broadcastOutputState({ poll: activePoll, scene: previewScene, layers: activeProgramLayers });
     setLiveState('live');
     setProgramScene(previewScene);
     broadcastScene(previewScene, 'take');
@@ -163,6 +170,7 @@ export default function Dashboard() {
   const handleCloseVoting = () => updatePollVotingState(activePollId, 'closed');
 
   const handleOpenOutput = () => {
+    broadcastOutputState({ poll: activePoll, scene: programScene, layers: activeProgramLayers });
     window.open(`/output/${activePoll.id}`, 'mako-output', 'width=1920,height=1080');
   };
 
@@ -213,7 +221,18 @@ export default function Dashboard() {
       template: draft.template,
       themeId: draft.themeId,
     }));
+
+    if (draft.layers) {
+      setProgramLayersByPollId((prev) => ({
+        ...prev,
+        [activePollId]: cloneLayers(draft.layers!),
+      }));
+    }
   };
+
+  useEffect(() => {
+    broadcastOutputState({ poll: activePoll, scene: programScene, layers: activeProgramLayers });
+  }, [activePoll, activeProgramLayers, programScene]);
 
   // Hotkeys
   useEffect(() => {
@@ -237,12 +256,12 @@ export default function Dashboard() {
   }, [broadcastScene]);
 
   const renderPreviewScene = () => {
-    const props = { question: activePoll.question, options: activePoll.options, totalVotes: activePoll.totalVotes, colors: previewColors, theme: previewTheme, template: activePoll.template };
+    const props = { question: activePoll.question, options: activePoll.options, totalVotes: activePoll.totalVotes, colors: previewColors, theme: activeTheme, template: activePoll.template };
     switch (previewScene) {
       case 'lowerThird': return <LowerThirdScene {...props} />;
-      case 'qr': return <QRScene slug={activePoll.slug} theme={previewTheme} />;
+      case 'qr': return <QRScene slug={activePoll.slug} theme={activeTheme} />;
       case 'results': return <ResultsScene {...props} />;
-      default: return <FullscreenScene {...props} />;
+      default: return <FullscreenScene {...props} layers={activeProgramLayers} />;
     }
   };
 
@@ -321,7 +340,9 @@ export default function Dashboard() {
       {/* Workspace Body */}
       {workspaceMode === 'graphics' ? (
         <GraphicsWorkspace
+          key={activePoll.id}
           poll={activePoll}
+          appliedLayers={activeProgramLayers}
           previewScene={previewScene}
           qrSize={qrSize}
           qrPosition={qrPosition}

@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from 'react';
-import { GraphicLayer, LayerType } from '@/lib/layers';
+import { GraphicLayer, LayerType, LAYER_FRAME_ZONES } from '@/lib/layers';
 
 interface LayerPreviewOverlayProps {
   layers: GraphicLayer[];
@@ -8,16 +8,15 @@ interface LayerPreviewOverlayProps {
   onUpdateLayer: (id: LayerType, changes: Partial<GraphicLayer>) => void;
 }
 
-/** Approximate hit zones for each layer type (% of frame) */
-const LAYER_ZONES: Record<LayerType, { x: number; y: number; w: number; h: number }> = {
-  background: { x: 0, y: 0, w: 100, h: 100 },
-  question: { x: 15, y: 12, w: 70, h: 16 },
-  subheadline: { x: 20, y: 26, w: 60, h: 8 },
-  answerBars: { x: 15, y: 38, w: 70, h: 40 },
-  votesText: { x: 30, y: 82, w: 40, h: 8 },
-  qrCode: { x: 78, y: 70, w: 18, h: 24 },
-  logo: { x: 2, y: 2, w: 12, h: 8 },
-};
+function getLayerZone(layer: GraphicLayer) {
+  const baseZone = LAYER_FRAME_ZONES[layer.id];
+  return {
+    x: layer.id === 'background' ? 0 : layer.transform.x,
+    y: layer.id === 'background' ? 0 : layer.transform.y,
+    w: Math.min(baseZone.w * layer.transform.scale, 100),
+    h: Math.min(baseZone.h * layer.transform.scale, 100),
+  };
+}
 
 export function LayerPreviewOverlay({
   layers,
@@ -38,9 +37,9 @@ export function LayerPreviewOverlay({
     const clickY = ((e.clientY - rect.top) / rect.height) * 100;
 
     // Find topmost visible, unlocked layer that contains the click
-    const visibleLayers = layers.filter(l => l.visible && l.id !== 'background');
+    const visibleLayers = layers.filter(l => l.visible && l.id !== 'background').slice().reverse();
     for (const layer of visibleLayers) {
-      const zone = LAYER_ZONES[layer.id];
+      const zone = getLayerZone(layer);
       if (
         clickX >= zone.x && clickX <= zone.x + zone.w &&
         clickY >= zone.y && clickY <= zone.y + zone.h
@@ -104,7 +103,8 @@ export function LayerPreviewOverlay({
     };
   }, [selectedLayerId, layers, onUpdateLayer]);
 
-  const selectedZone = selectedLayerId ? LAYER_ZONES[selectedLayerId] : null;
+  const selectedLayer = selectedLayerId ? layers.find((layer) => layer.id === selectedLayerId) ?? null : null;
+  const selectedZone = selectedLayer ? getLayerZone(selectedLayer) : null;
 
   return (
     <div

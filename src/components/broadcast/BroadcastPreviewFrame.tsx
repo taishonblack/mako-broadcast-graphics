@@ -1,4 +1,5 @@
 import { ReactNode } from 'react';
+import { BroadcastCanvas } from '@/components/broadcast/BroadcastCanvas';
 
 interface BroadcastPreviewFrameProps {
   children: ReactNode;
@@ -25,7 +26,7 @@ export function BroadcastPreviewFrame({
   className = '',
 }: BroadcastPreviewFrameProps) {
   return (
-    <div className={`broadcast-frame bg-mako-charcoal ${className}`}>
+    <BroadcastCanvas className={`broadcast-frame bg-mako-charcoal ${className}`}>
       {children}
       {showTitleSafe && <div className="safe-title-guide" />}
       {showActionSafe && <div className="safe-action-guide" />}
@@ -34,7 +35,7 @@ export function BroadcastPreviewFrame({
           {label}
         </div>
       )}
-    </div>
+    </BroadcastCanvas>
   );
 }
 
