@@ -127,8 +127,13 @@ export function GraphicsWorkspace({
   };
 
   const handleApply = () => {
+    setShowApplyDialog(true);
+  };
+
+  const handleConfirmApply = () => {
     onApplyToProgram(draft);
     setIsDirty(false);
+    setShowApplyDialog(false);
   };
 
   const toggleVisibility = (id: LayerType) => {
