@@ -96,6 +96,7 @@ export function GraphicsWorkspace({
   const [isDirty, setIsDirty] = useState(false);
   const [layers, setLayers] = useState<GraphicLayer[]>(DEFAULT_LAYERS);
   const [selectedLayerId, setSelectedLayerId] = useState<LayerType | null>(null);
+  const [showApplyDialog, setShowApplyDialog] = useState(false);
 
   const selectedLayer = layers.find(l => l.id === selectedLayerId) || null;
 
