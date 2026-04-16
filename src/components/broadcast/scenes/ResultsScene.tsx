@@ -1,5 +1,6 @@
 import { useState, useEffect } from 'react';
-import { ThemePreset, PollOption } from '@/lib/types';
+import { ThemePreset, PollOption, QRPosition } from '@/lib/types';
+import { AssetOverlay } from '@/components/broadcast/AssetOverlay';
 
 interface ResultsSceneProps {
   question: string;
@@ -7,9 +8,25 @@ interface ResultsSceneProps {
   totalVotes: number;
   colors: string[];
   theme: ThemePreset;
+  slug?: string;
+  qrSize?: number;
+  qrPosition?: QRPosition;
+  showBranding?: boolean;
+  brandingPosition?: QRPosition;
 }
 
-export function ResultsScene({ question, options, totalVotes, colors, theme }: ResultsSceneProps) {
+export function ResultsScene({
+  question,
+  options,
+  totalVotes,
+  colors,
+  theme,
+  slug,
+  qrSize,
+  qrPosition = 'bottom-right',
+  showBranding = false,
+  brandingPosition = 'bottom-left',
+}: ResultsSceneProps) {
   const [animProgress, setAnimProgress] = useState(0);
 
   useEffect(() => {
@@ -19,7 +36,6 @@ export function ResultsScene({ question, options, totalVotes, colors, theme }: R
     const tick = () => {
       const elapsed = performance.now() - start;
       const t = Math.min(elapsed / duration, 1);
-      // ease-out cubic
       const eased = 1 - Math.pow(1 - t, 3);
       setAnimProgress(eased);
       if (t < 1) requestAnimationFrame(tick);
@@ -27,7 +43,7 @@ export function ResultsScene({ question, options, totalVotes, colors, theme }: R
     requestAnimationFrame(tick);
   }, [totalVotes]);
 
-  const maxVotes = Math.max(...options.map(o => o.votes));
+  const maxVotes = Math.max(...options.map((o) => o.votes));
 
   return (
     <div
@@ -36,7 +52,6 @@ export function ResultsScene({ question, options, totalVotes, colors, theme }: R
         background: `linear-gradient(135deg, ${theme.tintColor}, hsl(220, 25%, 6%))`,
       }}
     >
-      {/* Vignette */}
       <div
         className="absolute inset-0 pointer-events-none z-10"
         style={{
@@ -44,15 +59,15 @@ export function ResultsScene({ question, options, totalVotes, colors, theme }: R
         }}
       />
 
-      <div className="relative z-20 flex flex-col items-center w-full max-w-3xl px-16">
+      <div className="relative z-20 flex flex-col items-center w-full px-32" style={{ maxWidth: '1600px' }}>
         <h1
-          className="text-5xl font-bold mb-12 text-center"
-          style={{ color: theme.textPrimary }}
+          className="font-bold mb-16 text-center leading-tight"
+          style={{ color: theme.textPrimary, fontSize: '88px' }}
         >
           {question}
         </h1>
 
-        <div className="w-full space-y-6">
+        <div className="w-full space-y-10">
           {options.map((option, i) => {
             const pct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
             const isWinner = option.votes === maxVotes;
@@ -60,38 +75,44 @@ export function ResultsScene({ question, options, totalVotes, colors, theme }: R
             const animatedPct = pct * animProgress;
 
             return (
-              <div key={option.id} className="flex flex-col gap-2">
+              <div key={option.id} className="flex flex-col gap-3">
                 <div className="flex items-end justify-between">
                   <span
-                    className="text-2xl font-semibold"
-                    style={{ color: theme.textPrimary }}
+                    className="font-semibold"
+                    style={{ color: theme.textPrimary, fontSize: '44px' }}
                   >
                     {option.text}
                     {isWinner && (
-                      <span className="ml-3 text-sm font-mono" style={{ color: colors[0] }}>
+                      <span className="ml-6 font-mono" style={{ color: colors[0], fontSize: '24px' }}>
                         ★ WINNER
                       </span>
                     )}
                   </span>
                   <span
-                    className="text-4xl font-bold font-mono tabular-nums"
-                    style={{ color }}
+                    className="font-bold font-mono tabular-nums"
+                    style={{ color, fontSize: '72px' }}
                   >
                     {Math.round(animatedPct)}%
                   </span>
                 </div>
-                <div className="h-5 rounded-full overflow-hidden" style={{ background: 'hsla(210, 20%, 92%, 0.1)' }}>
+                <div
+                  className="rounded-full overflow-hidden"
+                  style={{ height: '32px', background: 'hsla(210, 20%, 92%, 0.1)' }}
+                >
                   <div
                     className="h-full rounded-full"
                     style={{
                       width: `${animatedPct}%`,
                       backgroundColor: color,
-                      boxShadow: isWinner ? `0 0 20px ${color}` : 'none',
+                      boxShadow: isWinner ? `0 0 32px ${color}` : 'none',
                       transition: 'box-shadow 0.3s ease',
                     }}
                   />
                 </div>
-                <span className="font-mono text-xs" style={{ color: theme.textSecondary }}>
+                <span
+                  className="font-mono"
+                  style={{ color: theme.textSecondary, fontSize: '22px' }}
+                >
                   {Math.round(option.votes * animProgress).toLocaleString()} votes
                 </span>
               </div>
@@ -100,13 +121,17 @@ export function ResultsScene({ question, options, totalVotes, colors, theme }: R
         </div>
       </div>
 
-      {/* Bug */}
-      <div className="absolute bottom-8 left-8 flex items-center gap-2 opacity-50 z-20">
-        <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
-          <span className="text-primary-foreground font-bold text-[10px]">M</span>
-        </div>
-        <span className="font-mono text-[10px]" style={{ color: theme.textSecondary }}>MakoVote</span>
-      </div>
+      {(qrSize !== undefined || showBranding) && (
+        <AssetOverlay
+          showQR={qrSize !== undefined && qrSize > 0}
+          qrSlug={slug ?? ''}
+          qrSize={qrSize ?? 0}
+          qrPosition={qrPosition}
+          showBranding={showBranding}
+          brandingPosition={brandingPosition}
+          theme={theme}
+        />
+      )}
     </div>
   );
 }
