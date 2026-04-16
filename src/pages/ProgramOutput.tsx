@@ -9,8 +9,15 @@ import { QRScene } from '@/components/broadcast/scenes/QRScene';
 import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
 import { BroadcastCanvas } from '@/components/broadcast/BroadcastCanvas';
 import { DEFAULT_LAYERS, GraphicLayer, cloneLayers } from '@/lib/layers';
-import { OUTPUT_STATE_STORAGE_KEY, readOutputState } from '@/lib/output-state';
-import { Poll } from '@/lib/types';
+import { OUTPUT_STATE_STORAGE_KEY, OutputAssets, readOutputState } from '@/lib/output-state';
+import { Poll, QRPosition } from '@/lib/types';
+
+const DEFAULT_ASSETS: OutputAssets = {
+  qrSize: 120,
+  qrPosition: 'bottom-right',
+  showBranding: true,
+  brandingPosition: 'bottom-left',
+};
 
 export default function ProgramOutput() {
   const { id } = useParams();
@@ -23,17 +30,21 @@ export default function ProgramOutput() {
   const [scene, setScene] = useState<SceneType>(initialOutputState?.scene ?? 'fullscreen');
   const [transitionType, setTransitionType] = useState<'take' | 'cut'>('take');
   const [sceneKey, setSceneKey] = useState(0);
+  const [assets, setAssets] = useState<OutputAssets>(initialOutputState?.assets ?? DEFAULT_ASSETS);
   const theme = themePresets.find((preset) => preset.id === poll.themeId) || themePresets[0];
 
-  // Listen for scene changes from dashboard
+  // Listen for scene/state changes from dashboard
   useEffect(() => {
     const handler = (e: StorageEvent) => {
       if (e.key === OUTPUT_STATE_STORAGE_KEY && e.newValue) {
         try {
-          const next = JSON.parse(e.newValue) as { poll?: Poll; scene?: SceneType; layers?: GraphicLayer[] };
+          const next = JSON.parse(e.newValue) as Partial<{
+            poll: Poll; scene: SceneType; layers: GraphicLayer[]; assets: OutputAssets;
+          }>;
           if (next.poll) setPoll(next.poll);
           if (next.scene) setScene(next.scene);
           setLayers(Array.isArray(next.layers) ? cloneLayers(next.layers) : cloneLayers(DEFAULT_LAYERS));
+          if (next.assets) setAssets(next.assets);
         } catch {}
       }
 
@@ -69,7 +80,17 @@ export default function ProgramOutput() {
   const colors = [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
 
   const renderScene = () => {
-    const baseProps = { question: poll.question, options: liveOptions, totalVotes: total, colors, theme, template: poll.template };
+    const sharedAssets = {
+      slug: poll.slug,
+      qrSize: assets.qrSize,
+      qrPosition: assets.qrPosition,
+      showBranding: assets.showBranding,
+      brandingPosition: assets.brandingPosition,
+    };
+    const baseProps = {
+      question: poll.question, options: liveOptions, totalVotes: total,
+      colors, theme, template: poll.template, ...sharedAssets,
+    };
 
     switch (scene) {
       case 'lowerThird':

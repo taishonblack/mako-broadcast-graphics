@@ -7,14 +7,18 @@ export interface LayerZone {
   h: number;
 }
 
+/**
+ * Default placement zones in % of the 1920x1080 broadcast canvas.
+ * These are tuned for a true full-frame composition.
+ */
 export const LAYER_FRAME_ZONES: Record<LayerType, LayerZone> = {
   background: { x: 0, y: 0, w: 100, h: 100 },
-  question: { x: 15, y: 12, w: 70, h: 16 },
-  subheadline: { x: 20, y: 26, w: 60, h: 8 },
-  answerBars: { x: 15, y: 38, w: 70, h: 40 },
-  votesText: { x: 30, y: 82, w: 40, h: 8 },
-  qrCode: { x: 78, y: 70, w: 18, h: 24 },
-  logo: { x: 2, y: 2, w: 12, h: 8 },
+  question: { x: 8, y: 8, w: 84, h: 18 },
+  subheadline: { x: 15, y: 26, w: 70, h: 8 },
+  answerBars: { x: 8, y: 32, w: 84, h: 52 },
+  votesText: { x: 30, y: 88, w: 40, h: 6 },
+  qrCode: { x: 80, y: 70, w: 16, h: 22 },
+  logo: { x: 2, y: 2, w: 12, h: 6 },
 };
 
 export interface LayerTransform {
@@ -65,6 +69,11 @@ export function cloneLayers(layers: GraphicLayer[] = DEFAULT_LAYERS): GraphicLay
   }));
 }
 
+/**
+ * Defaults sized for 1920x1080 broadcast output — text/bars are deliberately
+ * large so the Fullscreen scene fills the frame instead of feeling like a
+ * compressed composition.
+ */
 export const DEFAULT_LAYERS: GraphicLayer[] = [
   {
     id: 'logo',
@@ -79,7 +88,7 @@ export const DEFAULT_LAYERS: GraphicLayer[] = [
     visible: true,
     locked: false,
     transform: { x: LAYER_FRAME_ZONES.qrCode.x, y: LAYER_FRAME_ZONES.qrCode.y, scale: 1, opacity: 1 },
-    qrProps: { size: 120, anchor: 'bottom-right', padding: 24 },
+    qrProps: { size: 180, anchor: 'bottom-right', padding: 24 },
   },
   {
     id: 'votesText',
@@ -87,7 +96,7 @@ export const DEFAULT_LAYERS: GraphicLayer[] = [
     visible: true,
     locked: false,
     transform: { x: LAYER_FRAME_ZONES.votesText.x, y: LAYER_FRAME_ZONES.votesText.y, scale: 1, opacity: 0.7 },
-    textProps: { fontSize: 12, fontWeight: 'normal', textAlign: 'center', maxWidth: 40, lineHeight: 1.2 },
+    textProps: { fontSize: 28, fontWeight: 'normal', textAlign: 'center', maxWidth: 40, lineHeight: 1.2 },
   },
   {
     id: 'answerBars',
@@ -95,7 +104,7 @@ export const DEFAULT_LAYERS: GraphicLayer[] = [
     visible: true,
     locked: false,
     transform: { x: LAYER_FRAME_ZONES.answerBars.x, y: LAYER_FRAME_ZONES.answerBars.y, scale: 1, opacity: 1 },
-    barProps: { barThickness: 28, spacing: 8, smoothing: true },
+    barProps: { barThickness: 64, spacing: 18, smoothing: true },
   },
   {
     id: 'subheadline',
@@ -103,7 +112,7 @@ export const DEFAULT_LAYERS: GraphicLayer[] = [
     visible: true,
     locked: false,
     transform: { x: LAYER_FRAME_ZONES.subheadline.x, y: LAYER_FRAME_ZONES.subheadline.y, scale: 1, opacity: 0.7 },
-    textProps: { fontSize: 14, fontWeight: 'normal', textAlign: 'center', maxWidth: 60, lineHeight: 1.3 },
+    textProps: { fontSize: 32, fontWeight: 'normal', textAlign: 'center', maxWidth: 70, lineHeight: 1.3 },
   },
   {
     id: 'question',
@@ -111,7 +120,7 @@ export const DEFAULT_LAYERS: GraphicLayer[] = [
     visible: true,
     locked: false,
     transform: { x: LAYER_FRAME_ZONES.question.x, y: LAYER_FRAME_ZONES.question.y, scale: 1, opacity: 1 },
-    textProps: { fontSize: 24, fontWeight: 'bold', textAlign: 'center', maxWidth: 70, lineHeight: 1.3 },
+    textProps: { fontSize: 72, fontWeight: 'bold', textAlign: 'center', maxWidth: 84, lineHeight: 1.1 },
   },
   {
     id: 'background',

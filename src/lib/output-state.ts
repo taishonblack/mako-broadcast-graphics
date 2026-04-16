@@ -1,13 +1,23 @@
 import { DEFAULT_LAYERS, GraphicLayer, cloneLayers } from './layers';
 import { SceneType } from './scenes';
-import { Poll } from './types';
+import { Poll, QRPosition } from './types';
 
 export const OUTPUT_STATE_STORAGE_KEY = 'mako-output-state';
+
+export interface OutputAssets {
+  qrSize: number;
+  qrPosition: QRPosition;
+  showBranding: boolean;
+  brandingPosition: QRPosition;
+  /** Lower-third banner height in % of frame */
+  lowerThirdHeight?: number;
+}
 
 export interface OutputStatePayload {
   poll: Poll;
   scene: SceneType;
   layers: GraphicLayer[];
+  assets?: OutputAssets;
 }
 
 export function broadcastOutputState(payload: OutputStatePayload) {
@@ -16,6 +26,7 @@ export function broadcastOutputState(payload: OutputStatePayload) {
   const normalizedPayload: OutputStatePayload = {
     ...payload,
     layers: cloneLayers(payload.layers),
+    assets: payload.assets ? { ...payload.assets } : undefined,
   };
 
   const serialized = JSON.stringify(normalizedPayload);
@@ -40,6 +51,7 @@ export function readOutputState(): OutputStatePayload | null {
       layers: Array.isArray(parsed.layers)
         ? cloneLayers(parsed.layers as GraphicLayer[])
         : cloneLayers(DEFAULT_LAYERS),
+      assets: parsed.assets,
     };
   } catch {
     return null;

@@ -122,6 +122,10 @@ export default function Dashboard() {
   const activeProgramLayers = programLayersByPollId[activePollId] ?? DEFAULT_LAYERS;
   const previewColors = [activeTheme.chartColorA, activeTheme.chartColorB, activeTheme.chartColorC, activeTheme.chartColorD];
 
+  const assetState = useMemo(() => ({
+    qrSize, qrPosition, showBranding, brandingPosition,
+  }), [qrSize, qrPosition, showBranding, brandingPosition]);
+
   const updatePollInProject = (pollId: string, updater: (p: Poll) => Poll) => {
     setProject(prev => ({
       ...prev,
@@ -143,19 +147,19 @@ export default function Dashboard() {
   }, []);
 
   const handleTake = useCallback(() => {
-    broadcastOutputState({ poll: activePoll, scene: previewScene, layers: activeProgramLayers });
+    broadcastOutputState({ poll: activePoll, scene: previewScene, layers: activeProgramLayers, assets: assetState });
     setProgramScene(previewScene);
     broadcastScene(previewScene, 'take');
-  }, [activePoll, activeProgramLayers, previewScene, broadcastScene]);
+  }, [activePoll, activeProgramLayers, previewScene, broadcastScene, assetState]);
 
   const handleCut = useCallback(() => {
-    broadcastOutputState({ poll: activePoll, scene: previewScene, layers: activeProgramLayers });
+    broadcastOutputState({ poll: activePoll, scene: previewScene, layers: activeProgramLayers, assets: assetState });
     setProgramScene(previewScene);
     broadcastScene(previewScene, 'cut');
-  }, [activePoll, activeProgramLayers, previewScene, broadcastScene]);
+  }, [activePoll, activeProgramLayers, previewScene, broadcastScene, assetState]);
 
   const handleGoLive = () => {
-    broadcastOutputState({ poll: activePoll, scene: previewScene, layers: activeProgramLayers });
+    broadcastOutputState({ poll: activePoll, scene: previewScene, layers: activeProgramLayers, assets: assetState });
     setLiveState('live');
     setProgramScene(previewScene);
     broadcastScene(previewScene, 'take');
@@ -170,7 +174,7 @@ export default function Dashboard() {
   const handleCloseVoting = () => updatePollVotingState(activePollId, 'closed');
 
   const handleOpenOutput = () => {
-    broadcastOutputState({ poll: activePoll, scene: programScene, layers: activeProgramLayers });
+    broadcastOutputState({ poll: activePoll, scene: programScene, layers: activeProgramLayers, assets: assetState });
     window.open(`/output/${activePoll.id}`, 'mako-output', 'width=1920,height=1080');
   };
 
@@ -231,8 +235,8 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    broadcastOutputState({ poll: activePoll, scene: programScene, layers: activeProgramLayers });
-  }, [activePoll, activeProgramLayers, programScene]);
+    broadcastOutputState({ poll: activePoll, scene: programScene, layers: activeProgramLayers, assets: assetState });
+  }, [activePoll, activeProgramLayers, programScene, assetState]);
 
   // Hotkeys
   useEffect(() => {
@@ -256,7 +260,16 @@ export default function Dashboard() {
   }, [broadcastScene]);
 
   const renderPreviewScene = () => {
-    const props = { question: activePoll.question, options: activePoll.options, totalVotes: activePoll.totalVotes, colors: previewColors, theme: activeTheme, template: activePoll.template };
+    const sharedAssets = {
+      slug: activePoll.slug,
+      qrSize, qrPosition, showBranding, brandingPosition,
+    };
+    const props = {
+      question: activePoll.question, options: activePoll.options,
+      totalVotes: activePoll.totalVotes, colors: previewColors, theme: activeTheme,
+      template: activePoll.template,
+      ...sharedAssets,
+    };
     switch (previewScene) {
       case 'lowerThird': return <LowerThirdScene {...props} />;
       case 'qr': return <QRScene slug={activePoll.slug} theme={activeTheme} />;
