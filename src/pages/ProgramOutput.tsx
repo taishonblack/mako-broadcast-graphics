@@ -30,17 +30,21 @@ export default function ProgramOutput() {
   const [scene, setScene] = useState<SceneType>(initialOutputState?.scene ?? 'fullscreen');
   const [transitionType, setTransitionType] = useState<'take' | 'cut'>('take');
   const [sceneKey, setSceneKey] = useState(0);
+  const [assets, setAssets] = useState<OutputAssets>(initialOutputState?.assets ?? DEFAULT_ASSETS);
   const theme = themePresets.find((preset) => preset.id === poll.themeId) || themePresets[0];
 
-  // Listen for scene changes from dashboard
+  // Listen for scene/state changes from dashboard
   useEffect(() => {
     const handler = (e: StorageEvent) => {
       if (e.key === OUTPUT_STATE_STORAGE_KEY && e.newValue) {
         try {
-          const next = JSON.parse(e.newValue) as { poll?: Poll; scene?: SceneType; layers?: GraphicLayer[] };
+          const next = JSON.parse(e.newValue) as Partial<{
+            poll: Poll; scene: SceneType; layers: GraphicLayer[]; assets: OutputAssets;
+          }>;
           if (next.poll) setPoll(next.poll);
           if (next.scene) setScene(next.scene);
           setLayers(Array.isArray(next.layers) ? cloneLayers(next.layers) : cloneLayers(DEFAULT_LAYERS));
+          if (next.assets) setAssets(next.assets);
         } catch {}
       }
 
