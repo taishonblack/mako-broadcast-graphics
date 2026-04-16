@@ -147,19 +147,19 @@ export default function Dashboard() {
   }, []);
 
   const handleTake = useCallback(() => {
-    broadcastOutputState({ poll: activePoll, scene: previewScene, layers: activeProgramLayers });
+    broadcastOutputState({ poll: activePoll, scene: previewScene, layers: activeProgramLayers, assets: assetState });
     setProgramScene(previewScene);
     broadcastScene(previewScene, 'take');
-  }, [activePoll, activeProgramLayers, previewScene, broadcastScene]);
+  }, [activePoll, activeProgramLayers, previewScene, broadcastScene, assetState]);
 
   const handleCut = useCallback(() => {
-    broadcastOutputState({ poll: activePoll, scene: previewScene, layers: activeProgramLayers });
+    broadcastOutputState({ poll: activePoll, scene: previewScene, layers: activeProgramLayers, assets: assetState });
     setProgramScene(previewScene);
     broadcastScene(previewScene, 'cut');
-  }, [activePoll, activeProgramLayers, previewScene, broadcastScene]);
+  }, [activePoll, activeProgramLayers, previewScene, broadcastScene, assetState]);
 
   const handleGoLive = () => {
-    broadcastOutputState({ poll: activePoll, scene: previewScene, layers: activeProgramLayers });
+    broadcastOutputState({ poll: activePoll, scene: previewScene, layers: activeProgramLayers, assets: assetState });
     setLiveState('live');
     setProgramScene(previewScene);
     broadcastScene(previewScene, 'take');
@@ -174,7 +174,7 @@ export default function Dashboard() {
   const handleCloseVoting = () => updatePollVotingState(activePollId, 'closed');
 
   const handleOpenOutput = () => {
-    broadcastOutputState({ poll: activePoll, scene: programScene, layers: activeProgramLayers });
+    broadcastOutputState({ poll: activePoll, scene: programScene, layers: activeProgramLayers, assets: assetState });
     window.open(`/output/${activePoll.id}`, 'mako-output', 'width=1920,height=1080');
   };
 
