@@ -9,8 +9,15 @@ import { QRScene } from '@/components/broadcast/scenes/QRScene';
 import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
 import { BroadcastCanvas } from '@/components/broadcast/BroadcastCanvas';
 import { DEFAULT_LAYERS, GraphicLayer, cloneLayers } from '@/lib/layers';
-import { OUTPUT_STATE_STORAGE_KEY, readOutputState } from '@/lib/output-state';
-import { Poll } from '@/lib/types';
+import { OUTPUT_STATE_STORAGE_KEY, OutputAssets, readOutputState } from '@/lib/output-state';
+import { Poll, QRPosition } from '@/lib/types';
+
+const DEFAULT_ASSETS: OutputAssets = {
+  qrSize: 120,
+  qrPosition: 'bottom-right',
+  showBranding: true,
+  brandingPosition: 'bottom-left',
+};
 
 export default function ProgramOutput() {
   const { id } = useParams();
