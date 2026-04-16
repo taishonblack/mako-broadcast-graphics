@@ -80,7 +80,17 @@ export default function ProgramOutput() {
   const colors = [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
 
   const renderScene = () => {
-    const baseProps = { question: poll.question, options: liveOptions, totalVotes: total, colors, theme, template: poll.template };
+    const sharedAssets = {
+      slug: poll.slug,
+      qrSize: assets.qrSize,
+      qrPosition: assets.qrPosition,
+      showBranding: assets.showBranding,
+      brandingPosition: assets.brandingPosition,
+    };
+    const baseProps = {
+      question: poll.question, options: liveOptions, totalVotes: total,
+      colors, theme, template: poll.template, ...sharedAssets,
+    };
 
     switch (scene) {
       case 'lowerThird':
