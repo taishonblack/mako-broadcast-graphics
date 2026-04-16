@@ -162,15 +162,21 @@ export function GraphicsWorkspace({
     const totalVotes = displayOptions.reduce((sum, o) => sum + o.votes, 0);
     const sceneLayers = viewMode === 'draft' ? layers : appliedLayers;
 
+    const sharedAssets = { slug: poll.slug, qrSize, qrPosition, showBranding, brandingPosition };
+    const baseProps = {
+      question: displayQuestion, options: displayOptions, totalVotes,
+      colors, theme: displayTheme, template: displayTemplate, ...sharedAssets,
+    };
+
     switch (previewScene) {
       case 'lowerThird':
-        return <LowerThirdScene question={displayQuestion} options={displayOptions} totalVotes={totalVotes} colors={colors} theme={displayTheme} template={displayTemplate} />;
+        return <LowerThirdScene {...baseProps} />;
       case 'qr':
         return <QRScene slug={poll.slug} theme={displayTheme} />;
       case 'results':
-        return <ResultsScene question={displayQuestion} options={displayOptions} totalVotes={totalVotes} colors={colors} theme={displayTheme} />;
+        return <ResultsScene {...baseProps} />;
       default:
-        return <FullscreenScene question={displayQuestion} options={displayOptions} totalVotes={totalVotes} colors={colors} theme={displayTheme} template={displayTemplate} layers={sceneLayers} />;
+        return <FullscreenScene {...baseProps} layers={sceneLayers} />;
     }
   };
 
