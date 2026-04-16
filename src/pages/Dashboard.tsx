@@ -235,8 +235,8 @@ export default function Dashboard() {
   };
 
   useEffect(() => {
-    broadcastOutputState({ poll: activePoll, scene: programScene, layers: activeProgramLayers });
-  }, [activePoll, activeProgramLayers, programScene]);
+    broadcastOutputState({ poll: activePoll, scene: programScene, layers: activeProgramLayers, assets: assetState });
+  }, [activePoll, activeProgramLayers, programScene, assetState]);
 
   // Hotkeys
   useEffect(() => {
@@ -260,7 +260,16 @@ export default function Dashboard() {
   }, [broadcastScene]);
 
   const renderPreviewScene = () => {
-    const props = { question: activePoll.question, options: activePoll.options, totalVotes: activePoll.totalVotes, colors: previewColors, theme: activeTheme, template: activePoll.template };
+    const sharedAssets = {
+      slug: activePoll.slug,
+      qrSize, qrPosition, showBranding, brandingPosition,
+    };
+    const props = {
+      question: activePoll.question, options: activePoll.options,
+      totalVotes: activePoll.totalVotes, colors: previewColors, theme: activeTheme,
+      template: activePoll.template,
+      ...sharedAssets,
+    };
     switch (previewScene) {
       case 'lowerThird': return <LowerThirdScene {...props} />;
       case 'qr': return <QRScene slug={activePoll.slug} theme={activeTheme} />;
