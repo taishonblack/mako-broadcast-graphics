@@ -122,6 +122,10 @@ export default function Dashboard() {
   const activeProgramLayers = programLayersByPollId[activePollId] ?? DEFAULT_LAYERS;
   const previewColors = [activeTheme.chartColorA, activeTheme.chartColorB, activeTheme.chartColorC, activeTheme.chartColorD];
 
+  const assetState = useMemo(() => ({
+    qrSize, qrPosition, showBranding, brandingPosition,
+  }), [qrSize, qrPosition, showBranding, brandingPosition]);
+
   const updatePollInProject = (pollId: string, updater: (p: Poll) => Poll) => {
     setProject(prev => ({
       ...prev,
