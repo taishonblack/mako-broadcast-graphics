@@ -42,7 +42,7 @@ export function AssetOverlay({
   return (
     <>
       {showQR && (
-        <div style={positionStyle(qrPosition)} className="z-30">
+        <div data-layer="qrCode" style={positionStyle(qrPosition)} className="z-30">
           <div
             className="inline-flex p-3 rounded-2xl"
             style={{ backgroundColor: theme.qrFrameColor }}
@@ -58,6 +58,7 @@ export function AssetOverlay({
 
       {showBranding && (
         <div
+          data-layer="logo"
           style={positionStyle(brandingPosition)}
           className="z-30 flex items-center gap-2 opacity-70"
         >

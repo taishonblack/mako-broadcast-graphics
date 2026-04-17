@@ -1,5 +1,5 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
-import { GraphicLayer, LayerType, LAYER_FRAME_ZONES } from '@/lib/layers';
+import { useState, useCallback, useRef, useEffect, useLayoutEffect } from 'react';
+import { GraphicLayer, LayerType } from '@/lib/layers';
 
 interface LayerPreviewOverlayProps {
   layers: GraphicLayer[];
@@ -8,16 +8,22 @@ interface LayerPreviewOverlayProps {
   onUpdateLayer: (id: LayerType, changes: Partial<GraphicLayer>) => void;
 }
 
-function getLayerZone(layer: GraphicLayer) {
-  const baseZone = LAYER_FRAME_ZONES[layer.id];
-  return {
-    x: layer.id === 'background' ? 0 : layer.transform.x,
-    y: layer.id === 'background' ? 0 : layer.transform.y,
-    w: Math.min(baseZone.w * layer.transform.scale, 100),
-    h: Math.min(baseZone.h * layer.transform.scale, 100),
-  };
+interface MeasuredRect {
+  x: number; // % of overlay container
+  y: number;
+  w: number;
+  h: number;
 }
 
+/**
+ * LayerPreviewOverlay — true layer-to-rendered-asset binding.
+ *
+ * Instead of computing fictional zones, we look up the actual DOM node
+ * inside the preview that carries `data-layer="<id>"`, measure its
+ * bounding rect, and draw the selection box around its real position
+ * and size. This keeps the bounding box tight on the rendered asset
+ * regardless of layout, scale, or scene.
+ */
 export function LayerPreviewOverlay({
   layers,
   selectedLayerId,
@@ -25,40 +31,80 @@ export function LayerPreviewOverlay({
   onUpdateLayer,
 }: LayerPreviewOverlayProps) {
   const containerRef = useRef<HTMLDivElement>(null);
+  const [hoverRect, setHoverRect] = useState<MeasuredRect | null>(null);
+  const [selectedRect, setSelectedRect] = useState<MeasuredRect | null>(null);
   const [dragging, setDragging] = useState(false);
   const dragStart = useRef<{ x: number; y: number; layerX: number; layerY: number } | null>(null);
 
+  /** Measure a `[data-layer="<id>"]` node inside the preview. */
+  const measureLayer = useCallback((id: LayerType): MeasuredRect | null => {
+    const container = containerRef.current;
+    if (!container) return null;
+    // Walk up to the relative parent that holds both the overlay and the preview frame.
+    const parent = container.parentElement;
+    if (!parent) return null;
+    const node = parent.querySelector<HTMLElement>(`[data-layer="${id}"]`);
+    if (!node) return null;
+    const containerRect = container.getBoundingClientRect();
+    const nodeRect = node.getBoundingClientRect();
+    if (containerRect.width === 0 || containerRect.height === 0) return null;
+    return {
+      x: ((nodeRect.left - containerRect.left) / containerRect.width) * 100,
+      y: ((nodeRect.top - containerRect.top) / containerRect.height) * 100,
+      w: (nodeRect.width / containerRect.width) * 100,
+      h: (nodeRect.height / containerRect.height) * 100,
+    };
+  }, []);
+
+  // Re-measure the selected layer whenever layers, selection, or size changes.
+  useLayoutEffect(() => {
+    if (!selectedLayerId) {
+      setSelectedRect(null);
+      return;
+    }
+    const measure = () => {
+      const rect = measureLayer(selectedLayerId);
+      setSelectedRect(rect);
+    };
+    measure();
+    // Watch the preview parent for resize so the selection stays tight.
+    const parent = containerRef.current?.parentElement;
+    if (!parent) return;
+    const ro = new ResizeObserver(measure);
+    ro.observe(parent);
+    parent.querySelectorAll('[data-layer]').forEach((n) => ro.observe(n));
+    return () => ro.disconnect();
+  }, [selectedLayerId, layers, measureLayer]);
+
   const handleClick = (e: React.MouseEvent) => {
     if (dragging) return;
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
+    const container = containerRef.current?.parentElement;
+    if (!container) return;
+    const containerRect = containerRef.current!.getBoundingClientRect();
+    const clickX = e.clientX;
+    const clickY = e.clientY;
 
-    const clickX = ((e.clientX - rect.left) / rect.width) * 100;
-    const clickY = ((e.clientY - rect.top) / rect.height) * 100;
-
-    // Find topmost visible, unlocked layer that contains the click
-    const visibleLayers = layers.filter(l => l.visible && l.id !== 'background').slice().reverse();
-    for (const layer of visibleLayers) {
-      const zone = getLayerZone(layer);
-      if (
-        clickX >= zone.x && clickX <= zone.x + zone.w &&
-        clickY >= zone.y && clickY <= zone.y + zone.h
-      ) {
+    // Find topmost visible, unlocked rendered layer whose bounding rect contains the click.
+    const visible = layers
+      .filter((l) => l.visible && l.id !== 'background')
+      .slice()
+      .reverse();
+    for (const layer of visible) {
+      const node = container.querySelector<HTMLElement>(`[data-layer="${layer.id}"]`);
+      if (!node) continue;
+      const r = node.getBoundingClientRect();
+      if (clickX >= r.left && clickX <= r.right && clickY >= r.top && clickY <= r.bottom) {
         onSelectLayer(layer.id);
         return;
       }
     }
-    // Click on empty area = select background
     onSelectLayer('background');
   };
 
   const handleMouseDown = (e: React.MouseEvent) => {
     if (!selectedLayerId || selectedLayerId === 'background') return;
-    const selectedLayer = layers.find(l => l.id === selectedLayerId);
+    const selectedLayer = layers.find((l) => l.id === selectedLayerId);
     if (!selectedLayer || selectedLayer.locked) return;
-
-    const rect = containerRef.current?.getBoundingClientRect();
-    if (!rect) return;
 
     dragStart.current = {
       x: e.clientX,
@@ -66,6 +112,27 @@ export function LayerPreviewOverlay({
       layerX: selectedLayer.transform.x,
       layerY: selectedLayer.transform.y,
     };
+  };
+
+  // Hover hint while moving over the preview (helps users see what's selectable).
+  const handleMouseMoveOverlay = (e: React.MouseEvent) => {
+    if (dragStart.current) return; // dragging — skip hover tracking
+    const container = containerRef.current?.parentElement;
+    if (!container) return;
+    const visible = layers
+      .filter((l) => l.visible && l.id !== 'background')
+      .slice()
+      .reverse();
+    for (const layer of visible) {
+      const node = container.querySelector<HTMLElement>(`[data-layer="${layer.id}"]`);
+      if (!node) continue;
+      const r = node.getBoundingClientRect();
+      if (e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom) {
+        setHoverRect(measureLayer(layer.id));
+        return;
+      }
+    }
+    setHoverRect(null);
   };
 
   useEffect(() => {
@@ -82,10 +149,10 @@ export function LayerPreviewOverlay({
       const newX = Math.max(0, Math.min(100, dragStart.current.layerX + dx));
       const newY = Math.max(0, Math.min(100, dragStart.current.layerY + dy));
 
-      const layer = layers.find(l => l.id === selectedLayerId);
+      const layer = layers.find((l) => l.id === selectedLayerId);
       if (layer) {
         onUpdateLayer(selectedLayerId, {
-          transform: { ...layer.transform, x: newX, y: newY }
+          transform: { ...layer.transform, x: newX, y: newY },
         });
       }
     };
@@ -103,8 +170,7 @@ export function LayerPreviewOverlay({
     };
   }, [selectedLayerId, layers, onUpdateLayer]);
 
-  const selectedLayer = selectedLayerId ? layers.find((layer) => layer.id === selectedLayerId) ?? null : null;
-  const selectedZone = selectedLayer ? getLayerZone(selectedLayer) : null;
+  const selectedLayer = selectedLayerId ? layers.find((l) => l.id === selectedLayerId) ?? null : null;
 
   return (
     <div
@@ -112,17 +178,32 @@ export function LayerPreviewOverlay({
       className="absolute inset-0 z-40 cursor-crosshair"
       onClick={handleClick}
       onMouseDown={handleMouseDown}
+      onMouseMove={handleMouseMoveOverlay}
+      onMouseLeave={() => setHoverRect(null)}
     >
-      {/* Selection bounding box */}
-      {selectedLayerId && selectedLayerId !== 'background' && selectedZone && (
+      {/* Hover hint */}
+      {hoverRect && (!selectedRect || hoverRect.x !== selectedRect.x || hoverRect.y !== selectedRect.y) && (
         <div
-          className="absolute border-2 border-primary/60 rounded-sm pointer-events-none transition-all duration-150"
+          className="absolute border border-primary/40 rounded-sm pointer-events-none"
           style={{
-            left: `${selectedZone.x}%`,
-            top: `${selectedZone.y}%`,
-            width: `${selectedZone.w}%`,
-            height: `${selectedZone.h}%`,
-            boxShadow: '0 0 0 1px hsl(var(--primary) / 0.2), inset 0 0 0 1px hsl(var(--primary) / 0.1)',
+            left: `${hoverRect.x}%`,
+            top: `${hoverRect.y}%`,
+            width: `${hoverRect.w}%`,
+            height: `${hoverRect.h}%`,
+          }}
+        />
+      )}
+
+      {/* Selection bounding box — tight around actual rendered asset */}
+      {selectedLayerId && selectedLayerId !== 'background' && selectedRect && (
+        <div
+          className="absolute border-2 border-primary rounded-sm pointer-events-none transition-[left,top,width,height] duration-100"
+          style={{
+            left: `${selectedRect.x}%`,
+            top: `${selectedRect.y}%`,
+            width: `${selectedRect.w}%`,
+            height: `${selectedRect.h}%`,
+            boxShadow: '0 0 0 1px hsl(var(--primary) / 0.25), inset 0 0 0 1px hsl(var(--primary) / 0.15)',
           }}
         >
           {/* Corner handles */}
@@ -139,9 +220,8 @@ export function LayerPreviewOverlay({
               />
             );
           })}
-          {/* Label */}
-          <div className="absolute -top-5 left-0 text-[9px] font-mono text-primary bg-background/80 px-1 rounded">
-            {layers.find(l => l.id === selectedLayerId)?.label}
+          <div className="absolute -top-5 left-0 text-[9px] font-mono text-primary bg-background/90 px-1.5 py-0.5 rounded">
+            {selectedLayer?.label}
           </div>
         </div>
       )}
