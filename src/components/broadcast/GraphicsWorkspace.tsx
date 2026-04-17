@@ -350,23 +350,27 @@ export function GraphicsWorkspace({
 
         <ResizableHandle withHandle />
 
-        {/* Right Panel — Inspector + Style */}
-        <ResizablePanel defaultSize={30} minSize={18} maxSize={38} className="p-3">
-          <div className="h-full overflow-auto space-y-1">
-            <Tabs defaultValue="inspector" className="w-full">
-              <TabsList className="w-full h-8 bg-muted/50">
-                <TabsTrigger value="inspector" className="text-[10px] flex-1">Inspector</TabsTrigger>
-                <TabsTrigger value="style" className="text-[10px] flex-1">Style</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="inspector" className="mt-2">
+        {/* Right Column — Inspector (top) + Style (bottom), stacked panes */}
+        <ResizablePanel defaultSize={30} minSize={18} maxSize={38}>
+          <ResizablePanelGroup direction="vertical" className="h-full">
+            {/* Inspector pane */}
+            <ResizablePanel defaultSize={55} minSize={25}>
+              <div className="h-full overflow-auto p-3">
+                <p className="text-[10px] text-muted-foreground font-mono uppercase mb-2 px-1">Inspector</p>
                 <LayerInspector
                   layer={selectedLayer}
                   onUpdateLayer={updateLayer}
                 />
-              </TabsContent>
+              </div>
+            </ResizablePanel>
 
-              <TabsContent value="style" className="mt-2 space-y-3">
+            <ResizableHandle withHandle />
+
+            {/* Style pane */}
+            <ResizablePanel defaultSize={45} minSize={20}>
+              <div className="h-full overflow-auto p-3 space-y-3">
+                <p className="text-[10px] text-muted-foreground font-mono uppercase px-1">Style</p>
+
                 {/* Theme Presets */}
                 <div className="space-y-1.5">
                   <Label className="text-[10px] text-muted-foreground font-mono uppercase">Theme</Label>
@@ -425,9 +429,9 @@ export function GraphicsWorkspace({
                     <Switch checked={selectedTheme.countUpNumbers} />
                   </div>
                 </div>
-              </TabsContent>
-            </Tabs>
-          </div>
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </ResizablePanel>
       </ResizablePanelGroup>
 
