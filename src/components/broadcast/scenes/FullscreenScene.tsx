@@ -1,7 +1,7 @@
-import { renderChart } from '@/lib/render-chart';
 import { ThemePreset, PollOption, TemplateName, QRPosition } from '@/lib/types';
-import { GraphicLayer, LayerType, LAYER_FRAME_ZONES } from '@/lib/layers';
+import { GraphicLayer } from '@/lib/layers';
 import { AssetOverlay } from '@/components/broadcast/AssetOverlay';
+import { renderChart } from '@/lib/render-chart';
 
 interface FullscreenSceneProps {
   question: string;
@@ -10,8 +10,9 @@ interface FullscreenSceneProps {
   colors: string[];
   theme: ThemePreset;
   template?: TemplateName;
+  /** Layers are accepted for compatibility but Fullscreen now uses its own
+   *  broadcast-baseline composition instead of per-layer transforms. */
   layers?: GraphicLayer[];
-  // Optional asset overlays
   slug?: string;
   qrSize?: number;
   qrPosition?: QRPosition;
@@ -19,24 +20,11 @@ interface FullscreenSceneProps {
   brandingPosition?: QRPosition;
 }
 
-function getLayer(layers: GraphicLayer[] | undefined, id: LayerType): GraphicLayer | undefined {
-  return layers?.find((l) => l.id === id);
-}
-
-function layerPosition(layer: GraphicLayer | undefined, id: LayerType): React.CSSProperties {
-  const zone = LAYER_FRAME_ZONES[id];
-  return {
-    position: 'absolute' as const,
-    left: `${layer?.transform.x ?? zone.x}%`,
-    top: `${layer?.transform.y ?? zone.y}%`,
-    opacity: layer?.transform.opacity ?? 1,
-    transform: `scale(${layer?.transform.scale ?? 1})`,
-    transformOrigin: 'top left',
-    display: layer?.visible === false ? 'none' : undefined,
-    transition: 'left 0.2s, top 0.2s, opacity 0.2s, transform 0.2s',
-  };
-}
-
+/**
+ * FULLSCREEN — the master broadcast composition.
+ * Centered, large-scale, frame-filling. Other scenes (Results, Lower Third)
+ * are independent layouts, NOT transforms of this one.
+ */
 export function FullscreenScene({
   question,
   options,
@@ -44,27 +32,20 @@ export function FullscreenScene({
   colors,
   theme,
   template = 'horizontal-bar',
-  layers,
   slug,
   qrSize,
   qrPosition,
   showBranding = false,
   brandingPosition = 'bottom-left',
 }: FullscreenSceneProps) {
-  const bgLayer = getLayer(layers, 'background');
-  const questionLayer = getLayer(layers, 'question');
-  const barsLayer = getLayer(layers, 'answerBars');
-  const votesLayer = getLayer(layers, 'votesText');
-  const questionZone = LAYER_FRAME_ZONES.question;
-  const barsZone = LAYER_FRAME_ZONES.answerBars;
-  const votesZone = LAYER_FRAME_ZONES.votesText;
+  // Non-bar templates (donut, puck) — render the chart component scaled up.
+  const useNativeChart = template === 'pie-donut' || template === 'puck-slider' || template === 'vertical-bar';
 
   return (
     <div
       className="absolute inset-0 overflow-hidden"
       style={{
         background: `linear-gradient(135deg, ${theme.tintColor}, hsl(220, 25%, 6%))`,
-        opacity: bgLayer?.transform.opacity ?? 1,
       }}
     >
       {/* Vignette */}
@@ -75,59 +56,78 @@ export function FullscreenScene({
         }}
       />
 
-      <div className="relative z-20 w-full h-full">
+      <div className="relative z-20 w-full h-full flex flex-col items-center justify-center px-32 py-24">
         {/* Question */}
-        <div
+        <h1
+          className="font-bold text-center leading-tight mb-20"
           style={{
-            ...layerPosition(questionLayer, 'question'),
-            width: `${questionLayer?.textProps?.maxWidth ?? questionZone.w}%`,
+            color: theme.textPrimary,
+            fontSize: '88px',
+            maxWidth: '1600px',
           }}
         >
-          <h1
-            className="font-bold leading-tight whitespace-pre-wrap break-words"
-            style={{
-              color: theme.textPrimary,
-              fontSize: `${questionLayer?.textProps?.fontSize ?? 72}px`,
-              fontWeight: questionLayer?.textProps?.fontWeight ?? 'bold',
-              textAlign: questionLayer?.textProps?.textAlign ?? 'center',
-              lineHeight: questionLayer?.textProps?.lineHeight ?? 1.1,
-            }}
-          >
-            {question}
-          </h1>
-        </div>
+          {question}
+        </h1>
 
-        {/* Answer Bars — fills frame */}
-        <div
-          style={{
-            ...layerPosition(barsLayer, 'answerBars'),
-            width: `${barsZone.w}%`,
-          }}
-        >
-          {renderChart({ template, options, totalVotes, colors })}
-        </div>
+        {/* Content group — sized to fill the frame appropriately */}
+        <div className="w-full" style={{ maxWidth: '1600px' }}>
+          {useNativeChart ? (
+            <div style={{ transform: 'scale(2.4)', transformOrigin: 'center top' }}>
+              {renderChart({ template, options, totalVotes, colors })}
+            </div>
+          ) : (
+            <div className="space-y-8">
+              {options.map((option, i) => {
+                const pct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
+                const color = colors[i % colors.length];
+                return (
+                  <div key={option.id} className="flex flex-col gap-2">
+                    <div className="flex items-end justify-between">
+                      <span
+                        className="font-semibold"
+                        style={{ color: theme.textPrimary, fontSize: '40px' }}
+                      >
+                        {option.text}
+                      </span>
+                      <span
+                        className="font-bold font-mono tabular-nums"
+                        style={{ color, fontSize: '56px' }}
+                      >
+                        {Math.round(pct)}%
+                      </span>
+                    </div>
+                    <div
+                      className="rounded-full overflow-hidden"
+                      style={{ height: '28px', background: 'hsla(210, 20%, 92%, 0.1)' }}
+                    >
+                      <div
+                        className="h-full rounded-full"
+                        style={{
+                          width: `${pct}%`,
+                          backgroundColor: color,
+                          boxShadow: `0 0 24px -4px ${color}`,
+                          transition: 'width 0.5s ease-out',
+                        }}
+                      />
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
 
-        {/* Votes Text */}
-        <div
-          style={{
-            ...layerPosition(votesLayer, 'votesText'),
-            width: `${votesZone.w}%`,
-          }}
-        >
-          <span
-            className="font-mono block"
-            style={{
-              color: theme.textSecondary,
-              fontSize: `${votesLayer?.textProps?.fontSize ?? 28}px`,
-              textAlign: votesLayer?.textProps?.textAlign ?? 'center',
-            }}
-          >
-            {totalVotes.toLocaleString()} total votes
-          </span>
+          {/* Vote total */}
+          <div className="mt-12 text-center">
+            <span
+              className="font-mono"
+              style={{ color: theme.textSecondary, fontSize: '28px' }}
+            >
+              {totalVotes.toLocaleString()} total votes
+            </span>
+          </div>
         </div>
       </div>
 
-      {/* Asset overlay (QR + bug) — wired to operator controls */}
       {(qrSize !== undefined || showBranding) && (
         <AssetOverlay
           showQR={qrSize !== undefined && qrSize > 0}
