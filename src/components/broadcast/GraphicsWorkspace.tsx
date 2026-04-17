@@ -183,16 +183,12 @@ export function GraphicsWorkspace({
   return (
     <div className="h-[calc(100vh-3.5rem)] overflow-hidden">
       <ResizablePanelGroup direction="horizontal" className="h-full">
-        {/* Left Panel — Layers + Content */}
-        <ResizablePanel defaultSize={18} minSize={14} maxSize={28} className="p-3">
-          <div className="h-full overflow-auto space-y-1">
-            <Tabs defaultValue="layers" className="w-full">
-              <TabsList className="w-full h-8 bg-muted/50">
-                <TabsTrigger value="layers" className="text-[10px] flex-1">Layers</TabsTrigger>
-                <TabsTrigger value="content" className="text-[10px] flex-1">Content</TabsTrigger>
-              </TabsList>
-
-              <TabsContent value="layers" className="mt-2">
+        {/* Left Column — Layers (top) + Content (bottom), stacked panes */}
+        <ResizablePanel defaultSize={18} minSize={14} maxSize={28}>
+          <ResizablePanelGroup direction="vertical" className="h-full">
+            {/* Layers pane */}
+            <ResizablePanel defaultSize={42} minSize={20}>
+              <div className="h-full overflow-auto p-3">
                 <LayerPanel
                   layers={layers}
                   selectedLayerId={selectedLayerId}
@@ -200,9 +196,16 @@ export function GraphicsWorkspace({
                   onToggleVisibility={toggleVisibility}
                   onToggleLock={toggleLock}
                 />
-              </TabsContent>
+              </div>
+            </ResizablePanel>
 
-              <TabsContent value="content" className="mt-2 space-y-3">
+            <ResizableHandle withHandle />
+
+            {/* Content pane */}
+            <ResizablePanel defaultSize={58} minSize={25}>
+              <div className="h-full overflow-auto p-3 space-y-3">
+                <p className="text-[10px] text-muted-foreground font-mono uppercase px-1">Content</p>
+
                 {/* Question */}
                 <div className="space-y-1.5">
                   <Label className="text-[10px] text-muted-foreground font-mono uppercase">Question</Label>
@@ -261,9 +264,9 @@ export function GraphicsWorkspace({
                     ))}
                   </div>
                 </div>
-              </TabsContent>
-            </Tabs>
-          </div>
+              </div>
+            </ResizablePanel>
+          </ResizablePanelGroup>
         </ResizablePanel>
 
         <ResizableHandle withHandle />
