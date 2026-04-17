@@ -14,7 +14,7 @@ import { Input } from '@/components/ui/input';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
 import { Label } from '@/components/ui/label';
-import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+
 import { AssetControls } from '@/components/broadcast/AssetControls';
 import { themePresets } from '@/lib/themes';
 import { templateLabels } from '@/lib/mock-data';
