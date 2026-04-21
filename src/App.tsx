@@ -11,6 +11,7 @@ import GraphicsEditor from "./pages/GraphicsEditor";
 import ProgramOutput from "./pages/ProgramOutput";
 import ViewerVote from "./pages/ViewerVote";
 import NotFound from "./pages/NotFound";
+import { ProtectedRoute } from "./components/ProtectedRoute";
 
 const queryClient = new QueryClient();
 
@@ -24,8 +25,9 @@ const App = () => (
           <Route path="/" element={<Login />} />
           <Route path="/projects" element={<ProjectLauncher />} />
           <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/polls/new" element={<PollCreate />} />
-          <Route path="/polls/:id/edit" element={<PollCreate />} />
+          <Route path="/polls/new" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
+          <Route path="/polls/:id" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
+          <Route path="/polls/:id/edit" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
           <Route path="/graphics/:id" element={<GraphicsEditor />} />
           <Route path="/output/:id" element={<ProgramOutput />} />
           <Route path="/vote/:slug" element={<ViewerVote />} />

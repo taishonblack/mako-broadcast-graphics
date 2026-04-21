@@ -7,18 +7,22 @@ import heroCityscape from '@/assets/hero-cityscape.png';
 
 export default function Login() {
   const navigate = useNavigate();
+  const [mode, setMode] = useState<'signin' | 'signup'>('signin');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
 
-  const handleLogin = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+    const { error } = mode === 'signin'
+      ? await supabase.auth.signInWithPassword({ email, password })
+      : await supabase.auth.signUp({
+          email,
+          password,
+          options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+        });
 
     if (error) {
       toast.error(error.message);
@@ -26,7 +30,7 @@ export default function Login() {
       return;
     }
 
-    toast.success('Signed in successfully');
+    toast.success(mode === 'signin' ? 'Signed in successfully' : 'Account created');
     navigate('/dashboard');
   };
 
@@ -87,14 +91,14 @@ export default function Login() {
           >
             <div className="mb-8">
               <h1 className="text-xl font-semibold tracking-tight" style={{ color: '#111111' }}>
-                Sign In
+                {mode === 'signin' ? 'Sign In' : 'Create Account'}
               </h1>
               <p className="text-[13px] mt-1" style={{ color: '#6B7280' }}>
                 Broadcast polling control system
               </p>
             </div>
 
-            <form onSubmit={handleLogin} className="flex flex-col gap-4">
+            <form onSubmit={handleSubmit} className="flex flex-col gap-4">
               <div className="flex flex-col gap-1.5">
                 <label className="text-xs font-medium" style={{ color: '#9CA3AF' }}>Email</label>
                 <input
@@ -129,7 +133,19 @@ export default function Login() {
                 onMouseEnter={(e) => (e.currentTarget.style.background = '#EA580C')}
                 onMouseLeave={(e) => (e.currentTarget.style.background = '#F97316')}
               >
-                {loading ? 'Signing in…' : 'Sign In'}
+                {loading
+                  ? (mode === 'signin' ? 'Signing in…' : 'Creating account…')
+                  : (mode === 'signin' ? 'Sign In' : 'Create Account')}
+              </button>
+              <button
+                type="button"
+                onClick={() => setMode(mode === 'signin' ? 'signup' : 'signin')}
+                className="text-[12px] text-center mt-1"
+                style={{ color: '#6B7280' }}
+              >
+                {mode === 'signin'
+                  ? <>Don&rsquo;t have an account? <span style={{ color: '#F97316', fontWeight: 500 }}>Create one</span></>
+                  : <>Already have an account? <span style={{ color: '#F97316', fontWeight: 500 }}>Sign in</span></>}
               </button>
             </form>
           </div>
