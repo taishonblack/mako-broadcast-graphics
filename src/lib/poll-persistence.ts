@@ -46,7 +46,7 @@ function toRow(p: DraftPollPayload, userId: string, status: 'draft' | 'saved', p
     template: p.template,
     answer_type: p.answerType,
     mc_label_style: p.mcLabelStyle,
-    answers: p.answers as unknown as object,
+    answers: p.answers as unknown as never,
     show_live_results: p.showLiveResults,
     show_thank_you: p.showThankYou,
     show_final_results: p.showFinalResults,
@@ -101,7 +101,7 @@ export async function savePoll(opts: {
     if (error) throw error;
     return fromRow(data);
   }
-  const { data, error } = await supabase.from('polls').insert(row).select().single();
+  const { data, error } = await supabase.from('polls').insert([row]).select().single();
   if (error) throw error;
   return fromRow(data);
 }
