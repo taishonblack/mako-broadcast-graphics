@@ -49,38 +49,52 @@ const answerTypes: { value: AnswerType; label: string }[] = [
   { value: 'custom', label: 'Custom Text' },
 ];
 
+const mcLabelStyles: { value: MCLabelStyle; label: string }[] = [
+  { value: 'letters', label: 'A / B / C' },
+  { value: 'numbers', label: '1 / 2 / 3' },
+  { value: 'custom', label: 'Custom' },
+];
+
+export function getMCLabel(index: number, style: MCLabelStyle, customLabel?: string): string {
+  if (style === 'letters') return String.fromCharCode(65 + index);
+  if (style === 'numbers') return String(index + 1);
+  return customLabel || String.fromCharCode(65 + index);
+}
+
 export function ContentPanel({
   internalName, setInternalName,
   question, setQuestion,
   subheadline, setSubheadline,
   slug, setSlug,
   answerType, setAnswerType,
+  mcLabelStyle, setMcLabelStyle,
   answers, setAnswers,
   showLiveResults, setShowLiveResults,
   autoClose, setAutoClose,
   showThankYou, setShowThankYou,
   showFinalResults, setShowFinalResults,
+  previewDataMode, setPreviewDataMode,
 }: ContentPanelProps) {
 
   const handleAnswerTypeChange = (type: AnswerType) => {
     setAnswerType(type);
     if (type === 'yes-no') {
       setAnswers([
-        { id: '1', text: 'Yes', shortLabel: 'Y' },
-        { id: '2', text: 'No', shortLabel: 'N' },
+        { id: '1', text: 'Yes', shortLabel: 'Y', testVotes: 0 },
+        { id: '2', text: 'No', shortLabel: 'N', testVotes: 0 },
       ]);
     } else if (type === 'multiple-choice') {
       setAnswers([
-        { id: '1', text: '', shortLabel: '' },
-        { id: '2', text: '', shortLabel: '' },
-        { id: '3', text: '', shortLabel: '' },
+        { id: '1', text: '', shortLabel: '', testVotes: 0 },
+        { id: '2', text: '', shortLabel: '', testVotes: 0 },
+        { id: '3', text: '', shortLabel: '', testVotes: 0 },
       ]);
     }
   };
 
   const addAnswer = () => {
     if (answers.length < 4) {
-      setAnswers([...answers, { id: String(Date.now()), text: '', shortLabel: '' }]);
+      setAnswers([...answers, { id: String(Date.now()), text: '', shortLabel: '', testVotes: 0 }]);
     }
   };
 
@@ -90,9 +104,9 @@ export function ContentPanel({
     }
   };
 
-  const updateAnswer = (index: number, field: 'text' | 'shortLabel', value: string) => {
+  const updateAnswer = (index: number, field: 'text' | 'shortLabel' | 'testVotes', value: string | number) => {
     const next = [...answers];
-    next[index] = { ...next[index], [field]: value };
+    next[index] = { ...next[index], [field]: value as never };
     setAnswers(next);
   };
 
