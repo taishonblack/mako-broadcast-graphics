@@ -1,7 +1,7 @@
 import { useState, useMemo } from 'react';
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { PollStatusChip } from '@/components/broadcast/PollStatusChip';
-import { ContentPanel, AnswerType } from '@/components/poll-create/ContentPanel';
+import { ContentPanel, AnswerType, MCLabelStyle, PreviewDataMode } from '@/components/poll-create/ContentPanel';
 import { BuildControlsPanel } from '@/components/poll-create/BuildControlsPanel';
 import { DraftPreviewMonitor } from '@/components/poll-create/DraftPreviewMonitor';
 import { Button } from '@/components/ui/button';
@@ -18,15 +18,19 @@ export default function PollCreate() {
   const [subheadline, setSubheadline] = useState('');
   const [selectedTemplate, setSelectedTemplate] = useState<TemplateName>('horizontal-bar');
   const [answerType, setAnswerType] = useState<AnswerType>('multiple-choice');
+  const [mcLabelStyle, setMcLabelStyle] = useState<MCLabelStyle>('letters');
+  const [previewDataMode, setPreviewDataMode] = useState<PreviewDataMode>('test');
   const [answers, setAnswers] = useState([
-    { id: '1', text: '', shortLabel: '' },
-    { id: '2', text: '', shortLabel: '' },
+    { id: '1', text: '', shortLabel: '', testVotes: 720 },
+    { id: '2', text: '', shortLabel: '', testVotes: 540 },
   ]);
   const [showLiveResults, setShowLiveResults] = useState(true);
   const [showThankYou, setShowThankYou] = useState(true);
   const [showFinalResults, setShowFinalResults] = useState(true);
   const [autoClose, setAutoClose] = useState('');
-  const [bgColor, setBgColor] = useState('');
+  const [bgColor, setBgColor] = useState('#1a1a2e');
+  const [bgImage, setBgImage] = useState<string | undefined>(undefined);
+  const [draftStatus] = useState<'unsaved' | 'draft-saved' | 'saved-to-project'>('unsaved');
 
   const theme = themePresets[0];
   const previewColors = [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
@@ -36,13 +40,23 @@ export default function PollCreate() {
       id: a.id,
       text: a.text || `Answer ${i + 1}`,
       shortLabel: a.shortLabel || undefined,
-      votes: [720, 540, 380, 260][i] || 300,
+      votes: previewDataMode === 'test' ? (a.testVotes ?? 0) : 0,
       order: i,
-    })), [answers]
+    })), [answers, previewDataMode]
   );
   const previewTotal = previewOptions.reduce((sum, o) => sum + o.votes, 0);
   const previewQuestion = question || 'Your question here?';
   const hasContent = question.length > 0 || answers.some(a => a.text.length > 0);
+
+  const slugForUrl = slug || 'your-poll-slug';
+  const fullUrl = `https://makovote.app/vote/${slugForUrl}`;
+  const shortUrl = `mvote.app/${slugForUrl}`;
+
+  const statusLabel = {
+    'unsaved': { text: 'Unsaved', cls: 'bg-mako-warning/15 text-mako-warning border-mako-warning/30' },
+    'draft-saved': { text: 'Draft Saved', cls: 'bg-primary/15 text-primary border-primary/30' },
+    'saved-to-project': { text: 'Saved to Project', cls: 'bg-mako-success/15 text-mako-success border-mako-success/30' },
+  }[draftStatus];
 
   return (
     <OperatorLayout>
@@ -53,6 +67,7 @@ export default function PollCreate() {
           <span className="text-muted-foreground/40">/</span>
           <span className="text-xs font-semibold text-foreground">Draft Workspace</span>
           <PollStatusChip state="draft" />
+          <span className={`mako-chip text-[9px] border ${statusLabel.cls}`}>{statusLabel.text}</span>
         </div>
         <div className="flex items-center gap-1.5">
           <Tooltip>
@@ -91,11 +106,13 @@ export default function PollCreate() {
               subheadline={subheadline} setSubheadline={setSubheadline}
               slug={slug} setSlug={setSlug}
               answerType={answerType} setAnswerType={setAnswerType}
+              mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
               answers={answers} setAnswers={setAnswers}
               showLiveResults={showLiveResults} setShowLiveResults={setShowLiveResults}
               autoClose={autoClose} setAutoClose={setAutoClose}
               showThankYou={showThankYou} setShowThankYou={setShowThankYou}
               showFinalResults={showFinalResults} setShowFinalResults={setShowFinalResults}
+              previewDataMode={previewDataMode} setPreviewDataMode={setPreviewDataMode}
             />
           </ResizablePanel>
 
@@ -105,12 +122,21 @@ export default function PollCreate() {
           <ResizablePanel defaultSize={55} minSize={35}>
             <DraftPreviewMonitor
               question={previewQuestion}
+              subheadline={subheadline}
               options={previewOptions}
               totalVotes={previewTotal}
               colors={previewColors}
               template={selectedTemplate}
               theme={theme}
               hasContent={hasContent}
+              answerType={answerType}
+              mcLabelStyle={mcLabelStyle}
+              previewDataMode={previewDataMode}
+              answers={answers}
+              bgColor={bgColor}
+              bgImage={bgImage}
+              fullUrl={fullUrl}
+              shortUrl={shortUrl}
             />
           </ResizablePanel>
 
@@ -123,6 +149,8 @@ export default function PollCreate() {
               setSelectedTemplate={setSelectedTemplate}
               bgColor={bgColor}
               setBgColor={setBgColor}
+              bgImage={bgImage}
+              setBgImage={setBgImage}
             />
           </ResizablePanel>
         </ResizablePanelGroup>
