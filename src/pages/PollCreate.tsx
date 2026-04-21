@@ -20,7 +20,7 @@ export default function PollCreate() {
   const [answerType, setAnswerType] = useState<AnswerType>('multiple-choice');
   const [mcLabelStyle, setMcLabelStyle] = useState<MCLabelStyle>('letters');
   const [previewDataMode, setPreviewDataMode] = useState<PreviewDataMode>('test');
-  const [answers, setAnswers] = useState([
+  const [answers, setAnswers] = useState<{ id: string; text: string; shortLabel: string; testVotes?: number }[]>([
     { id: '1', text: '', shortLabel: '', testVotes: 720 },
     { id: '2', text: '', shortLabel: '', testVotes: 540 },
   ]);
