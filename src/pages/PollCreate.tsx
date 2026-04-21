@@ -1,17 +1,33 @@
-import { useState, useMemo } from 'react';
+import { useState, useMemo, useEffect } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { PollStatusChip } from '@/components/broadcast/PollStatusChip';
 import { ContentPanel, AnswerType, MCLabelStyle, PreviewDataMode } from '@/components/poll-create/ContentPanel';
 import { BuildControlsPanel } from '@/components/poll-create/BuildControlsPanel';
 import { DraftPreviewMonitor } from '@/components/poll-create/DraftPreviewMonitor';
+import { ProjectPickerDialog } from '@/components/poll-create/ProjectPickerDialog';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { themePresets } from '@/lib/themes';
 import { TemplateName, PollOption } from '@/lib/types';
-import { Save, Rocket } from 'lucide-react';
+import { Save, Rocket, FolderPlus, Loader2 } from 'lucide-react';
+import { useAuth } from '@/hooks/useAuth';
+import { loadPoll, savePoll, DraftPollPayload } from '@/lib/poll-persistence';
+import { toast } from 'sonner';
 
 export default function PollCreate() {
+  const { id: routeId } = useParams<{ id?: string }>();
+  const navigate = useNavigate();
+  const { user } = useAuth();
+
+  const [pollId, setPollId] = useState<string | undefined>(routeId);
+  const [loadingExisting, setLoadingExisting] = useState(!!routeId);
+  const [saving, setSaving] = useState<'draft' | 'project' | null>(null);
+  const [projectId, setProjectId] = useState<string | undefined>(undefined);
+  const [projectName, setProjectName] = useState<string | undefined>(undefined);
+  const [pickerOpen, setPickerOpen] = useState(false);
+
   const [question, setQuestion] = useState('');
   const [internalName, setInternalName] = useState('');
   const [slug, setSlug] = useState('');
@@ -30,7 +46,123 @@ export default function PollCreate() {
   const [autoClose, setAutoClose] = useState('');
   const [bgColor, setBgColor] = useState('#1a1a2e');
   const [bgImage, setBgImage] = useState<string | undefined>(undefined);
-  const [draftStatus] = useState<'unsaved' | 'draft-saved' | 'saved-to-project'>('unsaved');
+  const [draftStatus, setDraftStatus] = useState<'unsaved' | 'draft-saved' | 'saved-to-project'>('unsaved');
+
+  // Load existing poll if visiting /polls/:id
+  useEffect(() => {
+    if (!routeId) return;
+    setLoadingExisting(true);
+    loadPoll(routeId)
+      .then((p) => {
+        if (!p) {
+          toast.error('Poll not found');
+          navigate('/polls/new', { replace: true });
+          return;
+        }
+        setPollId(p.id);
+        setInternalName(p.internalName);
+        setQuestion(p.question);
+        setSubheadline(p.subheadline);
+        setSlug(p.slug);
+        setSelectedTemplate(p.template);
+        setAnswerType(p.answerType);
+        setMcLabelStyle(p.mcLabelStyle);
+        setAnswers(p.answers.length ? p.answers : [
+          { id: '1', text: '', shortLabel: '', testVotes: 0 },
+          { id: '2', text: '', shortLabel: '', testVotes: 0 },
+        ]);
+        setShowLiveResults(p.showLiveResults);
+        setShowThankYou(p.showThankYou);
+        setShowFinalResults(p.showFinalResults);
+        setAutoClose(p.autoCloseSeconds ? String(p.autoCloseSeconds) : '');
+        setBgColor(p.bgColor);
+        setBgImage(p.bgImage);
+        setPreviewDataMode(p.previewDataMode);
+        setProjectId(p.projectId);
+        setDraftStatus(p.status === 'draft' ? 'draft-saved' : 'saved-to-project');
+      })
+      .catch((e) => toast.error(`Could not load poll: ${e.message}`))
+      .finally(() => setLoadingExisting(false));
+  }, [routeId, navigate]);
+
+  // Mark dirty when fields change after a save
+  useEffect(() => {
+    if (draftStatus !== 'unsaved') setDraftStatus('unsaved');
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question, internalName, slug, subheadline, selectedTemplate, answerType, mcLabelStyle, answers, showLiveResults, showThankYou, showFinalResults, autoClose, bgColor, bgImage, previewDataMode]);
+
+  const buildPayload = (): DraftPollPayload => ({
+    internalName,
+    question,
+    subheadline,
+    slug,
+    template: selectedTemplate,
+    answerType,
+    mcLabelStyle,
+    answers,
+    showLiveResults,
+    showThankYou,
+    showFinalResults,
+    autoCloseSeconds: autoClose ? Number(autoClose) : undefined,
+    bgColor,
+    bgImage,
+    previewDataMode,
+  });
+
+  const handleSaveDraft = async () => {
+    if (!user) { toast.error('Please sign in first'); return; }
+    setSaving('draft');
+    try {
+      const saved = await savePoll({
+        id: pollId,
+        payload: buildPayload(),
+        userId: user.id,
+        status: projectId ? 'saved' : 'draft',
+        projectId,
+      });
+      if (!pollId) {
+        setPollId(saved.id);
+        navigate(`/polls/${saved.id}`, { replace: true });
+      }
+      setDraftStatus(projectId ? 'saved-to-project' : 'draft-saved');
+      toast.success('Draft saved');
+    } catch (e) {
+      toast.error(`Save failed: ${(e as Error).message}`);
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const handleSaveToProject = () => {
+    if (!user) { toast.error('Please sign in first'); return; }
+    setPickerOpen(true);
+  };
+
+  const handleProjectSelected = async (selectedProjectId: string, selectedProjectName: string) => {
+    if (!user) return;
+    setSaving('project');
+    try {
+      const saved = await savePoll({
+        id: pollId,
+        payload: buildPayload(),
+        userId: user.id,
+        status: 'saved',
+        projectId: selectedProjectId,
+      });
+      if (!pollId) {
+        setPollId(saved.id);
+        navigate(`/polls/${saved.id}`, { replace: true });
+      }
+      setProjectId(selectedProjectId);
+      setProjectName(selectedProjectName);
+      setDraftStatus('saved-to-project');
+      toast.success(`Saved to "${selectedProjectName}"`);
+    } catch (e) {
+      toast.error(`Save failed: ${(e as Error).message}`);
+    } finally {
+      setSaving(null);
+    }
+  };
 
   const theme = themePresets[0];
   const previewColors = [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
