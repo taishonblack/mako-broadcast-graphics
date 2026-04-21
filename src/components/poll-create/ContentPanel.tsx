@@ -214,6 +214,21 @@ export function ContentPanel({
                 className="bg-background/50 h-7 text-xs w-16"
                 disabled={answerType === 'yes-no'}
               />
+              {previewDataMode === 'test' && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={answer.testVotes ?? 0}
+                      onChange={e => updateAnswer(i, 'testVotes', Number(e.target.value) || 0)}
+                      placeholder="Votes"
+                      className="bg-primary/5 border-primary/30 h-7 text-[10px] w-16 font-mono"
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent>Simulated vote count for this answer (Test Mode)</TooltipContent>
+                </Tooltip>
+              )}
               <button
                 onClick={() => removeAnswer(answer.id)}
                 className="w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
@@ -228,6 +243,47 @@ export function ContentPanel({
           <Button variant="outline" size="sm" onClick={addAnswer} className="gap-1 text-[10px] h-7">
             <PlusCircle className="w-3 h-3" /> Add Answer
           </Button>
+        )}
+      </div>
+
+      {/* Preview Data Source */}
+      <div className="mako-panel p-4 space-y-3">
+        <div className="flex items-center gap-1">
+          <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Preview Data</h2>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <HelpCircle className="w-3 h-3 text-muted-foreground/50 cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <strong>Test Mode</strong> lets you simulate vote counts to preview how the graphics behave.<br/>
+              <strong>Real Mode</strong> shows live data only — empty until voting starts.
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        <div className="grid grid-cols-2 gap-1">
+          {(['test', 'real'] as PreviewDataMode[]).map(m => (
+            <button
+              key={m}
+              onClick={() => setPreviewDataMode(m)}
+              className={`p-2 rounded-lg text-[10px] font-medium transition-all border capitalize ${
+                previewDataMode === m
+                  ? 'bg-primary/10 border-primary/30 text-primary'
+                  : 'bg-accent/30 border-border/50 text-muted-foreground hover:bg-accent/50'
+              }`}
+            >
+              {m === 'test' ? 'Test Mode' : 'Real Mode'}
+            </button>
+          ))}
+        </div>
+        {previewDataMode === 'test' && (
+          <p className="text-[9px] text-muted-foreground leading-relaxed">
+            Set simulated vote counts on each answer above to preview chart behavior.
+          </p>
+        )}
+        {previewDataMode === 'real' && (
+          <p className="text-[9px] text-muted-foreground leading-relaxed">
+            Preview will show zero-state until live votes are received.
+          </p>
         )}
       </div>
 
