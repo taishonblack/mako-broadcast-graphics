@@ -6,11 +6,14 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { PlusCircle, GripVertical, Trash2, HelpCircle } from 'lucide-react';
 
 export type AnswerType = 'yes-no' | 'multiple-choice' | 'custom';
+export type MCLabelStyle = 'letters' | 'numbers' | 'custom';
+export type PreviewDataMode = 'test' | 'real';
 
 interface AnswerItem {
   id: string;
   text: string;
   shortLabel: string;
+  testVotes?: number;
 }
 
 interface ContentPanelProps {
@@ -24,6 +27,8 @@ interface ContentPanelProps {
   setSlug: (v: string) => void;
   answerType: AnswerType;
   setAnswerType: (v: AnswerType) => void;
+  mcLabelStyle: MCLabelStyle;
+  setMcLabelStyle: (v: MCLabelStyle) => void;
   answers: AnswerItem[];
   setAnswers: (v: AnswerItem[]) => void;
   showLiveResults: boolean;
@@ -34,6 +39,8 @@ interface ContentPanelProps {
   setShowThankYou: (v: boolean) => void;
   showFinalResults: boolean;
   setShowFinalResults: (v: boolean) => void;
+  previewDataMode: PreviewDataMode;
+  setPreviewDataMode: (v: PreviewDataMode) => void;
 }
 
 const answerTypes: { value: AnswerType; label: string }[] = [
