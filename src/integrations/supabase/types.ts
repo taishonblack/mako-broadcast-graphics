@@ -14,7 +14,113 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      polls: {
+        Row: {
+          answer_type: string
+          answers: Json
+          auto_close_seconds: number | null
+          bg_color: string
+          bg_image: string | null
+          created_at: string
+          id: string
+          internal_name: string
+          mc_label_style: string
+          preview_data_mode: string
+          project_id: string | null
+          question: string
+          show_final_results: boolean
+          show_live_results: boolean
+          show_thank_you: boolean
+          slug: string
+          status: string
+          subheadline: string
+          template: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          answer_type?: string
+          answers?: Json
+          auto_close_seconds?: number | null
+          bg_color?: string
+          bg_image?: string | null
+          created_at?: string
+          id?: string
+          internal_name?: string
+          mc_label_style?: string
+          preview_data_mode?: string
+          project_id?: string | null
+          question?: string
+          show_final_results?: boolean
+          show_live_results?: boolean
+          show_thank_you?: boolean
+          slug?: string
+          status?: string
+          subheadline?: string
+          template?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          answer_type?: string
+          answers?: Json
+          auto_close_seconds?: number | null
+          bg_color?: string
+          bg_image?: string | null
+          created_at?: string
+          id?: string
+          internal_name?: string
+          mc_label_style?: string
+          preview_data_mode?: string
+          project_id?: string | null
+          question?: string
+          show_final_results?: boolean
+          show_live_results?: boolean
+          show_thank_you?: boolean
+          slug?: string
+          status?: string
+          subheadline?: string
+          template?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "polls_project_id_fkey"
+            columns: ["project_id"]
+            isOneToOne: false
+            referencedRelation: "projects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      projects: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          name: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          name?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
