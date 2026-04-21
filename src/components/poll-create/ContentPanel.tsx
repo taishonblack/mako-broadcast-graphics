@@ -136,7 +136,10 @@ export function ContentPanel({
                 <TooltipTrigger asChild>
                   <HelpCircle className="w-3 h-3 text-muted-foreground/50 cursor-help" />
                 </TooltipTrigger>
-                <TooltipContent>Short URL path viewers use to access this poll. Example: /vote/penalty-call</TooltipContent>
+                <TooltipContent className="max-w-xs">
+                  This becomes the public URL viewers visit to vote.<br/>
+                  The full link appears beneath the preview monitor.
+                </TooltipContent>
               </Tooltip>
             </div>
             <div className="flex items-center gap-1.5">
@@ -149,7 +152,7 @@ export function ContentPanel({
 
       {/* Answer Type */}
       <div className="mako-panel p-4 space-y-3">
-        <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Answer Type</h2>
+        <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Answer Type / Viewer Mode</h2>
         <div className="grid grid-cols-3 gap-1">
           {answerTypes.map(t => (
             <button
@@ -165,6 +168,26 @@ export function ContentPanel({
             </button>
           ))}
         </div>
+        {answerType === 'multiple-choice' && (
+          <div className="space-y-1.5 pt-2 border-t border-border/40">
+            <Label className="text-[10px] text-muted-foreground">Label Style</Label>
+            <div className="grid grid-cols-3 gap-1">
+              {mcLabelStyles.map(s => (
+                <button
+                  key={s.value}
+                  onClick={() => setMcLabelStyle(s.value)}
+                  className={`p-1.5 rounded-md text-[10px] font-medium transition-all border ${
+                    mcLabelStyle === s.value
+                      ? 'bg-primary/10 border-primary/30 text-primary'
+                      : 'bg-accent/30 border-border/50 text-muted-foreground hover:bg-accent/50'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Answer Setup */}
