@@ -187,11 +187,29 @@ export default function PollCreate() {
   const statusLabel = {
     'unsaved': { text: 'Unsaved', cls: 'bg-mako-warning/15 text-mako-warning border-mako-warning/30' },
     'draft-saved': { text: 'Draft Saved', cls: 'bg-primary/15 text-primary border-primary/30' },
-    'saved-to-project': { text: 'Saved to Project', cls: 'bg-mako-success/15 text-mako-success border-mako-success/30' },
+    'saved-to-project': {
+      text: projectName ? `Saved to ${projectName}` : 'Saved to Project',
+      cls: 'bg-mako-success/15 text-mako-success border-mako-success/30'
+    },
   }[draftStatus];
+
+  if (loadingExisting) {
+    return (
+      <OperatorLayout>
+        <div className="flex-1 flex items-center justify-center text-muted-foreground text-xs">
+          <Loader2 className="w-4 h-4 mr-2 animate-spin" /> Loading poll…
+        </div>
+      </OperatorLayout>
+    );
+  }
 
   return (
     <OperatorLayout>
+      <ProjectPickerDialog
+        open={pickerOpen}
+        onOpenChange={setPickerOpen}
+        onSelect={handleProjectSelected}
+      />
       {/* Header */}
       <header className="h-11 border-b border-border flex items-center justify-between px-4 bg-card/50 shrink-0">
         <div className="flex items-center gap-2">
@@ -204,17 +222,35 @@ export default function PollCreate() {
         <div className="flex items-center gap-1.5">
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="outline" size="sm" className="gap-1 text-[10px] h-7">
-                <Save className="w-3 h-3" /> Save Draft
+              <Button
+                variant="outline" size="sm"
+                onClick={handleSaveDraft}
+                disabled={saving !== null}
+                className="gap-1 text-[10px] h-7"
+              >
+                {saving === 'draft'
+                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                  : <Save className="w-3 h-3" />}
+                Save Draft
               </Button>
             </TooltipTrigger>
-            <TooltipContent>Save current work without publishing</TooltipContent>
+            <TooltipContent>Persist this poll as a private draft you can reopen later</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
-              <Button variant="outline" size="sm" className="text-[10px] h-7">Save Ready</Button>
+              <Button
+                variant="outline" size="sm"
+                onClick={handleSaveToProject}
+                disabled={saving !== null}
+                className="gap-1 text-[10px] h-7"
+              >
+                {saving === 'project'
+                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                  : <FolderPlus className="w-3 h-3" />}
+                Save to Project
+              </Button>
             </TooltipTrigger>
-            <TooltipContent>Mark poll as ready for the dashboard queue</TooltipContent>
+            <TooltipContent>Assign this poll to a project so it appears in the dashboard queue</TooltipContent>
           </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
