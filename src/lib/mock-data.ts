@@ -178,6 +178,5 @@ export const templateLabels: Record<string, string> = {
   'pie-donut': 'Pie / Donut',
   'progress-bar': 'Progress Bar',
   'puck-slider': 'Puck Slider',
-  'fullscreen-hero': 'Fullscreen Hero',
   'lower-third': 'Lower Third',
 };

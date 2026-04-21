@@ -6,11 +6,14 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { PlusCircle, GripVertical, Trash2, HelpCircle } from 'lucide-react';
 
 export type AnswerType = 'yes-no' | 'multiple-choice' | 'custom';
+export type MCLabelStyle = 'letters' | 'numbers' | 'custom';
+export type PreviewDataMode = 'test' | 'real';
 
 interface AnswerItem {
   id: string;
   text: string;
   shortLabel: string;
+  testVotes?: number;
 }
 
 interface ContentPanelProps {
@@ -24,6 +27,8 @@ interface ContentPanelProps {
   setSlug: (v: string) => void;
   answerType: AnswerType;
   setAnswerType: (v: AnswerType) => void;
+  mcLabelStyle: MCLabelStyle;
+  setMcLabelStyle: (v: MCLabelStyle) => void;
   answers: AnswerItem[];
   setAnswers: (v: AnswerItem[]) => void;
   showLiveResults: boolean;
@@ -34,6 +39,8 @@ interface ContentPanelProps {
   setShowThankYou: (v: boolean) => void;
   showFinalResults: boolean;
   setShowFinalResults: (v: boolean) => void;
+  previewDataMode: PreviewDataMode;
+  setPreviewDataMode: (v: PreviewDataMode) => void;
 }
 
 const answerTypes: { value: AnswerType; label: string }[] = [
@@ -42,38 +49,52 @@ const answerTypes: { value: AnswerType; label: string }[] = [
   { value: 'custom', label: 'Custom Text' },
 ];
 
+const mcLabelStyles: { value: MCLabelStyle; label: string }[] = [
+  { value: 'letters', label: 'A / B / C' },
+  { value: 'numbers', label: '1 / 2 / 3' },
+  { value: 'custom', label: 'Custom' },
+];
+
+export function getMCLabel(index: number, style: MCLabelStyle, customLabel?: string): string {
+  if (style === 'letters') return String.fromCharCode(65 + index);
+  if (style === 'numbers') return String(index + 1);
+  return customLabel || String.fromCharCode(65 + index);
+}
+
 export function ContentPanel({
   internalName, setInternalName,
   question, setQuestion,
   subheadline, setSubheadline,
   slug, setSlug,
   answerType, setAnswerType,
+  mcLabelStyle, setMcLabelStyle,
   answers, setAnswers,
   showLiveResults, setShowLiveResults,
   autoClose, setAutoClose,
   showThankYou, setShowThankYou,
   showFinalResults, setShowFinalResults,
+  previewDataMode, setPreviewDataMode,
 }: ContentPanelProps) {
 
   const handleAnswerTypeChange = (type: AnswerType) => {
     setAnswerType(type);
     if (type === 'yes-no') {
       setAnswers([
-        { id: '1', text: 'Yes', shortLabel: 'Y' },
-        { id: '2', text: 'No', shortLabel: 'N' },
+        { id: '1', text: 'Yes', shortLabel: 'Y', testVotes: 0 },
+        { id: '2', text: 'No', shortLabel: 'N', testVotes: 0 },
       ]);
     } else if (type === 'multiple-choice') {
       setAnswers([
-        { id: '1', text: '', shortLabel: '' },
-        { id: '2', text: '', shortLabel: '' },
-        { id: '3', text: '', shortLabel: '' },
+        { id: '1', text: '', shortLabel: '', testVotes: 0 },
+        { id: '2', text: '', shortLabel: '', testVotes: 0 },
+        { id: '3', text: '', shortLabel: '', testVotes: 0 },
       ]);
     }
   };
 
   const addAnswer = () => {
     if (answers.length < 4) {
-      setAnswers([...answers, { id: String(Date.now()), text: '', shortLabel: '' }]);
+      setAnswers([...answers, { id: String(Date.now()), text: '', shortLabel: '', testVotes: 0 }]);
     }
   };
 
@@ -83,9 +104,9 @@ export function ContentPanel({
     }
   };
 
-  const updateAnswer = (index: number, field: 'text' | 'shortLabel', value: string) => {
+  const updateAnswer = (index: number, field: 'text' | 'shortLabel' | 'testVotes', value: string | number) => {
     const next = [...answers];
-    next[index] = { ...next[index], [field]: value };
+    next[index] = { ...next[index], [field]: value as never };
     setAnswers(next);
   };
 
@@ -115,7 +136,10 @@ export function ContentPanel({
                 <TooltipTrigger asChild>
                   <HelpCircle className="w-3 h-3 text-muted-foreground/50 cursor-help" />
                 </TooltipTrigger>
-                <TooltipContent>Short URL path viewers use to access this poll. Example: /vote/penalty-call</TooltipContent>
+                <TooltipContent className="max-w-xs">
+                  This becomes the public URL viewers visit to vote.<br/>
+                  The full link appears beneath the preview monitor.
+                </TooltipContent>
               </Tooltip>
             </div>
             <div className="flex items-center gap-1.5">
@@ -128,7 +152,7 @@ export function ContentPanel({
 
       {/* Answer Type */}
       <div className="mako-panel p-4 space-y-3">
-        <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Answer Type</h2>
+        <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Answer Type / Viewer Mode</h2>
         <div className="grid grid-cols-3 gap-1">
           {answerTypes.map(t => (
             <button
@@ -144,6 +168,26 @@ export function ContentPanel({
             </button>
           ))}
         </div>
+        {answerType === 'multiple-choice' && (
+          <div className="space-y-1.5 pt-2 border-t border-border/40">
+            <Label className="text-[10px] text-muted-foreground">Label Style</Label>
+            <div className="grid grid-cols-3 gap-1">
+              {mcLabelStyles.map(s => (
+                <button
+                  key={s.value}
+                  onClick={() => setMcLabelStyle(s.value)}
+                  className={`p-1.5 rounded-md text-[10px] font-medium transition-all border ${
+                    mcLabelStyle === s.value
+                      ? 'bg-primary/10 border-primary/30 text-primary'
+                      : 'bg-accent/30 border-border/50 text-muted-foreground hover:bg-accent/50'
+                  }`}
+                >
+                  {s.label}
+                </button>
+              ))}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Answer Setup */}
@@ -170,6 +214,21 @@ export function ContentPanel({
                 className="bg-background/50 h-7 text-xs w-16"
                 disabled={answerType === 'yes-no'}
               />
+              {previewDataMode === 'test' && (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Input
+                      type="number"
+                      min={0}
+                      value={answer.testVotes ?? 0}
+                      onChange={e => updateAnswer(i, 'testVotes', Number(e.target.value) || 0)}
+                      placeholder="Votes"
+                      className="bg-primary/5 border-primary/30 h-7 text-[10px] w-16 font-mono"
+                    />
+                  </TooltipTrigger>
+                  <TooltipContent>Simulated vote count for this answer (Test Mode)</TooltipContent>
+                </Tooltip>
+              )}
               <button
                 onClick={() => removeAnswer(answer.id)}
                 className="w-6 h-6 flex items-center justify-center text-muted-foreground hover:text-destructive transition-colors"
@@ -184,6 +243,47 @@ export function ContentPanel({
           <Button variant="outline" size="sm" onClick={addAnswer} className="gap-1 text-[10px] h-7">
             <PlusCircle className="w-3 h-3" /> Add Answer
           </Button>
+        )}
+      </div>
+
+      {/* Preview Data Source */}
+      <div className="mako-panel p-4 space-y-3">
+        <div className="flex items-center gap-1">
+          <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Preview Data</h2>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <HelpCircle className="w-3 h-3 text-muted-foreground/50 cursor-help" />
+            </TooltipTrigger>
+            <TooltipContent className="max-w-xs">
+              <strong>Test Mode</strong> lets you simulate vote counts to preview how the graphics behave.<br/>
+              <strong>Real Mode</strong> shows live data only — empty until voting starts.
+            </TooltipContent>
+          </Tooltip>
+        </div>
+        <div className="grid grid-cols-2 gap-1">
+          {(['test', 'real'] as PreviewDataMode[]).map(m => (
+            <button
+              key={m}
+              onClick={() => setPreviewDataMode(m)}
+              className={`p-2 rounded-lg text-[10px] font-medium transition-all border capitalize ${
+                previewDataMode === m
+                  ? 'bg-primary/10 border-primary/30 text-primary'
+                  : 'bg-accent/30 border-border/50 text-muted-foreground hover:bg-accent/50'
+              }`}
+            >
+              {m === 'test' ? 'Test Mode' : 'Real Mode'}
+            </button>
+          ))}
+        </div>
+        {previewDataMode === 'test' && (
+          <p className="text-[9px] text-muted-foreground leading-relaxed">
+            Set simulated vote counts on each answer above to preview chart behavior.
+          </p>
+        )}
+        {previewDataMode === 'real' && (
+          <p className="text-[9px] text-muted-foreground leading-relaxed">
+            Preview will show zero-state until live votes are received.
+          </p>
         )}
       </div>
 
