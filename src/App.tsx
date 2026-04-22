@@ -5,7 +5,6 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import Login from "./pages/Login";
 import ProjectLauncher from "./pages/ProjectLauncher";
-import Dashboard from "./pages/Dashboard";
 import Blocks from "./pages/Blocks";
 import PollCreate from "./pages/PollCreate";
 import BackgroundGallery from "./pages/BackgroundGallery";

@@ -124,7 +124,7 @@ export default function ProjectLauncher() {
                   <FolderOpen className="w-4 h-4" /> New Project
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Create a new project workspace</TooltipContent>
+                <TooltipContent>Create a new project in Operator Workspace</TooltipContent>
             </Tooltip>
           </div>
         </div>

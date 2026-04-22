@@ -19,10 +19,10 @@ import { LoadPollDialog } from '@/components/poll-create/LoadPollDialog';
 import { ImportErrorDialog } from '@/components/poll-create/ImportErrorDialog';
 import { pollImportSchema, formatZodIssues, ImportIssue, ImportSection } from '@/lib/poll-import-schema';
 import { themePresets } from '@/lib/themes';
-import { TemplateName, PollOption } from '@/lib/types';
+import { TemplateName, Poll, PollOption, QRPosition } from '@/lib/types';
 import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Grid3x3, Monitor, Radio, Palette } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { loadPoll, savePoll, DraftPollPayload, SavedPoll, BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-persistence';
+import { loadPoll, savePoll, listPolls, DraftPollPayload, SavedPoll, BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-persistence';
 import { OperatorOutputMode } from '@/components/operator/OperatorOutputMode';
 import { toast } from 'sonner';
 
