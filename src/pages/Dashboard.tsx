@@ -6,6 +6,7 @@ import { VotingStatusChip } from '@/components/broadcast/VotingStatusChip';
 import { PollQueue } from '@/components/broadcast/PollQueue';
 import { AssetControls } from '@/components/broadcast/AssetControls';
 import { BroadcastPreviewFrame, MonitorContainer } from '@/components/broadcast/BroadcastPreviewFrame';
+import { PreviewWithOverlays } from '@/components/broadcast/preview/PreviewWithOverlays';
 import { SceneSelector } from '@/components/broadcast/SceneSelector';
 import { HorizontalBarChart } from '@/components/charts/HorizontalBarChart';
 import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';

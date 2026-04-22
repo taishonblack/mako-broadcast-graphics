@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { BroadcastPreviewFrame } from '@/components/broadcast/BroadcastPreviewFrame';
+import { PreviewWithOverlays } from '@/components/broadcast/preview/PreviewWithOverlays';
+import { SmartGuide } from '@/components/broadcast/preview/PreviewOverlays';
 import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
 import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
 import { QRScene } from '@/components/broadcast/scenes/QRScene';
@@ -100,6 +101,7 @@ export function GraphicsWorkspace({
   const [layers, setLayers] = useState<GraphicLayer[]>(() => cloneLayers(appliedLayers));
   const [selectedLayerId, setSelectedLayerId] = useState<LayerType | null>(null);
   const [showApplyDialog, setShowApplyDialog] = useState(false);
+  const [smartGuides, setSmartGuides] = useState<SmartGuide[]>([]);
 
   const appliedTheme = themePresets.find(t => t.id === poll.themeId) || themePresets[0];
   const selectedLayer = layers.find(l => l.id === selectedLayerId) || null;
@@ -314,20 +316,25 @@ export function GraphicsWorkspace({
               </div>
             </div>
 
-            {/* Preview Frame with Layer Overlay */}
-            <div className="relative">
-              <BroadcastPreviewFrame showLabel>
-                {renderScene()}
-              </BroadcastPreviewFrame>
-              {viewMode === 'draft' && (
-                <LayerPreviewOverlay
-                  layers={layers}
-                  selectedLayerId={selectedLayerId}
-                  onSelectLayer={setSelectedLayerId}
-                  onUpdateLayer={updateLayer}
-                />
-              )}
-            </div>
+            {/* Preview Frame with Layer Overlay (snap + smart guides while in Draft) */}
+            <PreviewWithOverlays
+              showLabel
+              smartGuides={smartGuides}
+              layerOverlaySlot={(api) =>
+                viewMode === 'draft' ? (
+                  <LayerPreviewOverlay
+                    layers={layers}
+                    selectedLayerId={selectedLayerId}
+                    onSelectLayer={setSelectedLayerId}
+                    onUpdateLayer={updateLayer}
+                    overlayState={api.state}
+                    onSmartGuidesChange={setSmartGuides}
+                  />
+                ) : null
+              }
+            >
+              {renderScene()}
+            </PreviewWithOverlays>
 
             {/* Contextual Asset Bar */}
             <div className="mako-panel p-3">
