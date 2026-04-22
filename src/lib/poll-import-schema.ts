@@ -58,12 +58,46 @@ export interface ImportIssue {
   path: string;
   message: string;
   code: string;
+  section: ImportSection;
+  field: string;
+}
+
+export type ImportSection = 'Poll Details' | 'Answers' | 'Theming' | 'Behavior' | 'Other';
+
+const SECTION_BY_FIELD: Record<string, ImportSection> = {
+  internalName: 'Poll Details',
+  question: 'Poll Details',
+  subheadline: 'Poll Details',
+  slug: 'Poll Details',
+  template: 'Theming',
+  bgColor: 'Theming',
+  bgImage: 'Theming',
+  previewDataMode: 'Theming',
+  answers: 'Answers',
+  answerType: 'Answers',
+  mcLabelStyle: 'Answers',
+  showLiveResults: 'Behavior',
+  showThankYou: 'Behavior',
+  showFinalResults: 'Behavior',
+  autoCloseSeconds: 'Behavior',
+};
+
+export const SECTION_ORDER: ImportSection[] = ['Poll Details', 'Answers', 'Theming', 'Behavior', 'Other'];
+
+function classifyField(path: (string | number)[]): { section: ImportSection; field: string } {
+  const root = path.length ? String(path[0]) : '(root)';
+  return { section: SECTION_BY_FIELD[root] ?? 'Other', field: root };
 }
 
 export function formatZodIssues(error: z.ZodError): ImportIssue[] {
-  return error.issues.map((i) => ({
-    path: i.path.length ? i.path.join('.') : '(root)',
-    message: i.message,
-    code: i.code,
-  }));
+  return error.issues.map((i) => {
+    const { section, field } = classifyField(i.path);
+    return {
+      path: i.path.length ? i.path.join('.') : '(root)',
+      message: i.message,
+      code: i.code,
+      section,
+      field,
+    };
+  });
 }

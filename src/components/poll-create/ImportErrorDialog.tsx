@@ -1,7 +1,15 @@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Button } from '@/components/ui/button';
-import { AlertCircle, FileWarning } from 'lucide-react';
-import { ImportIssue } from '@/lib/poll-import-schema';
+import { AlertCircle, FileWarning, FileText, ListChecks, Palette, Settings, HelpCircle } from 'lucide-react';
+import { ImportIssue, ImportSection, SECTION_ORDER } from '@/lib/poll-import-schema';
+
+const SECTION_ICON: Record<ImportSection, typeof FileText> = {
+  'Poll Details': FileText,
+  'Answers': ListChecks,
+  'Theming': Palette,
+  'Behavior': Settings,
+  'Other': HelpCircle,
+};
 
 interface Props {
   open: boolean;
@@ -13,9 +21,18 @@ interface Props {
 
 export function ImportErrorDialog({ open, onOpenChange, fileName, parseError, issues }: Props) {
   const isParseError = !!parseError;
+
+  // Group issues by section
+  const grouped = SECTION_ORDER
+    .map((section) => ({
+      section,
+      items: issues.filter((i) => i.section === section),
+    }))
+    .filter((g) => g.items.length > 0);
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-xl">
         <DialogHeader>
           <DialogTitle className="text-sm flex items-center gap-2">
             <AlertCircle className="w-4 h-4 text-destructive" />
@@ -38,16 +55,47 @@ export function ImportErrorDialog({ open, onOpenChange, fileName, parseError, is
             </div>
           </div>
         ) : (
-          <div className="max-h-72 overflow-auto rounded-md border border-border/60 divide-y divide-border/40">
-            {issues.map((iss, i) => (
-              <div key={i} className="p-2.5">
-                <div className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                  {iss.path}
+          <div className="max-h-[28rem] overflow-auto space-y-3 pr-1">
+            {grouped.map(({ section, items }) => {
+              const Icon = SECTION_ICON[section];
+              const affectedFields = Array.from(new Set(items.map((i) => i.field)));
+              return (
+                <div key={section} className="rounded-md border border-destructive/30 bg-destructive/5 overflow-hidden">
+                  <div className="px-3 py-2 bg-destructive/10 border-b border-destructive/20 flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Icon className="w-3.5 h-3.5 text-destructive" />
+                      <span className="text-xs font-semibold text-destructive">{section}</span>
+                      <span className="text-[10px] font-mono text-destructive/70">
+                        {items.length} {items.length === 1 ? 'issue' : 'issues'}
+                      </span>
+                    </div>
+                    <div className="flex gap-1 flex-wrap justify-end max-w-[60%]">
+                      {affectedFields.map((f) => (
+                        <span
+                          key={f}
+                          className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30"
+                        >
+                          {f}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                  <div className="divide-y divide-destructive/15">
+                    {items.map((iss, i) => (
+                      <div key={i} className="px-3 py-2">
+                        <div className="flex items-baseline justify-between gap-2">
+                          <span className="text-[10px] font-mono uppercase tracking-wider text-destructive/80">
+                            {iss.path}
+                          </span>
+                          <span className="text-[9px] text-muted-foreground/60 font-mono">{iss.code}</span>
+                        </div>
+                        <div className="text-xs text-foreground mt-0.5">{iss.message}</div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
-                <div className="text-xs text-foreground mt-0.5">{iss.message}</div>
-                <div className="text-[9px] text-muted-foreground/70 mt-0.5">{iss.code}</div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
 
