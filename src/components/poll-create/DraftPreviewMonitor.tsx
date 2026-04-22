@@ -7,6 +7,7 @@ import { Monitor, Smartphone, Globe, Copy, Link2, Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { AnswerType, MCLabelStyle, PreviewDataMode, getMCLabel } from './ContentPanel';
+import makoVoteLogo from '@/assets/makovote-logo.svg';
 
 type PreviewMode = 'program' | 'mobile' | 'desktop';
 
