@@ -2,10 +2,14 @@ import { useEffect, useRef, useState, useMemo } from 'react';
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
-import { Loader2, Upload, Trash2, Image as ImageIcon, Search } from 'lucide-react';
+import { Loader2, Upload, Trash2, Image as ImageIcon, Search, Check, X, CheckSquare } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { Background, listBackgrounds, uploadBackground, deleteBackground } from '@/lib/backgrounds';
 import { toast } from 'sonner';
+import {
+  AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent,
+  AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 
 export default function BackgroundGallery() {
   const { user } = useAuth();
@@ -14,6 +18,9 @@ export default function BackgroundGallery() {
   const [uploading, setUploading] = useState(false);
   const [query, setQuery] = useState('');
   const fileInput = useRef<HTMLInputElement>(null);
+  const [selected, setSelected] = useState<Set<string>>(new Set());
+  const [confirmOpen, setConfirmOpen] = useState(false);
+  const [bulkDeleting, setBulkDeleting] = useState(false);
 
   const refresh = async () => {
     setLoading(true);
@@ -46,9 +53,48 @@ export default function BackgroundGallery() {
     try {
       await deleteBackground(bg);
       setItems((l) => l.filter((x) => x.id !== bg.id));
+      setSelected((s) => { const n = new Set(s); n.delete(bg.id); return n; });
       toast.success('Deleted');
     } catch (e) { toast.error(`Delete failed: ${(e as Error).message}`); }
   };
+
+  const toggleSelected = (id: string) => {
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id); else next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllVisible = () => {
+    setSelected(new Set(filtered.map((b) => b.id)));
+  };
+
+  const clearSelection = () => setSelected(new Set());
+
+  const deleteSelected = async () => {
+    setBulkDeleting(true);
+    const ids = Array.from(selected);
+    const targets = items.filter((b) => ids.includes(b.id));
+    let okCount = 0;
+    let failCount = 0;
+    for (const bg of targets) {
+      try {
+        await deleteBackground(bg);
+        okCount++;
+      } catch {
+        failCount++;
+      }
+    }
+    setItems((l) => l.filter((b) => !ids.includes(b.id)));
+    setSelected(new Set());
+    setConfirmOpen(false);
+    setBulkDeleting(false);
+    if (failCount === 0) toast.success(`Deleted ${okCount} background${okCount === 1 ? '' : 's'}`);
+    else toast.error(`Deleted ${okCount}, ${failCount} failed`);
+  };
+
+  const selectionMode = selected.size > 0;
 
   return (
     <OperatorLayout>
@@ -57,8 +103,43 @@ export default function BackgroundGallery() {
           <ImageIcon className="w-4 h-4 text-primary" />
           <span className="text-xs font-semibold">Background Gallery</span>
           <span className="text-[10px] text-muted-foreground">{items.length} saved</span>
+          {selectionMode && (
+            <span className="text-[10px] text-primary font-mono ml-2">
+              {selected.size} selected
+            </span>
+          )}
         </div>
         <div className="flex items-center gap-2">
+          {selectionMode ? (
+            <>
+              <Button
+                size="sm" variant="ghost"
+                onClick={selectAllVisible}
+                className="h-7 text-[11px] gap-1 text-muted-foreground"
+              >
+                <CheckSquare className="w-3 h-3" />
+                Select all visible
+              </Button>
+              <Button
+                size="sm" variant="ghost"
+                onClick={clearSelection}
+                className="h-7 text-[11px] gap-1 text-muted-foreground"
+              >
+                <X className="w-3 h-3" />
+                Clear
+              </Button>
+              <Button
+                size="sm" variant="destructive"
+                onClick={() => setConfirmOpen(true)}
+                disabled={bulkDeleting}
+                className="h-7 text-[11px] gap-1"
+              >
+                {bulkDeleting ? <Loader2 className="w-3 h-3 animate-spin" /> : <Trash2 className="w-3 h-3" />}
+                Delete selected ({selected.size})
+              </Button>
+              <span className="w-px h-4 bg-border mx-1" />
+            </>
+          ) : null}
           <div className="relative">
             <Search className="w-3 h-3 absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground" />
             <Input
@@ -103,24 +184,81 @@ export default function BackgroundGallery() {
           </div>
         ) : (
           <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-            {filtered.map((bg) => (
-              <div key={bg.id} className="group relative rounded-lg overflow-hidden border border-border bg-card/40 aspect-video">
-                <img src={bg.thumbnailUrl || bg.imageUrl} alt={bg.name} className="w-full h-full object-cover" />
-                <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/95 to-transparent p-2 flex items-end justify-between opacity-0 group-hover:opacity-100 transition-opacity">
-                  <span className="text-[10px] text-foreground font-medium truncate flex-1">{bg.name}</span>
+            {filtered.map((bg) => {
+              const isSelected = selected.has(bg.id);
+              return (
+                <div
+                  key={bg.id}
+                  onClick={(e) => {
+                    // Click-to-toggle when in selection mode, or shift/ctrl/meta to enter it
+                    if (selectionMode || e.shiftKey || e.ctrlKey || e.metaKey) {
+                      toggleSelected(bg.id);
+                    }
+                  }}
+                  className={`group relative rounded-lg overflow-hidden border bg-card/40 aspect-video cursor-pointer transition-all ${
+                    isSelected
+                      ? 'border-primary ring-2 ring-primary/40'
+                      : 'border-border hover:border-border/80'
+                  }`}
+                >
+                  <img src={bg.thumbnailUrl || bg.imageUrl} alt={bg.name} className="w-full h-full object-cover" />
+
+                  {/* Selection checkbox overlay */}
                   <button
-                    onClick={() => onDelete(bg)}
-                    className="text-muted-foreground hover:text-destructive p-1 rounded"
-                    title="Delete"
+                    onClick={(e) => { e.stopPropagation(); toggleSelected(bg.id); }}
+                    className={`absolute top-1.5 left-1.5 w-5 h-5 rounded-md border-2 flex items-center justify-center transition-all ${
+                      isSelected
+                        ? 'bg-primary border-primary text-primary-foreground'
+                        : 'bg-background/80 border-border opacity-0 group-hover:opacity-100'
+                    }`}
+                    title={isSelected ? 'Deselect' : 'Select'}
                   >
-                    <Trash2 className="w-3 h-3" />
+                    {isSelected && <Check className="w-3 h-3" />}
                   </button>
+
+                  <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-background/95 to-transparent p-2 flex items-end justify-between opacity-0 group-hover:opacity-100 transition-opacity">
+                    <span className="text-[10px] text-foreground font-medium truncate flex-1">{bg.name}</span>
+                    {!selectionMode && (
+                      <button
+                        onClick={(e) => { e.stopPropagation(); onDelete(bg); }}
+                        className="text-muted-foreground hover:text-destructive p-1 rounded"
+                        title="Delete"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </button>
+                    )}
+                  </div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
         )}
       </div>
+
+      <AlertDialog open={confirmOpen} onOpenChange={setConfirmOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="text-sm">
+              Delete {selected.size} background{selected.size === 1 ? '' : 's'}?
+            </AlertDialogTitle>
+            <AlertDialogDescription className="text-xs">
+              This permanently removes the selected images from your account library and storage.
+              Polls already using these images will keep their current background until changed.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={bulkDeleting} className="text-xs h-8">Cancel</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={(e) => { e.preventDefault(); deleteSelected(); }}
+              disabled={bulkDeleting}
+              className="text-xs h-8 bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {bulkDeleting ? <Loader2 className="w-3 h-3 animate-spin mr-1" /> : <Trash2 className="w-3 h-3 mr-1" />}
+              Delete {selected.size}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </OperatorLayout>
   );
 }
