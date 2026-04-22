@@ -8,7 +8,6 @@ import ProjectLauncher from "./pages/ProjectLauncher";
 import Blocks from "./pages/Blocks";
 import PollCreate from "./pages/PollCreate";
 import BackgroundGallery from "./pages/BackgroundGallery";
-import GraphicsEditor from "./pages/GraphicsEditor";
 import ProgramOutput from "./pages/ProgramOutput";
 import ViewerVote from "./pages/ViewerVote";
 import NotFound from "./pages/NotFound";
@@ -31,7 +30,7 @@ const App = () => (
           <Route path="/polls/new" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
           <Route path="/polls/:id" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
           <Route path="/polls/:id/edit" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
-          <Route path="/graphics/:id" element={<GraphicsEditor />} />
+          <Route path="/graphics/:id" element={<Navigate to="/polls/new?mode=edit" replace />} />
           <Route path="/output/:id" element={<ProgramOutput />} />
           <Route path="/vote/:slug" element={<ViewerVote />} />
           <Route path="*" element={<NotFound />} />

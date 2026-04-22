@@ -1,4 +1,4 @@
-import { Link } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { AssetControls } from '@/components/broadcast/AssetControls';
 import { MonitorContainer } from '@/components/broadcast/BroadcastPreviewFrame';
 import { PreviewWithOverlays } from '@/components/broadcast/preview/PreviewWithOverlays';
@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { BLOCK_LETTERS, BlockLetter, DEFAULT_BLOCK_LABELS, SavedPoll } from '@/lib/poll-persistence';
 import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { Copy, Eye, ExternalLink, Monitor, Play, Square, Vote, XCircle } from 'lucide-react';
+import { Copy, Eye, Monitor, Play, Square, Vote, XCircle } from 'lucide-react';
 
 interface OperatorOutputModeProps {
   projectName?: string;
@@ -73,6 +73,7 @@ export function OperatorOutputMode({
   onShowBrandingChange,
   onBrandingPositionChange,
 }: OperatorOutputModeProps) {
+  const navigate = useNavigate();
   const pollsByBlock = BLOCK_LETTERS.reduce<Record<BlockLetter, SavedPoll[]>>((acc, letter) => {
     acc[letter] = projectPolls
       .filter((poll) => (poll.blockLetter ?? 'A') === letter)
@@ -218,11 +219,9 @@ export function OperatorOutputMode({
               <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs">
                 <Eye className="h-3.5 w-3.5" /> Preview Slate
               </Button>
-              <Link to={`/graphics/${currentPoll.id}`}>
-                <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs">
-                  <ExternalLink className="h-3.5 w-3.5" /> Graphics Editor
-                </Button>
-              </Link>
+              <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs" onClick={() => navigate(`/polls/${currentPoll.id}?mode=edit`)}>
+                <Eye className="h-3.5 w-3.5" /> Open Edit Mode
+              </Button>
             </div>
           </div>
 
