@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { BroadcastPreviewFrame } from '@/components/broadcast/BroadcastPreviewFrame';
+import { PreviewWithOverlays } from '@/components/broadcast/preview/PreviewWithOverlays';
 import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
 import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
 import { PollOption, TemplateName, ThemePreset } from '@/lib/types';
@@ -237,11 +237,9 @@ export function DraftPreviewMonitor({
       {/* Preview area — tightened to lift monitor toward the header */}
       <div className="flex-1 flex flex-col items-center justify-start pt-2 px-4 pb-4 bg-background/30 min-h-0 overflow-auto gap-2">
         {previewMode === 'program' ? (
-          <div className="w-full">
-            <BroadcastPreviewFrame showLabel showTitleSafe>
-              {renderProgramContent()}
-            </BroadcastPreviewFrame>
-          </div>
+          <PreviewWithOverlays showLabel label="1920×1080">
+            {renderProgramContent()}
+          </PreviewWithOverlays>
         ) : (
           <div className={`bg-background border border-border rounded-lg overflow-hidden shadow-xl ${
             previewMode === 'mobile' ? 'w-[280px] h-[500px]' : 'w-full max-w-lg h-[420px]'

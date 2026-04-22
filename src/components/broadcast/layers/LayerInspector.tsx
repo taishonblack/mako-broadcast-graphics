@@ -1,8 +1,65 @@
 import { GraphicLayer, LayerType } from '@/lib/layers';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
+import { Input } from '@/components/ui/input';
 import { AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+/** Compact numeric input with optional secondary readout (e.g. px). */
+function NumericField({
+  label, value, onChange, min, max, step, suffix, secondary, disabled,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  min: number;
+  max: number;
+  step: number;
+  suffix?: string;
+  secondary?: string;
+  disabled?: boolean;
+}) {
+  const [text, setText] = useState(value.toFixed(1));
+  // Re-sync when the source value changes externally (drag, snap).
+  useEffect(() => { setText(value.toFixed(1)); }, [value]);
+  const commit = () => {
+    const n = parseFloat(text);
+    if (!Number.isNaN(n)) onChange(Math.max(min, Math.min(max, n)));
+    else setText(value.toFixed(1));
+  };
+  return (
+    <div className="space-y-0.5">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-muted-foreground font-mono">{label}</span>
+        {secondary && <span className="text-[9px] text-muted-foreground/60 font-mono">{secondary}</span>}
+      </div>
+      <div className="relative">
+        <Input
+          type="number"
+          inputMode="decimal"
+          min={min}
+          max={max}
+          step={step}
+          value={text}
+          disabled={disabled}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+          className="h-7 text-[11px] font-mono pr-5"
+        />
+        {suffix && (
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground/60 font-mono pointer-events-none">
+            {suffix}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
+
+/** Broadcast canvas reference resolution for the px readout. */
+const REF_WIDTH = 1920;
+const REF_HEIGHT = 1080;
 
 interface LayerInspectorProps {
   layer: GraphicLayer | null;
@@ -22,6 +79,9 @@ export function LayerInspector({ layer, onUpdateLayer }: LayerInspectorProps) {
     onUpdateLayer(layer.id, { transform: { ...layer.transform, ...changes } });
   };
 
+  const xPx = Math.round((layer.transform.x / 100) * REF_WIDTH);
+  const yPx = Math.round((layer.transform.y / 100) * REF_HEIGHT);
+
   return (
     <div className="space-y-4">
       <div className="flex items-center gap-2 pb-2 border-b border-border">
@@ -29,6 +89,54 @@ export function LayerInspector({ layer, onUpdateLayer }: LayerInspectorProps) {
         {layer.locked && (
           <span className="mako-chip bg-muted text-muted-foreground text-[9px]">Locked</span>
         )}
+      </div>
+
+      {/* Numeric position / size readout — always visible for the selected layer. */}
+      <div className="space-y-2 pb-2 border-b border-border">
+        <p className="text-[10px] text-muted-foreground font-mono uppercase">Position</p>
+        <div className="grid grid-cols-2 gap-2">
+          <NumericField
+            label="X"
+            value={layer.transform.x}
+            suffix="%"
+            secondary={`${xPx}px`}
+            min={0}
+            max={100}
+            step={0.1}
+            disabled={layer.locked}
+            onChange={(v) => updateTransform({ x: v })}
+          />
+          <NumericField
+            label="Y"
+            value={layer.transform.y}
+            suffix="%"
+            secondary={`${yPx}px`}
+            min={0}
+            max={100}
+            step={0.1}
+            disabled={layer.locked}
+            onChange={(v) => updateTransform({ y: v })}
+          />
+          <NumericField
+            label="Scale"
+            value={layer.transform.scale * 100}
+            suffix="%"
+            min={10}
+            max={300}
+            step={1}
+            disabled={layer.locked}
+            onChange={(v) => updateTransform({ scale: v / 100 })}
+          />
+          <NumericField
+            label="α"
+            value={layer.transform.opacity * 100}
+            suffix="%"
+            min={0}
+            max={100}
+            step={1}
+            onChange={(v) => updateTransform({ opacity: v / 100 })}
+          />
+        </div>
       </div>
 
       {/* Global Transform */}

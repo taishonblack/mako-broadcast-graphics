@@ -6,6 +6,7 @@ import { VotingStatusChip } from '@/components/broadcast/VotingStatusChip';
 import { PollQueue } from '@/components/broadcast/PollQueue';
 import { AssetControls } from '@/components/broadcast/AssetControls';
 import { BroadcastPreviewFrame, MonitorContainer } from '@/components/broadcast/BroadcastPreviewFrame';
+import { PreviewWithOverlays } from '@/components/broadcast/preview/PreviewWithOverlays';
 import { SceneSelector } from '@/components/broadcast/SceneSelector';
 import { HorizontalBarChart } from '@/components/charts/HorizontalBarChart';
 import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
@@ -95,8 +96,6 @@ export default function Dashboard() {
   const [liveState, setLiveState] = useState<LiveState>('not_live');
   const [previewScene, setPreviewScene] = useState<SceneType>('fullscreen');
   const [programScene, setProgramScene] = useState<SceneType>('fullscreen');
-  const [showTitleSafe, setShowTitleSafe] = useState(false);
-  const [showActionSafe, setShowActionSafe] = useState(false);
   const [qrSize, setQrSize] = useState(project.qrSize);
   const [qrPosition, setQrPosition] = useState<QRPosition>(project.qrPosition);
   const [showBranding, setShowBranding] = useState(project.showBranding);
@@ -458,20 +457,12 @@ export default function Dashboard() {
                     <span className="mako-chip bg-[hsl(var(--mako-warning)/0.2)] text-[hsl(var(--mako-warning))] text-[10px]">PREVIEW ≠ PROGRAM</span>
                   )}
                 </div>
-                <div className="flex items-center gap-2">
-                  <Tooltip><TooltipTrigger asChild>
-                    <button onClick={() => setShowTitleSafe(!showTitleSafe)} className={`mako-chip cursor-pointer transition-colors ${showTitleSafe ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>Title Safe</button>
-                  </TooltipTrigger><TooltipContent>Toggle title safe area guide (10% inset)</TooltipContent></Tooltip>
-                  <Tooltip><TooltipTrigger asChild>
-                    <button onClick={() => setShowActionSafe(!showActionSafe)} className={`mako-chip cursor-pointer transition-colors ${showActionSafe ? 'bg-primary/20 text-primary' : 'bg-muted text-muted-foreground'}`}>Action Safe</button>
-                  </TooltipTrigger><TooltipContent>Toggle action safe area guide (5% inset)</TooltipContent></Tooltip>
-                </div>
               </div>
 
               <MonitorContainer variant="operator">
-                <BroadcastPreviewFrame showTitleSafe={showTitleSafe} showActionSafe={showActionSafe} showLabel>
+                <PreviewWithOverlays showLabel label="1920×1080">
                   {renderPreviewScene()}
-                </BroadcastPreviewFrame>
+                </PreviewWithOverlays>
               </MonitorContainer>
 
               {/* Scene Selector */}
