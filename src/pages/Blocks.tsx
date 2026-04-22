@@ -29,6 +29,7 @@ export default function Blocks() {
   const [projects, setProjects] = useState<ProjectLite[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
   const [polls, setPolls] = useState<SavedPoll[]>([]);
+  const [draggedPollId, setDraggedPollId] = useState<string | null>(null);
   const [allProjectsOpen, setAllProjectsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
@@ -145,6 +146,9 @@ export default function Blocks() {
                   label={DEFAULT_BLOCK_LABELS[letter]}
                   polls={pollsByBlock[letter]}
                   unassigned={pollsByBlock.unassigned}
+                draggedPollId={draggedPollId}
+                onDragStart={setDraggedPollId}
+                onDragEnd={() => setDraggedPollId(null)}
                   onAssign={reassignPollBlock}
                 />
               ))}
@@ -159,7 +163,13 @@ export default function Blocks() {
             </h3>
             <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
               {pollsByBlock.unassigned.map((poll) => (
-                <UnassignedPollCard key={poll.id} poll={poll} onAssign={reassignPollBlock} />
+                <UnassignedPollCard
+                  key={poll.id}
+                  poll={poll}
+                  onAssign={reassignPollBlock}
+                  onDragStart={setDraggedPollId}
+                  onDragEnd={() => setDraggedPollId(null)}
+                />
               ))}
             </div>
           </div>
@@ -245,17 +255,43 @@ function ProjectSwitcher({
 }
 
 function BlockColumn({
-  letter, label, polls, unassigned, onAssign,
+  letter, label, polls, unassigned, draggedPollId, onDragStart, onDragEnd, onAssign,
 }: {
   letter: BlockLetter;
   label: string;
   polls: SavedPoll[];
   unassigned: SavedPoll[];
+  draggedPollId: string | null;
+  onDragStart: (pollId: string | null) => void;
+  onDragEnd: () => void;
   onAssign: (pollId: string, letter: BlockLetter | null) => void;
 }) {
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [isDropTarget, setIsDropTarget] = useState(false);
+
+  const handleDrop = () => {
+    if (!draggedPollId) return;
+    void onAssign(draggedPollId, letter);
+    setIsDropTarget(false);
+    onDragEnd();
+  };
+
   return (
-    <div className="mako-panel p-3 space-y-3 min-h-[300px]">
+    <div
+      className={`mako-panel p-3 space-y-3 min-h-[300px] transition-colors ${
+        isDropTarget ? 'ring-1 ring-primary bg-primary/5' : ''
+      }`}
+      onDragOver={(event) => {
+        if (!draggedPollId) return;
+        event.preventDefault();
+        if (!isDropTarget) setIsDropTarget(true);
+      }}
+      onDragLeave={() => setIsDropTarget(false)}
+      onDrop={(event) => {
+        event.preventDefault();
+        handleDrop();
+      }}
+    >
       <div className="flex items-start justify-between">
         <div>
           <div className="flex items-baseline gap-2">
@@ -297,7 +333,13 @@ function BlockColumn({
           <p className="text-[11px] text-muted-foreground/60 italic">No polls in this block.</p>
         ) : (
           polls.map((poll) => (
-            <PollChip key={poll.id} poll={poll} onAssign={onAssign} />
+            <PollChip
+              key={poll.id}
+              poll={poll}
+              onAssign={onAssign}
+              onDragStart={onDragStart}
+              onDragEnd={onDragEnd}
+            />
           ))
         )}
       </div>
@@ -306,13 +348,23 @@ function BlockColumn({
 }
 
 function PollChip({
-  poll, onAssign,
+  poll, onAssign, onDragStart, onDragEnd,
 }: {
   poll: SavedPoll;
   onAssign: (pollId: string, letter: BlockLetter | null) => void;
+  onDragStart: (pollId: string | null) => void;
+  onDragEnd: () => void;
 }) {
   return (
-    <div className="group bg-accent/30 border border-border/50 rounded-md p-2 hover:bg-accent/50 transition-colors">
+    <div
+      draggable
+      onDragStart={(event) => {
+        event.dataTransfer.effectAllowed = 'move';
+        onDragStart(poll.id);
+      }}
+      onDragEnd={onDragEnd}
+      className="group bg-accent/30 border border-border/50 rounded-md p-2 hover:bg-accent/50 transition-colors cursor-grab active:cursor-grabbing"
+    >
       <div className="flex items-center justify-between gap-2">
         <Link
           to={`/polls/${poll.id}`}
@@ -343,13 +395,23 @@ function PollChip({
 }
 
 function UnassignedPollCard({
-  poll, onAssign,
+  poll, onAssign, onDragStart, onDragEnd,
 }: {
   poll: SavedPoll;
   onAssign: (pollId: string, letter: BlockLetter | null) => void;
+  onDragStart: (pollId: string | null) => void;
+  onDragEnd: () => void;
 }) {
   return (
-    <div className="mako-panel p-2.5 space-y-1.5">
+    <div
+      draggable
+      onDragStart={(event) => {
+        event.dataTransfer.effectAllowed = 'move';
+        onDragStart(poll.id);
+      }}
+      onDragEnd={onDragEnd}
+      className="mako-panel p-2.5 space-y-1.5 cursor-grab active:cursor-grabbing"
+    >
       <Link
         to={`/polls/${poll.id}`}
         className="text-xs font-medium text-foreground truncate block hover:text-primary"
