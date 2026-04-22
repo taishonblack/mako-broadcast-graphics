@@ -16,7 +16,7 @@ export default function ProjectLauncher() {
 
   const openProject = (project: Project) => {
     localStorage.setItem('mako-active-project', project.id);
-    navigate('/dashboard');
+    navigate('/polls/new?mode=output');
   };
 
   const assignedBlockCount = (p: Project) => new Set(p.polls.map((poll) => poll.blockLetter).filter(Boolean)).size;
@@ -116,15 +116,15 @@ export default function ProjectLauncher() {
                   <PlusCircle className="w-4 h-4" /> Create New Poll
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Create a new poll before entering the dashboard</TooltipContent>
+              <TooltipContent>Create a new poll in Operator Workspace</TooltipContent>
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" className="w-full gap-2 h-12" onClick={() => navigate('/dashboard')}>
+                <Button variant="outline" className="w-full gap-2 h-12" onClick={() => navigate('/polls/new?mode=build')}>
                   <FolderOpen className="w-4 h-4" /> New Project
                 </Button>
               </TooltipTrigger>
-              <TooltipContent>Create a new project workspace</TooltipContent>
+                <TooltipContent>Create a new project in Operator Workspace</TooltipContent>
             </Tooltip>
           </div>
         </div>

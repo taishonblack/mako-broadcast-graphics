@@ -1,7 +1,6 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
-  LayoutDashboard,
   PlusCircle,
   Palette,
   Monitor,
@@ -12,11 +11,10 @@ import { FolderOpen, Grid3x3, Image as ImageIcon } from 'lucide-react';
 
 const navItems = [
   { icon: FolderOpen, label: 'Projects', path: '/projects' },
-  { icon: PlusCircle, label: 'Workspace', path: '/polls/new' },
-  { icon: LayoutDashboard, label: 'Dashboard', path: '/dashboard' },
+  { icon: PlusCircle, label: 'Operator Workspace', path: '/polls/new' },
   { icon: Grid3x3, label: 'Blocks', path: '/blocks' },
   { icon: Palette, label: 'Graphics', path: '/graphics/poll-1' },
-  { icon: ImageIcon, label: 'Backgrounds', path: '/backgrounds' },
+  { icon: ImageIcon, label: 'Background Gallery', path: '/backgrounds' },
   { icon: Monitor, label: 'Output', path: '/output/poll-1' },
 ];
 

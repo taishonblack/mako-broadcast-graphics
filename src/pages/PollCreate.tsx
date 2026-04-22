@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
-import { PollStatusChip } from '@/components/broadcast/PollStatusChip';
 import { AnswerType, MCLabelStyle, PreviewDataMode } from '@/components/poll-create/ContentPanel';
 import { BuildControlsPanel } from '@/components/poll-create/BuildControlsPanel';
 import { DraftPreviewMonitor } from '@/components/poll-create/DraftPreviewMonitor';
@@ -18,13 +17,22 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LoadPollDialog } from '@/components/poll-create/LoadPollDialog';
 import { ImportErrorDialog } from '@/components/poll-create/ImportErrorDialog';
+import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
+import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
+import { QRScene } from '@/components/broadcast/scenes/QRScene';
+import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
 import { pollImportSchema, formatZodIssues, ImportIssue, ImportSection } from '@/lib/poll-import-schema';
 import { themePresets } from '@/lib/themes';
-import { TemplateName, PollOption } from '@/lib/types';
-import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Grid3x3 } from 'lucide-react';
+import { TemplateName, Poll, PollOption, QRPosition, VotingState, LiveState } from '@/lib/types';
+import { SceneType } from '@/lib/scenes';
+import { broadcastOutputState } from '@/lib/output-state';
+import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Grid3x3, Monitor, Radio, Palette } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { loadPoll, savePoll, DraftPollPayload, SavedPoll, BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-persistence';
+import { loadPoll, savePoll, listPolls, DraftPollPayload, SavedPoll, BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-persistence';
+import { OperatorOutputMode } from '@/components/operator/OperatorOutputMode';
 import { toast } from 'sonner';
+
+type OperatorMode = 'build' | 'edit' | 'output';
 
 /* ---------- Workspace layout persistence ---------- */
 
@@ -84,6 +92,7 @@ function Pane({
 export default function PollCreate() {
   const { id: routeId } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
 
   const [pollId, setPollId] = useState<string | undefined>(routeId);
@@ -114,6 +123,17 @@ export default function PollCreate() {
   const [draftStatus, setDraftStatus] = useState<'unsaved' | 'draft-saved' | 'saved-to-project'>('unsaved');
   const [blockLetter, setBlockLetter] = useState<BlockLetter>('A');
   const [blockPosition, setBlockPosition] = useState<number>(1);
+  const [mode, setMode] = useState<OperatorMode>((searchParams.get('mode') as OperatorMode) || 'build');
+  const [projectPolls, setProjectPolls] = useState<SavedPoll[]>([]);
+  const [outputActiveBlock, setOutputActiveBlock] = useState<BlockLetter>('A');
+  const [votingState, setVotingState] = useState<VotingState>('not_open');
+  const [liveState, setLiveState] = useState<LiveState>('not_live');
+  const [previewScene, setPreviewScene] = useState<SceneType>('fullscreen');
+  const [programScene, setProgramScene] = useState<SceneType>('fullscreen');
+  const [qrSize, setQrSize] = useState(120);
+  const [qrPosition, setQrPosition] = useState<QRPosition>('bottom-right');
+  const [showBranding, setShowBranding] = useState(true);
+  const [brandingPosition, setBrandingPosition] = useState<QRPosition>('bottom-left');
 
   // Load existing poll if visiting /polls/:id
   useEffect(() => {
@@ -159,6 +179,24 @@ export default function PollCreate() {
     if (draftStatus !== 'unsaved') setDraftStatus('unsaved');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question, internalName, slug, subheadline, selectedTemplate, answerType, mcLabelStyle, answers, showLiveResults, showThankYou, showFinalResults, autoClose, bgColor, bgImage, previewDataMode]);
+
+  useEffect(() => {
+    const nextMode = (searchParams.get('mode') as OperatorMode) || 'build';
+    if (nextMode === 'build' || nextMode === 'edit' || nextMode === 'output') {
+      setMode(nextMode);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!user || !projectId) {
+      setProjectPolls([]);
+      return;
+    }
+
+    listPolls()
+      .then((items) => setProjectPolls(items.filter((poll) => poll.projectId === projectId)))
+      .catch(() => setProjectPolls([]));
+  }, [user, projectId, pollId, draftStatus]);
 
   const buildPayload = (): DraftPollPayload => ({
     internalName,
@@ -254,6 +292,98 @@ export default function PollCreate() {
   const slugForUrl = slug || 'your-poll-slug';
   const fullUrl = `https://makovote.app/vote/${slugForUrl}`;
   const shortUrl = `mvote.app/${slugForUrl}`;
+
+  const currentWorkspacePoll = useMemo<Poll>(() => ({
+    id: pollId ?? 'draft-poll',
+    projectId,
+    internalName: internalName || 'Untitled Poll',
+    question,
+    subheadline,
+    slug: slugForUrl,
+    state: 'draft',
+    votingState,
+    options: previewOptions,
+    totalVotes: previewTotal,
+    votesPerSecond: 0,
+    template: selectedTemplate,
+    themeId: theme.id,
+    showLiveResults,
+    hideUntilClose: false,
+    minVoteThreshold: 0,
+    allowVoteChange: true,
+    autoCloseDuration: autoClose ? Number(autoClose) : undefined,
+    showThankYou,
+    showFinalResults,
+    blockLetter,
+    blockPosition,
+    createdAt: new Date().toISOString(),
+  }), [pollId, projectId, internalName, question, subheadline, slugForUrl, votingState, previewOptions, previewTotal, selectedTemplate, theme.id, showLiveResults, autoClose, showThankYou, showFinalResults, blockLetter, blockPosition]);
+
+  const outputPolls = useMemo(() => {
+    const existing = projectPolls.filter((poll) => poll.id !== currentWorkspacePoll.id);
+    return [
+      {
+        ...currentWorkspacePoll,
+        status: projectId ? 'saved' : 'draft',
+        updatedAt: new Date().toISOString(),
+        answerType,
+        mcLabelStyle,
+        answers,
+        previewDataMode,
+        bgColor,
+        bgImage,
+      } as SavedPoll,
+      ...existing,
+    ];
+  }, [projectPolls, currentWorkspacePoll, projectId, answerType, mcLabelStyle, answers, previewDataMode, bgColor, bgImage]);
+
+  const renderOutputScene = () => {
+    const sharedAssets = { slug: slugForUrl, qrSize, qrPosition, showBranding, brandingPosition };
+    const props = {
+      question: currentWorkspacePoll.question || 'Your question here?',
+      subheadline,
+      options: currentWorkspacePoll.options,
+      totalVotes: currentWorkspacePoll.totalVotes,
+      colors: previewColors,
+      theme,
+      template: selectedTemplate,
+      ...sharedAssets,
+    };
+
+    switch (previewScene) {
+      case 'lowerThird': return <LowerThirdScene {...props} />;
+      case 'qr': return <QRScene slug={slugForUrl} theme={theme} />;
+      case 'results': return <ResultsScene {...props} />;
+      default: return <FullscreenScene {...props} layers={[]} />;
+    }
+  };
+
+  const setWorkspaceMode = (nextMode: OperatorMode) => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set('mode', nextMode);
+    setSearchParams(nextParams, { replace: true });
+    setMode(nextMode);
+  };
+
+  const handleTake = () => {
+    setProgramScene(previewScene);
+    broadcastOutputState({ poll: currentWorkspacePoll, scene: previewScene, layers: [], assets: { qrSize, qrPosition, showBranding, brandingPosition } });
+  };
+
+  const handleCut = () => {
+    setProgramScene(previewScene);
+    broadcastOutputState({ poll: currentWorkspacePoll, scene: previewScene, layers: [], assets: { qrSize, qrPosition, showBranding, brandingPosition } });
+  };
+
+  const handleGoLive = () => {
+    setLiveState('live');
+    handleTake();
+  };
+
+  const handleEndPoll = () => {
+    setLiveState('not_live');
+    setVotingState('closed');
+  };
 
   const statusLabel = {
     'unsaved': { text: 'Unsaved', cls: 'bg-mako-warning/15 text-mako-warning border-mako-warning/30' },
@@ -522,12 +652,32 @@ export default function PollCreate() {
             </DropdownMenuContent>
           </DropdownMenu>
 
-          <span className="text-muted-foreground/40">/</span>
-          <span className="text-[10px] text-muted-foreground">Polls</span>
-          <span className="text-muted-foreground/40">/</span>
-          <span className="text-xs font-semibold text-foreground">Draft Workspace</span>
-          <PollStatusChip state="draft" />
-          <span className={`mako-chip text-[9px] border ${statusLabel.cls}`}>{statusLabel.text}</span>
+          <div className="ml-1 flex items-center gap-1 rounded-lg bg-muted/50 p-0.5">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setWorkspaceMode('build')}
+              className={`h-7 gap-1 px-2 text-[10px] ${mode === 'build' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}
+            >
+              <Radio className="h-3 w-3" /> Build
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setWorkspaceMode('edit')}
+              className={`h-7 gap-1 px-2 text-[10px] ${mode === 'edit' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}
+            >
+              <Palette className="h-3 w-3" /> Edit
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setWorkspaceMode('output')}
+              className={`h-7 gap-1 px-2 text-[10px] ${mode === 'output' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}
+            >
+              <Monitor className="h-3 w-3" /> Output
+            </Button>
+          </div>
         </div>
         <div className="flex items-center gap-1.5">
           <Tooltip>
@@ -559,116 +709,150 @@ export default function PollCreate() {
         onJumpToField={handleJumpToField}
       />
 
-      {/* Dockable, resizable workspace — 3 columns, vertically split sides */}
-      <div className="flex-1 min-h-0">
-        <ResizablePanelGroup
-          key={layoutKey}
-          direction="horizontal"
-          className="h-full"
-          onLayout={(sizes) => {
-            if (sizes.length === 3) {
-              const next = [sizes[0], sizes[1], sizes[2]] as [number, number, number];
-              setLayout((l) => ({ ...l, hSizes: next }));
-              saveWorkspaceLayout({ hSizes: next });
-            }
-          }}
-        >
-          {/* LEFT COLUMN — Polling Assets (single pane; background lives in Inspector) */}
-          <ResizablePanel defaultSize={layout.hSizes[0]} minSize={18} maxSize={36}>
-            <Pane title="Polling Assets" hint="Question · Answers · Logic">
-              <PollingAssetsPane
-                enabledAssets={enabledAssets}
-                onEnabledAssetsChange={setEnabledAssets}
-                selectedAssetId={selectedAssetId}
-                onSelectAsset={setSelectedAssetId}
-                question={question} setQuestion={setQuestion}
-                subheadline={subheadline} setSubheadline={setSubheadline}
-                internalName={internalName} setInternalName={setInternalName}
-                slug={slug} setSlug={setSlug}
-                answerType={answerType} setAnswerType={setAnswerType}
-                mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
-                answers={answers} setAnswers={setAnswers}
-              />
-            </Pane>
-          </ResizablePanel>
+      {mode === 'output' ? (
+        <div className="flex-1 min-h-0">
+          <OperatorOutputMode
+            projectName={projectName}
+            currentPoll={currentWorkspacePoll}
+            projectPolls={outputPolls}
+            activeBlock={outputActiveBlock}
+            liveState={liveState}
+            votingState={votingState}
+            previewScene={previewScene}
+            programScene={programScene}
+            qrSize={qrSize}
+            qrPosition={qrPosition}
+            showBranding={showBranding}
+            brandingPosition={brandingPosition}
+            previewNode={renderOutputScene()}
+            onSelectBlock={setOutputActiveBlock}
+            onSelectPoll={(selectedId) => {
+              if (selectedId === currentWorkspacePoll.id) return;
+              navigate(`/polls/${selectedId}?mode=output`);
+            }}
+            onSceneChange={setPreviewScene}
+            onTake={handleTake}
+            onCut={handleCut}
+            onOpenOutput={() => window.open(`/output/${currentWorkspacePoll.id}`, 'mako-output', 'width=1920,height=1080')}
+            onGoLive={handleGoLive}
+            onEndPoll={handleEndPoll}
+            onOpenVoting={() => setVotingState('open')}
+            onCloseVoting={() => setVotingState('closed')}
+            onDuplicatePoll={handleDuplicate}
+            onQrSizeChange={setQrSize}
+            onQrPositionChange={setQrPosition}
+            onShowBrandingChange={setShowBranding}
+            onBrandingPositionChange={setBrandingPosition}
+          />
+        </div>
+      ) : (
+        <div className="flex-1 min-h-0">
+          <ResizablePanelGroup
+            key={layoutKey}
+            direction="horizontal"
+            className="h-full"
+            onLayout={(sizes) => {
+              if (sizes.length === 3) {
+                const next = [sizes[0], sizes[1], sizes[2]] as [number, number, number];
+                setLayout((l) => ({ ...l, hSizes: next }));
+                saveWorkspaceLayout({ hSizes: next });
+              }
+            }}
+          >
+            <ResizablePanel defaultSize={layout.hSizes[0]} minSize={18} maxSize={36}>
+              <Pane title={mode === 'build' ? 'Polling Assets' : 'Edit Assets'} hint={mode === 'build' ? 'Question · Answers · Logic' : 'Selection · Layers · Content'}>
+                <PollingAssetsPane
+                  enabledAssets={enabledAssets}
+                  onEnabledAssetsChange={setEnabledAssets}
+                  selectedAssetId={selectedAssetId}
+                  onSelectAsset={setSelectedAssetId}
+                  question={question} setQuestion={setQuestion}
+                  subheadline={subheadline} setSubheadline={setSubheadline}
+                  internalName={internalName} setInternalName={setInternalName}
+                  slug={slug} setSlug={setSlug}
+                  answerType={answerType} setAnswerType={setAnswerType}
+                  mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
+                  answers={answers} setAnswers={setAnswers}
+                />
+              </Pane>
+            </ResizablePanel>
 
-          <ResizableHandle withHandle />
+            <ResizableHandle withHandle />
 
-          {/* CENTER — Preview */}
-          <ResizablePanel defaultSize={layout.hSizes[1]} minSize={35}>
-            <Pane title="Preview" hint="Live draft monitor">
-              <DraftPreviewMonitor
-                question={previewQuestion}
-                subheadline={subheadline}
-                options={previewOptions}
-                totalVotes={previewTotal}
-                colors={previewColors}
-                template={selectedTemplate}
-                theme={theme}
-                hasContent={hasContent}
-                answerType={answerType}
-                mcLabelStyle={mcLabelStyle}
-                previewDataMode={previewDataMode}
-                answers={answers}
-                bgColor={bgColor}
-                bgImage={bgImage}
-                fullUrl={fullUrl}
-                shortUrl={shortUrl}
-              />
-            </Pane>
-          </ResizablePanel>
+            <ResizablePanel defaultSize={layout.hSizes[1]} minSize={35}>
+              <Pane title={mode === 'build' ? 'Program Preview' : 'Edit Preview'} hint={mode === 'build' ? 'Operator workspace monitor' : 'Asset editing monitor'}>
+                <DraftPreviewMonitor
+                  question={previewQuestion}
+                  subheadline={subheadline}
+                  options={previewOptions}
+                  totalVotes={previewTotal}
+                  colors={previewColors}
+                  template={selectedTemplate}
+                  theme={theme}
+                  hasContent={hasContent}
+                  answerType={answerType}
+                  mcLabelStyle={mcLabelStyle}
+                  previewDataMode={previewDataMode}
+                  answers={answers}
+                  bgColor={bgColor}
+                  bgImage={bgImage}
+                  fullUrl={fullUrl}
+                  shortUrl={shortUrl}
+                />
+              </Pane>
+            </ResizablePanel>
 
-          <ResizableHandle withHandle />
+            <ResizableHandle withHandle />
 
-          {/* RIGHT COLUMN — Template (top) + Inspector (bottom) */}
-          <ResizablePanel defaultSize={layout.hSizes[2]} minSize={16} maxSize={32}>
-            <ResizablePanelGroup
-              direction="vertical"
-              className="h-full"
-              onLayout={(sizes) => {
-                if (sizes.length === 2) {
-                  const next = [sizes[0], sizes[1]] as [number, number];
-                  setLayout((l) => ({ ...l, rightVSizes: next }));
-                  saveWorkspaceLayout({ rightVSizes: next });
-                }
-              }}
-            >
-              <ResizablePanel defaultSize={layout.rightVSizes[0]} minSize={25}>
-                <Pane title="Template">
-                  <BuildControlsPanel
-                    section="template"
-                    selectedTemplate={selectedTemplate}
-                    setSelectedTemplate={setSelectedTemplate}
-                    bgColor={bgColor} setBgColor={setBgColor}
-                    bgImage={bgImage} setBgImage={setBgImage}
-                  />
-                </Pane>
-              </ResizablePanel>
-              <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={layout.rightVSizes[1]} minSize={20}>
-                <Pane title="Inspector" hint="Per-asset properties">
-                  <AssetInspector
-                    selectedAssetId={selectedAssetId}
-                    question={question} setQuestion={setQuestion}
-                    subheadline={subheadline} setSubheadline={setSubheadline}
-                    internalName={internalName} setInternalName={setInternalName}
-                    slug={slug} setSlug={setSlug}
-                    answerType={answerType} setAnswerType={setAnswerType}
-                    mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
-                    answers={answers} setAnswers={setAnswers}
-                    bgColor={bgColor} setBgColor={setBgColor}
-                    bgImage={bgImage}
-                    setBgImage={setBgImage}
-                    assetState={assetState}
-                    setAssetState={setAssetState}
-                    highlightField={highlightField}
-                  />
-                </Pane>
-              </ResizablePanel>
-            </ResizablePanelGroup>
-          </ResizablePanel>
-        </ResizablePanelGroup>
-      </div>
+            <ResizablePanel defaultSize={layout.hSizes[2]} minSize={16} maxSize={32}>
+              <ResizablePanelGroup
+                direction="vertical"
+                className="h-full"
+                onLayout={(sizes) => {
+                  if (sizes.length === 2) {
+                    const next = [sizes[0], sizes[1]] as [number, number];
+                    setLayout((l) => ({ ...l, rightVSizes: next }));
+                    saveWorkspaceLayout({ rightVSizes: next });
+                  }
+                }}
+              >
+                <ResizablePanel defaultSize={layout.rightVSizes[0]} minSize={25}>
+                  <Pane title={mode === 'build' ? 'Template' : 'Style'}>
+                    <BuildControlsPanel
+                      section="template"
+                      selectedTemplate={selectedTemplate}
+                      setSelectedTemplate={setSelectedTemplate}
+                      bgColor={bgColor} setBgColor={setBgColor}
+                      bgImage={bgImage} setBgImage={setBgImage}
+                    />
+                  </Pane>
+                </ResizablePanel>
+                <ResizableHandle withHandle />
+                <ResizablePanel defaultSize={layout.rightVSizes[1]} minSize={20}>
+                  <Pane title="Inspector" hint={mode === 'build' ? 'Poll basics and content' : 'Transforms and per-asset properties'}>
+                    <AssetInspector
+                      selectedAssetId={selectedAssetId}
+                      question={question} setQuestion={setQuestion}
+                      subheadline={subheadline} setSubheadline={setSubheadline}
+                      internalName={internalName} setInternalName={setInternalName}
+                      slug={slug} setSlug={setSlug}
+                      answerType={answerType} setAnswerType={setAnswerType}
+                      mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
+                      answers={answers} setAnswers={setAnswers}
+                      bgColor={bgColor} setBgColor={setBgColor}
+                      bgImage={bgImage}
+                      setBgImage={setBgImage}
+                      assetState={assetState}
+                      setAssetState={setAssetState}
+                      highlightField={highlightField}
+                    />
+                  </Pane>
+                </ResizablePanel>
+              </ResizablePanelGroup>
+            </ResizablePanel>
+          </ResizablePanelGroup>
+        </div>
+      )}
     </OperatorLayout>
   );
 }
