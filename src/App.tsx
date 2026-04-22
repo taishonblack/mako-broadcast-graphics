@@ -21,6 +21,12 @@ const LegacyGraphicsRedirect = () => {
   return <Navigate to={id ? `/polls/${id}?mode=edit` : "/polls/new?mode=edit"} replace />;
 };
 
+const LegacyPollEditRedirect = () => {
+  const { id } = useParams<{ id: string }>();
+
+  return <Navigate to={id ? `/polls/${id}?mode=edit` : "/polls/new?mode=edit"} replace />;
+};
+
 const App = () => (
   <QueryClientProvider client={queryClient}>
     <TooltipProvider>
@@ -35,7 +41,7 @@ const App = () => (
           <Route path="/backgrounds" element={<ProtectedRoute><BackgroundGallery /></ProtectedRoute>} />
           <Route path="/polls/new" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
           <Route path="/polls/:id" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
-          <Route path="/polls/:id/edit" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
+          <Route path="/polls/:id/edit" element={<ProtectedRoute><LegacyPollEditRedirect /></ProtectedRoute>} />
           <Route path="/graphics/:id" element={<LegacyGraphicsRedirect />} />
           <Route path="/output/:id" element={<ProgramOutput />} />
           <Route path="/vote/:slug" element={<ViewerVote />} />
