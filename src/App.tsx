@@ -8,6 +8,7 @@ import ProjectLauncher from "./pages/ProjectLauncher";
 import Dashboard from "./pages/Dashboard";
 import Blocks from "./pages/Blocks";
 import PollCreate from "./pages/PollCreate";
+import BackgroundGallery from "./pages/BackgroundGallery";
 import GraphicsEditor from "./pages/GraphicsEditor";
 import ProgramOutput from "./pages/ProgramOutput";
 import ViewerVote from "./pages/ViewerVote";
@@ -27,6 +28,7 @@ const App = () => (
           <Route path="/projects" element={<ProjectLauncher />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/blocks" element={<ProtectedRoute><Blocks /></ProtectedRoute>} />
+          <Route path="/backgrounds" element={<ProtectedRoute><BackgroundGallery /></ProtectedRoute>} />
           <Route path="/polls/new" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
           <Route path="/polls/:id" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
           <Route path="/polls/:id/edit" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />

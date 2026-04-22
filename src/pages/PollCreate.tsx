@@ -21,9 +21,9 @@ import { ImportErrorDialog } from '@/components/poll-create/ImportErrorDialog';
 import { pollImportSchema, formatZodIssues, ImportIssue } from '@/lib/poll-import-schema';
 import { themePresets } from '@/lib/themes';
 import { TemplateName, PollOption } from '@/lib/types';
-import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown } from 'lucide-react';
+import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Grid3x3 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { loadPoll, savePoll, DraftPollPayload, SavedPoll } from '@/lib/poll-persistence';
+import { loadPoll, savePoll, DraftPollPayload, SavedPoll, BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-persistence';
 import { toast } from 'sonner';
 
 /* ---------- Workspace layout persistence ---------- */
@@ -32,13 +32,11 @@ const WORKSPACE_LAYOUT_KEY = 'mako-draft-workspace-layout-v1';
 
 interface WorkspaceLayout {
   hSizes: [number, number, number]; // left / center / right
-  leftVSizes: [number, number];      // PollingAssets / Background
   rightVSizes: [number, number];     // Template / Inspector
 }
 
 const DEFAULT_WORKSPACE_LAYOUT: WorkspaceLayout = {
-  hSizes: [24, 54, 22],
-  leftVSizes: [62, 38],
+  hSizes: [22, 56, 22],
   rightVSizes: [55, 45],
 };
 
@@ -114,6 +112,8 @@ export default function PollCreate() {
   const [bgColor, setBgColor] = useState('#1a1a2e');
   const [bgImage, setBgImage] = useState<string | undefined>(undefined);
   const [draftStatus, setDraftStatus] = useState<'unsaved' | 'draft-saved' | 'saved-to-project'>('unsaved');
+  const [blockLetter, setBlockLetter] = useState<BlockLetter>('A');
+  const [blockPosition, setBlockPosition] = useState<number>(1);
 
   // Load existing poll if visiting /polls/:id
   useEffect(() => {
@@ -146,6 +146,8 @@ export default function PollCreate() {
         setBgImage(p.bgImage);
         setPreviewDataMode(p.previewDataMode);
         setProjectId(p.projectId);
+        setBlockLetter((p.blockLetter as BlockLetter) || 'A');
+        setBlockPosition(p.blockPosition ?? 1);
         setDraftStatus(p.status === 'draft' ? 'draft-saved' : 'saved-to-project');
       })
       .catch((e) => toast.error(`Could not load poll: ${e.message}`))
@@ -174,6 +176,8 @@ export default function PollCreate() {
     bgColor,
     bgImage,
     previewDataMode,
+    blockLetter,
+    blockPosition,
   });
 
   const handleSaveDraft = async () => {
@@ -442,6 +446,57 @@ export default function PollCreate() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Block dropdown — assign poll to A–E */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-1 text-[10px] h-7 px-2">
+                <Grid3x3 className="w-3 h-3" />
+                Block
+                <span className="font-mono text-primary font-semibold">{blockLetter}/{String(blockPosition).padStart(2, '0')}</span>
+                <ChevronDown className="w-2.5 h-2.5 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Assign to Block
+              </DropdownMenuLabel>
+              {BLOCK_LETTERS.map((letter) => (
+                <DropdownMenuItem
+                  key={letter}
+                  onClick={() => setBlockLetter(letter)}
+                  className="text-xs gap-2 justify-between"
+                >
+                  <span className="flex items-center gap-2">
+                    <span className={`font-mono font-bold w-4 ${blockLetter === letter ? 'text-primary' : 'text-muted-foreground'}`}>{letter}</span>
+                    <span className="text-muted-foreground">{DEFAULT_BLOCK_LABELS[letter]}</span>
+                  </span>
+                  {blockLetter === letter && <span className="text-[9px] text-primary">●</span>}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Position (1–99)
+              </DropdownMenuLabel>
+              <div className="px-2 py-1.5">
+                <input
+                  type="number"
+                  min={1}
+                  max={99}
+                  value={blockPosition}
+                  onChange={(e) => {
+                    const n = Math.min(99, Math.max(1, Number(e.target.value) || 1));
+                    setBlockPosition(n);
+                  }}
+                  className="w-full h-7 rounded-md border border-border bg-background/50 px-2 text-xs font-mono"
+                />
+                <p className="text-[9px] text-muted-foreground mt-1">
+                  Position within block {blockLetter} (default: 1)
+                </p>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <span className="text-muted-foreground/40">/</span>
           <span className="text-[10px] text-muted-foreground">Polls</span>
           <span className="text-muted-foreground/40">/</span>
@@ -492,49 +547,23 @@ export default function PollCreate() {
             }
           }}
         >
-          {/* LEFT COLUMN — Polling Assets (top) + Background (bottom) */}
+          {/* LEFT COLUMN — Polling Assets (single pane; background lives in Inspector) */}
           <ResizablePanel defaultSize={layout.hSizes[0]} minSize={18} maxSize={36}>
-            <ResizablePanelGroup
-              direction="vertical"
-              className="h-full"
-              onLayout={(sizes) => {
-                if (sizes.length === 2) {
-                  const next = [sizes[0], sizes[1]] as [number, number];
-                  setLayout((l) => ({ ...l, leftVSizes: next }));
-                  saveWorkspaceLayout({ leftVSizes: next });
-                }
-              }}
-            >
-              <ResizablePanel defaultSize={layout.leftVSizes[0]} minSize={25}>
-                <Pane title="Polling Assets" hint="Question · Answers · Logic">
-                  <PollingAssetsPane
-                    enabledAssets={enabledAssets}
-                    onEnabledAssetsChange={setEnabledAssets}
-                    selectedAssetId={selectedAssetId}
-                    onSelectAsset={setSelectedAssetId}
-                    question={question} setQuestion={setQuestion}
-                    subheadline={subheadline} setSubheadline={setSubheadline}
-                    internalName={internalName} setInternalName={setInternalName}
-                    slug={slug} setSlug={setSlug}
-                    answerType={answerType} setAnswerType={setAnswerType}
-                    mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
-                    answers={answers} setAnswers={setAnswers}
-                  />
-                </Pane>
-              </ResizablePanel>
-              <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={layout.leftVSizes[1]} minSize={20}>
-                <Pane title="Background">
-                  <BuildControlsPanel
-                    section="background"
-                    selectedTemplate={selectedTemplate}
-                    setSelectedTemplate={setSelectedTemplate}
-                    bgColor={bgColor} setBgColor={setBgColor}
-                    bgImage={bgImage} setBgImage={setBgImage}
-                  />
-                </Pane>
-              </ResizablePanel>
-            </ResizablePanelGroup>
+            <Pane title="Polling Assets" hint="Question · Answers · Logic">
+              <PollingAssetsPane
+                enabledAssets={enabledAssets}
+                onEnabledAssetsChange={setEnabledAssets}
+                selectedAssetId={selectedAssetId}
+                onSelectAsset={setSelectedAssetId}
+                question={question} setQuestion={setQuestion}
+                subheadline={subheadline} setSubheadline={setSubheadline}
+                internalName={internalName} setInternalName={setInternalName}
+                slug={slug} setSlug={setSlug}
+                answerType={answerType} setAnswerType={setAnswerType}
+                mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
+                answers={answers} setAnswers={setAnswers}
+              />
+            </Pane>
           </ResizablePanel>
 
           <ResizableHandle withHandle />
@@ -603,6 +632,7 @@ export default function PollCreate() {
                     answers={answers} setAnswers={setAnswers}
                     bgColor={bgColor} setBgColor={setBgColor}
                     bgImage={bgImage}
+                    setBgImage={setBgImage}
                     assetState={assetState}
                     setAssetState={setAssetState}
                   />

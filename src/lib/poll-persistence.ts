@@ -27,6 +27,7 @@ export interface DraftPollPayload {
   previewDataMode: PreviewDataMode;
   blockLetter?: BlockLetter;
   blockLabel?: string;
+  blockPosition?: number;
 }
 
 export interface SavedPoll extends DraftPollPayload {
@@ -70,6 +71,7 @@ function toRow(p: DraftPollPayload, userId: string, status: 'draft' | 'saved', p
     preview_data_mode: p.previewDataMode,
     block_letter: p.blockLetter ?? null,
     block_label: p.blockLabel ?? null,
+    block_position: p.blockPosition ?? null,
   };
 }
 
@@ -96,6 +98,7 @@ export function fromRow(row: Record<string, unknown>): SavedPoll {
     previewDataMode: row.preview_data_mode as PreviewDataMode,
     blockLetter: ((row.block_letter as string | null) ?? undefined) as BlockLetter | undefined,
     blockLabel: (row.block_label as string | null) ?? undefined,
+    blockPosition: (row.block_position as number | null) ?? undefined,
   };
 }
 
