@@ -137,3 +137,10 @@ export async function createProject(name: string, userId: string) {
   if (error) throw error;
   return data;
 }
+
+export async function listPolls(): Promise<SavedPoll[]> {
+  const { data, error } = await supabase
+    .from('polls').select('*').order('updated_at', { ascending: false }).limit(100);
+  if (error) throw error;
+  return (data ?? []).map(fromRow);
+}
