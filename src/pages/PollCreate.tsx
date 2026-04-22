@@ -18,7 +18,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LoadPollDialog } from '@/components/poll-create/LoadPollDialog';
 import { ImportErrorDialog } from '@/components/poll-create/ImportErrorDialog';
-import { pollImportSchema, formatZodIssues, ImportIssue } from '@/lib/poll-import-schema';
+import { pollImportSchema, formatZodIssues, ImportIssue, ImportSection } from '@/lib/poll-import-schema';
 import { themePresets } from '@/lib/themes';
 import { TemplateName, PollOption } from '@/lib/types';
 import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Grid3x3 } from 'lucide-react';
@@ -388,6 +388,29 @@ export default function PollCreate() {
   const [enabledAssets, setEnabledAssets] = useState<AssetId[]>(SEEDED_ASSETS);
   const [selectedAssetId, setSelectedAssetId] = useState<AssetId | null>(null);
   const [assetState, setAssetState] = useState<AssetState>(DEFAULT_ASSET_STATE);
+  const [highlightField, setHighlightField] = useState<string | null>(null);
+
+  // Map a JSON import field name to the matching asset id in the workspace
+  const fieldToAssetId = (field: string): AssetId | null => {
+    if (['question', 'internalName', 'slug', 'blockLetter', 'blockPosition'].includes(field)) return 'question';
+    if (field === 'subheadline') return 'subheadline';
+    if (['answers', 'answerType', 'mcLabelStyle'].includes(field)) return 'answers';
+    if (['bgColor', 'bgImage'].includes(field)) return 'background';
+    return null;
+  };
+
+  const handleJumpToField = (field: string, _section: ImportSection) => {
+    const target = fieldToAssetId(field);
+    if (target) {
+      // Ensure the asset is mounted, then select it so the Inspector shows its controls
+      setEnabledAssets((curr) => (curr.includes(target) ? curr : [...curr, target]));
+      setSelectedAssetId(target);
+    }
+    setHighlightField(field);
+    // Clear highlight after the pulse animation
+    window.setTimeout(() => setHighlightField((f) => (f === field ? null : f)), 2400);
+    toast.message(`Jumped to ${field}`);
+  };
 
   if (loadingExisting) {
     return (
