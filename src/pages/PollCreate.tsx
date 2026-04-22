@@ -365,7 +365,7 @@ export default function PollCreate() {
       setSelectedTemplate(data.template);
       setAnswerType(data.answerType);
       setMcLabelStyle(data.mcLabelStyle);
-      setAnswers(data.answers);
+      setAnswers(data.answers as { id: string; text: string; shortLabel: string; testVotes?: number }[]);
       setShowLiveResults(data.showLiveResults);
       setShowThankYou(data.showThankYou);
       setShowFinalResults(data.showFinalResults);
