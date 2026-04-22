@@ -112,6 +112,8 @@ export default function PollCreate() {
   const [bgColor, setBgColor] = useState('#1a1a2e');
   const [bgImage, setBgImage] = useState<string | undefined>(undefined);
   const [draftStatus, setDraftStatus] = useState<'unsaved' | 'draft-saved' | 'saved-to-project'>('unsaved');
+  const [blockLetter, setBlockLetter] = useState<BlockLetter>('A');
+  const [blockPosition, setBlockPosition] = useState<number>(1);
 
   // Load existing poll if visiting /polls/:id
   useEffect(() => {
@@ -144,6 +146,8 @@ export default function PollCreate() {
         setBgImage(p.bgImage);
         setPreviewDataMode(p.previewDataMode);
         setProjectId(p.projectId);
+        setBlockLetter((p.blockLetter as BlockLetter) || 'A');
+        setBlockPosition(p.blockPosition ?? 1);
         setDraftStatus(p.status === 'draft' ? 'draft-saved' : 'saved-to-project');
       })
       .catch((e) => toast.error(`Could not load poll: ${e.message}`))
