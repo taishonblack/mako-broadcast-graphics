@@ -69,7 +69,7 @@ export default function ProjectLauncher() {
                     </div>
                   </button>
                 </TooltipTrigger>
-                <TooltipContent>Open this project and load all poll queues</TooltipContent>
+                <TooltipContent>Open this project and load its polls</TooltipContent>
               </Tooltip>
             </div>
           )}
@@ -102,7 +102,7 @@ export default function ProjectLauncher() {
                       </div>
                     </button>
                   </TooltipTrigger>
-                  <TooltipContent>Open this project and load its poll queues</TooltipContent>
+                  <TooltipContent>Open this project and load its polls</TooltipContent>
                 </Tooltip>
               ))}
             </div>

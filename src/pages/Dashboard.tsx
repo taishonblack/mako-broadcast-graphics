@@ -53,7 +53,7 @@ const PRESET_META: { id: WorkspacePreset; label: string; desc: string }[] = [
   { id: 'operator', label: 'Operator', desc: 'Balanced panels for live show control' },
   { id: 'graphics', label: 'Graphics', desc: 'Wider inspector for layer editing' },
   { id: 'focus', label: 'Focus Preview', desc: 'Maximize program preview, collapse left' },
-  { id: 'compact', label: 'Compact', desc: 'Wider queue panel for dense poll lists' },
+  { id: 'compact', label: 'Compact', desc: 'Wider poll panel for dense block lists' },
 ];
 
 const DEFAULT_LAYOUT = PRESET_LAYOUTS.operator;
@@ -377,7 +377,7 @@ export default function Dashboard() {
             if (sizes.length === 3) saveLayout({ leftSize: sizes[0], centerSize: sizes[1], rightSize: sizes[2] });
           }}
         >
-          {/* Left Panel — Queue Selector + Poll Queue + Active Poll */}
+          {/* Left Panel — Block Groups + Poll List + Active Poll */}
           {!layout.maximized && (
             <>
               <ResizablePanel defaultSize={layout.leftSize} minSize={16} maxSize={35} className="p-3">
@@ -504,11 +504,11 @@ export default function Dashboard() {
                 <h2 className="text-xs font-semibold text-foreground font-mono uppercase">Quick Actions</h2>
                 <div className="flex flex-col gap-1.5">
                   <Link to="/polls/new">
-                    <TipButton tip="Create a new poll in the current queue" variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9">
+                    <TipButton tip="Create a new poll in the current project" variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9">
                       <PlusCircle className="w-3.5 h-3.5" /> New Poll
                     </TipButton>
                   </Link>
-                  <TipButton tip="Duplicate the active poll into the current queue" variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9" onClick={handleDuplicatePoll}>
+                  <TipButton tip="Duplicate the active poll inside the current project" variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9" onClick={handleDuplicatePoll}>
                     <Copy className="w-3.5 h-3.5" /> Duplicate Poll
                   </TipButton>
                   <div className="border-t border-border my-1" />
