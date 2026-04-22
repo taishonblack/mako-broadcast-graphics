@@ -17,9 +17,15 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LoadPollDialog } from '@/components/poll-create/LoadPollDialog';
 import { ImportErrorDialog } from '@/components/poll-create/ImportErrorDialog';
+import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
+import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
+import { QRScene } from '@/components/broadcast/scenes/QRScene';
+import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
 import { pollImportSchema, formatZodIssues, ImportIssue, ImportSection } from '@/lib/poll-import-schema';
 import { themePresets } from '@/lib/themes';
-import { TemplateName, Poll, PollOption, QRPosition } from '@/lib/types';
+import { TemplateName, Poll, PollOption, QRPosition, VotingState, LiveState } from '@/lib/types';
+import { SceneType } from '@/lib/scenes';
+import { broadcastOutputState } from '@/lib/output-state';
 import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Grid3x3, Monitor, Radio, Palette } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { loadPoll, savePoll, listPolls, DraftPollPayload, SavedPoll, BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-persistence';
@@ -86,6 +92,7 @@ function Pane({
 export default function PollCreate() {
   const { id: routeId } = useParams<{ id?: string }>();
   const navigate = useNavigate();
+  const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
 
   const [pollId, setPollId] = useState<string | undefined>(routeId);
@@ -116,6 +123,17 @@ export default function PollCreate() {
   const [draftStatus, setDraftStatus] = useState<'unsaved' | 'draft-saved' | 'saved-to-project'>('unsaved');
   const [blockLetter, setBlockLetter] = useState<BlockLetter>('A');
   const [blockPosition, setBlockPosition] = useState<number>(1);
+  const [mode, setMode] = useState<OperatorMode>((searchParams.get('mode') as OperatorMode) || 'build');
+  const [projectPolls, setProjectPolls] = useState<SavedPoll[]>([]);
+  const [outputActiveBlock, setOutputActiveBlock] = useState<BlockLetter>('A');
+  const [votingState, setVotingState] = useState<VotingState>('not_open');
+  const [liveState, setLiveState] = useState<LiveState>('not_live');
+  const [previewScene, setPreviewScene] = useState<SceneType>('fullscreen');
+  const [programScene, setProgramScene] = useState<SceneType>('fullscreen');
+  const [qrSize, setQrSize] = useState(120);
+  const [qrPosition, setQrPosition] = useState<QRPosition>('bottom-right');
+  const [showBranding, setShowBranding] = useState(true);
+  const [brandingPosition, setBrandingPosition] = useState<QRPosition>('bottom-left');
 
   // Load existing poll if visiting /polls/:id
   useEffect(() => {
@@ -161,6 +179,24 @@ export default function PollCreate() {
     if (draftStatus !== 'unsaved') setDraftStatus('unsaved');
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question, internalName, slug, subheadline, selectedTemplate, answerType, mcLabelStyle, answers, showLiveResults, showThankYou, showFinalResults, autoClose, bgColor, bgImage, previewDataMode]);
+
+  useEffect(() => {
+    const nextMode = (searchParams.get('mode') as OperatorMode) || 'build';
+    if (nextMode === 'build' || nextMode === 'edit' || nextMode === 'output') {
+      setMode(nextMode);
+    }
+  }, [searchParams]);
+
+  useEffect(() => {
+    if (!user || !projectId) {
+      setProjectPolls([]);
+      return;
+    }
+
+    listPolls()
+      .then((items) => setProjectPolls(items.filter((poll) => poll.projectId === projectId)))
+      .catch(() => setProjectPolls([]));
+  }, [user, projectId, pollId, draftStatus]);
 
   const buildPayload = (): DraftPollPayload => ({
     internalName,
@@ -256,6 +292,98 @@ export default function PollCreate() {
   const slugForUrl = slug || 'your-poll-slug';
   const fullUrl = `https://makovote.app/vote/${slugForUrl}`;
   const shortUrl = `mvote.app/${slugForUrl}`;
+
+  const currentWorkspacePoll = useMemo<Poll>(() => ({
+    id: pollId ?? 'draft-poll',
+    projectId,
+    internalName: internalName || 'Untitled Poll',
+    question,
+    subheadline,
+    slug: slugForUrl,
+    state: 'draft',
+    votingState,
+    options: previewOptions,
+    totalVotes: previewTotal,
+    votesPerSecond: 0,
+    template: selectedTemplate,
+    themeId: theme.id,
+    showLiveResults,
+    hideUntilClose: false,
+    minVoteThreshold: 0,
+    allowVoteChange: true,
+    autoCloseDuration: autoClose ? Number(autoClose) : undefined,
+    showThankYou,
+    showFinalResults,
+    blockLetter,
+    blockPosition,
+    createdAt: new Date().toISOString(),
+  }), [pollId, projectId, internalName, question, subheadline, slugForUrl, votingState, previewOptions, previewTotal, selectedTemplate, theme.id, showLiveResults, autoClose, showThankYou, showFinalResults, blockLetter, blockPosition]);
+
+  const outputPolls = useMemo(() => {
+    const existing = projectPolls.filter((poll) => poll.id !== currentWorkspacePoll.id);
+    return [
+      {
+        ...currentWorkspacePoll,
+        status: projectId ? 'saved' : 'draft',
+        updatedAt: new Date().toISOString(),
+        answerType,
+        mcLabelStyle,
+        answers,
+        previewDataMode,
+        bgColor,
+        bgImage,
+      } as SavedPoll,
+      ...existing,
+    ];
+  }, [projectPolls, currentWorkspacePoll, projectId, answerType, mcLabelStyle, answers, previewDataMode, bgColor, bgImage]);
+
+  const renderOutputScene = () => {
+    const sharedAssets = { slug: slugForUrl, qrSize, qrPosition, showBranding, brandingPosition };
+    const props = {
+      question: currentWorkspacePoll.question || 'Your question here?',
+      subheadline,
+      options: currentWorkspacePoll.options,
+      totalVotes: currentWorkspacePoll.totalVotes,
+      colors: previewColors,
+      theme,
+      template: selectedTemplate,
+      ...sharedAssets,
+    };
+
+    switch (previewScene) {
+      case 'lowerThird': return <LowerThirdScene {...props} />;
+      case 'qr': return <QRScene slug={slugForUrl} theme={theme} />;
+      case 'results': return <ResultsScene {...props} />;
+      default: return <FullscreenScene {...props} layers={[]} />;
+    }
+  };
+
+  const setWorkspaceMode = (nextMode: OperatorMode) => {
+    const nextParams = new URLSearchParams(searchParams);
+    nextParams.set('mode', nextMode);
+    setSearchParams(nextParams, { replace: true });
+    setMode(nextMode);
+  };
+
+  const handleTake = () => {
+    setProgramScene(previewScene);
+    broadcastOutputState({ poll: currentWorkspacePoll, scene: previewScene, layers: [], assets: { qrSize, qrPosition, showBranding, brandingPosition } });
+  };
+
+  const handleCut = () => {
+    setProgramScene(previewScene);
+    broadcastOutputState({ poll: currentWorkspacePoll, scene: previewScene, layers: [], assets: { qrSize, qrPosition, showBranding, brandingPosition } });
+  };
+
+  const handleGoLive = () => {
+    setLiveState('live');
+    handleTake();
+  };
+
+  const handleEndPoll = () => {
+    setLiveState('not_live');
+    setVotingState('closed');
+  };
 
   const statusLabel = {
     'unsaved': { text: 'Unsaved', cls: 'bg-mako-warning/15 text-mako-warning border-mako-warning/30' },
