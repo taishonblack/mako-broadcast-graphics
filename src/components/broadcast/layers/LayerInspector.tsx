@@ -1,9 +1,61 @@
 import { GraphicLayer, LayerType } from '@/lib/layers';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { AlignLeft, AlignCenter, AlignRight } from 'lucide-react';
+import { useEffect, useState } from 'react';
+
+/** Compact numeric input with optional secondary readout (e.g. px). */
+function NumericField({
+  label, value, onChange, min, max, step, suffix, secondary, disabled,
+}: {
+  label: string;
+  value: number;
+  onChange: (v: number) => void;
+  min: number;
+  max: number;
+  step: number;
+  suffix?: string;
+  secondary?: string;
+  disabled?: boolean;
+}) {
+  const [text, setText] = useState(value.toFixed(1));
+  // Re-sync when the source value changes externally (drag, snap).
+  useEffect(() => { setText(value.toFixed(1)); }, [value]);
+  const commit = () => {
+    const n = parseFloat(text);
+    if (!Number.isNaN(n)) onChange(Math.max(min, Math.min(max, n)));
+    else setText(value.toFixed(1));
+  };
+  return (
+    <div className="space-y-0.5">
+      <div className="flex items-center justify-between">
+        <span className="text-[10px] text-muted-foreground font-mono">{label}</span>
+        {secondary && <span className="text-[9px] text-muted-foreground/60 font-mono">{secondary}</span>}
+      </div>
+      <div className="relative">
+        <Input
+          type="number"
+          inputMode="decimal"
+          min={min}
+          max={max}
+          step={step}
+          value={text}
+          disabled={disabled}
+          onChange={(e) => setText(e.target.value)}
+          onBlur={commit}
+          onKeyDown={(e) => { if (e.key === 'Enter') (e.target as HTMLInputElement).blur(); }}
+          className="h-7 text-[11px] font-mono pr-5"
+        />
+        {suffix && (
+          <span className="absolute right-2 top-1/2 -translate-y-1/2 text-[9px] text-muted-foreground/60 font-mono pointer-events-none">
+            {suffix}
+          </span>
+        )}
+      </div>
+    </div>
+  );
+}
 
 /** Broadcast canvas reference resolution for the px readout. */
 const REF_WIDTH = 1920;
