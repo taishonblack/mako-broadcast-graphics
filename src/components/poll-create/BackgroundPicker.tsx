@@ -147,6 +147,17 @@ export function BackgroundPicker({ bgColor, setBgColor, bgImage, setBgImage }: P
             : <Upload className="w-3 h-3" />}
           Upload New
         </Button>
+        {lastUsedUrl && lastUsedUrl !== bgImage && (
+          <Button
+            size="sm" variant="outline"
+            onClick={() => { setBgImage(lastUsedUrl); toast.success('Reusing last background'); }}
+            className="h-7 text-[10px] gap-1 flex-1"
+            title="Reuse the background you used most recently"
+          >
+            <Repeat2 className="w-3 h-3" />
+            Reuse Last
+          </Button>
+        )}
       </div>
 
       <div className="space-y-1.5">
