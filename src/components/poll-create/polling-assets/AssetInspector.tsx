@@ -9,6 +9,7 @@ import {
 import { ASSET_REGISTRY } from './PollingAssetsPane';
 import { AssetId, AssetState } from './types';
 import { Trash2, PlusCircle, GripVertical } from 'lucide-react';
+import { BackgroundPicker } from '@/components/poll-create/BackgroundPicker';
 
 interface AssetInspectorProps {
   selectedAssetId: AssetId | null;
@@ -24,6 +25,7 @@ interface AssetInspectorProps {
   // Background lives in PollCreate
   bgColor: string; setBgColor: (v: string) => void;
   bgImage?: string;
+  setBgImage: (v: string | undefined) => void;
   // New asset state
   assetState: AssetState;
   setAssetState: (next: AssetState) => void;
@@ -199,33 +201,12 @@ export function AssetInspector(p: AssetInspectorProps) {
         )}
 
         {id === 'background' && (
-          <div className="space-y-2">
-            <Label className="text-[10px] text-muted-foreground">Background Color</Label>
-            <div className="flex items-center gap-2">
-              <input
-                type="color"
-                value={p.bgColor || '#1a1a2e'}
-                onChange={(e) => p.setBgColor(e.target.value)}
-                className="w-7 h-7 rounded-md border border-border bg-transparent cursor-pointer p-0"
-              />
-              <Input
-                value={p.bgColor}
-                onChange={(e) => p.setBgColor(e.target.value)}
-                className="bg-background/50 h-7 text-[10px] font-mono flex-1"
-              />
-            </div>
-            {p.bgImage && (
-              <div>
-                <Label className="text-[10px] text-muted-foreground">Current Image</Label>
-                <div className="w-full h-16 mt-1 rounded-md overflow-hidden border border-border">
-                  <img src={p.bgImage} alt="Background" className="w-full h-full object-cover" />
-                </div>
-              </div>
-            )}
-            <p className="text-[9px] text-muted-foreground">
-              Upload a new image from the Background pane on the left.
-            </p>
-          </div>
+          <BackgroundPicker
+            bgColor={p.bgColor}
+            setBgColor={p.setBgColor}
+            bgImage={p.bgImage}
+            setBgImage={p.setBgImage}
+          />
         )}
 
         {id === 'qr' && (
