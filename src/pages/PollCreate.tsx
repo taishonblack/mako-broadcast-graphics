@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { PollStatusChip } from '@/components/broadcast/PollStatusChip';
-import { ContentPanel, AnswerType, MCLabelStyle, PreviewDataMode } from '@/components/poll-create/ContentPanel';
+import { AnswerType, MCLabelStyle, PreviewDataMode } from '@/components/poll-create/ContentPanel';
 import { BuildControlsPanel } from '@/components/poll-create/BuildControlsPanel';
 import { DraftPreviewMonitor } from '@/components/poll-create/DraftPreviewMonitor';
 import { ProjectPickerDialog } from '@/components/poll-create/ProjectPickerDialog';
