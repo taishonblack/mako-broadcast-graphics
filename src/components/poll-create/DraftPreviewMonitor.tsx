@@ -7,6 +7,7 @@ import { Monitor, Smartphone, Globe, Copy, Link2, Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { AnswerType, MCLabelStyle, PreviewDataMode, getMCLabel } from './ContentPanel';
+import makoVoteLogo from '@/assets/makovote-logo.svg';
 
 type PreviewMode = 'program' | 'mobile' | 'desktop';
 
@@ -70,10 +71,32 @@ export function DraftPreviewMonitor({
   const renderProgramContent = () => {
     if (!hasContent) {
       return (
-        <div className="absolute inset-0 flex items-center justify-center bg-background/80">
-          <div className="text-center space-y-2">
-            <p className="text-lg font-bold text-primary font-mono tracking-wider">MakoVote</p>
-            <p className="text-[10px] text-muted-foreground">Start building your poll to see a preview</p>
+        <div
+          className="absolute inset-0 flex flex-col items-center justify-center"
+          style={{
+            background: `linear-gradient(135deg, ${theme.tintColor}, hsl(220, 25%, 6%))`,
+          }}
+        >
+          <div
+            className="absolute inset-0 pointer-events-none"
+            style={{
+              background: 'radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.55) 100%)',
+            }}
+          />
+          <div className="relative z-10 flex flex-col items-center justify-center gap-10 px-24">
+            <img
+              src={makoVoteLogo}
+              alt="MakoVote"
+              className="select-none"
+              style={{ width: '60%', maxWidth: '1100px', height: 'auto', filter: 'drop-shadow(0 8px 32px rgba(0,0,0,0.6)) brightness(0) invert(1)' }}
+              draggable={false}
+            />
+            <p
+              className="font-mono uppercase tracking-[0.2em] text-center"
+              style={{ color: theme.textSecondary, fontSize: '32px', opacity: 0.7 }}
+            >
+              Start building your poll to preview the graphic
+            </p>
           </div>
         </div>
       );
@@ -135,8 +158,16 @@ export function DraftPreviewMonitor({
   const renderViewerButtons = () => {
     if (!hasContent) {
       return (
-        <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
-          Voter view preview
+        <div className="flex flex-col items-center justify-center h-full gap-4 px-6 text-center">
+          <img
+            src={makoVoteLogo}
+            alt="MakoVote"
+            className="select-none w-3/4 max-w-[220px] h-auto"
+            draggable={false}
+          />
+          <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/80">
+            Start building your poll to preview the voter view
+          </p>
         </div>
       );
     }
