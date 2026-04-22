@@ -1,7 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
-import { PollStatusChip } from '@/components/broadcast/PollStatusChip';
 import { AnswerType, MCLabelStyle, PreviewDataMode } from '@/components/poll-create/ContentPanel';
 import { BuildControlsPanel } from '@/components/poll-create/BuildControlsPanel';
 import { DraftPreviewMonitor } from '@/components/poll-create/DraftPreviewMonitor';
@@ -21,10 +20,13 @@ import { ImportErrorDialog } from '@/components/poll-create/ImportErrorDialog';
 import { pollImportSchema, formatZodIssues, ImportIssue, ImportSection } from '@/lib/poll-import-schema';
 import { themePresets } from '@/lib/themes';
 import { TemplateName, PollOption } from '@/lib/types';
-import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Grid3x3 } from 'lucide-react';
+import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Grid3x3, Monitor, Radio, Palette } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { loadPoll, savePoll, DraftPollPayload, SavedPoll, BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-persistence';
+import { OperatorOutputMode } from '@/components/operator/OperatorOutputMode';
 import { toast } from 'sonner';
+
+type OperatorMode = 'build' | 'edit' | 'output';
 
 /* ---------- Workspace layout persistence ---------- */
 
