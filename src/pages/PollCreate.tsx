@@ -556,6 +556,7 @@ export default function PollCreate() {
         fileName={importError.fileName}
         parseError={importError.parseError}
         issues={importError.issues}
+        onJumpToField={handleJumpToField}
       />
 
       {/* Dockable, resizable workspace — 3 columns, vertically split sides */}
@@ -660,6 +661,7 @@ export default function PollCreate() {
                     setBgImage={setBgImage}
                     assetState={assetState}
                     setAssetState={setAssetState}
+                    highlightField={highlightField}
                   />
                 </Pane>
               </ResizablePanel>
