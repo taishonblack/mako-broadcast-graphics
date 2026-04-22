@@ -266,6 +266,89 @@ export default function PollCreate() {
     setLayoutKey((k) => k + 1);
   };
 
+  const [loadDialogOpen, setLoadDialogOpen] = useState(false);
+
+  const applyLoadedPoll = (p: SavedPoll) => {
+    setPollId(p.id);
+    navigate(`/polls/${p.id}`, { replace: true });
+    setInternalName(p.internalName);
+    setQuestion(p.question);
+    setSubheadline(p.subheadline);
+    setSlug(p.slug);
+    setSelectedTemplate(p.template);
+    setAnswerType(p.answerType);
+    setMcLabelStyle(p.mcLabelStyle);
+    setAnswers(p.answers.length ? p.answers : [
+      { id: '1', text: '', shortLabel: '', testVotes: 0 },
+      { id: '2', text: '', shortLabel: '', testVotes: 0 },
+    ]);
+    setShowLiveResults(p.showLiveResults);
+    setShowThankYou(p.showThankYou);
+    setShowFinalResults(p.showFinalResults);
+    setAutoClose(p.autoCloseSeconds ? String(p.autoCloseSeconds) : '');
+    setBgColor(p.bgColor);
+    setBgImage(p.bgImage);
+    setPreviewDataMode(p.previewDataMode);
+    setProjectId(p.projectId);
+    setDraftStatus(p.status === 'draft' ? 'draft-saved' : 'saved-to-project');
+    toast.success(`Loaded "${p.internalName || p.question || 'poll'}"`);
+  };
+
+  const handleDuplicate = async () => {
+    if (!user) { toast.error('Please sign in first'); return; }
+    setSaving('draft');
+    try {
+      const payload = buildPayload();
+      payload.internalName = `${payload.internalName || 'Poll'} (Copy)`;
+      payload.slug = payload.slug ? `${payload.slug}-copy` : '';
+      const saved = await savePoll({
+        payload,
+        userId: user.id,
+        status: 'draft',
+      });
+      setPollId(saved.id);
+      navigate(`/polls/${saved.id}`, { replace: true });
+      setInternalName(saved.internalName);
+      setSlug(saved.slug);
+      setProjectId(undefined);
+      setDraftStatus('draft-saved');
+      toast.success('Duplicated as new draft');
+    } catch (e) {
+      toast.error(`Duplicate failed: ${(e as Error).message}`);
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const handleImport = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json,.json';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text) as Partial<DraftPollPayload>;
+        if (parsed.question !== undefined) setQuestion(parsed.question);
+        if (parsed.internalName !== undefined) setInternalName(parsed.internalName);
+        if (parsed.subheadline !== undefined) setSubheadline(parsed.subheadline);
+        if (parsed.slug !== undefined) setSlug(parsed.slug);
+        if (parsed.template) setSelectedTemplate(parsed.template);
+        if (parsed.answerType) setAnswerType(parsed.answerType);
+        if (parsed.mcLabelStyle) setMcLabelStyle(parsed.mcLabelStyle);
+        if (parsed.answers?.length) setAnswers(parsed.answers);
+        if (parsed.bgColor) setBgColor(parsed.bgColor);
+        if (parsed.bgImage !== undefined) setBgImage(parsed.bgImage);
+        if (parsed.previewDataMode) setPreviewDataMode(parsed.previewDataMode);
+        toast.success(`Imported ${file.name}`);
+      } catch (e) {
+        toast.error(`Import failed: ${(e as Error).message}`);
+      }
+    };
+    input.click();
+  };
+
   // Modular polling-assets state
   const [enabledAssets, setEnabledAssets] = useState<AssetId[]>(SEEDED_ASSETS);
   const [selectedAssetId, setSelectedAssetId] = useState<AssetId | null>(null);
