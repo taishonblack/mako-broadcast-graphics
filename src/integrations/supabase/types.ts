@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      backgrounds: {
+        Row: {
+          created_at: string
+          id: string
+          image_url: string
+          name: string
+          thumbnail_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          image_url: string
+          name?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          image_url?: string
+          name?: string
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       polls: {
         Row: {
           answer_type: string
@@ -23,6 +53,7 @@ export type Database = {
           bg_image: string | null
           block_label: string | null
           block_letter: string | null
+          block_position: number | null
           created_at: string
           id: string
           internal_name: string
@@ -48,6 +79,7 @@ export type Database = {
           bg_image?: string | null
           block_label?: string | null
           block_letter?: string | null
+          block_position?: number | null
           created_at?: string
           id?: string
           internal_name?: string
@@ -73,6 +105,7 @@ export type Database = {
           bg_image?: string | null
           block_label?: string | null
           block_letter?: string | null
+          block_position?: number | null
           created_at?: string
           id?: string
           internal_name?: string
