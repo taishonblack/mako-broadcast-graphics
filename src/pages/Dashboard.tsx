@@ -19,7 +19,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { mockProject, templateLabels } from '@/lib/mock-data';
-import { LiveState, VotingState, QRPosition, Poll, PollQueue as PollQueueType } from '@/lib/types';
+import { LiveState, VotingState, QRPosition, Poll } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
 import { themePresets } from '@/lib/themes';
 import { DEFAULT_LAYERS, GraphicLayer, cloneLayers } from '@/lib/layers';
@@ -87,9 +87,16 @@ function TipButton({ tip, children, ...props }: { tip: string; children: React.R
 
 export default function Dashboard() {
   const [project, setProject] = useState(mockProject);
-  const [activeQueueId, setActiveQueueId] = useState(project.queues[0]?.id ?? '');
-  const activeQueue = project.queues.find(q => q.id === activeQueueId) || project.queues[0];
-  const allPolls = useMemo(() => project.queues.flatMap(q => q.polls), [project.queues]);
+  const [activeBlock, setActiveBlock] = useState<'A' | 'B' | 'C' | 'D' | 'E'>('A');
+  const allPolls = useMemo(() => project.polls, [project.polls]);
+  const pollsByBlock = useMemo(() => ({
+    A: allPolls.filter((poll) => poll.blockLetter === 'A'),
+    B: allPolls.filter((poll) => poll.blockLetter === 'B'),
+    C: allPolls.filter((poll) => poll.blockLetter === 'C'),
+    D: allPolls.filter((poll) => poll.blockLetter === 'D'),
+    E: allPolls.filter((poll) => poll.blockLetter === 'E'),
+  }), [allPolls]);
+  const activeBlockPolls = pollsByBlock[activeBlock];
   const [activePollId, setActivePollId] = useState(allPolls[0]?.id ?? '');
   const activePoll = allPolls.find(p => p.id === activePollId) || allPolls[0];
 
@@ -128,10 +135,7 @@ export default function Dashboard() {
   const updatePollInProject = (pollId: string, updater: (p: Poll) => Poll) => {
     setProject(prev => ({
       ...prev,
-      queues: prev.queues.map(q => ({
-        ...q,
-        polls: q.polls.map(p => p.id === pollId ? updater(p) : p),
-      })),
+      polls: prev.polls.map(p => p.id === pollId ? updater(p) : p),
     }));
   };
 
@@ -194,9 +198,7 @@ export default function Dashboard() {
     };
     setProject(prev => ({
       ...prev,
-      queues: prev.queues.map(q =>
-        q.id === activeQueueId ? { ...q, polls: [...q.polls, newPoll] } : q
-      ),
+      polls: [...prev.polls, { ...newPoll, projectId: prev.id, blockLetter: activeBlock }],
     }));
   };
 
