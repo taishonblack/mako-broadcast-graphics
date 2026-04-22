@@ -6,6 +6,7 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import Login from "./pages/Login";
 import ProjectLauncher from "./pages/ProjectLauncher";
 import Dashboard from "./pages/Dashboard";
+import Blocks from "./pages/Blocks";
 import PollCreate from "./pages/PollCreate";
 import GraphicsEditor from "./pages/GraphicsEditor";
 import ProgramOutput from "./pages/ProgramOutput";
@@ -25,6 +26,7 @@ const App = () => (
           <Route path="/" element={<Login />} />
           <Route path="/projects" element={<ProjectLauncher />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/blocks" element={<ProtectedRoute><Blocks /></ProtectedRoute>} />
           <Route path="/polls/new" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
           <Route path="/polls/:id" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
           <Route path="/polls/:id/edit" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />

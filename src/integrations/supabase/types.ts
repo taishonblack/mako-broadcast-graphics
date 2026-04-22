@@ -21,6 +21,8 @@ export type Database = {
           auto_close_seconds: number | null
           bg_color: string
           bg_image: string | null
+          block_label: string | null
+          block_letter: string | null
           created_at: string
           id: string
           internal_name: string
@@ -44,6 +46,8 @@ export type Database = {
           auto_close_seconds?: number | null
           bg_color?: string
           bg_image?: string | null
+          block_label?: string | null
+          block_letter?: string | null
           created_at?: string
           id?: string
           internal_name?: string
@@ -67,6 +71,8 @@ export type Database = {
           auto_close_seconds?: number | null
           bg_color?: string
           bg_image?: string | null
+          block_label?: string | null
+          block_letter?: string | null
           created_at?: string
           id?: string
           internal_name?: string

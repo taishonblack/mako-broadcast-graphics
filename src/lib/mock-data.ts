@@ -107,9 +107,9 @@ const pollsSegment3: Poll[] = [
 ];
 
 export const mockQueues: PollQueue[] = [
-  { id: 'queue-1', name: 'Opening Segment', polls: pollsSegment1, order: 0 },
-  { id: 'queue-2', name: 'Mid-Show Polls', polls: pollsSegment2, order: 1 },
-  { id: 'queue-3', name: 'Final Segment', polls: pollsSegment3, order: 2 },
+  { id: 'block-A', name: 'Block A — Top of Show', polls: pollsSegment1, order: 0 },
+  { id: 'block-C', name: 'Block C — Mid-show', polls: pollsSegment2, order: 1 },
+  { id: 'block-E', name: 'Block E — End of Show', polls: pollsSegment3, order: 2 },
 ];
 
 // Flatten for backward compat
@@ -137,7 +137,7 @@ export const mockProjects: Project[] = [
     description: 'Saturday night broadcast',
     themeId: 'dark-ice',
     queues: [
-      { id: 'queue-4', name: 'Pre-Game', polls: [], order: 0 },
+      { id: 'block-A2', name: 'Block A — Pre-Game', polls: [], order: 0 },
     ],
     qrSize: 120,
     qrPosition: 'bottom-right',
@@ -152,8 +152,8 @@ export const mockProjects: Project[] = [
     description: 'Studio panel discussion',
     themeId: 'silver-neutral',
     queues: [
-      { id: 'queue-5', name: 'Segment 1', polls: [], order: 0 },
-      { id: 'queue-6', name: 'Segment 2', polls: [], order: 1 },
+      { id: 'block-A3', name: 'Block A — Open', polls: [], order: 0 },
+      { id: 'block-C3', name: 'Block C — Panel', polls: [], order: 1 },
     ],
     qrSize: 100,
     qrPosition: 'bottom-left',

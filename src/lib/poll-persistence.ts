@@ -25,6 +25,8 @@ export interface DraftPollPayload {
   bgColor: string;
   bgImage?: string;
   previewDataMode: PreviewDataMode;
+  blockLetter?: BlockLetter;
+  blockLabel?: string;
 }
 
 export interface SavedPoll extends DraftPollPayload {
@@ -33,6 +35,18 @@ export interface SavedPoll extends DraftPollPayload {
   projectId?: string;
   updatedAt: string;
 }
+
+export type BlockLetter = 'A' | 'B' | 'C' | 'D' | 'E';
+
+export const BLOCK_LETTERS: BlockLetter[] = ['A', 'B', 'C', 'D', 'E'];
+
+export const DEFAULT_BLOCK_LABELS: Record<BlockLetter, string> = {
+  A: 'Top of Show',
+  B: 'Early Show',
+  C: 'Mid-show',
+  D: 'Late Show',
+  E: 'End of Show',
+};
 
 function toRow(p: DraftPollPayload, userId: string, status: 'draft' | 'saved', projectId?: string) {
   return {
@@ -54,6 +68,8 @@ function toRow(p: DraftPollPayload, userId: string, status: 'draft' | 'saved', p
     bg_color: p.bgColor,
     bg_image: p.bgImage ?? null,
     preview_data_mode: p.previewDataMode,
+    block_letter: p.blockLetter ?? null,
+    block_label: p.blockLabel ?? null,
   };
 }
 
@@ -78,6 +94,8 @@ export function fromRow(row: Record<string, unknown>): SavedPoll {
     bgColor: row.bg_color as string,
     bgImage: (row.bg_image as string | null) ?? undefined,
     previewDataMode: row.preview_data_mode as PreviewDataMode,
+    blockLetter: ((row.block_letter as string | null) ?? undefined) as BlockLetter | undefined,
+    blockLabel: (row.block_label as string | null) ?? undefined,
   };
 }
 
