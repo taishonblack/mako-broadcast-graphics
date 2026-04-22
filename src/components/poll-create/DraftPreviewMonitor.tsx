@@ -1,10 +1,7 @@
 import { useState } from 'react';
-import { BroadcastPreviewFrame, MonitorContainer } from '@/components/broadcast/BroadcastPreviewFrame';
+import { BroadcastPreviewFrame } from '@/components/broadcast/BroadcastPreviewFrame';
 import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
-import { HorizontalBarChart } from '@/components/charts/HorizontalBarChart';
-import { VerticalBarChart } from '@/components/charts/VerticalBarChart';
-import { DonutChart } from '@/components/charts/DonutChart';
-import { PuckSlider } from '@/components/charts/PuckSlider';
+import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
 import { PollOption, TemplateName, ThemePreset } from '@/lib/types';
 import { Monitor, Smartphone, Globe, Copy, Link2, Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
