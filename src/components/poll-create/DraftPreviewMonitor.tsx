@@ -158,8 +158,16 @@ export function DraftPreviewMonitor({
   const renderViewerButtons = () => {
     if (!hasContent) {
       return (
-        <div className="flex items-center justify-center h-full text-muted-foreground text-xs">
-          Voter view preview
+        <div className="flex flex-col items-center justify-center h-full gap-4 px-6 text-center">
+          <img
+            src={makoVoteLogo}
+            alt="MakoVote"
+            className="select-none w-3/4 max-w-[220px] h-auto"
+            draggable={false}
+          />
+          <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/80">
+            Start building your poll to preview the voter view
+          </p>
         </div>
       );
     }
