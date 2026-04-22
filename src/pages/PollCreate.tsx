@@ -21,9 +21,9 @@ import { ImportErrorDialog } from '@/components/poll-create/ImportErrorDialog';
 import { pollImportSchema, formatZodIssues, ImportIssue } from '@/lib/poll-import-schema';
 import { themePresets } from '@/lib/themes';
 import { TemplateName, PollOption } from '@/lib/types';
-import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown } from 'lucide-react';
+import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Grid3x3 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { loadPoll, savePoll, DraftPollPayload, SavedPoll } from '@/lib/poll-persistence';
+import { loadPoll, savePoll, DraftPollPayload, SavedPoll, BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-persistence';
 import { toast } from 'sonner';
 
 /* ---------- Workspace layout persistence ---------- */
@@ -32,13 +32,11 @@ const WORKSPACE_LAYOUT_KEY = 'mako-draft-workspace-layout-v1';
 
 interface WorkspaceLayout {
   hSizes: [number, number, number]; // left / center / right
-  leftVSizes: [number, number];      // PollingAssets / Background
   rightVSizes: [number, number];     // Template / Inspector
 }
 
 const DEFAULT_WORKSPACE_LAYOUT: WorkspaceLayout = {
-  hSizes: [24, 54, 22],
-  leftVSizes: [62, 38],
+  hSizes: [22, 56, 22],
   rightVSizes: [55, 45],
 };
 
