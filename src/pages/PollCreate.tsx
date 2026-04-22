@@ -21,9 +21,9 @@ import { ImportErrorDialog } from '@/components/poll-create/ImportErrorDialog';
 import { pollImportSchema, formatZodIssues, ImportIssue } from '@/lib/poll-import-schema';
 import { themePresets } from '@/lib/themes';
 import { TemplateName, PollOption } from '@/lib/types';
-import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Grid3x3 } from 'lucide-react';
+import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Layers } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { loadPoll, savePoll, DraftPollPayload, SavedPoll, BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-persistence';
+import { loadPoll, savePoll, DraftPollPayload, SavedPoll, BlockLetter, BLOCK_LETTERS } from '@/lib/poll-persistence';
 import { toast } from 'sonner';
 
 /* ---------- Workspace layout persistence ---------- */
@@ -176,6 +176,8 @@ export default function PollCreate() {
     bgColor,
     bgImage,
     previewDataMode,
+    blockLetter,
+    blockPosition,
   });
 
   const handleSaveDraft = async () => {
