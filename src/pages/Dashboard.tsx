@@ -96,8 +96,6 @@ export default function Dashboard() {
   const [liveState, setLiveState] = useState<LiveState>('not_live');
   const [previewScene, setPreviewScene] = useState<SceneType>('fullscreen');
   const [programScene, setProgramScene] = useState<SceneType>('fullscreen');
-  const [showTitleSafe, setShowTitleSafe] = useState(false);
-  const [showActionSafe, setShowActionSafe] = useState(false);
   const [qrSize, setQrSize] = useState(project.qrSize);
   const [qrPosition, setQrPosition] = useState<QRPosition>(project.qrPosition);
   const [showBranding, setShowBranding] = useState(project.showBranding);
