@@ -21,9 +21,9 @@ import { ImportErrorDialog } from '@/components/poll-create/ImportErrorDialog';
 import { pollImportSchema, formatZodIssues, ImportIssue } from '@/lib/poll-import-schema';
 import { themePresets } from '@/lib/themes';
 import { TemplateName, PollOption } from '@/lib/types';
-import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Layers } from 'lucide-react';
+import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Grid3x3 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { loadPoll, savePoll, DraftPollPayload, SavedPoll, BlockLetter, BLOCK_LETTERS } from '@/lib/poll-persistence';
+import { loadPoll, savePoll, DraftPollPayload, SavedPoll, BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-persistence';
 import { toast } from 'sonner';
 
 /* ---------- Workspace layout persistence ---------- */
@@ -446,6 +446,57 @@ export default function PollCreate() {
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
+
+          {/* Block dropdown — assign poll to A–E */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-1 text-[10px] h-7 px-2">
+                <Grid3x3 className="w-3 h-3" />
+                Block
+                <span className="font-mono text-primary font-semibold">{blockLetter}/{String(blockPosition).padStart(2, '0')}</span>
+                <ChevronDown className="w-2.5 h-2.5 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-56">
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Assign to Block
+              </DropdownMenuLabel>
+              {BLOCK_LETTERS.map((letter) => (
+                <DropdownMenuItem
+                  key={letter}
+                  onClick={() => setBlockLetter(letter)}
+                  className="text-xs gap-2 justify-between"
+                >
+                  <span className="flex items-center gap-2">
+                    <span className={`font-mono font-bold w-4 ${blockLetter === letter ? 'text-primary' : 'text-muted-foreground'}`}>{letter}</span>
+                    <span className="text-muted-foreground">{DEFAULT_BLOCK_LABELS[letter]}</span>
+                  </span>
+                  {blockLetter === letter && <span className="text-[9px] text-primary">●</span>}
+                </DropdownMenuItem>
+              ))}
+              <DropdownMenuSeparator />
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Position (1–99)
+              </DropdownMenuLabel>
+              <div className="px-2 py-1.5">
+                <input
+                  type="number"
+                  min={1}
+                  max={99}
+                  value={blockPosition}
+                  onChange={(e) => {
+                    const n = Math.min(99, Math.max(1, Number(e.target.value) || 1));
+                    setBlockPosition(n);
+                  }}
+                  className="w-full h-7 rounded-md border border-border bg-background/50 px-2 text-xs font-mono"
+                />
+                <p className="text-[9px] text-muted-foreground mt-1">
+                  Position within block {blockLetter} (default: 1)
+                </p>
+              </div>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <span className="text-muted-foreground/40">/</span>
           <span className="text-[10px] text-muted-foreground">Polls</span>
           <span className="text-muted-foreground/40">/</span>
