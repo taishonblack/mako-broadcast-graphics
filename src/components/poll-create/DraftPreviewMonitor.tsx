@@ -61,6 +61,13 @@ export function DraftPreviewMonitor({
   const labelledOptions = resolveOptionLabels(options, answerType, mcLabelStyle, answers);
   const isLowerThird = template === 'lower-third';
 
+  // Safeguard: the full-screen MakoVote slate must disappear the moment the
+  // operator types any character into the On-Air Question — even if answers
+  // are still empty. We derive this locally from `question` so it cannot be
+  // overridden by a stale `hasContent` prop.
+  const hasQuestion = question.trim().length > 0;
+  const showSlate = !hasQuestion && !hasContent;
+
   const copyUrl = (url: string, kind: 'full' | 'short') => {
     navigator.clipboard?.writeText(url);
     setCopied(kind);
@@ -69,7 +76,7 @@ export function DraftPreviewMonitor({
 
   // ---- BROADCAST PROGRAM CONTENT ----
   const renderProgramContent = () => {
-    if (!hasContent) {
+    if (showSlate) {
       return (
         <div
           className="absolute inset-0 flex flex-col items-center justify-center"
@@ -156,7 +163,7 @@ export function DraftPreviewMonitor({
 
   // ---- VIEWER (mobile/desktop) CONTENT — reflects answerType ----
   const renderViewerButtons = () => {
-    if (!hasContent) {
+    if (showSlate) {
       return (
         <div className="flex flex-col items-center justify-center h-full gap-4 px-6 text-center">
           <img
