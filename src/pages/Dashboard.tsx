@@ -385,8 +385,8 @@ export default function Dashboard() {
                   {/* Queue Selector */}
                   <div className="mako-panel p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-xs font-semibold text-foreground font-mono uppercase">Poll Queues</h2>
-                      <span className="text-[10px] text-muted-foreground font-mono">{project.queues.length} queues</span>
+                      <h2 className="text-xs font-semibold text-foreground font-mono uppercase">Blocks</h2>
+                      <span className="text-[10px] text-muted-foreground font-mono">{project.queues.length} blocks</span>
                     </div>
                     <div className="flex flex-col gap-1">
                       {project.queues.map(q => (
