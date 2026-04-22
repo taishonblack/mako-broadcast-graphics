@@ -547,49 +547,23 @@ export default function PollCreate() {
             }
           }}
         >
-          {/* LEFT COLUMN — Polling Assets (top) + Background (bottom) */}
+          {/* LEFT COLUMN — Polling Assets (single pane; background lives in Inspector) */}
           <ResizablePanel defaultSize={layout.hSizes[0]} minSize={18} maxSize={36}>
-            <ResizablePanelGroup
-              direction="vertical"
-              className="h-full"
-              onLayout={(sizes) => {
-                if (sizes.length === 2) {
-                  const next = [sizes[0], sizes[1]] as [number, number];
-                  setLayout((l) => ({ ...l, leftVSizes: next }));
-                  saveWorkspaceLayout({ leftVSizes: next });
-                }
-              }}
-            >
-              <ResizablePanel defaultSize={layout.leftVSizes[0]} minSize={25}>
-                <Pane title="Polling Assets" hint="Question · Answers · Logic">
-                  <PollingAssetsPane
-                    enabledAssets={enabledAssets}
-                    onEnabledAssetsChange={setEnabledAssets}
-                    selectedAssetId={selectedAssetId}
-                    onSelectAsset={setSelectedAssetId}
-                    question={question} setQuestion={setQuestion}
-                    subheadline={subheadline} setSubheadline={setSubheadline}
-                    internalName={internalName} setInternalName={setInternalName}
-                    slug={slug} setSlug={setSlug}
-                    answerType={answerType} setAnswerType={setAnswerType}
-                    mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
-                    answers={answers} setAnswers={setAnswers}
-                  />
-                </Pane>
-              </ResizablePanel>
-              <ResizableHandle withHandle />
-              <ResizablePanel defaultSize={layout.leftVSizes[1]} minSize={20}>
-                <Pane title="Background">
-                  <BuildControlsPanel
-                    section="background"
-                    selectedTemplate={selectedTemplate}
-                    setSelectedTemplate={setSelectedTemplate}
-                    bgColor={bgColor} setBgColor={setBgColor}
-                    bgImage={bgImage} setBgImage={setBgImage}
-                  />
-                </Pane>
-              </ResizablePanel>
-            </ResizablePanelGroup>
+            <Pane title="Polling Assets" hint="Question · Answers · Logic">
+              <PollingAssetsPane
+                enabledAssets={enabledAssets}
+                onEnabledAssetsChange={setEnabledAssets}
+                selectedAssetId={selectedAssetId}
+                onSelectAsset={setSelectedAssetId}
+                question={question} setQuestion={setQuestion}
+                subheadline={subheadline} setSubheadline={setSubheadline}
+                internalName={internalName} setInternalName={setInternalName}
+                slug={slug} setSlug={setSlug}
+                answerType={answerType} setAnswerType={setAnswerType}
+                mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
+                answers={answers} setAnswers={setAnswers}
+              />
+            </Pane>
           </ResizablePanel>
 
           <ResizableHandle withHandle />
@@ -658,6 +632,7 @@ export default function PollCreate() {
                     answers={answers} setAnswers={setAnswers}
                     bgColor={bgColor} setBgColor={setBgColor}
                     bgImage={bgImage}
+                    setBgImage={setBgImage}
                     assetState={assetState}
                     setAssetState={setAssetState}
                   />
