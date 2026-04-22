@@ -2,7 +2,6 @@ import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import {
   PlusCircle,
-  Palette,
   Monitor,
   Settings,
 } from 'lucide-react';
@@ -13,7 +12,6 @@ const navItems = [
   { icon: FolderOpen, label: 'Projects', path: '/projects' },
   { icon: PlusCircle, label: 'Operator Workspace', path: '/polls/new' },
   { icon: Grid3x3, label: 'Blocks', path: '/blocks' },
-  { icon: Palette, label: 'Graphics', path: '/graphics/poll-1' },
   { icon: ImageIcon, label: 'Background Gallery', path: '/backgrounds' },
   { icon: Monitor, label: 'Output', path: '/output/poll-1' },
 ];

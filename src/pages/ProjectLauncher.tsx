@@ -112,7 +112,7 @@ export default function ProjectLauncher() {
           <div className="grid grid-cols-2 gap-3">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" className="w-full gap-2 h-12" onClick={() => navigate('/polls/new')}>
+                <Button variant="outline" className="w-full gap-2 h-12" onClick={() => navigate('/polls/new?mode=build')}>
                   <PlusCircle className="w-4 h-4" /> Create New Poll
                 </Button>
               </TooltipTrigger>
