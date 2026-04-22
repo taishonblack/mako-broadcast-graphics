@@ -237,11 +237,11 @@ export function DraftPreviewMonitor({
       {/* Preview area — tightened to lift monitor toward the header */}
       <div className="flex-1 flex flex-col items-center justify-start pt-2 px-4 pb-4 bg-background/30 min-h-0 overflow-auto gap-2">
         {previewMode === 'program' ? (
-          <MonitorContainer variant="draft">
-            <BroadcastPreviewFrame showLabel>
+          <div className="w-full">
+            <BroadcastPreviewFrame showLabel showTitleSafe>
               {renderProgramContent()}
             </BroadcastPreviewFrame>
-          </MonitorContainer>
+          </div>
         ) : (
           <div className={`bg-background border border-border rounded-lg overflow-hidden shadow-xl ${
             previewMode === 'mobile' ? 'w-[280px] h-[500px]' : 'w-full max-w-lg h-[420px]'
