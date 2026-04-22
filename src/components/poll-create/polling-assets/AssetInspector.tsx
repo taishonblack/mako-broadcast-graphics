@@ -29,10 +29,16 @@ interface AssetInspectorProps {
   // New asset state
   assetState: AssetState;
   setAssetState: (next: AssetState) => void;
+  /** When set, the inspector pulses the matching control to draw operator attention */
+  highlightField?: string | null;
 }
 
 export function AssetInspector(p: AssetInspectorProps) {
   const id = p.selectedAssetId;
+  const hl = (field: string) =>
+    p.highlightField === field
+      ? 'ring-2 ring-primary/70 animate-pulse'
+      : '';
   if (!id) {
     return (
       <div className="p-4 space-y-2">
@@ -62,40 +68,45 @@ export function AssetInspector(p: AssetInspectorProps) {
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {id === 'question' && (
           <div className="space-y-2">
-            <Label className="text-[10px] text-muted-foreground">Question</Label>
+            <Label className={`text-[10px] text-muted-foreground ${p.highlightField === 'question' ? 'text-primary' : ''}`}>Question</Label>
             <Input
               value={p.question}
               onChange={(e) => p.setQuestion(e.target.value)}
-              className="bg-background/50 h-8 text-xs"
+              className={`bg-background/50 h-8 text-xs ${hl('question')}`}
               placeholder="On-air question…"
             />
-            <Label className="text-[10px] text-muted-foreground pt-1">Internal Name</Label>
+            <Label className={`text-[10px] text-muted-foreground pt-1 ${p.highlightField === 'internalName' ? 'text-primary' : ''}`}>Internal Name</Label>
             <Input
               value={p.internalName}
               onChange={(e) => p.setInternalName(e.target.value)}
-              className="bg-background/50 h-8 text-xs"
+              className={`bg-background/50 h-8 text-xs ${hl('internalName')}`}
               placeholder="e.g. Penalty Call Q1"
             />
-            <Label className="text-[10px] text-muted-foreground pt-1">Viewer Slug</Label>
+            <Label className={`text-[10px] text-muted-foreground pt-1 ${p.highlightField === 'slug' ? 'text-primary' : ''}`}>Viewer Slug</Label>
             <div className="flex items-center gap-1">
               <span className="text-[10px] text-muted-foreground font-mono">/vote/</span>
               <Input
                 value={p.slug}
                 onChange={(e) => p.setSlug(e.target.value)}
-                className="bg-background/50 h-8 text-xs"
+                className={`bg-background/50 h-8 text-xs ${hl('slug')}`}
                 placeholder="penalty-call"
               />
             </div>
+            {(p.highlightField === 'blockLetter' || p.highlightField === 'blockPosition') && (
+              <p className={`text-[10px] mt-1 px-2 py-1 rounded bg-primary/10 text-primary border border-primary/30 ${hl(p.highlightField)}`}>
+                Open the Block menu in the header to fix <span className="font-mono">{p.highlightField}</span>.
+              </p>
+            )}
           </div>
         )}
 
         {id === 'subheadline' && (
           <div className="space-y-2">
-            <Label className="text-[10px] text-muted-foreground">Subheadline Text</Label>
+            <Label className={`text-[10px] text-muted-foreground ${p.highlightField === 'subheadline' ? 'text-primary' : ''}`}>Subheadline Text</Label>
             <Input
               value={p.subheadline}
               onChange={(e) => p.setSubheadline(e.target.value)}
-              className="bg-background/50 h-8 text-xs"
+              className={`bg-background/50 h-8 text-xs ${hl('subheadline')}`}
               placeholder="Optional secondary line"
             />
             <p className="text-[9px] text-muted-foreground">
