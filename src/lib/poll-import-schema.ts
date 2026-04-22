@@ -8,6 +8,7 @@ export const TEMPLATE_NAMES = [
 export const ANSWER_TYPES = ['yes-no', 'multiple-choice', 'custom'] as const;
 export const MC_LABEL_STYLES = ['letters', 'numbers', 'custom'] as const;
 export const PREVIEW_DATA_MODES = ['test', 'real'] as const;
+export const BLOCK_LETTERS_IMPORT = ['A', 'B', 'C', 'D', 'E'] as const;
 
 const hexColor = z
   .string()
@@ -50,6 +51,17 @@ export const pollImportSchema = z.object({
   previewDataMode: z.enum(PREVIEW_DATA_MODES, {
     errorMap: () => ({ message: `previewDataMode must be one of: ${PREVIEW_DATA_MODES.join(', ')}` }),
   }),
+  blockLetter: z
+    .enum(BLOCK_LETTERS_IMPORT, {
+      errorMap: () => ({ message: `blockLetter must be one of: ${BLOCK_LETTERS_IMPORT.join(', ')}` }),
+    })
+    .optional(),
+  blockPosition: z
+    .number()
+    .int('blockPosition must be a whole number')
+    .min(1, 'blockPosition must be between 1 and 99')
+    .max(99, 'blockPosition must be between 1 and 99')
+    .optional(),
 });
 
 export type PollImport = z.infer<typeof pollImportSchema>;
@@ -69,6 +81,8 @@ const SECTION_BY_FIELD: Record<string, ImportSection> = {
   question: 'Poll Details',
   subheadline: 'Poll Details',
   slug: 'Poll Details',
+  blockLetter: 'Poll Details',
+  blockPosition: 'Poll Details',
   template: 'Theming',
   bgColor: 'Theming',
   bgImage: 'Theming',

@@ -17,9 +17,11 @@ interface Props {
   fileName?: string;
   parseError?: string;
   issues: ImportIssue[];
+  /** Optional: called when user clicks "Jump to" on an issue. Receives field name. */
+  onJumpToField?: (field: string, section: ImportSection) => void;
 }
 
-export function ImportErrorDialog({ open, onOpenChange, fileName, parseError, issues }: Props) {
+export function ImportErrorDialog({ open, onOpenChange, fileName, parseError, issues, onJumpToField }: Props) {
   const isParseError = !!parseError;
 
   // Group issues by section
@@ -71,12 +73,20 @@ export function ImportErrorDialog({ open, onOpenChange, fileName, parseError, is
                     </div>
                     <div className="flex gap-1 flex-wrap justify-end max-w-[60%]">
                       {affectedFields.map((f) => (
-                        <span
+                        <button
                           key={f}
-                          className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30"
+                          onClick={() => {
+                            if (onJumpToField) {
+                              onJumpToField(f, section);
+                              onOpenChange(false);
+                            }
+                          }}
+                          disabled={!onJumpToField}
+                          className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-destructive/20 text-destructive border border-destructive/30 hover:bg-destructive/30 hover:border-destructive/50 transition-colors disabled:cursor-default disabled:hover:bg-destructive/20"
+                          title={onJumpToField ? `Jump to ${f}` : f}
                         >
                           {f}
-                        </span>
+                        </button>
                       ))}
                     </div>
                   </div>
@@ -87,7 +97,21 @@ export function ImportErrorDialog({ open, onOpenChange, fileName, parseError, is
                           <span className="text-[10px] font-mono uppercase tracking-wider text-destructive/80">
                             {iss.path}
                           </span>
-                          <span className="text-[9px] text-muted-foreground/60 font-mono">{iss.code}</span>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[9px] text-muted-foreground/60 font-mono">{iss.code}</span>
+                            {onJumpToField && (
+                              <button
+                                onClick={() => {
+                                  onJumpToField(iss.field, iss.section);
+                                  onOpenChange(false);
+                                }}
+                                className="text-[9px] font-medium text-primary hover:text-primary/80 underline-offset-2 hover:underline"
+                                title={`Jump to ${iss.field}`}
+                              >
+                                Jump to →
+                              </button>
+                            )}
+                          </div>
                         </div>
                         <div className="text-xs text-foreground mt-0.5">{iss.message}</div>
                       </div>
