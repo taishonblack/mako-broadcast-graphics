@@ -136,7 +136,7 @@ export async function listProjects() {
 
 export async function createProject(name: string, userId: string) {
   const { data, error } = await supabase
-    .from('projects').insert({ name, user_id: userId }).select().single();
+    .from('projects').insert({ name, user_id: userId, account_id: userId, created_by: userId }).select().single();
   if (error) throw error;
   return data;
 }

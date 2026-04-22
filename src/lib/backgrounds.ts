@@ -6,16 +6,34 @@ export interface Background {
   name: string;
   imageUrl: string;
   thumbnailUrl?: string;
+  filePath: string;
+  thumbnailPath?: string;
   createdAt: string;
 }
 
-function fromRow(r: Record<string, unknown>): Background {
+async function toSignedUrl(path?: string | null): Promise<string | undefined> {
+  if (!path) return undefined;
+  const { data, error } = await supabase.storage.from('backgrounds').createSignedUrl(path, 60 * 60);
+  if (error) throw error;
+  return data.signedUrl;
+}
+
+async function fromRow(r: Record<string, unknown>): Promise<Background> {
+  const filePath = r.file_path as string;
+  const thumbnailPath = (r.thumbnail_path as string | null) ?? undefined;
+  const [imageUrl, thumbnailUrl] = await Promise.all([
+    toSignedUrl(filePath),
+    toSignedUrl(thumbnailPath),
+  ]);
+
   return {
     id: r.id as string,
-    userId: r.user_id as string,
+    userId: ((r.account_id as string | null) ?? (r.created_by as string | null) ?? '') as string,
     name: (r.name as string) ?? 'Untitled',
-    imageUrl: r.image_url as string,
-    thumbnailUrl: (r.thumbnail_url as string | null) ?? undefined,
+    imageUrl: imageUrl ?? '',
+    thumbnailUrl,
+    filePath,
+    thumbnailPath,
     createdAt: r.created_at as string,
   };
 }
@@ -26,16 +44,12 @@ export async function listBackgrounds(): Promise<Background[]> {
     .select('*')
     .order('created_at', { ascending: false });
   if (error) throw error;
-  return (data ?? []).map(fromRow);
+  return Promise.all((data ?? []).map((row) => fromRow(row as Record<string, unknown>)));
 }
 
 export async function deleteBackground(bg: Background): Promise<void> {
-  // Best-effort storage cleanup if URL is in our bucket
-  const marker = '/storage/v1/object/public/backgrounds/';
-  const idx = bg.imageUrl.indexOf(marker);
-  if (idx >= 0) {
-    const path = bg.imageUrl.slice(idx + marker.length);
-    await supabase.storage.from('backgrounds').remove([path]);
+  if (bg.filePath || bg.thumbnailPath) {
+    await supabase.storage.from('backgrounds').remove([bg.filePath, bg.thumbnailPath].filter(Boolean) as string[]);
   }
   const { error } = await supabase.from('backgrounds').delete().eq('id', bg.id);
   if (error) throw error;
@@ -52,14 +66,14 @@ export async function uploadBackground(opts: {
     .from('backgrounds')
     .upload(path, opts.file, { cacheControl: '3600', upsert: false });
   if (upErr) throw upErr;
-  const { data: pub } = supabase.storage.from('backgrounds').getPublicUrl(path);
-  const imageUrl = pub.publicUrl;
   const { data, error } = await supabase
     .from('backgrounds')
     .insert({
-      user_id: opts.userId,
+      account_id: opts.userId,
+      created_by: opts.userId,
       name: opts.name || opts.file.name.replace(/\.[^.]+$/, ''),
-      image_url: imageUrl,
+      image_url: path,
+      file_path: path,
     })
     .select()
     .single();
