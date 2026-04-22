@@ -19,8 +19,8 @@ export default function ProjectLauncher() {
     navigate('/dashboard');
   };
 
-  const queueCount = (p: Project) => p.queues.length;
-  const pollCount = (p: Project) => p.queues.reduce((sum, q) => sum + q.polls.length, 0);
+  const assignedBlockCount = (p: Project) => new Set(p.polls.map((poll) => poll.blockLetter).filter(Boolean)).size;
+  const pollCount = (p: Project) => p.polls.length;
 
   return (
     <div className="min-h-screen bg-background flex flex-col">
@@ -62,7 +62,7 @@ export default function ProjectLauncher() {
                         )}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span className="flex items-center gap-1 font-mono"><Layers className="w-3 h-3" />{queueCount(currentProject)} queues</span>
+                         <span className="flex items-center gap-1 font-mono"><Layers className="w-3 h-3" />{assignedBlockCount(currentProject)} blocks</span>
                         <span className="font-mono">{pollCount(currentProject)} polls</span>
                         <FolderOpen className="w-4 h-4 text-primary" />
                       </div>
@@ -96,7 +96,7 @@ export default function ProjectLauncher() {
                           )}
                         </div>
                         <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-mono">
-                          <span>{queueCount(project)} queues · {pollCount(project)} polls</span>
+                           <span>{assignedBlockCount(project)} blocks · {pollCount(project)} polls</span>
                           <span>{new Date(project.lastOpenedAt).toLocaleDateString()}</span>
                         </div>
                       </div>
