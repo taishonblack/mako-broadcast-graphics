@@ -2,7 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
-import { Loader2, Upload, X, Image as ImageIcon, Trash2, Check } from 'lucide-react';
+import { Loader2, Upload, X, Image as ImageIcon, Trash2, Check, Repeat2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import {
   Background, listBackgrounds, uploadBackground, deleteBackground,
@@ -21,7 +21,19 @@ export function BackgroundPicker({ bgColor, setBgColor, bgImage, setBgImage }: P
   const [library, setLibrary] = useState<Background[]>([]);
   const [loading, setLoading] = useState(true);
   const [uploading, setUploading] = useState(false);
+  const [lastUsedUrl, setLastUsedUrl] = useState<string | undefined>(() => {
+    try { return localStorage.getItem('mako-last-bg-url') ?? undefined; } catch { return undefined; }
+  });
   const fileInput = useRef<HTMLInputElement>(null);
+
+  // Remember the most recently selected library image so we can offer one-click reuse
+  // when the operator opens a different poll that has no background set.
+  useEffect(() => {
+    if (bgImage) {
+      try { localStorage.setItem('mako-last-bg-url', bgImage); } catch { /* ignore */ }
+      setLastUsedUrl(bgImage);
+    }
+  }, [bgImage]);
 
   const refresh = async () => {
     if (!user) return;

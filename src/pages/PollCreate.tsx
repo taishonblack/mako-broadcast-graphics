@@ -377,6 +377,8 @@ export default function PollCreate() {
       setBgColor(data.bgColor);
       setBgImage(data.bgImage);
       setPreviewDataMode(data.previewDataMode);
+      setBlockLetter((data.blockLetter as BlockLetter | undefined) ?? 'A');
+      setBlockPosition(data.blockPosition ?? 1);
       toast.success(`Imported ${file.name}`);
     };
     input.click();
