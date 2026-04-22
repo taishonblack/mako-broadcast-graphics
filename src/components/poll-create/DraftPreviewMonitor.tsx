@@ -292,8 +292,8 @@ export function DraftPreviewMonitor({
         </div>
       </div>
 
-      {/* Preview area */}
-      <div className="flex-1 flex flex-col items-center justify-center p-4 bg-background/30 min-h-0 overflow-auto gap-3">
+      {/* Preview area — tightened to lift monitor toward the header */}
+      <div className="flex-1 flex flex-col items-center justify-start pt-2 px-4 pb-4 bg-background/30 min-h-0 overflow-auto gap-2">
         {previewMode === 'program' ? (
           <MonitorContainer variant="draft">
             <BroadcastPreviewFrame showLabel>
