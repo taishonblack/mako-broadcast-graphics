@@ -12,11 +12,16 @@ import { AssetId, AssetState, DEFAULT_ASSET_STATE } from '@/components/poll-crea
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu';
+import { LoadPollDialog } from '@/components/poll-create/LoadPollDialog';
 import { themePresets } from '@/lib/themes';
 import { TemplateName, PollOption } from '@/lib/types';
-import { Save, Rocket, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft } from 'lucide-react';
+import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { loadPoll, savePoll, DraftPollPayload } from '@/lib/poll-persistence';
+import { loadPoll, savePoll, DraftPollPayload, SavedPoll } from '@/lib/poll-persistence';
 import { toast } from 'sonner';
 
 /* ---------- Workspace layout persistence ---------- */
