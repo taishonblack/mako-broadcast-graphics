@@ -5,7 +5,7 @@ import { LiveStatusIndicator } from '@/components/broadcast/LiveStatusIndicator'
 import { VotingStatusChip } from '@/components/broadcast/VotingStatusChip';
 import { PollQueue } from '@/components/broadcast/PollQueue';
 import { AssetControls } from '@/components/broadcast/AssetControls';
-import { BroadcastPreviewFrame, MonitorContainer } from '@/components/broadcast/BroadcastPreviewFrame';
+import { MonitorContainer } from '@/components/broadcast/BroadcastPreviewFrame';
 import { PreviewWithOverlays } from '@/components/broadcast/preview/PreviewWithOverlays';
 import { SceneSelector } from '@/components/broadcast/SceneSelector';
 import { HorizontalBarChart } from '@/components/charts/HorizontalBarChart';
@@ -18,16 +18,16 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import { mockProject, templateLabels } from '@/lib/mock-data';
-import { LiveState, VotingState, QRPosition, Poll, PollQueue as PollQueueType } from '@/lib/types';
+import { mockProject } from '@/lib/mock-data';
+import { LiveState, VotingState, QRPosition, Poll } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
 import { themePresets } from '@/lib/themes';
 import { DEFAULT_LAYERS, GraphicLayer, cloneLayers } from '@/lib/layers';
 import { broadcastOutputState } from '@/lib/output-state';
 import {
   PlusCircle, Copy, Play, Square, Monitor,
-  ExternalLink, ChevronRight, ChevronDown, Vote, XCircle, Eye,
-  Maximize2, RotateCcw, Palette, Radio, Layers, Layout
+  ExternalLink, ChevronDown, Vote, XCircle, Eye,
+  Maximize2, RotateCcw, Palette, Radio, Layers
 } from 'lucide-react';
 
 type WorkspaceMode = 'operator' | 'graphics';
@@ -53,7 +53,7 @@ const PRESET_META: { id: WorkspacePreset; label: string; desc: string }[] = [
   { id: 'operator', label: 'Operator', desc: 'Balanced panels for live show control' },
   { id: 'graphics', label: 'Graphics', desc: 'Wider inspector for layer editing' },
   { id: 'focus', label: 'Focus Preview', desc: 'Maximize program preview, collapse left' },
-  { id: 'compact', label: 'Compact', desc: 'Wider queue panel for dense poll lists' },
+  { id: 'compact', label: 'Compact', desc: 'Wider poll panel for dense block lists' },
 ];
 
 const DEFAULT_LAYOUT = PRESET_LAYOUTS.operator;
@@ -87,9 +87,15 @@ function TipButton({ tip, children, ...props }: { tip: string; children: React.R
 
 export default function Dashboard() {
   const [project, setProject] = useState(mockProject);
-  const [activeQueueId, setActiveQueueId] = useState(project.queues[0]?.id ?? '');
-  const activeQueue = project.queues.find(q => q.id === activeQueueId) || project.queues[0];
-  const allPolls = useMemo(() => project.queues.flatMap(q => q.polls), [project.queues]);
+  const [activeBlock, setActiveBlock] = useState<'A' | 'B' | 'C' | 'D' | 'E'>('A');
+  const allPolls = useMemo(() => project.polls, [project.polls]);
+  const pollsByBlock = useMemo(() => ({
+    A: allPolls.filter((poll) => poll.blockLetter === 'A'),
+    B: allPolls.filter((poll) => poll.blockLetter === 'B'),
+    C: allPolls.filter((poll) => poll.blockLetter === 'C'),
+    D: allPolls.filter((poll) => poll.blockLetter === 'D'),
+    E: allPolls.filter((poll) => poll.blockLetter === 'E'),
+  }), [allPolls]);
   const [activePollId, setActivePollId] = useState(allPolls[0]?.id ?? '');
   const activePoll = allPolls.find(p => p.id === activePollId) || allPolls[0];
 
@@ -128,10 +134,7 @@ export default function Dashboard() {
   const updatePollInProject = (pollId: string, updater: (p: Poll) => Poll) => {
     setProject(prev => ({
       ...prev,
-      queues: prev.queues.map(q => ({
-        ...q,
-        polls: q.polls.map(p => p.id === pollId ? updater(p) : p),
-      })),
+      polls: prev.polls.map(p => p.id === pollId ? updater(p) : p),
     }));
   };
 
@@ -194,9 +197,7 @@ export default function Dashboard() {
     };
     setProject(prev => ({
       ...prev,
-      queues: prev.queues.map(q =>
-        q.id === activeQueueId ? { ...q, polls: [...q.polls, newPoll] } : q
-      ),
+      polls: [...prev.polls, { ...newPoll, projectId: prev.id, blockLetter: activeBlock }],
     }));
   };
 
@@ -376,47 +377,47 @@ export default function Dashboard() {
             if (sizes.length === 3) saveLayout({ leftSize: sizes[0], centerSize: sizes[1], rightSize: sizes[2] });
           }}
         >
-          {/* Left Panel — Queue Selector + Poll Queue + Active Poll */}
+          {/* Left Panel — Block Groups + Poll List + Active Poll */}
           {!layout.maximized && (
             <>
               <ResizablePanel defaultSize={layout.leftSize} minSize={16} maxSize={35} className="p-3">
                 <div className="h-full overflow-auto space-y-3">
-                  {/* Queue Selector */}
+                  {/* Block Group Selector */}
                   <div className="mako-panel p-3 space-y-2">
                     <div className="flex items-center justify-between">
                       <h2 className="text-xs font-semibold text-foreground font-mono uppercase">Blocks</h2>
-                      <span className="text-[10px] text-muted-foreground font-mono">{project.queues.length} blocks</span>
+                      <span className="text-[10px] text-muted-foreground font-mono">5 blocks</span>
                     </div>
                     <div className="flex flex-col gap-1">
-                      {project.queues.map(q => (
+                      {(['A', 'B', 'C', 'D', 'E'] as const).map((block) => (
                         <button
-                          key={q.id}
+                          key={block}
                           onClick={() => {
-                            setActiveQueueId(q.id);
-                            if (q.polls.length > 0) setActivePollId(q.polls[0].id);
+                            setActiveBlock(block);
+                            if (pollsByBlock[block].length > 0) setActivePollId(pollsByBlock[block][0].id);
                           }}
                           className={`w-full text-left px-3 py-2 rounded-lg text-xs transition-colors border ${
-                            q.id === activeQueueId
+                            block === activeBlock
                               ? 'bg-primary/10 border-primary/30 text-primary'
                               : 'bg-transparent border-transparent text-muted-foreground hover:bg-accent/30'
                           }`}
                         >
                           <div className="flex items-center justify-between">
-                            <span className="flex items-center gap-1.5"><Layers className="w-3 h-3" />{q.name}</span>
-                            <span className="font-mono text-[10px]">{q.polls.length}</span>
+                            <span className="flex items-center gap-1.5"><Layers className="w-3 h-3" />Block {block}</span>
+                            <span className="font-mono text-[10px]">{pollsByBlock[block].length}</span>
                           </div>
                         </button>
                       ))}
                     </div>
                   </div>
 
-                  {/* Polls in active queue */}
+                  {/* Polls in active block */}
                   <div className="mako-panel p-3 space-y-2">
                     <div className="flex items-center justify-between">
-                      <h2 className="text-xs font-semibold text-foreground font-mono uppercase">{activeQueue?.name ?? 'Polls'}</h2>
-                      <span className="text-[10px] text-muted-foreground font-mono">{activeQueue?.polls.length ?? 0} polls</span>
+                      <h2 className="text-xs font-semibold text-foreground font-mono uppercase">Block {activeBlock}</h2>
+                      <span className="text-[10px] text-muted-foreground font-mono">{pollsByBlock[activeBlock].length} polls</span>
                     </div>
-                    <PollQueue polls={activeQueue?.polls ?? []} activePollId={activePollId} onSelectPoll={setActivePollId} />
+                    <PollQueue polls={pollsByBlock[activeBlock]} activePollId={activePollId} onSelectPoll={setActivePollId} />
                   </div>
 
                   {/* Active Poll Details */}
@@ -503,11 +504,11 @@ export default function Dashboard() {
                 <h2 className="text-xs font-semibold text-foreground font-mono uppercase">Quick Actions</h2>
                 <div className="flex flex-col gap-1.5">
                   <Link to="/polls/new">
-                    <TipButton tip="Create a new poll in the current queue" variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9">
+                    <TipButton tip="Create a new poll in the current project" variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9">
                       <PlusCircle className="w-3.5 h-3.5" /> New Poll
                     </TipButton>
                   </Link>
-                  <TipButton tip="Duplicate the active poll into the current queue" variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9" onClick={handleDuplicatePoll}>
+                  <TipButton tip="Duplicate the active poll inside the current project" variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9" onClick={handleDuplicatePoll}>
                     <Copy className="w-3.5 h-3.5" /> Duplicate Poll
                   </TipButton>
                   <div className="border-t border-border my-1" />

@@ -1,8 +1,9 @@
-import { Poll, PollQueue, Project, RecentPoll } from './types';
+import { Poll, Project, RecentPoll } from './types';
 
 const pollsSegment1: Poll[] = [
   {
     id: 'poll-1',
+    projectId: 'project-1',
     internalName: 'Penalty Call Q1',
     question: 'Was that a penalty?',
     slug: 'penalty-call',
@@ -23,11 +24,14 @@ const pollsSegment1: Poll[] = [
     autoCloseDuration: 120,
     showThankYou: true,
     showFinalResults: true,
+    blockLetter: 'A',
+    blockPosition: 1,
     createdAt: '2025-01-15T19:00:00Z',
     openedAt: '2025-01-15T19:32:00Z',
   },
   {
     id: 'poll-2',
+    projectId: 'project-1',
     internalName: 'Game Winner',
     question: 'Who wins tonight?',
     slug: 'game-winner',
@@ -47,6 +51,8 @@ const pollsSegment1: Poll[] = [
     allowVoteChange: false,
     showThankYou: true,
     showFinalResults: true,
+    blockLetter: 'A',
+    blockPosition: 2,
     createdAt: '2025-01-15T18:00:00Z',
   },
 ];
@@ -54,6 +60,7 @@ const pollsSegment1: Poll[] = [
 const pollsSegment2: Poll[] = [
   {
     id: 'poll-3',
+    projectId: 'project-1',
     internalName: 'Key Factor',
     question: 'What matters more tonight?',
     slug: 'key-factor',
@@ -74,6 +81,8 @@ const pollsSegment2: Poll[] = [
     allowVoteChange: false,
     showThankYou: true,
     showFinalResults: true,
+    blockLetter: 'C',
+    blockPosition: 1,
     createdAt: '2025-01-14T20:00:00Z',
     openedAt: '2025-01-14T20:15:00Z',
     closedAt: '2025-01-14T20:45:00Z',
@@ -83,6 +92,7 @@ const pollsSegment2: Poll[] = [
 const pollsSegment3: Poll[] = [
   {
     id: 'poll-4',
+    projectId: 'project-1',
     internalName: 'Coach Challenge',
     question: 'Should the coach challenge that call?',
     slug: 'coach-challenge',
@@ -102,14 +112,10 @@ const pollsSegment3: Poll[] = [
     allowVoteChange: false,
     showThankYou: true,
     showFinalResults: true,
+    blockLetter: 'B',
+    blockPosition: 1,
     createdAt: '2025-01-15T20:00:00Z',
   },
-];
-
-export const mockQueues: PollQueue[] = [
-  { id: 'block-A', name: 'Block A — Top of Show', polls: pollsSegment1, order: 0 },
-  { id: 'block-C', name: 'Block C — Mid-show', polls: pollsSegment2, order: 1 },
-  { id: 'block-E', name: 'Block E — End of Show', polls: pollsSegment3, order: 2 },
 ];
 
 // Flatten for backward compat
@@ -120,7 +126,7 @@ export const mockProject: Project = {
   name: 'XYZ Show — April 14',
   description: 'Live intermission broadcast',
   themeId: 'broadcast-clean',
-  queues: mockQueues,
+  polls: mockPolls,
   qrSize: 120,
   qrPosition: 'bottom-right',
   showBranding: true,
@@ -136,9 +142,7 @@ export const mockProjects: Project[] = [
     name: 'Game Night Live — April 12',
     description: 'Saturday night broadcast',
     themeId: 'dark-ice',
-    queues: [
-      { id: 'block-A2', name: 'Block A — Pre-Game', polls: [], order: 0 },
-    ],
+    polls: [],
     qrSize: 120,
     qrPosition: 'bottom-right',
     showBranding: true,
@@ -151,10 +155,7 @@ export const mockProjects: Project[] = [
     name: 'Studio Show B — April 10',
     description: 'Studio panel discussion',
     themeId: 'silver-neutral',
-    queues: [
-      { id: 'block-A3', name: 'Block A — Open', polls: [], order: 0 },
-      { id: 'block-C3', name: 'Block C — Panel', polls: [], order: 1 },
-    ],
+    polls: [],
     qrSize: 100,
     qrPosition: 'bottom-left',
     showBranding: true,

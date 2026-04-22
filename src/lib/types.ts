@@ -18,6 +18,7 @@ export interface PollOption {
 
 export interface Poll {
   id: string;
+  projectId?: string;
   internalName: string;
   question: string;
   subheadline?: string;
@@ -36,6 +37,8 @@ export interface Poll {
   autoCloseDuration?: number;
   showThankYou: boolean;
   showFinalResults: boolean;
+  blockLetter?: 'A' | 'B' | 'C' | 'D' | 'E';
+  blockPosition?: number;
   createdAt: string;
   openedAt?: string;
   closedAt?: string;
@@ -53,7 +56,7 @@ export interface Project {
   name: string;
   description?: string;
   themeId: string;
-  queues: PollQueue[];
+  polls: Poll[];
   qrSize: number;
   qrPosition: QRPosition;
   showBranding: boolean;
