@@ -11,10 +11,67 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { themePresets } from '@/lib/themes';
 import { TemplateName, PollOption } from '@/lib/types';
-import { Save, Rocket, FolderPlus, Loader2 } from 'lucide-react';
+import { Save, Rocket, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { loadPoll, savePoll, DraftPollPayload } from '@/lib/poll-persistence';
 import { toast } from 'sonner';
+
+/* ---------- Workspace layout persistence ---------- */
+
+const WORKSPACE_LAYOUT_KEY = 'mako-draft-workspace-layout-v1';
+
+interface WorkspaceLayout {
+  hSizes: [number, number, number]; // left / center / right
+  leftVSizes: [number, number];      // PollingAssets / Background
+  rightVSizes: [number, number];     // Template / Inspector
+}
+
+const DEFAULT_WORKSPACE_LAYOUT: WorkspaceLayout = {
+  hSizes: [24, 54, 22],
+  leftVSizes: [62, 38],
+  rightVSizes: [55, 45],
+};
+
+function loadWorkspaceLayout(): WorkspaceLayout {
+  try {
+    const raw = localStorage.getItem(WORKSPACE_LAYOUT_KEY);
+    if (!raw) return DEFAULT_WORKSPACE_LAYOUT;
+    return { ...DEFAULT_WORKSPACE_LAYOUT, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_WORKSPACE_LAYOUT;
+  }
+}
+
+function saveWorkspaceLayout(partial: Partial<WorkspaceLayout>) {
+  try {
+    const next = { ...loadWorkspaceLayout(), ...partial };
+    localStorage.setItem(WORKSPACE_LAYOUT_KEY, JSON.stringify(next));
+  } catch { /* ignore */ }
+}
+
+/* ---------- Pane chrome ---------- */
+
+function PaneHeader({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <div className="h-7 px-3 flex items-center justify-between border-b border-border/60 bg-muted/30 shrink-0">
+      <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{title}</span>
+      {hint && <span className="text-[9px] text-muted-foreground/60">{hint}</span>}
+    </div>
+  );
+}
+
+function Pane({
+  title, hint, children, contentClassName,
+}: { title: string; hint?: string; children: React.ReactNode; contentClassName?: string }) {
+  return (
+    <div className="h-full flex flex-col bg-background">
+      <PaneHeader title={title} hint={hint} />
+      <div className={`flex-1 min-h-0 overflow-auto ${contentClassName ?? ''}`}>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export default function PollCreate() {
   const { id: routeId } = useParams<{ id?: string }>();
