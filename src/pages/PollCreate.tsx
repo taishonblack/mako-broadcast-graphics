@@ -11,10 +11,67 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import { themePresets } from '@/lib/themes';
 import { TemplateName, PollOption } from '@/lib/types';
-import { Save, Rocket, FolderPlus, Loader2 } from 'lucide-react';
+import { Save, Rocket, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { loadPoll, savePoll, DraftPollPayload } from '@/lib/poll-persistence';
 import { toast } from 'sonner';
+
+/* ---------- Workspace layout persistence ---------- */
+
+const WORKSPACE_LAYOUT_KEY = 'mako-draft-workspace-layout-v1';
+
+interface WorkspaceLayout {
+  hSizes: [number, number, number]; // left / center / right
+  leftVSizes: [number, number];      // PollingAssets / Background
+  rightVSizes: [number, number];     // Template / Inspector
+}
+
+const DEFAULT_WORKSPACE_LAYOUT: WorkspaceLayout = {
+  hSizes: [24, 54, 22],
+  leftVSizes: [62, 38],
+  rightVSizes: [55, 45],
+};
+
+function loadWorkspaceLayout(): WorkspaceLayout {
+  try {
+    const raw = localStorage.getItem(WORKSPACE_LAYOUT_KEY);
+    if (!raw) return DEFAULT_WORKSPACE_LAYOUT;
+    return { ...DEFAULT_WORKSPACE_LAYOUT, ...JSON.parse(raw) };
+  } catch {
+    return DEFAULT_WORKSPACE_LAYOUT;
+  }
+}
+
+function saveWorkspaceLayout(partial: Partial<WorkspaceLayout>) {
+  try {
+    const next = { ...loadWorkspaceLayout(), ...partial };
+    localStorage.setItem(WORKSPACE_LAYOUT_KEY, JSON.stringify(next));
+  } catch { /* ignore */ }
+}
+
+/* ---------- Pane chrome ---------- */
+
+function PaneHeader({ title, hint }: { title: string; hint?: string }) {
+  return (
+    <div className="h-7 px-3 flex items-center justify-between border-b border-border/60 bg-muted/30 shrink-0">
+      <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{title}</span>
+      {hint && <span className="text-[9px] text-muted-foreground/60">{hint}</span>}
+    </div>
+  );
+}
+
+function Pane({
+  title, hint, children, contentClassName,
+}: { title: string; hint?: string; children: React.ReactNode; contentClassName?: string }) {
+  return (
+    <div className="h-full flex flex-col bg-background">
+      <PaneHeader title={title} hint={hint} />
+      <div className={`flex-1 min-h-0 overflow-auto ${contentClassName ?? ''}`}>
+        {children}
+      </div>
+    </div>
+  );
+}
 
 export default function PollCreate() {
   const { id: routeId } = useParams<{ id?: string }>();
@@ -193,6 +250,14 @@ export default function PollCreate() {
     },
   }[draftStatus];
 
+  const [layout, setLayout] = useState<WorkspaceLayout>(loadWorkspaceLayout);
+  const [layoutKey, setLayoutKey] = useState(0);
+  const resetLayout = () => {
+    localStorage.removeItem(WORKSPACE_LAYOUT_KEY);
+    setLayout(DEFAULT_WORKSPACE_LAYOUT);
+    setLayoutKey((k) => k + 1);
+  };
+
   if (loadingExisting) {
     return (
       <OperatorLayout>
@@ -220,6 +285,19 @@ export default function PollCreate() {
           <span className={`mako-chip text-[9px] border ${statusLabel.cls}`}>{statusLabel.text}</span>
         </div>
         <div className="flex items-center gap-1.5">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost" size="sm"
+                onClick={resetLayout}
+                className="gap-1 text-[10px] h-7 text-muted-foreground"
+              >
+                <LayoutPanelLeft className="w-3 h-3" />
+                <RotateCcw className="w-2.5 h-2.5" />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Reset workspace pane layout</TooltipContent>
+          </Tooltip>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
@@ -263,63 +341,132 @@ export default function PollCreate() {
         </div>
       </header>
 
-      {/* 3-column resizable workspace */}
+      {/* Dockable, resizable workspace — 3 columns, vertically split sides */}
       <div className="flex-1 min-h-0">
-        <ResizablePanelGroup direction="horizontal" className="h-full">
-          {/* LEFT — Content & Answers */}
-          <ResizablePanel defaultSize={25} minSize={18} maxSize={35}>
-            <ContentPanel
-              internalName={internalName} setInternalName={setInternalName}
-              question={question} setQuestion={setQuestion}
-              subheadline={subheadline} setSubheadline={setSubheadline}
-              slug={slug} setSlug={setSlug}
-              answerType={answerType} setAnswerType={setAnswerType}
-              mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
-              answers={answers} setAnswers={setAnswers}
-              showLiveResults={showLiveResults} setShowLiveResults={setShowLiveResults}
-              autoClose={autoClose} setAutoClose={setAutoClose}
-              showThankYou={showThankYou} setShowThankYou={setShowThankYou}
-              showFinalResults={showFinalResults} setShowFinalResults={setShowFinalResults}
-              previewDataMode={previewDataMode} setPreviewDataMode={setPreviewDataMode}
-            />
+        <ResizablePanelGroup
+          key={layoutKey}
+          direction="horizontal"
+          className="h-full"
+          onLayout={(sizes) => {
+            if (sizes.length === 3) {
+              const next = [sizes[0], sizes[1], sizes[2]] as [number, number, number];
+              setLayout((l) => ({ ...l, hSizes: next }));
+              saveWorkspaceLayout({ hSizes: next });
+            }
+          }}
+        >
+          {/* LEFT COLUMN — Polling Assets (top) + Background (bottom) */}
+          <ResizablePanel defaultSize={layout.hSizes[0]} minSize={18} maxSize={36}>
+            <ResizablePanelGroup
+              direction="vertical"
+              className="h-full"
+              onLayout={(sizes) => {
+                if (sizes.length === 2) {
+                  const next = [sizes[0], sizes[1]] as [number, number];
+                  setLayout((l) => ({ ...l, leftVSizes: next }));
+                  saveWorkspaceLayout({ leftVSizes: next });
+                }
+              }}
+            >
+              <ResizablePanel defaultSize={layout.leftVSizes[0]} minSize={25}>
+                <Pane title="Polling Assets" hint="Question · Answers · Logic">
+                  <ContentPanel
+                    internalName={internalName} setInternalName={setInternalName}
+                    question={question} setQuestion={setQuestion}
+                    subheadline={subheadline} setSubheadline={setSubheadline}
+                    slug={slug} setSlug={setSlug}
+                    answerType={answerType} setAnswerType={setAnswerType}
+                    mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
+                    answers={answers} setAnswers={setAnswers}
+                    showLiveResults={showLiveResults} setShowLiveResults={setShowLiveResults}
+                    autoClose={autoClose} setAutoClose={setAutoClose}
+                    showThankYou={showThankYou} setShowThankYou={setShowThankYou}
+                    showFinalResults={showFinalResults} setShowFinalResults={setShowFinalResults}
+                    previewDataMode={previewDataMode} setPreviewDataMode={setPreviewDataMode}
+                  />
+                </Pane>
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={layout.leftVSizes[1]} minSize={20}>
+                <Pane title="Background">
+                  <BuildControlsPanel
+                    section="background"
+                    selectedTemplate={selectedTemplate}
+                    setSelectedTemplate={setSelectedTemplate}
+                    bgColor={bgColor} setBgColor={setBgColor}
+                    bgImage={bgImage} setBgImage={setBgImage}
+                  />
+                </Pane>
+              </ResizablePanel>
+            </ResizablePanelGroup>
           </ResizablePanel>
 
           <ResizableHandle withHandle />
 
-          {/* CENTER — Preview Monitor (dominant) */}
-          <ResizablePanel defaultSize={55} minSize={35}>
-            <DraftPreviewMonitor
-              question={previewQuestion}
-              subheadline={subheadline}
-              options={previewOptions}
-              totalVotes={previewTotal}
-              colors={previewColors}
-              template={selectedTemplate}
-              theme={theme}
-              hasContent={hasContent}
-              answerType={answerType}
-              mcLabelStyle={mcLabelStyle}
-              previewDataMode={previewDataMode}
-              answers={answers}
-              bgColor={bgColor}
-              bgImage={bgImage}
-              fullUrl={fullUrl}
-              shortUrl={shortUrl}
-            />
+          {/* CENTER — Preview */}
+          <ResizablePanel defaultSize={layout.hSizes[1]} minSize={35}>
+            <Pane title="Preview" hint="Live draft monitor">
+              <DraftPreviewMonitor
+                question={previewQuestion}
+                subheadline={subheadline}
+                options={previewOptions}
+                totalVotes={previewTotal}
+                colors={previewColors}
+                template={selectedTemplate}
+                theme={theme}
+                hasContent={hasContent}
+                answerType={answerType}
+                mcLabelStyle={mcLabelStyle}
+                previewDataMode={previewDataMode}
+                answers={answers}
+                bgColor={bgColor}
+                bgImage={bgImage}
+                fullUrl={fullUrl}
+                shortUrl={shortUrl}
+              />
+            </Pane>
           </ResizablePanel>
 
           <ResizableHandle withHandle />
 
-          {/* RIGHT — Build Controls */}
-          <ResizablePanel defaultSize={20} minSize={15} maxSize={30}>
-            <BuildControlsPanel
-              selectedTemplate={selectedTemplate}
-              setSelectedTemplate={setSelectedTemplate}
-              bgColor={bgColor}
-              setBgColor={setBgColor}
-              bgImage={bgImage}
-              setBgImage={setBgImage}
-            />
+          {/* RIGHT COLUMN — Template (top) + Inspector (bottom) */}
+          <ResizablePanel defaultSize={layout.hSizes[2]} minSize={16} maxSize={32}>
+            <ResizablePanelGroup
+              direction="vertical"
+              className="h-full"
+              onLayout={(sizes) => {
+                if (sizes.length === 2) {
+                  const next = [sizes[0], sizes[1]] as [number, number];
+                  setLayout((l) => ({ ...l, rightVSizes: next }));
+                  saveWorkspaceLayout({ rightVSizes: next });
+                }
+              }}
+            >
+              <ResizablePanel defaultSize={layout.rightVSizes[0]} minSize={25}>
+                <Pane title="Template">
+                  <BuildControlsPanel
+                    section="template"
+                    selectedTemplate={selectedTemplate}
+                    setSelectedTemplate={setSelectedTemplate}
+                    bgColor={bgColor} setBgColor={setBgColor}
+                    bgImage={bgImage} setBgImage={setBgImage}
+                  />
+                </Pane>
+              </ResizablePanel>
+              <ResizableHandle withHandle />
+              <ResizablePanel defaultSize={layout.rightVSizes[1]} minSize={20}>
+                <Pane title="Inspector" hint="Per-asset properties">
+                  <div className="p-4 space-y-2">
+                    <p className="text-xs text-muted-foreground">
+                      Select an asset in the preview to edit its properties here.
+                    </p>
+                    <p className="text-[10px] text-muted-foreground/60 italic">
+                      Inspector wiring will land with the modular Add Asset menu.
+                    </p>
+                  </div>
+                </Pane>
+              </ResizablePanel>
+            </ResizablePanelGroup>
           </ResizablePanel>
         </ResizablePanelGroup>
       </div>
