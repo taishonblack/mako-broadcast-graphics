@@ -72,7 +72,7 @@ export function DraftPreviewMonitor({
     if (!hasContent) {
       return (
         <div
-          className="absolute inset-0 flex flex-col items-center justify-center"
+          className="absolute inset-0 flex items-center justify-center"
           style={{
             background: `linear-gradient(135deg, ${theme.tintColor}, hsl(220, 25%, 6%))`,
           }}
@@ -83,12 +83,12 @@ export function DraftPreviewMonitor({
               background: 'radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.55) 100%)',
             }}
           />
-          <div className="relative z-10 flex flex-col items-center justify-center gap-10 px-24">
+          <div className="relative z-10 flex flex-col items-center justify-center gap-10 px-24 text-center">
             <img
               src={makoVoteLogo}
               alt="MakoVote"
               className="select-none"
-              style={{ width: '60%', maxWidth: '1100px', height: 'auto', filter: 'drop-shadow(0 8px 32px rgba(0,0,0,0.6)) brightness(0) invert(1)' }}
+              style={{ width: '50%', maxWidth: '900px', height: 'auto', display: 'block', margin: '0 auto', filter: 'drop-shadow(0 8px 32px rgba(0,0,0,0.6)) brightness(0) invert(1)' }}
               draggable={false}
             />
             <p
