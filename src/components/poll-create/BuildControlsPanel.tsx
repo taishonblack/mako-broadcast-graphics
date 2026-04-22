@@ -19,12 +19,15 @@ interface BuildControlsPanelProps {
   setBgColor: (v: string) => void;
   bgImage?: string;
   setBgImage: (v: string | undefined) => void;
+  /** Render only one section. Defaults to 'all' for backward-compat. */
+  section?: 'all' | 'template' | 'background' | 'actions';
 }
 
 export function BuildControlsPanel({
   selectedTemplate, setSelectedTemplate,
   bgColor, setBgColor,
   bgImage, setBgImage,
+  section = 'all',
 }: BuildControlsPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -40,9 +43,7 @@ export function BuildControlsPanel({
     reader.readAsDataURL(file);
   };
 
-  return (
-    <div className="h-full overflow-y-auto space-y-3 p-3">
-      {/* Template Selection */}
+  const Template = (
       <div className="mako-panel p-4 space-y-3">
         <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Template</h2>
         <div className="space-y-1">
@@ -69,8 +70,9 @@ export function BuildControlsPanel({
           ))}
         </div>
       </div>
+  );
 
-      {/* Background */}
+  const Background = (
       <div className="mako-panel p-4 space-y-3">
         <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Background</h2>
         <div className="space-y-2.5">
@@ -138,8 +140,9 @@ export function BuildControlsPanel({
           </div>
         </div>
       </div>
+  );
 
-      {/* Draft Actions */}
+  const Actions = (
       <div className="mako-panel p-4 space-y-3">
         <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Actions</h2>
         <div className="space-y-1.5">
@@ -185,6 +188,17 @@ export function BuildControlsPanel({
           </Tooltip>
         </div>
       </div>
+  );
+
+  if (section === 'template') return <div className="p-3">{Template}</div>;
+  if (section === 'background') return <div className="p-3">{Background}</div>;
+  if (section === 'actions') return <div className="p-3">{Actions}</div>;
+
+  return (
+    <div className="h-full overflow-y-auto space-y-3 p-3">
+      {Template}
+      {Background}
+      {Actions}
     </div>
   );
 }
