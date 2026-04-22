@@ -374,6 +374,46 @@ export default function PollCreate() {
       {/* Header */}
       <header className="h-11 border-b border-border flex items-center justify-between px-4 bg-card/50 shrink-0">
         <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-1 text-[10px] h-7 px-2">
+                <FileIcon className="w-3 h-3" />
+                File
+                <ChevronDown className="w-2.5 h-2.5 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-52">
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Poll
+              </DropdownMenuLabel>
+              <DropdownMenuItem onClick={handleSaveDraft} disabled={saving !== null} className="text-xs gap-2">
+                {saving === 'draft'
+                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                  : <Save className="w-3 h-3" />}
+                Save Draft
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSaveToProject} disabled={saving !== null} className="text-xs gap-2">
+                {saving === 'project'
+                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                  : <FolderPlus className="w-3 h-3" />}
+                Save to Project…
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setLoadDialogOpen(true)} className="text-xs gap-2">
+                <FolderOpen className="w-3 h-3" />
+                Load…
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleImport} className="text-xs gap-2">
+                <Upload className="w-3 h-3" />
+                Import JSON…
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDuplicate} disabled={saving !== null} className="text-xs gap-2">
+                <Copy className="w-3 h-3" />
+                Duplicate
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <span className="text-muted-foreground/40">/</span>
           <span className="text-[10px] text-muted-foreground">Polls</span>
           <span className="text-muted-foreground/40">/</span>
           <span className="text-xs font-semibold text-foreground">Draft Workspace</span>
@@ -394,48 +434,13 @@ export default function PollCreate() {
             </TooltipTrigger>
             <TooltipContent>Reset workspace pane layout</TooltipContent>
           </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline" size="sm"
-                onClick={handleSaveDraft}
-                disabled={saving !== null}
-                className="gap-1 text-[10px] h-7"
-              >
-                {saving === 'draft'
-                  ? <Loader2 className="w-3 h-3 animate-spin" />
-                  : <Save className="w-3 h-3" />}
-                Save Draft
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Persist this poll as a private draft you can reopen later</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline" size="sm"
-                onClick={handleSaveToProject}
-                disabled={saving !== null}
-                className="gap-1 text-[10px] h-7"
-              >
-                {saving === 'project'
-                  ? <Loader2 className="w-3 h-3 animate-spin" />
-                  : <FolderPlus className="w-3 h-3" />}
-                Save to Project
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Assign this poll to a project so it appears in the dashboard queue</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button size="sm" className="text-[10px] h-7 gap-1">
-                <Rocket className="w-3 h-3" /> Go Live
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Send this poll directly to air</TooltipContent>
-          </Tooltip>
         </div>
       </header>
+      <LoadPollDialog
+        open={loadDialogOpen}
+        onOpenChange={setLoadDialogOpen}
+        onSelect={applyLoadedPoll}
+      />
 
       {/* Dockable, resizable workspace — 3 columns, vertically split sides */}
       <div className="flex-1 min-h-0">
