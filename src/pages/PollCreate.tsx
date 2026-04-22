@@ -12,11 +12,16 @@ import { AssetId, AssetState, DEFAULT_ASSET_STATE } from '@/components/poll-crea
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent,
+  DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel,
+} from '@/components/ui/dropdown-menu';
+import { LoadPollDialog } from '@/components/poll-create/LoadPollDialog';
 import { themePresets } from '@/lib/themes';
 import { TemplateName, PollOption } from '@/lib/types';
-import { Save, Rocket, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft } from 'lucide-react';
+import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { loadPoll, savePoll, DraftPollPayload } from '@/lib/poll-persistence';
+import { loadPoll, savePoll, DraftPollPayload, SavedPoll } from '@/lib/poll-persistence';
 import { toast } from 'sonner';
 
 /* ---------- Workspace layout persistence ---------- */
@@ -261,6 +266,89 @@ export default function PollCreate() {
     setLayoutKey((k) => k + 1);
   };
 
+  const [loadDialogOpen, setLoadDialogOpen] = useState(false);
+
+  const applyLoadedPoll = (p: SavedPoll) => {
+    setPollId(p.id);
+    navigate(`/polls/${p.id}`, { replace: true });
+    setInternalName(p.internalName);
+    setQuestion(p.question);
+    setSubheadline(p.subheadline);
+    setSlug(p.slug);
+    setSelectedTemplate(p.template);
+    setAnswerType(p.answerType);
+    setMcLabelStyle(p.mcLabelStyle);
+    setAnswers(p.answers.length ? p.answers : [
+      { id: '1', text: '', shortLabel: '', testVotes: 0 },
+      { id: '2', text: '', shortLabel: '', testVotes: 0 },
+    ]);
+    setShowLiveResults(p.showLiveResults);
+    setShowThankYou(p.showThankYou);
+    setShowFinalResults(p.showFinalResults);
+    setAutoClose(p.autoCloseSeconds ? String(p.autoCloseSeconds) : '');
+    setBgColor(p.bgColor);
+    setBgImage(p.bgImage);
+    setPreviewDataMode(p.previewDataMode);
+    setProjectId(p.projectId);
+    setDraftStatus(p.status === 'draft' ? 'draft-saved' : 'saved-to-project');
+    toast.success(`Loaded "${p.internalName || p.question || 'poll'}"`);
+  };
+
+  const handleDuplicate = async () => {
+    if (!user) { toast.error('Please sign in first'); return; }
+    setSaving('draft');
+    try {
+      const payload = buildPayload();
+      payload.internalName = `${payload.internalName || 'Poll'} (Copy)`;
+      payload.slug = payload.slug ? `${payload.slug}-copy` : '';
+      const saved = await savePoll({
+        payload,
+        userId: user.id,
+        status: 'draft',
+      });
+      setPollId(saved.id);
+      navigate(`/polls/${saved.id}`, { replace: true });
+      setInternalName(saved.internalName);
+      setSlug(saved.slug);
+      setProjectId(undefined);
+      setDraftStatus('draft-saved');
+      toast.success('Duplicated as new draft');
+    } catch (e) {
+      toast.error(`Duplicate failed: ${(e as Error).message}`);
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  const handleImport = () => {
+    const input = document.createElement('input');
+    input.type = 'file';
+    input.accept = 'application/json,.json';
+    input.onchange = async () => {
+      const file = input.files?.[0];
+      if (!file) return;
+      try {
+        const text = await file.text();
+        const parsed = JSON.parse(text) as Partial<DraftPollPayload>;
+        if (parsed.question !== undefined) setQuestion(parsed.question);
+        if (parsed.internalName !== undefined) setInternalName(parsed.internalName);
+        if (parsed.subheadline !== undefined) setSubheadline(parsed.subheadline);
+        if (parsed.slug !== undefined) setSlug(parsed.slug);
+        if (parsed.template) setSelectedTemplate(parsed.template);
+        if (parsed.answerType) setAnswerType(parsed.answerType);
+        if (parsed.mcLabelStyle) setMcLabelStyle(parsed.mcLabelStyle);
+        if (parsed.answers?.length) setAnswers(parsed.answers);
+        if (parsed.bgColor) setBgColor(parsed.bgColor);
+        if (parsed.bgImage !== undefined) setBgImage(parsed.bgImage);
+        if (parsed.previewDataMode) setPreviewDataMode(parsed.previewDataMode);
+        toast.success(`Imported ${file.name}`);
+      } catch (e) {
+        toast.error(`Import failed: ${(e as Error).message}`);
+      }
+    };
+    input.click();
+  };
+
   // Modular polling-assets state
   const [enabledAssets, setEnabledAssets] = useState<AssetId[]>(SEEDED_ASSETS);
   const [selectedAssetId, setSelectedAssetId] = useState<AssetId | null>(null);
@@ -286,6 +374,46 @@ export default function PollCreate() {
       {/* Header */}
       <header className="h-11 border-b border-border flex items-center justify-between px-4 bg-card/50 shrink-0">
         <div className="flex items-center gap-2">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-1 text-[10px] h-7 px-2">
+                <FileIcon className="w-3 h-3" />
+                File
+                <ChevronDown className="w-2.5 h-2.5 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-52">
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                Poll
+              </DropdownMenuLabel>
+              <DropdownMenuItem onClick={handleSaveDraft} disabled={saving !== null} className="text-xs gap-2">
+                {saving === 'draft'
+                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                  : <Save className="w-3 h-3" />}
+                Save Draft
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleSaveToProject} disabled={saving !== null} className="text-xs gap-2">
+                {saving === 'project'
+                  ? <Loader2 className="w-3 h-3 animate-spin" />
+                  : <FolderPlus className="w-3 h-3" />}
+                Save to Project…
+              </DropdownMenuItem>
+              <DropdownMenuSeparator />
+              <DropdownMenuItem onClick={() => setLoadDialogOpen(true)} className="text-xs gap-2">
+                <FolderOpen className="w-3 h-3" />
+                Load…
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleImport} className="text-xs gap-2">
+                <Upload className="w-3 h-3" />
+                Import JSON…
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleDuplicate} disabled={saving !== null} className="text-xs gap-2">
+                <Copy className="w-3 h-3" />
+                Duplicate
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+          <span className="text-muted-foreground/40">/</span>
           <span className="text-[10px] text-muted-foreground">Polls</span>
           <span className="text-muted-foreground/40">/</span>
           <span className="text-xs font-semibold text-foreground">Draft Workspace</span>
@@ -306,48 +434,13 @@ export default function PollCreate() {
             </TooltipTrigger>
             <TooltipContent>Reset workspace pane layout</TooltipContent>
           </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline" size="sm"
-                onClick={handleSaveDraft}
-                disabled={saving !== null}
-                className="gap-1 text-[10px] h-7"
-              >
-                {saving === 'draft'
-                  ? <Loader2 className="w-3 h-3 animate-spin" />
-                  : <Save className="w-3 h-3" />}
-                Save Draft
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Persist this poll as a private draft you can reopen later</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button
-                variant="outline" size="sm"
-                onClick={handleSaveToProject}
-                disabled={saving !== null}
-                className="gap-1 text-[10px] h-7"
-              >
-                {saving === 'project'
-                  ? <Loader2 className="w-3 h-3 animate-spin" />
-                  : <FolderPlus className="w-3 h-3" />}
-                Save to Project
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Assign this poll to a project so it appears in the dashboard queue</TooltipContent>
-          </Tooltip>
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button size="sm" className="text-[10px] h-7 gap-1">
-                <Rocket className="w-3 h-3" /> Go Live
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Send this poll directly to air</TooltipContent>
-          </Tooltip>
         </div>
       </header>
+      <LoadPollDialog
+        open={loadDialogOpen}
+        onOpenChange={setLoadDialogOpen}
+        onSelect={applyLoadedPoll}
+      />
 
       {/* Dockable, resizable workspace — 3 columns, vertically split sides */}
       <div className="flex-1 min-h-0">
