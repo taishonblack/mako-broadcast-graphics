@@ -50,55 +50,6 @@ function resolveOptionLabels(
   }));
 }
 
-function FullFrameChart({
-  template, options, totalVotes, colors,
-}: {
-  template: TemplateName; options: PollOption[]; totalVotes: number; colors: string[];
-}) {
-  // Each chart gets a generously sized container so it fills the broadcast frame.
-  switch (template) {
-    case 'vertical-bar':
-      return (
-        <div className="w-full h-full flex items-center justify-center px-12">
-          <div className="w-full max-w-3xl h-3/4">
-            <VerticalBarChart options={options} totalVotes={totalVotes} colors={colors} />
-          </div>
-        </div>
-      );
-    case 'pie-donut':
-      return (
-        <div className="w-full h-full flex items-center justify-center">
-          <DonutChart options={options} totalVotes={totalVotes} colors={colors} size={320} />
-        </div>
-      );
-    case 'progress-bar':
-      return (
-        <div className="w-full h-full flex items-center justify-center px-16">
-          <div className="w-full max-w-3xl">
-            <HorizontalBarChart options={options} totalVotes={totalVotes} colors={colors} showPercent />
-          </div>
-        </div>
-      );
-    case 'puck-slider':
-      return (
-        <div className="w-full h-full flex items-center justify-center px-16">
-          <div className="w-full max-w-3xl">
-            <PuckSlider options={options} totalVotes={totalVotes} colors={colors} />
-          </div>
-        </div>
-      );
-    case 'horizontal-bar':
-    default:
-      return (
-        <div className="w-full h-full flex items-center justify-center px-16">
-          <div className="w-full max-w-3xl">
-            <HorizontalBarChart options={options} totalVotes={totalVotes} colors={colors} showPercent showVotes />
-          </div>
-        </div>
-      );
-  }
-}
-
 export function DraftPreviewMonitor({
   question, subheadline, options, totalVotes, colors, template, theme, hasContent,
   answerType, mcLabelStyle, previewDataMode, answers, bgColor, bgImage, fullUrl, shortUrl,
