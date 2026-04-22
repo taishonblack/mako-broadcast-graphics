@@ -96,7 +96,7 @@ export default function Blocks() {
           <h1 className="text-sm font-semibold">Blocks</h1>
           <span className="text-xs text-muted-foreground">·</span>
           <span className="text-xs text-muted-foreground">
-            Organize polls into show segments A–E
+            Current project polls grouped by block assignment A–E
           </span>
         </div>
         <div className="flex items-center gap-2">
@@ -117,22 +117,38 @@ export default function Blocks() {
             <Grid3x3 className="w-10 h-10 text-muted-foreground/40 mx-auto" />
             <h2 className="text-base font-semibold">No projects yet</h2>
             <p className="text-sm text-muted-foreground">
-              Create a project from the Projects page, then assign polls to Blocks A–E here.
+              Create a project first, then this page will group that project’s polls by Blocks A–E.
             </p>
             <Link to="/projects"><Button size="sm" className="gap-2"><FolderOpen className="w-3.5 h-3.5" /> Open Projects</Button></Link>
           </div>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            {BLOCK_LETTERS.map((letter) => (
-              <BlockColumn
-                key={letter}
-                letter={letter}
-                label={DEFAULT_BLOCK_LABELS[letter]}
-                polls={pollsByBlock[letter]}
-                unassigned={pollsByBlock.unassigned}
-                onAssign={reassignPollBlock}
-              />
-            ))}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between gap-3">
+              <div>
+                <h2 className="text-sm font-semibold text-foreground">
+                  {projects.find((project) => project.id === activeProjectId)?.name ?? 'Current Project'}
+                </h2>
+                <p className="text-xs text-muted-foreground">
+                  Polls are grouped here by block assignment. Blocks are labels inside the project, not parent containers.
+                </p>
+              </div>
+              <span className="text-[10px] font-mono uppercase text-muted-foreground">
+                {polls.length} polls
+              </span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+              {BLOCK_LETTERS.map((letter) => (
+                <BlockColumn
+                  key={letter}
+                  letter={letter}
+                  label={DEFAULT_BLOCK_LABELS[letter]}
+                  polls={pollsByBlock[letter]}
+                  unassigned={pollsByBlock.unassigned}
+                  onAssign={reassignPollBlock}
+                />
+              ))}
+            </div>
           </div>
         )}
 
