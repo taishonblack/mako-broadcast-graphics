@@ -101,38 +101,32 @@ export function DraftPreviewMonitor({
       );
     }
 
-    // Full-frame composition: Question + subheadline at top, chart filling remaining frame
+    // True broadcast composition: render the same FullscreenScene used on-air.
+    // Background image (if any) is layered behind so the operator sees the actual
+    // poll graphic at full broadcast scale — no centered "demo" composition.
     return (
-      <div className="absolute inset-0 flex flex-col" style={bgStyle}>
-        <div className="absolute inset-0 bg-black/30" />
-        <div className="relative z-10 flex flex-col h-full px-12 py-10">
-          <div className="text-center space-y-1.5 mb-4">
-            <h1 className="text-3xl font-bold leading-tight" style={{ color: theme.textPrimary }}>
-              {question}
-            </h1>
-            {subheadline && (
-              <p className="text-base font-medium opacity-80" style={{ color: theme.textSecondary }}>
-                {subheadline}
+      <div className="absolute inset-0" style={bgImage ? bgStyle : undefined}>
+        {isZeroState ? (
+          <div className="absolute inset-0 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${bgColor || theme.tintColor}, hsl(220, 25%, 6%))` }}>
+            <div className="text-center space-y-2">
+              <p className="font-mono uppercase tracking-wider opacity-70" style={{ color: theme.textSecondary, fontSize: '40px' }}>
+                Awaiting live votes
               </p>
-            )}
+              <p className="opacity-50" style={{ color: theme.textSecondary, fontSize: '24px' }}>
+                Switch to Test Mode to simulate vote counts
+              </p>
+            </div>
           </div>
-          <div className="flex-1 min-h-0">
-            {isZeroState ? (
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="text-center space-y-1">
-                  <p className="text-sm font-mono uppercase tracking-wider opacity-60" style={{ color: theme.textSecondary }}>
-                    Awaiting live votes
-                  </p>
-                  <p className="text-xs opacity-40" style={{ color: theme.textSecondary }}>
-                    Switch to Test Mode to simulate vote counts
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <FullFrameChart template={template} options={labelledOptions} totalVotes={totalVotes} colors={colors} />
-            )}
-          </div>
-        </div>
+        ) : (
+          <FullscreenScene
+            question={question}
+            options={labelledOptions}
+            totalVotes={totalVotes}
+            colors={colors}
+            theme={theme}
+            template={template}
+          />
+        )}
       </div>
     );
   };
