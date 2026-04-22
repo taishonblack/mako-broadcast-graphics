@@ -21,7 +21,7 @@ export default function Login() {
       : await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/dashboard` },
+          options: { emailRedirectTo: `${window.location.origin}/polls/new?mode=output` },
         });
 
     if (error) {
@@ -31,7 +31,7 @@ export default function Login() {
     }
 
     toast.success(mode === 'signin' ? 'Signed in successfully' : 'Account created');
-    navigate('/dashboard');
+    navigate('/polls/new?mode=output');
   };
 
   return (
