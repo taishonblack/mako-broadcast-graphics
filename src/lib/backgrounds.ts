@@ -68,13 +68,14 @@ export async function uploadBackground(opts: {
   if (upErr) throw upErr;
   const { data, error } = await supabase
     .from('backgrounds')
-    .insert({
+    .insert([{
+      user_id: opts.userId,
       account_id: opts.userId,
       created_by: opts.userId,
       name: opts.name || opts.file.name.replace(/\.[^.]+$/, ''),
       image_url: path,
       file_path: path,
-    })
+    }])
     .select()
     .single();
   if (error) throw error;
