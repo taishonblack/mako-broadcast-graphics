@@ -1,10 +1,7 @@
 import { useState } from 'react';
-import { BroadcastPreviewFrame, MonitorContainer } from '@/components/broadcast/BroadcastPreviewFrame';
+import { BroadcastPreviewFrame } from '@/components/broadcast/BroadcastPreviewFrame';
 import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
-import { HorizontalBarChart } from '@/components/charts/HorizontalBarChart';
-import { VerticalBarChart } from '@/components/charts/VerticalBarChart';
-import { DonutChart } from '@/components/charts/DonutChart';
-import { PuckSlider } from '@/components/charts/PuckSlider';
+import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
 import { PollOption, TemplateName, ThemePreset } from '@/lib/types';
 import { Monitor, Smartphone, Globe, Copy, Link2, Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -51,55 +48,6 @@ function resolveOptionLabels(
     ...opt,
     shortLabel: getMCLabel(i, mcLabelStyle, answers[i]?.shortLabel),
   }));
-}
-
-function FullFrameChart({
-  template, options, totalVotes, colors,
-}: {
-  template: TemplateName; options: PollOption[]; totalVotes: number; colors: string[];
-}) {
-  // Each chart gets a generously sized container so it fills the broadcast frame.
-  switch (template) {
-    case 'vertical-bar':
-      return (
-        <div className="w-full h-full flex items-center justify-center px-12">
-          <div className="w-full max-w-3xl h-3/4">
-            <VerticalBarChart options={options} totalVotes={totalVotes} colors={colors} />
-          </div>
-        </div>
-      );
-    case 'pie-donut':
-      return (
-        <div className="w-full h-full flex items-center justify-center">
-          <DonutChart options={options} totalVotes={totalVotes} colors={colors} size={320} />
-        </div>
-      );
-    case 'progress-bar':
-      return (
-        <div className="w-full h-full flex items-center justify-center px-16">
-          <div className="w-full max-w-3xl">
-            <HorizontalBarChart options={options} totalVotes={totalVotes} colors={colors} showPercent />
-          </div>
-        </div>
-      );
-    case 'puck-slider':
-      return (
-        <div className="w-full h-full flex items-center justify-center px-16">
-          <div className="w-full max-w-3xl">
-            <PuckSlider options={options} totalVotes={totalVotes} colors={colors} />
-          </div>
-        </div>
-      );
-    case 'horizontal-bar':
-    default:
-      return (
-        <div className="w-full h-full flex items-center justify-center px-16">
-          <div className="w-full max-w-3xl">
-            <HorizontalBarChart options={options} totalVotes={totalVotes} colors={colors} showPercent showVotes />
-          </div>
-        </div>
-      );
-  }
 }
 
 export function DraftPreviewMonitor({
@@ -153,38 +101,32 @@ export function DraftPreviewMonitor({
       );
     }
 
-    // Full-frame composition: Question + subheadline at top, chart filling remaining frame
+    // True broadcast composition: render the same FullscreenScene used on-air.
+    // Background image (if any) is layered behind so the operator sees the actual
+    // poll graphic at full broadcast scale — no centered "demo" composition.
     return (
-      <div className="absolute inset-0 flex flex-col" style={bgStyle}>
-        <div className="absolute inset-0 bg-black/30" />
-        <div className="relative z-10 flex flex-col h-full px-12 py-10">
-          <div className="text-center space-y-1.5 mb-4">
-            <h1 className="text-3xl font-bold leading-tight" style={{ color: theme.textPrimary }}>
-              {question}
-            </h1>
-            {subheadline && (
-              <p className="text-base font-medium opacity-80" style={{ color: theme.textSecondary }}>
-                {subheadline}
+      <div className="absolute inset-0" style={bgImage ? bgStyle : undefined}>
+        {isZeroState ? (
+          <div className="absolute inset-0 flex items-center justify-center" style={{ background: `linear-gradient(135deg, ${bgColor || theme.tintColor}, hsl(220, 25%, 6%))` }}>
+            <div className="text-center space-y-2">
+              <p className="font-mono uppercase tracking-wider opacity-70" style={{ color: theme.textSecondary, fontSize: '40px' }}>
+                Awaiting live votes
               </p>
-            )}
+              <p className="opacity-50" style={{ color: theme.textSecondary, fontSize: '24px' }}>
+                Switch to Test Mode to simulate vote counts
+              </p>
+            </div>
           </div>
-          <div className="flex-1 min-h-0">
-            {isZeroState ? (
-              <div className="w-full h-full flex items-center justify-center">
-                <div className="text-center space-y-1">
-                  <p className="text-sm font-mono uppercase tracking-wider opacity-60" style={{ color: theme.textSecondary }}>
-                    Awaiting live votes
-                  </p>
-                  <p className="text-xs opacity-40" style={{ color: theme.textSecondary }}>
-                    Switch to Test Mode to simulate vote counts
-                  </p>
-                </div>
-              </div>
-            ) : (
-              <FullFrameChart template={template} options={labelledOptions} totalVotes={totalVotes} colors={colors} />
-            )}
-          </div>
-        </div>
+        ) : (
+          <FullscreenScene
+            question={question}
+            options={labelledOptions}
+            totalVotes={totalVotes}
+            colors={colors}
+            theme={theme}
+            template={template}
+          />
+        )}
       </div>
     );
   };
@@ -295,11 +237,11 @@ export function DraftPreviewMonitor({
       {/* Preview area — tightened to lift monitor toward the header */}
       <div className="flex-1 flex flex-col items-center justify-start pt-2 px-4 pb-4 bg-background/30 min-h-0 overflow-auto gap-2">
         {previewMode === 'program' ? (
-          <MonitorContainer variant="draft">
-            <BroadcastPreviewFrame showLabel>
+          <div className="w-full">
+            <BroadcastPreviewFrame showLabel showTitleSafe>
               {renderProgramContent()}
             </BroadcastPreviewFrame>
-          </MonitorContainer>
+          </div>
         ) : (
           <div className={`bg-background border border-border rounded-lg overflow-hidden shadow-xl ${
             previewMode === 'mobile' ? 'w-[280px] h-[500px]' : 'w-full max-w-lg h-[420px]'
