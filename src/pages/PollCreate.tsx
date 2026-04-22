@@ -470,6 +470,13 @@ export default function PollCreate() {
         onOpenChange={setLoadDialogOpen}
         onSelect={applyLoadedPoll}
       />
+      <ImportErrorDialog
+        open={importError.open}
+        onOpenChange={(o) => setImportError((s) => ({ ...s, open: o }))}
+        fileName={importError.fileName}
+        parseError={importError.parseError}
+        issues={importError.issues}
+      />
 
       {/* Dockable, resizable workspace — 3 columns, vertically split sides */}
       <div className="flex-1 min-h-0">
