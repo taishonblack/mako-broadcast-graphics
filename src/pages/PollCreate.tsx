@@ -17,6 +17,8 @@ import {
   DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel,
 } from '@/components/ui/dropdown-menu';
 import { LoadPollDialog } from '@/components/poll-create/LoadPollDialog';
+import { ImportErrorDialog } from '@/components/poll-create/ImportErrorDialog';
+import { pollImportSchema, formatZodIssues, ImportIssue } from '@/lib/poll-import-schema';
 import { themePresets } from '@/lib/themes';
 import { TemplateName, PollOption } from '@/lib/types';
 import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown } from 'lucide-react';
@@ -267,6 +269,12 @@ export default function PollCreate() {
   };
 
   const [loadDialogOpen, setLoadDialogOpen] = useState(false);
+  const [importError, setImportError] = useState<{
+    open: boolean;
+    fileName?: string;
+    parseError?: string;
+    issues: ImportIssue[];
+  }>({ open: false, issues: [] });
 
   const applyLoadedPoll = (p: SavedPoll) => {
     setPollId(p.id);
@@ -327,24 +335,45 @@ export default function PollCreate() {
     input.onchange = async () => {
       const file = input.files?.[0];
       if (!file) return;
+      let parsed: unknown;
       try {
         const text = await file.text();
-        const parsed = JSON.parse(text) as Partial<DraftPollPayload>;
-        if (parsed.question !== undefined) setQuestion(parsed.question);
-        if (parsed.internalName !== undefined) setInternalName(parsed.internalName);
-        if (parsed.subheadline !== undefined) setSubheadline(parsed.subheadline);
-        if (parsed.slug !== undefined) setSlug(parsed.slug);
-        if (parsed.template) setSelectedTemplate(parsed.template);
-        if (parsed.answerType) setAnswerType(parsed.answerType);
-        if (parsed.mcLabelStyle) setMcLabelStyle(parsed.mcLabelStyle);
-        if (parsed.answers?.length) setAnswers(parsed.answers);
-        if (parsed.bgColor) setBgColor(parsed.bgColor);
-        if (parsed.bgImage !== undefined) setBgImage(parsed.bgImage);
-        if (parsed.previewDataMode) setPreviewDataMode(parsed.previewDataMode);
-        toast.success(`Imported ${file.name}`);
+        parsed = JSON.parse(text);
       } catch (e) {
-        toast.error(`Import failed: ${(e as Error).message}`);
+        setImportError({
+          open: true,
+          fileName: file.name,
+          parseError: (e as Error).message,
+          issues: [],
+        });
+        return;
       }
+
+      const result = pollImportSchema.safeParse(parsed);
+      if (!result.success) {
+        const issues = formatZodIssues(result.error);
+        setImportError({ open: true, fileName: file.name, issues });
+        toast.error(`Import failed — ${issues.length} validation ${issues.length === 1 ? 'issue' : 'issues'}`);
+        return;
+      }
+
+      const data = result.data;
+      setInternalName(data.internalName);
+      setQuestion(data.question);
+      setSubheadline(data.subheadline);
+      setSlug(data.slug);
+      setSelectedTemplate(data.template);
+      setAnswerType(data.answerType);
+      setMcLabelStyle(data.mcLabelStyle);
+      setAnswers(data.answers as { id: string; text: string; shortLabel: string; testVotes?: number }[]);
+      setShowLiveResults(data.showLiveResults);
+      setShowThankYou(data.showThankYou);
+      setShowFinalResults(data.showFinalResults);
+      setAutoClose(data.autoCloseSeconds ? String(data.autoCloseSeconds) : '');
+      setBgColor(data.bgColor);
+      setBgImage(data.bgImage);
+      setPreviewDataMode(data.previewDataMode);
+      toast.success(`Imported ${file.name}`);
     };
     input.click();
   };
@@ -440,6 +469,13 @@ export default function PollCreate() {
         open={loadDialogOpen}
         onOpenChange={setLoadDialogOpen}
         onSelect={applyLoadedPoll}
+      />
+      <ImportErrorDialog
+        open={importError.open}
+        onOpenChange={(o) => setImportError((s) => ({ ...s, open: o }))}
+        fileName={importError.fileName}
+        parseError={importError.parseError}
+        issues={importError.issues}
       />
 
       {/* Dockable, resizable workspace — 3 columns, vertically split sides */}
