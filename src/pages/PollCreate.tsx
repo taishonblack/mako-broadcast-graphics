@@ -6,6 +6,9 @@ import { ContentPanel, AnswerType, MCLabelStyle, PreviewDataMode } from '@/compo
 import { BuildControlsPanel } from '@/components/poll-create/BuildControlsPanel';
 import { DraftPreviewMonitor } from '@/components/poll-create/DraftPreviewMonitor';
 import { ProjectPickerDialog } from '@/components/poll-create/ProjectPickerDialog';
+import { PollingAssetsPane, SEEDED_ASSETS } from '@/components/poll-create/polling-assets/PollingAssetsPane';
+import { AssetInspector } from '@/components/poll-create/polling-assets/AssetInspector';
+import { AssetId, AssetState, DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/types';
 import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
@@ -258,6 +261,11 @@ export default function PollCreate() {
     setLayoutKey((k) => k + 1);
   };
 
+  // Modular polling-assets state
+  const [enabledAssets, setEnabledAssets] = useState<AssetId[]>(SEEDED_ASSETS);
+  const [selectedAssetId, setSelectedAssetId] = useState<AssetId | null>(null);
+  const [assetState, setAssetState] = useState<AssetState>(DEFAULT_ASSET_STATE);
+
   if (loadingExisting) {
     return (
       <OperatorLayout>
@@ -370,19 +378,18 @@ export default function PollCreate() {
             >
               <ResizablePanel defaultSize={layout.leftVSizes[0]} minSize={25}>
                 <Pane title="Polling Assets" hint="Question · Answers · Logic">
-                  <ContentPanel
-                    internalName={internalName} setInternalName={setInternalName}
+                  <PollingAssetsPane
+                    enabledAssets={enabledAssets}
+                    onEnabledAssetsChange={setEnabledAssets}
+                    selectedAssetId={selectedAssetId}
+                    onSelectAsset={setSelectedAssetId}
                     question={question} setQuestion={setQuestion}
                     subheadline={subheadline} setSubheadline={setSubheadline}
+                    internalName={internalName} setInternalName={setInternalName}
                     slug={slug} setSlug={setSlug}
                     answerType={answerType} setAnswerType={setAnswerType}
                     mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
                     answers={answers} setAnswers={setAnswers}
-                    showLiveResults={showLiveResults} setShowLiveResults={setShowLiveResults}
-                    autoClose={autoClose} setAutoClose={setAutoClose}
-                    showThankYou={showThankYou} setShowThankYou={setShowThankYou}
-                    showFinalResults={showFinalResults} setShowFinalResults={setShowFinalResults}
-                    previewDataMode={previewDataMode} setPreviewDataMode={setPreviewDataMode}
                   />
                 </Pane>
               </ResizablePanel>
@@ -456,14 +463,20 @@ export default function PollCreate() {
               <ResizableHandle withHandle />
               <ResizablePanel defaultSize={layout.rightVSizes[1]} minSize={20}>
                 <Pane title="Inspector" hint="Per-asset properties">
-                  <div className="p-4 space-y-2">
-                    <p className="text-xs text-muted-foreground">
-                      Select an asset in the preview to edit its properties here.
-                    </p>
-                    <p className="text-[10px] text-muted-foreground/60 italic">
-                      Inspector wiring will land with the modular Add Asset menu.
-                    </p>
-                  </div>
+                  <AssetInspector
+                    selectedAssetId={selectedAssetId}
+                    question={question} setQuestion={setQuestion}
+                    subheadline={subheadline} setSubheadline={setSubheadline}
+                    internalName={internalName} setInternalName={setInternalName}
+                    slug={slug} setSlug={setSlug}
+                    answerType={answerType} setAnswerType={setAnswerType}
+                    mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
+                    answers={answers} setAnswers={setAnswers}
+                    bgColor={bgColor} setBgColor={setBgColor}
+                    bgImage={bgImage}
+                    assetState={assetState}
+                    setAssetState={setAssetState}
+                  />
                 </Pane>
               </ResizablePanel>
             </ResizablePanelGroup>
