@@ -5,7 +5,7 @@ import { LiveStatusIndicator } from '@/components/broadcast/LiveStatusIndicator'
 import { VotingStatusChip } from '@/components/broadcast/VotingStatusChip';
 import { PollQueue } from '@/components/broadcast/PollQueue';
 import { AssetControls } from '@/components/broadcast/AssetControls';
-import { BroadcastPreviewFrame, MonitorContainer } from '@/components/broadcast/BroadcastPreviewFrame';
+import { MonitorContainer } from '@/components/broadcast/BroadcastPreviewFrame';
 import { PreviewWithOverlays } from '@/components/broadcast/preview/PreviewWithOverlays';
 import { SceneSelector } from '@/components/broadcast/SceneSelector';
 import { HorizontalBarChart } from '@/components/charts/HorizontalBarChart';
@@ -18,7 +18,7 @@ import { Button } from '@/components/ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
-import { mockProject, templateLabels } from '@/lib/mock-data';
+import { mockProject } from '@/lib/mock-data';
 import { LiveState, VotingState, QRPosition, Poll } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
 import { themePresets } from '@/lib/themes';
@@ -26,8 +26,8 @@ import { DEFAULT_LAYERS, GraphicLayer, cloneLayers } from '@/lib/layers';
 import { broadcastOutputState } from '@/lib/output-state';
 import {
   PlusCircle, Copy, Play, Square, Monitor,
-  ExternalLink, ChevronRight, ChevronDown, Vote, XCircle, Eye,
-  Maximize2, RotateCcw, Palette, Radio, Layers, Layout
+  ExternalLink, ChevronDown, Vote, XCircle, Eye,
+  Maximize2, RotateCcw, Palette, Radio, Layers
 } from 'lucide-react';
 
 type WorkspaceMode = 'operator' | 'graphics';
@@ -96,7 +96,6 @@ export default function Dashboard() {
     D: allPolls.filter((poll) => poll.blockLetter === 'D'),
     E: allPolls.filter((poll) => poll.blockLetter === 'E'),
   }), [allPolls]);
-  const activeBlockPolls = pollsByBlock[activeBlock];
   const [activePollId, setActivePollId] = useState(allPolls[0]?.id ?? '');
   const activePoll = allPolls.find(p => p.id === activePollId) || allPolls[0];
 
