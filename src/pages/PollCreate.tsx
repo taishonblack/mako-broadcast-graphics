@@ -641,8 +641,6 @@ export default function PollCreate() {
 
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
-  const availableAssets = getAvailableAssets(enabledAssets);
-
   useEffect(() => {
     if (!activeFolder) return;
     if (blockLetter !== activeFolder.blockLetter) {
