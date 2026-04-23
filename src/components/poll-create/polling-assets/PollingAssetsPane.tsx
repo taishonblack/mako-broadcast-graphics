@@ -26,7 +26,7 @@ export const ASSET_REGISTRY: Record<AssetId, AssetMeta> = {
 export const SEEDED_ASSETS: AssetId[] = ['question', 'answers'];
 
 interface PollingAssetsPaneProps {
-  folders: { id: string; name: string; blockLetter: BlockLetter; assetIds: AssetId[] }[];
+  folders: { id: string; name: string; blockLetter: BlockLetter; collapsed?: boolean; assetIds: AssetId[] }[];
   activeFolderId: string;
   availableAssets: AssetId[];
   enabledAssets: AssetId[];
@@ -39,6 +39,7 @@ interface PollingAssetsPaneProps {
   onRenameFolder: (folderId: string, nextName: string) => void;
   onSetFolderBlock: (folderId: string, next: BlockLetter) => void;
   onDeleteFolder: (folderId: string) => void;
+  onToggleFolderCollapse: (folderId: string) => void;
   blockLetter: BlockLetter;
   onBlockLetterChange: (next: BlockLetter) => void;
 
@@ -51,6 +52,7 @@ interface PollingAssetsPaneProps {
   mcLabelStyle: MCLabelStyle; setMcLabelStyle: (v: MCLabelStyle) => void;
   answers: { id: string; text: string; shortLabel: string; testVotes?: number }[];
   setAnswers: (v: { id: string; text: string; shortLabel: string; testVotes?: number }[]) => void;
+  onAddAnswer: () => void;
 }
 
 export function PollingAssetsPane({
@@ -65,6 +67,7 @@ export function PollingAssetsPane({
   onRenameFolder,
   onSetFolderBlock,
   onDeleteFolder,
+  onToggleFolderCollapse,
   blockLetter, onBlockLetterChange,
   question, setQuestion,
   subheadline, setSubheadline,
@@ -73,9 +76,9 @@ export function PollingAssetsPane({
   answerType, setAnswerType,
   mcLabelStyle, setMcLabelStyle,
   answers, setAnswers,
+  onAddAnswer,
 }: PollingAssetsPaneProps) {
   const [draggedId, setDraggedId] = useState<AssetId | null>(null);
-  const [collapsedFolderIds, setCollapsedFolderIds] = useState<string[]>([]);
 
   const reorder = (fromId: AssetId, toId: AssetId) => {
     if (fromId === toId) return;
@@ -107,7 +110,7 @@ export function PollingAssetsPane({
           const folderAvailableAssets = (Object.keys(ASSET_REGISTRY) as AssetId[])
             .filter((assetId) => !folderAssets.includes(assetId));
           const isActiveFolder = folder.id === activeFolderId;
-          const isCollapsed = collapsedFolderIds.includes(folder.id);
+          const isCollapsed = Boolean(folder.collapsed);
 
           return (
             <div key={folder.id} className={`rounded-lg border overflow-hidden transition-colors ${isActiveFolder ? 'border-primary/40 bg-primary/5' : 'border-border/60 bg-card/40'}`}>
@@ -239,9 +242,7 @@ export function PollingAssetsPane({
                 className="h-7 w-7"
                 onClick={() => {
                   onSelectFolder(folder.id);
-                  setCollapsedFolderIds((current) => current.includes(folder.id)
-                    ? current.filter((id) => id !== folder.id)
-                    : [...current, folder.id]);
+                  onToggleFolderCollapse(folder.id);
                 }}
                 aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} folder ${folder.name}`}
               >
@@ -276,6 +277,7 @@ export function PollingAssetsPane({
                       answerType={answerType} setAnswerType={setAnswerType}
                       mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
                       answers={answers} setAnswers={setAnswers}
+                      onAddAnswer={onAddAnswer}
                     />
                   </AssetCard>
                 ))}
@@ -372,6 +374,7 @@ function AssetEditor(props: {
   mcLabelStyle: MCLabelStyle; setMcLabelStyle: (v: MCLabelStyle) => void;
   answers: { id: string; text: string; shortLabel: string; testVotes?: number }[];
   setAnswers: (v: { id: string; text: string; shortLabel: string; testVotes?: number }[]) => void;
+  onAddAnswer: () => void;
 }) {
   const { assetId } = props;
 
@@ -418,6 +421,9 @@ function AssetEditor(props: {
             className="bg-background/50 h-7 text-[11px]"
           />
         ))}
+        <Button type="button" variant="outline" size="sm" className="h-7 w-full gap-1 text-[10px]" onClick={props.onAddAnswer}>
+          <Plus className="w-3 h-3" /> Add Answer Bar
+        </Button>
         <p className="text-[9px] text-muted-foreground">
           Open Inspector for label style and test vote counts.
         </p>
