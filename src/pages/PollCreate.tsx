@@ -805,6 +805,23 @@ export default function PollCreate() {
     setSelectedAssetId(assetId);
   };
 
+  const handleToggleFolderCollapse = (folderId: string) => {
+    updateFolderState((current) => ({
+      ...current,
+      folders: current.folders.map((folder) => (
+        folder.id === folderId ? { ...folder, collapsed: !folder.collapsed } : folder
+      )),
+    }));
+  };
+
+  const handleAddAnswer = () => {
+    if (answerType === 'yes-no' || answers.length >= 4) return;
+    setAnswers([
+      ...answers,
+      { id: String(Date.now()), text: '', shortLabel: '', testVotes: 0 },
+    ]);
+  };
+
   const handleFolderQuestionChange = (nextQuestion: string) => {
     setQuestion(nextQuestion);
     syncActiveFolderQuestion(nextQuestion);
@@ -1003,7 +1020,6 @@ export default function PollCreate() {
                 <PollingAssetsPane
                   folders={folderState.folders}
                   activeFolderId={folderState.activeFolderId}
-                  availableAssets={availableAssets}
                   enabledAssets={enabledAssets}
                   onEnabledAssetsChange={handleSetEnabledAssets}
                   selectedAssetId={selectedAssetId}
@@ -1014,6 +1030,7 @@ export default function PollCreate() {
                   onRenameFolder={handleRenameFolder}
                   onSetFolderBlock={handleSetFolderBlock}
                   onDeleteFolder={(folderId) => setDeleteFolderTargetId(folderId)}
+                  onToggleFolderCollapse={handleToggleFolderCollapse}
                   blockLetter={blockLetter}
                   onBlockLetterChange={handleBlockLetterChange}
                 question={question} setQuestion={handleFolderQuestionChange}
@@ -1023,6 +1040,7 @@ export default function PollCreate() {
                   answerType={answerType} setAnswerType={setAnswerType}
                   mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
                   answers={answers} setAnswers={setAnswers}
+                  onAddAnswer={handleAddAnswer}
                 />
               </Pane>
             </ResizablePanel>
