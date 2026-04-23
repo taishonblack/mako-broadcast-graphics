@@ -1,6 +1,7 @@
 import { DEFAULT_LAYERS, GraphicLayer, cloneLayers } from './layers';
 import { SceneType } from './scenes';
 import { Poll, QRPosition } from './types';
+import { AssetState, DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/types';
 
 export const OUTPUT_STATE_STORAGE_KEY = 'mako-output-state';
 
@@ -9,6 +10,10 @@ export interface OutputAssets {
   qrPosition: QRPosition;
   showBranding: boolean;
   brandingPosition: QRPosition;
+  wordmarkWeight?: AssetState['wordmarkWeight'];
+  wordmarkTracking?: number;
+  wordmarkScale?: number;
+  wordmarkShowGuides?: boolean;
   /** Lower-third banner height in % of frame */
   lowerThirdHeight?: number;
 }
@@ -51,7 +56,15 @@ export function readOutputState(): OutputStatePayload | null {
       layers: Array.isArray(parsed.layers)
         ? cloneLayers(parsed.layers as GraphicLayer[])
         : cloneLayers(DEFAULT_LAYERS),
-      assets: parsed.assets,
+      assets: parsed.assets
+        ? {
+            ...parsed.assets,
+            wordmarkWeight: parsed.assets.wordmarkWeight ?? DEFAULT_ASSET_STATE.wordmarkWeight,
+            wordmarkTracking: parsed.assets.wordmarkTracking ?? DEFAULT_ASSET_STATE.wordmarkTracking,
+            wordmarkScale: parsed.assets.wordmarkScale ?? DEFAULT_ASSET_STATE.wordmarkScale,
+            wordmarkShowGuides: parsed.assets.wordmarkShowGuides ?? DEFAULT_ASSET_STATE.wordmarkShowGuides,
+          }
+        : undefined,
     };
   } catch {
     return null;

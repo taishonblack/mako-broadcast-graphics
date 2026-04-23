@@ -25,6 +25,10 @@ export interface AssetState {
   logoPosition: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
   voterTallyFormat: 'number' | 'compact' | 'percent';
   voterTallyShow: boolean;
+  wordmarkWeight: 'medium' | 'semibold' | 'bold';
+  wordmarkTracking: number;
+  wordmarkScale: number;
+  wordmarkShowGuides: boolean;
 }
 
 export const DEFAULT_ASSET_STATE: AssetState = {
@@ -34,4 +38,8 @@ export const DEFAULT_ASSET_STATE: AssetState = {
   logoPosition: 'bottom-left',
   voterTallyFormat: 'number',
   voterTallyShow: true,
+  wordmarkWeight: 'semibold',
+  wordmarkTracking: 0,
+  wordmarkScale: 1,
+  wordmarkShowGuides: false,
 };
