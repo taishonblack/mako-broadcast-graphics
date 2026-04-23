@@ -1,6 +1,6 @@
 import { ThemePreset } from '@/lib/types';
 import { QRCodeSVG } from 'qrcode.react';
-import { AssetTransformMap } from '@/components/poll-create/polling-assets/types';
+import { AssetColorMap, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
 import { getAssetTransformStyle } from '@/lib/asset-transforms';
 
 interface QRSceneProps {
@@ -8,12 +8,13 @@ interface QRSceneProps {
   theme: ThemePreset;
   enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally'>;
   transforms?: AssetTransformMap;
+  assetColors?: AssetColorMap;
   qrVisible?: boolean;
   qrUrlVisible?: boolean;
   debugVoteUrl?: string;
 }
 
-export function QRScene({ slug, theme, enabledAssetIds, transforms, qrVisible = true, qrUrlVisible = true, debugVoteUrl }: QRSceneProps) {
+export function QRScene({ slug, theme, enabledAssetIds, transforms, assetColors, qrVisible = true, qrUrlVisible = true, debugVoteUrl }: QRSceneProps) {
   const url = debugVoteUrl ?? `https://makovote.app/vote/${slug}`;
   const visibleAssets = new Set(enabledAssetIds ?? ['question', 'answers', 'logo']);
 
@@ -22,6 +23,7 @@ export function QRScene({ slug, theme, enabledAssetIds, transforms, qrVisible = 
       className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden"
       style={{
         background: `linear-gradient(135deg, ${theme.tintColor}, hsl(220, 25%, 6%))`,
+        ...getAssetTransformStyle(transforms?.background),
       }}
     >
       {/* Vignette */}
@@ -36,7 +38,7 @@ export function QRScene({ slug, theme, enabledAssetIds, transforms, qrVisible = 
         {visibleAssets.has('question') && (
         <h1
           className="text-5xl font-bold tracking-tight"
-          style={{ color: theme.textPrimary }}
+          style={{ color: assetColors?.question?.textPrimary ?? theme.textPrimary, ...getAssetTransformStyle(transforms?.question) }}
         >
           Vote Now
         </h1>
@@ -54,7 +56,7 @@ export function QRScene({ slug, theme, enabledAssetIds, transforms, qrVisible = 
         {visibleAssets.has('subheadline') && qrVisible && qrUrlVisible && (
         <p
           className="font-mono text-lg tracking-wide"
-          style={{ color: theme.textSecondary }}
+          style={{ color: assetColors?.qr?.textSecondary ?? theme.textSecondary }}
         >
           {url}
         </p>
@@ -66,7 +68,7 @@ export function QRScene({ slug, theme, enabledAssetIds, transforms, qrVisible = 
         <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
           <span className="text-primary-foreground font-bold text-[10px]">M</span>
         </div>
-        <span className="font-mono text-[10px]" style={{ color: theme.textSecondary }}>MakoVote</span>
+        <span className="font-mono text-[10px]" style={{ color: assetColors?.logo?.textSecondary ?? theme.textSecondary }}>MakoVote</span>
       </div>
       )}
     </div>
