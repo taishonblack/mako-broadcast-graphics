@@ -688,12 +688,76 @@ export default function PollCreate() {
   const [folderState, setFolderState] = useState<PollingAssetFolderState>(() => createDefaultFolderState(question));
   const [deleteFolderTargetId, setDeleteFolderTargetId] = useState<string | null>(null);
   const [foldersLoadedForProject, setFoldersLoadedForProject] = useState<string | null>(null);
+  const [undoStack, setUndoStack] = useState<EditorSnapshot[]>([]);
 
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
+  const activeInspectorAssetIds = selectedAssetId ? [selectedAssetId] : enabledAssets;
   const previewColors = assetColors.answers.barColors?.length
     ? assetColors.answers.barColors
     : [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
+
+  const createSnapshot = useCallback((): EditorSnapshot => ({
+    question,
+    internalName,
+    slug,
+    subheadline,
+    selectedTemplate,
+    answerType,
+    mcLabelStyle,
+    previewDataMode,
+    answers: cloneSnapshotValue(answers),
+    showLiveResults,
+    showThankYou,
+    showFinalResults,
+    autoClose,
+    bgColor,
+    bgImage,
+    blockLetter,
+    blockPosition,
+    selectedAssetId,
+    assetState: cloneSnapshotValue(assetState),
+    assetTransforms: cloneSnapshotValue(assetTransforms),
+    assetColors: cloneSnapshotValue(assetColors),
+    folderState: cloneSnapshotValue(folderState),
+  }), [answerType, answers, assetColors, assetState, assetTransforms, autoClose, bgColor, bgImage, blockLetter, blockPosition, folderState, internalName, mcLabelStyle, previewDataMode, question, selectedAssetId, selectedTemplate, showFinalResults, showLiveResults, showThankYou, slug, subheadline]);
+
+  const pushUndoSnapshot = useCallback(() => {
+    const snapshot = createSnapshot();
+    setUndoStack((current) => [...current.slice(-24), snapshot]);
+  }, [createSnapshot]);
+
+  const handleUndoChanges = () => {
+    setUndoStack((current) => {
+      const previous = current[current.length - 1];
+      if (!previous) return current;
+
+      setQuestion(previous.question);
+      setInternalName(previous.internalName);
+      setSlug(previous.slug);
+      setSubheadline(previous.subheadline);
+      setSelectedTemplate(previous.selectedTemplate);
+      setAnswerType(previous.answerType);
+      setMcLabelStyle(previous.mcLabelStyle);
+      setPreviewDataMode(previous.previewDataMode);
+      setAnswers(cloneSnapshotValue(previous.answers));
+      setShowLiveResults(previous.showLiveResults);
+      setShowThankYou(previous.showThankYou);
+      setShowFinalResults(previous.showFinalResults);
+      setAutoClose(previous.autoClose);
+      setBgColor(previous.bgColor);
+      setBgImage(previous.bgImage);
+      setBlockLetter(previous.blockLetter);
+      setBlockPosition(previous.blockPosition);
+      setSelectedAssetId(previous.selectedAssetId);
+      setAssetState(cloneSnapshotValue(previous.assetState));
+      setAssetTransforms(cloneSnapshotValue(previous.assetTransforms));
+      setAssetColors(cloneSnapshotValue(previous.assetColors));
+      setFolderState(cloneSnapshotValue(previous.folderState));
+      toast.success('Undid latest change');
+      return current.slice(0, -1);
+    });
+  };
 
   useEffect(() => {
     if (!activeFolder) return;
@@ -850,8 +914,7 @@ export default function PollCreate() {
 
   const handleSelectFolder = (folderId: string) => {
     updateFolderState((current) => ({ ...current, activeFolderId: folderId }));
-    const nextFolder = getFolderById(folderState, folderId);
-    setSelectedAssetId(nextFolder?.assetIds[0] ?? null);
+    setSelectedAssetId(null);
   };
 
   const handleBlockLetterChange = (next: BlockLetter) => {
@@ -911,14 +974,14 @@ export default function PollCreate() {
     ]);
   };
 
-  const handleTransformChange = (field: TransformField, value: number) => {
-    if (!selectedAssetId) return;
+  const handleTransformChange = (assetId: AssetId, field: TransformField, value: number) => {
+    pushUndoSnapshot();
     setAssetTransforms((current) => {
-      const currentTransform = current[selectedAssetId];
+      const currentTransform = current[assetId];
       if (currentTransform.locks[field]) return current;
       return {
         ...current,
-        [selectedAssetId]: {
+        [assetId]: {
           ...currentTransform,
           [field]: value,
         },
@@ -926,21 +989,22 @@ export default function PollCreate() {
     });
   };
 
-  const handleToggleTransformLock = (field: TransformField) => {
-    if (!selectedAssetId) return;
+  const handleToggleTransformLock = (assetId: AssetId, field: TransformField) => {
+    pushUndoSnapshot();
     setAssetTransforms((current) => ({
       ...current,
-      [selectedAssetId]: {
-        ...current[selectedAssetId],
+      [assetId]: {
+        ...current[assetId],
         locks: {
-          ...current[selectedAssetId].locks,
-          [field]: !current[selectedAssetId].locks[field],
+          ...current[assetId].locks,
+          [field]: !current[assetId].locks[field],
         },
       },
     }));
   };
 
   const handleAssetColorsChange = (assetId: AssetId, nextColors: AssetColorMap[AssetId]) => {
+    pushUndoSnapshot();
     setAssetColors((current) => ({
       ...current,
       [assetId]: {
