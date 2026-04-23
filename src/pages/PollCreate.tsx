@@ -699,12 +699,18 @@ export default function PollCreate() {
   const [deleteFolderTargetId, setDeleteFolderTargetId] = useState<string | null>(null);
   const [foldersLoadedForProject, setFoldersLoadedForProject] = useState<string | null>(null);
   const [selectionHistory, setSelectionHistory] = useState<Record<string, SelectionHistory>>({});
+  const [backgroundImageMissing, setBackgroundImageMissing] = useState(false);
 
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
   const activeInspectorAssetIds = selectedAssetId ? [selectedAssetId] : enabledAssets;
   const activeHistoryKey = selectedAssetId ?? `folder:${folderState.activeFolderId ?? 'none'}`;
   const currentHistory = selectionHistory[activeHistoryKey] ?? { undo: [], redo: [] };
+  const backgroundStatus = {
+    hasColor: Boolean(activeFolder?.bgColor ?? bgColor),
+    hasImage: Boolean(activeFolder?.bgImage),
+    imageMissing: backgroundImageMissing,
+  };
   const previewColors = assetColors.answers.barColors?.length
     ? assetColors.answers.barColors
     : [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
@@ -891,6 +897,7 @@ export default function PollCreate() {
     if (question !== nextQuestion) {
       setQuestion(nextQuestion);
     }
+    setBackgroundImageMissing(false);
     const nextBgColor = activeFolder.bgColor ?? '#1a1a2e';
     if (bgColor !== nextBgColor) {
       setBgColor(nextBgColor);
@@ -982,13 +989,23 @@ export default function PollCreate() {
 
   const handleBackgroundColorChange = (nextColor: string) => {
     setBgColor(nextColor);
+    setBackgroundImageMissing(false);
     syncActiveFolderBackground({ bgColor: nextColor });
   };
 
   const handleBackgroundImageChange = (nextImage: string | undefined) => {
     setBgImage(nextImage);
+    setBackgroundImageMissing(false);
     syncActiveFolderBackground({ bgImage: nextImage });
   };
+
+  const handleMissingBackgroundImage = useCallback(() => {
+    if (!activeFolder?.bgImage) return;
+    setBackgroundImageMissing(true);
+    setBgImage(undefined);
+    syncActiveFolderBackground({ bgImage: undefined });
+    toast.error('Background image missing — reverted to folder color');
+  }, [activeFolder?.bgImage]);
 
   const handleNewFolder = () => {
     updateFolderState((current) => {
@@ -1014,7 +1031,7 @@ export default function PollCreate() {
 
   const handleDeleteFolder = (folderId: string) => {
     updateFolderState((current) => {
-      const targetFolder = getFolderById(current, folderId);
+      const targetFolder = current.folders.find((folder) => folder.id === folderId);
       if (!targetFolder || current.folders.length === 1) return current;
 
       const remainingFolders = current.folders.filter((folder) => folder.id !== targetFolder.id);
@@ -1461,6 +1478,7 @@ export default function PollCreate() {
                       setSelectedTemplate={setSelectedTemplate}
                       bgColor={bgColor} setBgColor={handleBackgroundColorChange}
                       bgImage={bgImage} setBgImage={handleBackgroundImageChange}
+                      backgroundStatus={backgroundStatus}
                       wordmark={assetState}
                       setWordmark={(next) => setAssetState((current) => ({ ...current, ...next }))}
                     />
@@ -1481,6 +1499,8 @@ export default function PollCreate() {
                       bgColor={bgColor} setBgColor={handleBackgroundColorChange}
                       bgImage={bgImage}
                       setBgImage={handleBackgroundImageChange}
+                      imageMissing={backgroundImageMissing}
+                      onImageMissing={handleMissingBackgroundImage}
                       assetState={assetState}
                       setAssetState={setAssetState}
                       highlightField={highlightField}

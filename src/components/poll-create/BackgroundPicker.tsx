@@ -14,9 +14,11 @@ interface Props {
   setBgColor: (v: string) => void;
   bgImage?: string;
   setBgImage: (v: string | undefined) => void;
+  imageMissing?: boolean;
+  onImageMissing?: () => void;
 }
 
-export function BackgroundPicker({ bgColor, setBgColor, bgImage, setBgImage }: Props) {
+export function BackgroundPicker({ bgColor, setBgColor, bgImage, setBgImage, imageMissing = false, onImageMissing }: Props) {
   const { user } = useAuth();
   const [library, setLibrary] = useState<Background[]>([]);
   const [loading, setLoading] = useState(true);
@@ -110,7 +112,7 @@ export function BackgroundPicker({ bgColor, setBgColor, bgImage, setBgImage }: P
 
       {bgImage ? (
         <div className="relative w-full h-20 rounded-md overflow-hidden border border-border">
-          <img src={bgImage} alt="Selected background" className="w-full h-full object-cover" />
+          <img src={bgImage} alt="Selected background" className="w-full h-full object-cover" onError={onImageMissing} />
           <div className="absolute bottom-1 right-1 bg-primary/90 text-primary-foreground rounded-full p-0.5">
             <Check className="w-3 h-3" />
           </div>
@@ -159,6 +161,12 @@ export function BackgroundPicker({ bgColor, setBgColor, bgImage, setBgImage }: P
           </Button>
         )}
       </div>
+
+      {imageMissing && (
+        <div className="rounded-md border border-destructive/40 bg-destructive/10 px-2.5 py-2 text-[10px] text-destructive">
+          The selected background image is no longer available, so this folder is using its background color fallback.
+        </div>
+      )}
 
       <div className="space-y-1.5">
         <div className="flex items-center justify-between">

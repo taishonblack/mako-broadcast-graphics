@@ -7,7 +7,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { templateLabels } from '@/lib/mock-data';
 import { TemplateName } from '@/lib/types';
 import { AssetState } from '@/components/poll-create/polling-assets/types';
-import { Save, FolderOpen, Copy, Upload, FileDown, X } from 'lucide-react';
+import { Save, FolderOpen, Copy, Upload, FileDown, X, CheckCircle2, ImageOff } from 'lucide-react';
 import { useRef } from 'react';
 
 const templateOptions: TemplateName[] = [
@@ -22,6 +22,11 @@ interface BuildControlsPanelProps {
   setBgColor: (v: string) => void;
   bgImage?: string;
   setBgImage: (v: string | undefined) => void;
+  backgroundStatus?: {
+    hasColor: boolean;
+    hasImage: boolean;
+    imageMissing?: boolean;
+  };
   wordmark: Pick<AssetState, 'wordmarkWeight' | 'wordmarkTracking' | 'wordmarkScale' | 'wordmarkShowGuides'>;
   setWordmark: (next: Pick<AssetState, 'wordmarkWeight' | 'wordmarkTracking' | 'wordmarkScale' | 'wordmarkShowGuides'>) => void;
   /** Render only one section. Defaults to 'all' for backward-compat. */
@@ -32,6 +37,7 @@ export function BuildControlsPanel({
   selectedTemplate, setSelectedTemplate,
   bgColor, setBgColor,
   bgImage, setBgImage,
+  backgroundStatus,
   wordmark, setWordmark,
   section = 'all',
 }: BuildControlsPanelProps) {
@@ -80,7 +86,21 @@ export function BuildControlsPanel({
 
   const Background = (
       <div className="mako-panel p-4 space-y-3">
-        <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Background</h2>
+        <div className="flex items-center justify-between gap-3">
+          <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Background</h2>
+          {backgroundStatus && (
+            <div className="flex items-center gap-1.5 text-[9px] font-mono uppercase tracking-wider text-muted-foreground">
+              <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 ${backgroundStatus.hasColor ? 'border-primary/30 bg-primary/10 text-primary' : 'border-border/60 bg-muted/30'}`}>
+                <CheckCircle2 className="h-3 w-3" />
+                Color
+              </span>
+              <span className={`inline-flex items-center gap-1 rounded-full border px-1.5 py-0.5 ${backgroundStatus.hasImage ? 'border-primary/30 bg-primary/10 text-primary' : 'border-border/60 bg-muted/30'} ${backgroundStatus.imageMissing ? 'border-destructive/40 bg-destructive/10 text-destructive' : ''}`}>
+                <ImageOff className="h-3 w-3" />
+                {backgroundStatus.imageMissing ? 'Image missing' : backgroundStatus.hasImage ? 'Image set' : 'No image'}
+              </span>
+            </div>
+          )}
+        </div>
         <div className="space-y-2.5">
           <div className="space-y-1">
             <Label className="text-[10px] text-muted-foreground">Color</Label>
