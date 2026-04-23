@@ -9,6 +9,7 @@ export interface OutputAssets {
   qrSize: number;
   qrPosition: QRPosition;
   qrVisible?: boolean;
+  qrUrlVisible?: boolean;
   showBranding: boolean;
   brandingPosition: QRPosition;
   enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally'>;
@@ -63,6 +64,7 @@ export function readOutputState(): OutputStatePayload | null {
         ? {
             ...parsed.assets,
               qrVisible: parsed.assets.qrVisible ?? DEFAULT_ASSET_STATE.qrVisible,
+              qrUrlVisible: parsed.assets.qrUrlVisible ?? DEFAULT_ASSET_STATE.qrUrlVisible,
               enabledAssetIds: parsed.assets.enabledAssetIds ?? ['question', 'answers', 'logo'],
               transforms: parsed.assets.transforms ?? DEFAULT_ASSET_TRANSFORMS,
             wordmarkWeight: parsed.assets.wordmarkWeight ?? DEFAULT_ASSET_STATE.wordmarkWeight,
