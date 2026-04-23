@@ -456,6 +456,7 @@ export type Database = {
           default_background_id: string | null
           description: string | null
           id: string
+          last_used_at: string
           name: string
           notes: string
           project_date: string
@@ -470,6 +471,7 @@ export type Database = {
           default_background_id?: string | null
           description?: string | null
           id?: string
+          last_used_at?: string
           name: string
           notes?: string
           project_date?: string
@@ -484,6 +486,7 @@ export type Database = {
           default_background_id?: string | null
           description?: string | null
           id?: string
+          last_used_at?: string
           name?: string
           notes?: string
           project_date?: string
@@ -556,6 +559,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      normalize_project_tags: { Args: { _tags: string[] }; Returns: string[] }
       poll_owned_by_user: { Args: { _poll_id: string }; Returns: boolean }
       project_owned_by_user: { Args: { _project_id: string }; Returns: boolean }
     }
