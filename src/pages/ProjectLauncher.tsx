@@ -201,7 +201,7 @@ export default function ProjectLauncher() {
                           )}
                         </div>
                         <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-mono">
-                          <span>{new Date(project.lastOpenedAt).toLocaleDateString()}</span>
+                          <span>{new Date(project.updated_at).toLocaleDateString()}</span>
                         </div>
                       </div>
                     </button>
@@ -348,7 +348,6 @@ export default function ProjectLauncher() {
                     key={project.id}
                     type="button"
                     onDoubleClick={() => setConfirmProject(project)}
-                    onClick={() => setConfirmProject(project)}
                     className="w-full border-b border-border/70 p-4 text-left transition-colors last:border-b-0 hover:bg-accent/40"
                   >
                     <div className="flex items-start justify-between gap-4">
