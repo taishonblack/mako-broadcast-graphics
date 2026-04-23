@@ -9,6 +9,16 @@ import { PollingAssetsPane, SEEDED_ASSETS } from '@/components/poll-create/polli
 import { AssetInspector } from '@/components/poll-create/polling-assets/AssetInspector';
 import { AssetId, AssetState, DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/types';
 import { Button } from '@/components/ui/button';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { ResizablePanelGroup, ResizablePanel, ResizableHandle } from '@/components/ui/resizable';
 import {
@@ -556,7 +566,6 @@ export default function PollCreate() {
   };
 
   // Modular polling-assets state
-  const [enabledAssets, setEnabledAssets] = useState<AssetId[]>(SEEDED_ASSETS);
   const [selectedAssetId, setSelectedAssetId] = useState<AssetId | null>(null);
   const [assetState, setAssetState] = useState<AssetState>(DEFAULT_ASSET_STATE);
   const [highlightField, setHighlightField] = useState<string | null>(null);
@@ -567,6 +576,39 @@ export default function PollCreate() {
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
   const availableAssets = getAvailableAssets(folderState);
+
+  useEffect(() => {
+    if (!activeFolder) return;
+    if (blockLetter !== activeFolder.blockLetter) {
+      setBlockLetter(activeFolder.blockLetter);
+    }
+    if (selectedAssetId && !activeFolder.assetIds.includes(selectedAssetId)) {
+      setSelectedAssetId(activeFolder.assetIds[0] ?? null);
+    }
+  }, [activeFolder, blockLetter, selectedAssetId]);
+
+  useEffect(() => {
+    if (!user || !projectId) {
+      setFoldersLoadedForProject(null);
+      setFolderState(createDefaultFolderState());
+      return;
+    }
+
+    loadProjectPollingAssetFolders(projectId, user.id)
+      .then((savedState) => {
+        setFolderState(savedState ?? createDefaultFolderState());
+        setFoldersLoadedForProject(projectId);
+      })
+      .catch(() => {
+        setFolderState(createDefaultFolderState());
+        setFoldersLoadedForProject(projectId);
+      });
+  }, [projectId, user]);
+
+  useEffect(() => {
+    if (!user || !projectId || foldersLoadedForProject !== projectId) return;
+    saveProjectPollingAssetFolders(projectId, user.id, folderState).catch(() => undefined);
+  }, [folderState, foldersLoadedForProject, projectId, user]);
 
   // Map a JSON import field name to the matching asset id in the workspace
   const fieldToAssetId = (field: string): AssetId | null => {
@@ -604,21 +646,15 @@ export default function PollCreate() {
         id: createFolderId(),
         name: createFolderName(nextIndex),
         blockLetter: blockLetter,
-        assetIds: [...SEEDED_ASSETS],
+        assetIds: [],
       };
 
       return {
         activeFolderId: nextFolder.id,
-        folders: [
-          ...current.folders.map((folder) => ({
-            ...folder,
-            assetIds: folder.assetIds.filter((assetId) => !SEEDED_ASSETS.includes(assetId)),
-          })),
-          nextFolder,
-        ],
+        folders: [...current.folders, nextFolder],
       };
     });
-    setSelectedAssetId('question');
+    setSelectedAssetId(null);
     toast.success('Created new folder');
   };
 
@@ -648,13 +684,27 @@ export default function PollCreate() {
     }));
   };
 
+  const handleSelectFolder = (folderId: string) => {
+    updateFolderState((current) => ({ ...current, activeFolderId: folderId }));
+    const nextFolder = getFolderById(folderState, folderId);
+    setSelectedAssetId(nextFolder?.assetIds[0] ?? null);
+  };
+
+  const handleBlockLetterChange = (next: BlockLetter) => {
+    setBlockLetter(next);
+    updateFolderState((current) => ({
+      ...current,
+      folders: current.folders.map((folder) => folder.id === current.activeFolderId ? { ...folder, blockLetter: next } : folder),
+    }));
+  };
+
   const handleMoveAssetToFolder = (assetId: AssetId, folderId: string) => {
     updateFolderState((current) => {
       const nextFolders = current.folders.map((folder) => ({
         ...folder,
         assetIds: folder.id === folderId
           ? Array.from(new Set([...folder.assetIds, assetId]))
-          : folder.assetIds.filter((id) => id !== assetId || SEEDED_ASSETS.includes(id)),
+          : folder.assetIds.filter((id) => id !== assetId),
       }));
 
       return { ...current, folders: nextFolders, activeFolderId: folderId };
