@@ -93,6 +93,11 @@ interface EditorSnapshot {
   folderState: PollingAssetFolderState;
 }
 
+interface SelectionHistory {
+  undo: EditorSnapshot[];
+  redo: EditorSnapshot[];
+}
+
 function cloneSnapshotValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
@@ -688,12 +693,13 @@ export default function PollCreate() {
   const [folderState, setFolderState] = useState<PollingAssetFolderState>(() => createDefaultFolderState(question));
   const [deleteFolderTargetId, setDeleteFolderTargetId] = useState<string | null>(null);
   const [foldersLoadedForProject, setFoldersLoadedForProject] = useState<string | null>(null);
-  const [undoStack, setUndoStack] = useState<EditorSnapshot[]>([]);
-  const [redoStack, setRedoStack] = useState<EditorSnapshot[]>([]);
+  const [selectionHistory, setSelectionHistory] = useState<Record<string, SelectionHistory>>({});
 
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
   const activeInspectorAssetIds = selectedAssetId ? [selectedAssetId] : enabledAssets;
+  const activeHistoryKey = selectedAssetId ?? `folder:${folderState.activeFolderId ?? 'none'}`;
+  const currentHistory = selectionHistory[activeHistoryKey] ?? { undo: [], redo: [] };
   const previewColors = assetColors.answers.barColors?.length
     ? assetColors.answers.barColors
     : [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
@@ -750,31 +756,75 @@ export default function PollCreate() {
 
   const pushUndoSnapshot = useCallback(() => {
     const snapshot = createSnapshot();
-    setUndoStack((current) => [...current.slice(-24), snapshot]);
-    setRedoStack([]);
-  }, [createSnapshot]);
+    setSelectionHistory((current) => {
+      const existing = current[activeHistoryKey] ?? { undo: [], redo: [] };
+      return {
+        ...current,
+        [activeHistoryKey]: {
+          undo: [...existing.undo.slice(-24), snapshot],
+          redo: [],
+        },
+      };
+    });
+  }, [activeHistoryKey, createSnapshot]);
 
   const handleUndoChanges = () => {
-    setUndoStack((current) => {
-      const previous = current[current.length - 1];
+    setSelectionHistory((current) => {
+      const existing = current[activeHistoryKey] ?? { undo: [], redo: [] };
+      const previous = existing.undo[existing.undo.length - 1];
       if (!previous) return current;
-      setRedoStack((redoCurrent) => [...redoCurrent.slice(-24), createSnapshot()]);
       restoreSnapshot(previous);
       toast.success('Undid latest change');
-      return current.slice(0, -1);
+      return {
+        ...current,
+        [activeHistoryKey]: {
+          undo: existing.undo.slice(0, -1),
+          redo: [...existing.redo.slice(-24), createSnapshot()],
+        },
+      };
     });
   };
 
   const handleRedoChanges = () => {
-    setRedoStack((current) => {
-      const next = current[current.length - 1];
+    setSelectionHistory((current) => {
+      const existing = current[activeHistoryKey] ?? { undo: [], redo: [] };
+      const next = existing.redo[existing.redo.length - 1];
       if (!next) return current;
-      setUndoStack((undoCurrent) => [...undoCurrent.slice(-24), createSnapshot()]);
       restoreSnapshot(next);
       toast.success('Redid latest change');
-      return current.slice(0, -1);
+      return {
+        ...current,
+        [activeHistoryKey]: {
+          undo: [...existing.undo.slice(-24), createSnapshot()],
+          redo: existing.redo.slice(0, -1),
+        },
+      };
     });
   };
+
+  useEffect(() => {
+    const handleKeyDown = (event: KeyboardEvent) => {
+      const target = event.target as HTMLElement | null;
+      const tagName = target?.tagName?.toLowerCase();
+      const isEditable = Boolean(target?.isContentEditable) || tagName === 'input' || tagName === 'textarea' || tagName === 'select';
+      if (isEditable || !(event.metaKey || event.ctrlKey)) return;
+
+      const key = event.key.toLowerCase();
+      const wantsUndo = key === 'z' && !event.shiftKey;
+      const wantsRedo = (key === 'z' && event.shiftKey) || (!event.metaKey && event.ctrlKey && key === 'y');
+      if (!wantsUndo && !wantsRedo) return;
+
+      event.preventDefault();
+      if (wantsUndo) {
+        handleUndoChanges();
+        return;
+      }
+      handleRedoChanges();
+    };
+
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [handleRedoChanges, handleUndoChanges]);
 
   useEffect(() => {
     if (!activeFolder) return;
@@ -1133,11 +1183,11 @@ export default function PollCreate() {
               <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
                 History
               </DropdownMenuLabel>
-              <DropdownMenuItem onClick={handleUndoChanges} disabled={undoStack.length === 0} className="text-xs gap-2">
+              <DropdownMenuItem onClick={handleUndoChanges} disabled={currentHistory.undo.length === 0} className="text-xs gap-2">
                 <Undo2 className="w-3 h-3" />
                 Undo Change
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={handleRedoChanges} disabled={redoStack.length === 0} className="text-xs gap-2">
+              <DropdownMenuItem onClick={handleRedoChanges} disabled={currentHistory.redo.length === 0} className="text-xs gap-2">
                 <Redo2 className="w-3 h-3" />
                 Redo Change
               </DropdownMenuItem>
