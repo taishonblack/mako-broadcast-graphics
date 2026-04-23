@@ -575,7 +575,7 @@ export default function PollCreate() {
 
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
-  const availableAssets = getAvailableAssets(folderState);
+  const availableAssets = getAvailableAssets(enabledAssets);
 
   useEffect(() => {
     if (!activeFolder) return;
@@ -646,7 +646,7 @@ export default function PollCreate() {
         id: createFolderId(),
         name: createFolderName(nextIndex),
         blockLetter: blockLetter,
-        assetIds: [],
+        assetIds: [...SEEDED_ASSETS],
       };
 
       return {
@@ -696,20 +696,6 @@ export default function PollCreate() {
       ...current,
       folders: current.folders.map((folder) => folder.id === current.activeFolderId ? { ...folder, blockLetter: next } : folder),
     }));
-  };
-
-  const handleMoveAssetToFolder = (assetId: AssetId, folderId: string) => {
-    updateFolderState((current) => {
-      const nextFolders = current.folders.map((folder) => ({
-        ...folder,
-        assetIds: folder.id === folderId
-          ? Array.from(new Set([...folder.assetIds, assetId]))
-          : folder.assetIds.filter((id) => id !== assetId),
-      }));
-
-      return { ...current, folders: nextFolders, activeFolderId: folderId };
-    });
-    setSelectedAssetId(assetId);
   };
 
   if (loadingExisting) {
@@ -912,7 +898,6 @@ export default function PollCreate() {
                   onSelectAsset={setSelectedAssetId}
                   onSelectFolder={handleSelectFolder}
                   onCreateFolder={handleNewFolder}
-                  onMoveAssetToFolder={handleMoveAssetToFolder}
                   folderName={activeFolder?.name ?? 'Folder'}
                   blockLetter={blockLetter}
                   onBlockLetterChange={handleBlockLetterChange}
