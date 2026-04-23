@@ -9,6 +9,7 @@ import Blocks from "./pages/Blocks";
 import PollCreate from "./pages/PollCreate";
 import BackgroundGallery from "./pages/BackgroundGallery";
 import ProgramOutput from "./pages/ProgramOutput";
+import OperatorSettings from "./pages/OperatorSettings";
 import ViewerVote from "./pages/ViewerVote";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -39,6 +40,7 @@ const App = () => (
           <Route path="/dashboard" element={<Navigate to="/polls/new?mode=output" replace />} />
           <Route path="/blocks" element={<ProtectedRoute><Blocks /></ProtectedRoute>} />
           <Route path="/backgrounds" element={<ProtectedRoute><BackgroundGallery /></ProtectedRoute>} />
+          <Route path="/settings" element={<ProtectedRoute><OperatorSettings /></ProtectedRoute>} />
           <Route path="/polls/new" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
           <Route path="/polls/:id" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
           <Route path="/polls/:id/edit" element={<ProtectedRoute><LegacyPollEditRedirect /></ProtectedRoute>} />
