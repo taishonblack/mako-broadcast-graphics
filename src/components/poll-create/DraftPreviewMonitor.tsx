@@ -7,8 +7,8 @@ import { Monitor, Smartphone, Globe, Copy, Link2, Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { AnswerType, MCLabelStyle, PreviewDataMode, getMCLabel } from './ContentPanel';
-import { AssetState, AssetTransformMap } from './polling-assets/types';
-import { AssetId, QRPosition } from '@/lib/types';
+import { AssetId, AssetState, AssetTransformMap } from './polling-assets/types';
+import { QRPosition } from '@/lib/types';
 import { WordmarkLockup } from '@/components/broadcast/WordmarkLockup';
 import { usePreviewOverlays } from '@/lib/preview-overlays';
 
@@ -33,6 +33,7 @@ interface DraftPreviewMonitorProps {
   answers: AnswerItem[];
   bgColor: string;
   bgImage?: string;
+  slug: string;
   fullUrl: string;
   shortUrl: string;
   wordmark: Pick<AssetState, 'wordmarkWeight' | 'wordmarkTracking' | 'wordmarkScale' | 'wordmarkShowGuides'>;
@@ -64,6 +65,7 @@ function resolveOptionLabels(
 export function DraftPreviewMonitor({
   question, subheadline, options, totalVotes, colors, template, theme, hasContent,
   answerType, mcLabelStyle, previewDataMode, answers, bgColor, bgImage, fullUrl, shortUrl, wordmark,
+  slug,
   qrSize, qrPosition, showBranding, brandingPosition, enabledAssetIds, transforms,
 }: DraftPreviewMonitorProps) {
   const [previewMode, setPreviewMode] = useState<PreviewMode>('program');
@@ -132,7 +134,7 @@ export function DraftPreviewMonitor({
             colors={colors}
             theme={theme}
             template={template}
-            slug={shortUrl.replace('mvote.app/', '')}
+            slug={slug}
             qrSize={qrSize}
             qrPosition={qrPosition}
             showBranding={showBranding}
@@ -168,7 +170,7 @@ export function DraftPreviewMonitor({
             colors={colors}
             theme={theme}
             template={template}
-            slug={shortUrl.replace('mvote.app/', '')}
+            slug={slug}
             qrSize={qrSize}
             qrPosition={qrPosition}
             showBranding={showBranding}

@@ -48,7 +48,6 @@ import {
   createFolderId,
   createFolderName,
   findAssetFolder,
-  getAvailableAssets,
   getFolderById,
   loadProjectPollingAssetFolders,
   PollingAssetFolderState,
@@ -685,7 +684,7 @@ export default function PollCreate() {
         setAssetTransforms(DEFAULT_ASSET_TRANSFORMS);
         setFoldersLoadedForProject(projectId);
       });
-  }, [projectId, user]);
+  }, [projectId, question, user]);
 
   useEffect(() => {
     if (!folderState.activeFolderId) return;
@@ -1126,6 +1125,7 @@ export default function PollCreate() {
                     answers={answers}
                     bgColor={bgColor}
                     bgImage={bgImage}
+                  slug={slugForUrl}
                     fullUrl={fullUrl}
                     shortUrl={shortUrl}
                     wordmark={assetState}
