@@ -35,7 +35,6 @@ interface PollingAssetsPaneProps {
   onSelectAsset: (id: AssetId | null) => void;
   onSelectFolder: (folderId: string) => void;
   onCreateFolder: () => void;
-  folderName: string;
   blockLetter: BlockLetter;
   onBlockLetterChange: (next: BlockLetter) => void;
 
@@ -58,7 +57,6 @@ export function PollingAssetsPane({
   selectedAssetId, onSelectAsset,
   onSelectFolder,
   onCreateFolder,
-  folderName,
   blockLetter, onBlockLetterChange,
   question, setQuestion,
   subheadline, setSubheadline,
@@ -70,18 +68,6 @@ export function PollingAssetsPane({
 }: PollingAssetsPaneProps) {
   const [draggedId, setDraggedId] = useState<AssetId | null>(null);
   const [folderCollapsed, setFolderCollapsed] = useState(false);
-
-  const addAsset = (id: AssetId) => {
-    if (!availableAssets.includes(id)) return;
-    onEnabledAssetsChange([...enabledAssets, id]);
-    onSelectAsset(id);
-  };
-
-  const removeAsset = (id: AssetId) => {
-    if (ASSET_REGISTRY[id].required) return;
-    onEnabledAssetsChange(enabledAssets.filter((a) => a !== id));
-    if (selectedAssetId === id) onSelectAsset(null);
-  };
 
   const reorder = (fromId: AssetId, toId: AssetId) => {
     if (fromId === toId) return;
@@ -110,7 +96,8 @@ export function PollingAssetsPane({
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {folders.map((folder) => {
           const folderAssets = folder.assetIds;
-          const folderAvailableAssets = getAvailableAssets(folderAssets);
+          const folderAvailableAssets = (Object.keys(ASSET_REGISTRY) as AssetId[])
+            .filter((assetId) => !folderAssets.includes(assetId));
           const isActiveFolder = folder.id === activeFolderId;
 
           return (

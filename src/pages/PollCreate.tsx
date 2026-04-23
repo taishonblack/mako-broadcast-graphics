@@ -898,7 +898,6 @@ export default function PollCreate() {
                   onSelectAsset={setSelectedAssetId}
                   onSelectFolder={handleSelectFolder}
                   onCreateFolder={handleNewFolder}
-                  folderName={activeFolder?.name ?? 'Folder'}
                   blockLetter={blockLetter}
                   onBlockLetterChange={handleBlockLetterChange}
                   question={question} setQuestion={setQuestion}
