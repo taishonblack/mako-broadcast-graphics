@@ -570,7 +570,7 @@ export default function PollCreate() {
   const [assetState, setAssetState] = useState<AssetState>(DEFAULT_ASSET_STATE);
   const [highlightField, setHighlightField] = useState<string | null>(null);
   const [folderState, setFolderState] = useState<PollingAssetFolderState>(createDefaultFolderState);
-  const [deleteFolderOpen, setDeleteFolderOpen] = useState(false);
+  const [deleteFolderTargetId, setDeleteFolderTargetId] = useState<string | null>(null);
   const [foldersLoadedForProject, setFoldersLoadedForProject] = useState<string | null>(null);
 
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
@@ -658,9 +658,9 @@ export default function PollCreate() {
     toast.success('Created new folder');
   };
 
-  const handleDeleteFolder = () => {
+  const handleDeleteFolder = (folderId: string) => {
     updateFolderState((current) => {
-      const targetFolder = getFolderById(current, current.activeFolderId);
+      const targetFolder = getFolderById(current, folderId);
       if (!targetFolder || current.folders.length === 1) return current;
 
       const remainingFolders = current.folders.filter((folder) => folder.id !== targetFolder.id);
@@ -672,7 +672,7 @@ export default function PollCreate() {
         folders: remainingFolders.map((folder) => folder.id === fallbackFolder.id ? { ...folder, assetIds: mergedAssets } : folder),
       };
     });
-    setDeleteFolderOpen(false);
+    setDeleteFolderTargetId(null);
     setSelectedAssetId(null);
     toast.success('Folder deleted');
   };
@@ -696,6 +696,38 @@ export default function PollCreate() {
       ...current,
       folders: current.folders.map((folder) => folder.id === current.activeFolderId ? { ...folder, blockLetter: next } : folder),
     }));
+  };
+
+  const handleSetFolderBlock = (folderId: string, next: BlockLetter) => {
+    if (folderId === folderState.activeFolderId) {
+      setBlockLetter(next);
+    }
+    updateFolderState((current) => ({
+      ...current,
+      folders: current.folders.map((folder) => folder.id === folderId ? { ...folder, blockLetter: next } : folder),
+    }));
+  };
+
+  const handleRenameFolder = (folderId: string, nextName: string) => {
+    const trimmed = nextName.trim();
+    if (!trimmed) return;
+    updateFolderState((current) => ({
+      ...current,
+      folders: current.folders.map((folder) => folder.id === folderId ? { ...folder, name: trimmed } : folder),
+    }));
+  };
+
+  const handleAddAssetToFolder = (folderId: string, assetId: AssetId) => {
+    updateFolderState((current) => ({
+      ...current,
+      activeFolderId: folderId,
+      folders: current.folders.map((folder) => (
+        folder.id === folderId && !folder.assetIds.includes(assetId)
+          ? { ...folder, assetIds: [...folder.assetIds, assetId] }
+          : folder
+      )),
+    }));
+    setSelectedAssetId(assetId);
   };
 
   if (loadingExisting) {
@@ -898,6 +930,10 @@ export default function PollCreate() {
                   onSelectAsset={setSelectedAssetId}
                   onSelectFolder={handleSelectFolder}
                   onCreateFolder={handleNewFolder}
+                  onAddAssetToFolder={handleAddAssetToFolder}
+                  onRenameFolder={handleRenameFolder}
+                  onSetFolderBlock={handleSetFolderBlock}
+                  onDeleteFolder={(folderId) => setDeleteFolderTargetId(folderId)}
                   blockLetter={blockLetter}
                   onBlockLetterChange={handleBlockLetterChange}
                   question={question} setQuestion={setQuestion}
