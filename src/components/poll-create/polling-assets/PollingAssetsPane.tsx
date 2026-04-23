@@ -35,6 +35,10 @@ interface PollingAssetsPaneProps {
   onSelectAsset: (id: AssetId | null) => void;
   onSelectFolder: (folderId: string) => void;
   onCreateFolder: () => void;
+  onAddAssetToFolder: (folderId: string, assetId: AssetId) => void;
+  onRenameFolder: (folderId: string, nextName: string) => void;
+  onSetFolderBlock: (folderId: string, next: BlockLetter) => void;
+  onDeleteFolder: (folderId: string) => void;
   blockLetter: BlockLetter;
   onBlockLetterChange: (next: BlockLetter) => void;
 
@@ -57,6 +61,10 @@ export function PollingAssetsPane({
   selectedAssetId, onSelectAsset,
   onSelectFolder,
   onCreateFolder,
+  onAddAssetToFolder,
+  onRenameFolder,
+  onSetFolderBlock,
+  onDeleteFolder,
   blockLetter, onBlockLetterChange,
   question, setQuestion,
   subheadline, setSubheadline,
@@ -157,7 +165,7 @@ export function PollingAssetsPane({
                     const meta = ASSET_REGISTRY[id];
                     const Icon = meta.icon;
                     return (
-                      <DropdownMenuItem key={id} onClick={() => { onSelectFolder(folder.id); onEnabledAssetsChange([...folderAssets, id]); onSelectAsset(id); }} className="gap-2">
+                      <DropdownMenuItem key={id} onClick={() => { onSelectFolder(folder.id); onAddAssetToFolder(folder.id, id); }} className="gap-2">
                         <Icon className="w-3.5 h-3.5 text-muted-foreground" />
                         <div className="flex flex-col">
                           <span className="text-xs">{meta.label}</span>
@@ -166,6 +174,35 @@ export function PollingAssetsPane({
                       </DropdownMenuItem>
                     );
                   })}
+                </DropdownMenuContent>
+              </DropdownMenu>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onSelectFolder(folder.id)}>
+                    <MoreVertical className="w-3.5 h-3.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-44">
+                  <DropdownMenuItem
+                    onClick={() => {
+                      const nextName = window.prompt('Rename folder', folder.name);
+                      if (nextName) onRenameFolder(folder.id, nextName);
+                    }}
+                  >
+                    Rename
+                  </DropdownMenuItem>
+                  <DropdownMenuLabel className="text-[10px] uppercase font-mono">Set Block</DropdownMenuLabel>
+                  {BLOCK_LETTERS.map((letter) => (
+                    <DropdownMenuItem key={`${folder.id}-${letter}`} onClick={() => onSetFolderBlock(folder.id, letter)} className="justify-between">
+                      <span>{letter}</span>
+                      {folder.blockLetter === letter && <span className="text-[9px] text-primary">●</span>}
+                    </DropdownMenuItem>
+                  ))}
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem disabled={folders.length <= 1} onClick={() => onDeleteFolder(folder.id)}>
+                    Delete Folder
+                  </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
 
@@ -184,6 +221,11 @@ export function PollingAssetsPane({
 
             {(!folderCollapsed || !isActiveFolder) && (
               <div className="p-2.5 space-y-2">
+                {folderAssets.length === 0 && (
+                  <div className="rounded-md border border-dashed border-border/60 bg-background/30 px-3 py-4 text-center">
+                    <p className="text-xs text-muted-foreground">This folder is seeded—add extra assets with + if needed.</p>
+                  </div>
+                )}
                 {folderAssets.map((id) => (
                   <AssetCard
                     key={id}
