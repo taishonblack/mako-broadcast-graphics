@@ -952,6 +952,31 @@ export default function PollCreate() {
     }));
   };
 
+  const syncActiveFolderBackground = (nextBackground: { bgColor?: string; bgImage?: string }) => {
+    updateFolderState((current) => ({
+      ...current,
+      folders: current.folders.map((folder) => (
+        folder.id === current.activeFolderId
+          ? {
+              ...folder,
+              ...(nextBackground.bgColor !== undefined ? { bgColor: nextBackground.bgColor } : {}),
+              ...(Object.prototype.hasOwnProperty.call(nextBackground, 'bgImage') ? { bgImage: nextBackground.bgImage } : {}),
+            }
+          : folder
+      )),
+    }));
+  };
+
+  const handleBackgroundColorChange = (nextColor: string) => {
+    setBgColor(nextColor);
+    syncActiveFolderBackground({ bgColor: nextColor });
+  };
+
+  const handleBackgroundImageChange = (nextImage: string | undefined) => {
+    setBgImage(nextImage);
+    syncActiveFolderBackground({ bgImage: nextImage });
+  };
+
   const handleNewFolder = () => {
     updateFolderState((current) => {
       const nextIndex = current.folders.length + 1;
@@ -960,6 +985,8 @@ export default function PollCreate() {
         name: createFolderName(nextIndex),
         blockLetter: blockLetter,
         questionText: '',
+        bgColor,
+        bgImage,
         assetIds: [...SEEDED_ASSETS],
       };
 
