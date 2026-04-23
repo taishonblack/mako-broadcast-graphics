@@ -1129,6 +1129,12 @@ export default function PollCreate() {
                     fullUrl={fullUrl}
                     shortUrl={shortUrl}
                     wordmark={assetState}
+                  qrSize={qrSize}
+                  qrPosition={qrPosition}
+                  showBranding={showBranding}
+                  brandingPosition={brandingPosition}
+                  enabledAssetIds={enabledAssets}
+                  transforms={assetTransforms}
                   />
                   <AssetTransformControls
                     assetId={selectedAssetId}
