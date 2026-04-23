@@ -559,6 +559,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      normalize_project_tags: { Args: { _tags: string[] }; Returns: string[] }
       poll_owned_by_user: { Args: { _poll_id: string }; Returns: boolean }
       project_owned_by_user: { Args: { _project_id: string }; Returns: boolean }
     }
