@@ -234,7 +234,7 @@ export function DraftPreviewMonitor({
   const previewLabel = previewMode === 'program' ? 'Broadcast Preview' : 'Viewer Preview';
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col">
       {/* Mode toggles */}
       <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card/50 shrink-0">
         <div className="flex items-center gap-2">
@@ -269,7 +269,7 @@ export function DraftPreviewMonitor({
       </div>
 
       {/* Preview area — tightened to lift monitor toward the header */}
-      <div className="flex-1 flex flex-col items-center justify-start pt-2 px-4 pb-4 bg-background/30 min-h-0 overflow-auto gap-2">
+      <div className="flex flex-col items-center justify-start pt-2 px-4 pb-2 bg-background/30 min-h-0 overflow-auto gap-2">
         {previewMode === 'program' ? (
           <PreviewWithOverlays showLabel label="1920×1080" onApiReady={(api) => { overlayApiRef.current = api; }}>
             {renderProgramContent()}
