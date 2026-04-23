@@ -838,7 +838,7 @@ export default function PollCreate() {
   useEffect(() => {
     if (!user || !projectId) {
       setFoldersLoadedForProject(null);
-      const nextState = createDefaultFolderState(question);
+      const nextState = createDefaultFolderState(question, bgColor);
       const savedActiveFolderId = localStorage.getItem(buildActiveFolderStorageKey(projectId));
       if (savedActiveFolderId && nextState.folders.some((folder) => folder.id === savedActiveFolderId)) {
         nextState.activeFolderId = savedActiveFolderId;
@@ -851,7 +851,7 @@ export default function PollCreate() {
 
     loadProjectPollingAssetFolders(projectId, user.id)
       .then((savedState) => {
-        const nextState = savedState ?? createDefaultFolderState(question);
+        const nextState = savedState ?? createDefaultFolderState(question, bgColor);
         const savedActiveFolderId = localStorage.getItem(buildActiveFolderStorageKey(projectId));
         if (savedActiveFolderId && nextState.folders.some((folder) => folder.id === savedActiveFolderId)) {
           nextState.activeFolderId = savedActiveFolderId;
@@ -862,7 +862,7 @@ export default function PollCreate() {
         setFoldersLoadedForProject(projectId);
       })
       .catch(() => {
-        const nextState = createDefaultFolderState(question);
+        const nextState = createDefaultFolderState(question, bgColor);
         const savedActiveFolderId = localStorage.getItem(buildActiveFolderStorageKey(projectId));
         if (savedActiveFolderId && nextState.folders.some((folder) => folder.id === savedActiveFolderId)) {
           nextState.activeFolderId = savedActiveFolderId;
@@ -872,7 +872,7 @@ export default function PollCreate() {
         setAssetColors(DEFAULT_ASSET_COLORS);
         setFoldersLoadedForProject(projectId);
       });
-  }, [projectId, question, user]);
+  }, [bgColor, projectId, question, user]);
 
   useEffect(() => {
     if (!folderState.activeFolderId) return;
@@ -885,7 +885,14 @@ export default function PollCreate() {
     if (question !== nextQuestion) {
       setQuestion(nextQuestion);
     }
-  }, [activeFolder, question]);
+    const nextBgColor = activeFolder.bgColor ?? '#1a1a2e';
+    if (bgColor !== nextBgColor) {
+      setBgColor(nextBgColor);
+    }
+    if (bgImage !== activeFolder.bgImage) {
+      setBgImage(activeFolder.bgImage);
+    }
+  }, [activeFolder, bgColor, bgImage, question]);
 
   useEffect(() => {
     setAssetColors((current) => {
