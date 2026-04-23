@@ -163,6 +163,7 @@ export default function PollCreate() {
   const [qrPosition, setQrPosition] = useState<QRPosition>('bottom-right');
   const [showBranding, setShowBranding] = useState(true);
   const [brandingPosition, setBrandingPosition] = useState<QRPosition>('bottom-left');
+  const theme = themePresets[0];
 
   // Load existing poll if visiting /polls/:id
   useEffect(() => {
@@ -658,7 +659,6 @@ export default function PollCreate() {
 
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
-  const theme = themePresets[0];
   const previewColors = assetColors.answers.barColors?.length
     ? assetColors.answers.barColors
     : [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
