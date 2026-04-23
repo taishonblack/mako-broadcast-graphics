@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { AnswerType, MCLabelStyle, PreviewDataMode } from '@/components/poll-create/ContentPanel';
@@ -1084,6 +1084,25 @@ export default function PollCreate() {
             </DropdownMenuContent>
           </DropdownMenu>
 
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-1 text-[10px] h-7 px-2">
+                <Undo2 className="w-3 h-3" />
+                Edit
+                <ChevronDown className="w-2.5 h-2.5 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-44">
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                History
+              </DropdownMenuLabel>
+              <DropdownMenuItem onClick={handleUndoChanges} disabled={undoStack.length === 0} className="text-xs gap-2">
+                <Undo2 className="w-3 h-3" />
+                Undo Change
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
           <div className="ml-1 flex items-center gap-1 rounded-lg bg-muted/50 p-0.5">
             <Button
               variant="ghost"
@@ -1277,11 +1296,14 @@ export default function PollCreate() {
                   <AssetTransformControls
                     assetId={selectedAssetId}
                     assetLabel={selectedAssetId ? ASSET_REGISTRY[selectedAssetId]?.label : undefined}
-                    transform={selectedAssetId ? assetTransforms[selectedAssetId] : undefined}
-                    colors={selectedAssetId ? assetColors[selectedAssetId] : undefined}
+                    folderLabel={selectedAssetId ? undefined : activeFolder?.name}
+                    folderAssetIds={selectedAssetId ? undefined : activeInspectorAssetIds}
+                    transforms={assetTransforms}
+                    colors={assetColors}
+                    answerCount={answers.length}
                     onChange={handleTransformChange}
                     onToggleLock={handleToggleTransformLock}
-                    onColorsChange={selectedAssetId ? (nextColors) => handleAssetColorsChange(selectedAssetId, nextColors) : undefined}
+                    onColorsChange={handleAssetColorsChange}
                   />
                 </div>
               </Pane>
