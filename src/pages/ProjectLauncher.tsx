@@ -1,7 +1,15 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '@/hooks/useAuth';
-import { createProject, listProjects } from '@/lib/poll-persistence';
+import { createProject, deleteProject, listProjects, markProjectLastUsed, renameProject } from '@/lib/poll-persistence';
+import {
+  MAX_PROJECT_TAG_COUNT,
+  MAX_PROJECT_TAG_LENGTH,
+  normalizeProjectTags,
+  projectCreateSchema,
+  projectRenameSchema,
+  projectTagSchema,
+} from '@/lib/project-validation';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
@@ -9,7 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
-import { FolderOpen, Clock, Search, Settings, X, Plus } from 'lucide-react';
+import { Clock, FolderOpen, Pencil, Plus, Search, Settings, Tag, Trash2, X } from 'lucide-react';
 import makoIllustration from '@/assets/mako-illustration.png';
 
 type ProjectRecord = {
@@ -19,8 +27,15 @@ type ProjectRecord = {
   tags: string[];
   created_at: string;
   updated_at: string;
+  last_used_at: string;
   project_date: string;
 };
+
+const STARTER_TAGS = ['morning show', 'asl', 'animated'];
+
+const sortProjectsByLastUsed = (items: ProjectRecord[]) => (
+  [...items].sort((a, b) => new Date(b.last_used_at).getTime() - new Date(a.last_used_at).getTime())
+);
 
 export default function ProjectLauncher() {
   const navigate = useNavigate();
@@ -33,74 +48,237 @@ export default function ProjectLauncher() {
   const [newProjectName, setNewProjectName] = useState('');
   const [newTag, setNewTag] = useState('');
   const [selectedTags, setSelectedTags] = useState<string[]>([]);
-  const [search, setSearch] = useState('');
+  const [searchName, setSearchName] = useState('');
+  const [searchTags, setSearchTags] = useState<string[]>([]);
   const [creating, setCreating] = useState(false);
+  const [renameTarget, setRenameTarget] = useState<ProjectRecord | null>(null);
+  const [renameValue, setRenameValue] = useState('');
+  const [renaming, setRenaming] = useState(false);
+  const [deleteTarget, setDeleteTarget] = useState<ProjectRecord | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [nameError, setNameError] = useState<string | null>(null);
+  const [tagError, setTagError] = useState<string | null>(null);
+  const [guidedDialogShown, setGuidedDialogShown] = useState(false);
+
+  const loadProjects = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      const items = await listProjects();
+      setProjects(sortProjectsByLastUsed((items as ProjectRecord[]) ?? []));
+    } catch (error) {
+      toast.error(`Could not load projects: ${(error as Error).message}`);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    if (!user) return;
-    setLoading(true);
-    listProjects()
-      .then((items) => setProjects((items as ProjectRecord[]) ?? []))
-      .catch((error) => toast.error(`Could not load projects: ${error.message}`))
-      .finally(() => setLoading(false));
+    void loadProjects();
   }, [user]);
 
-  const recentProjects = useMemo(
-    () => [...projects].sort((a, b) => new Date(b.updated_at).getTime() - new Date(a.updated_at).getTime()).slice(0, 10),
-    [projects],
-  );
+  useEffect(() => {
+    if (!loading && projects.length === 0 && !guidedDialogShown) {
+      setNewProjectOpen(true);
+      setGuidedDialogShown(true);
+    }
+  }, [guidedDialogShown, loading, projects.length]);
+
+  const recentProjects = useMemo(() => projects.slice(0, 10), [projects]);
 
   const currentProject = recentProjects[0];
 
   const availableTags = useMemo(
-    () => Array.from(new Set(projects.flatMap((project) => project.tags ?? []).map((tag) => tag.trim()).filter(Boolean))).sort(),
+    () => Array.from(new Set([...STARTER_TAGS, ...projects.flatMap((project) => project.tags ?? [])])).sort(),
     [projects],
   );
 
   const filteredProjects = useMemo(() => {
-    const term = search.trim().toLowerCase();
-    if (!term) return projects;
-    return projects.filter((project) => {
-      const haystack = [project.name, project.description ?? '', ...(project.tags ?? [])].join(' ').toLowerCase();
-      return haystack.includes(term);
-    });
-  }, [projects, search]);
+    const term = searchName.trim().toLowerCase();
 
-  const openProject = (project: Pick<ProjectRecord, 'id' | 'name'>) => {
+    return projects.filter((project) => {
+      const nameMatches = term.length === 0
+        ? true
+        : [project.name, project.description ?? ''].join(' ').toLowerCase().includes(term);
+      const tagMatches = searchTags.length === 0
+        ? true
+        : searchTags.every((tag) => project.tags.includes(tag));
+
+      return nameMatches && tagMatches;
+    });
+  }, [projects, searchName, searchTags]);
+
+  const resetNewProjectForm = () => {
+    setNewProjectName('');
+    setNewTag('');
+    setSelectedTags([]);
+    setNameError(null);
+    setTagError(null);
+  };
+
+  const openProject = async (project: Pick<ProjectRecord, 'id' | 'name'>) => {
+    try {
+      const updated = await markProjectLastUsed(project.id);
+      setProjects((current) => sortProjectsByLastUsed(current.map((item) => (
+        item.id === project.id ? { ...item, last_used_at: updated.last_used_at } : item
+      ))));
+    } catch (error) {
+      toast.error(`Could not update last used time: ${(error as Error).message}`);
+    }
+
     localStorage.setItem('mako-active-project', project.id);
     navigate('/polls/new?mode=output');
   };
 
   const addTag = (value: string) => {
-    const normalized = value.trim();
-    if (!normalized || selectedTags.includes(normalized)) return;
-    setSelectedTags((current) => [...current, normalized]);
+    const parsed = projectTagSchema.safeParse(value);
+    if (!parsed.success) {
+      setTagError(parsed.error.issues[0]?.message ?? 'Invalid tag');
+      return;
+    }
+
+    const nextTags = normalizeProjectTags([...selectedTags, parsed.data]);
+    if (nextTags.length === selectedTags.length) {
+      setTagError('That tag has already been added');
+      return;
+    }
+
+    if (nextTags.length > MAX_PROJECT_TAG_COUNT) {
+      setTagError(`Projects can have at most ${MAX_PROJECT_TAG_COUNT} tags`);
+      return;
+    }
+
+    setSelectedTags(nextTags);
     setNewTag('');
+    setTagError(null);
   };
 
   const removeTag = (value: string) => {
     setSelectedTags((current) => current.filter((tag) => tag !== value));
   };
 
+  const toggleSearchTag = (value: string) => {
+    setSearchTags((current) => current.includes(value)
+      ? current.filter((tag) => tag !== value)
+      : [...current, value]);
+  };
+
   const handleCreateProject = async () => {
-    if (!user || !newProjectName.trim()) return;
+    if (!user) return;
+
+    const parsed = projectCreateSchema.safeParse({ name: newProjectName, tags: selectedTags });
+    if (!parsed.success) {
+      const firstIssue = parsed.error.issues[0];
+      if (firstIssue?.path[0] === 'name') {
+        setNameError(firstIssue.message);
+      } else {
+        setTagError(firstIssue?.message ?? 'Invalid project details');
+      }
+      return;
+    }
+
     setCreating(true);
     try {
-      const created = await createProject(newProjectName.trim(), user.id, selectedTags);
+      const created = await createProject(parsed.data.name, user.id, parsed.data.tags);
       const nextProject = created as ProjectRecord;
-      setProjects((current) => [nextProject, ...current]);
+      setProjects((current) => sortProjectsByLastUsed([nextProject, ...current]));
       setNewProjectOpen(false);
-      setNewProjectName('');
-      setSelectedTags([]);
-      setNewTag('');
+      resetNewProjectForm();
       toast.success(`Project "${nextProject.name}" created`);
-      openProject(nextProject);
+      await openProject(nextProject);
     } catch (error) {
       toast.error(`Could not create project: ${(error as Error).message}`);
     } finally {
       setCreating(false);
     }
   };
+
+  const handleRenameProject = async () => {
+    if (!renameTarget) return;
+
+    const parsed = projectRenameSchema.safeParse({ name: renameValue });
+    if (!parsed.success) {
+      toast.error(parsed.error.issues[0]?.message ?? 'Invalid project name');
+      return;
+    }
+
+    setRenaming(true);
+    try {
+      const updated = await renameProject(renameTarget.id, parsed.data.name);
+      setProjects((current) => current.map((project) => (
+        project.id === renameTarget.id ? { ...project, ...(updated as Partial<ProjectRecord>) } : project
+      )));
+      toast.success(`Renamed to "${parsed.data.name}"`);
+      setRenameTarget(null);
+      setRenameValue('');
+    } catch (error) {
+      toast.error(`Could not rename project: ${(error as Error).message}`);
+    } finally {
+      setRenaming(false);
+    }
+  };
+
+  const handleDeleteProject = async () => {
+    if (!deleteTarget) return;
+
+    setDeleting(true);
+    try {
+      await deleteProject(deleteTarget.id);
+      setProjects((current) => current.filter((project) => project.id !== deleteTarget.id));
+      toast.success(`Deleted "${deleteTarget.name}"`);
+      setDeleteTarget(null);
+      if (confirmProject?.id === deleteTarget.id) {
+        setConfirmProject(null);
+      }
+    } catch (error) {
+      toast.error(`Could not delete project: ${(error as Error).message}`);
+    } finally {
+      setDeleting(false);
+    }
+  };
+
+  const renderProjectActions = (project: ProjectRecord) => (
+    <div className="flex items-center gap-1">
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={(event) => {
+              event.stopPropagation();
+              setRenameTarget(project);
+              setRenameValue(project.name);
+            }}
+            aria-label={`Rename ${project.name}`}
+          >
+            <Pencil className="w-4 h-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Rename project</TooltipContent>
+      </Tooltip>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-8 w-8"
+            onClick={(event) => {
+              event.stopPropagation();
+              setDeleteTarget(project);
+            }}
+            aria-label={`Delete ${project.name}`}
+          >
+            <Trash2 className="w-4 h-4" />
+          </Button>
+        </TooltipTrigger>
+        <TooltipContent>Delete project</TooltipContent>
+      </Tooltip>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-background flex flex-col relative">
@@ -121,8 +299,22 @@ export default function ProjectLauncher() {
         <div className="w-full max-w-2xl space-y-6">
           <div>
             <h1 className="text-2xl font-bold text-foreground">Projects</h1>
-            <p className="text-sm text-muted-foreground mt-1">Select a project or create a new poll</p>
+            <p className="text-sm text-muted-foreground mt-1">Create, reopen, rename, and organize your project library.</p>
           </div>
+
+          {!loading && projects.length === 0 && (
+            <div className="mako-panel border border-dashed border-border p-8 text-center space-y-4">
+              <div className="space-y-2">
+                <h2 className="text-lg font-semibold text-foreground">Start your first project</h2>
+                <p className="text-sm text-muted-foreground max-w-md mx-auto">
+                  Create a project first, then open it in Operator Workspace. Tags like morning show, asl, and animated help you find it faster later.
+                </p>
+              </div>
+              <Button onClick={() => setNewProjectOpen(true)} className="gap-2">
+                <Plus className="w-4 h-4" /> New Project
+              </Button>
+            </div>
+          )}
 
           {/* Current Project */}
           {currentProject && (
@@ -151,8 +343,12 @@ export default function ProjectLauncher() {
                         )}
                       </div>
                       <div className="flex items-center gap-3 text-xs text-muted-foreground">
-                        <span className="font-mono">{new Date(currentProject.updated_at).toLocaleDateString()}</span>
+                        <div className="text-right">
+                          <div className="font-mono">{new Date(currentProject.last_used_at).toLocaleDateString()}</div>
+                          <div className="text-[10px] uppercase tracking-wide">Last used</div>
+                        </div>
                         <FolderOpen className="w-4 h-4 text-primary" />
+                        {renderProjectActions(currentProject)}
                       </div>
                     </div>
                   </button>
@@ -185,7 +381,7 @@ export default function ProjectLauncher() {
                       className="w-full text-left p-3 rounded-xl border border-border/50 hover:bg-accent/30 transition-colors"
                     >
                       <div className="flex items-center justify-between">
-                        <div>
+                        <div className="min-w-0">
                           <p className="text-sm font-medium text-foreground">{project.name}</p>
                           {project.description && (
                             <p className="text-[11px] text-muted-foreground mt-0.5">{project.description}</p>
@@ -201,7 +397,8 @@ export default function ProjectLauncher() {
                           )}
                         </div>
                         <div className="flex items-center gap-3 text-[10px] text-muted-foreground font-mono">
-                          <span>{new Date(project.updated_at).toLocaleDateString()}</span>
+                          <span>{new Date(project.last_used_at).toLocaleDateString()}</span>
+                          {renderProjectActions(project)}
                         </div>
                       </div>
                     </button>
@@ -252,10 +449,15 @@ export default function ProjectLauncher() {
               <p className="text-xs font-medium text-muted-foreground">Project name</p>
               <Input
                 value={newProjectName}
-                onChange={(event) => setNewProjectName(event.target.value)}
+                onChange={(event) => {
+                  setNewProjectName(event.target.value);
+                  setNameError(null);
+                }}
                 placeholder="Friday Night Show"
                 autoFocus
               />
+              <p className="text-[11px] text-muted-foreground">Up to 80 characters.</p>
+              {nameError && <p className="text-[11px] text-destructive">{nameError}</p>}
             </div>
 
             <div className="space-y-2">
@@ -263,7 +465,10 @@ export default function ProjectLauncher() {
               <div className="flex gap-2">
                 <Input
                   value={newTag}
-                  onChange={(event) => setNewTag(event.target.value)}
+                  onChange={(event) => {
+                    setNewTag(event.target.value);
+                    setTagError(null);
+                  }}
                   placeholder="Morning show"
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') {
@@ -276,9 +481,15 @@ export default function ProjectLauncher() {
                   Add
                 </Button>
               </div>
+              <p className="text-[11px] text-muted-foreground">Up to {MAX_PROJECT_TAG_COUNT} tags, {MAX_PROJECT_TAG_LENGTH} characters each.</p>
+              {tagError && <p className="text-[11px] text-destructive">{tagError}</p>}
 
               {availableTags.length > 0 && (
-                <div className="flex flex-wrap gap-2">
+                <div className="space-y-2">
+                  <div className="flex items-center gap-2 text-[11px] font-mono uppercase text-muted-foreground">
+                    <Tag className="w-3 h-3" /> Suggestions
+                  </div>
+                  <div className="flex flex-wrap gap-2">
                   {availableTags.map((tag) => {
                     const selected = selectedTags.includes(tag);
                     return (
@@ -292,6 +503,7 @@ export default function ProjectLauncher() {
                       </button>
                     );
                   })}
+                  </div>
                 </div>
               )}
 
@@ -329,14 +541,44 @@ export default function ProjectLauncher() {
           </SheetHeader>
 
           <div className="mt-6 space-y-4">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 w-4 h-4 -translate-y-1/2 text-muted-foreground" />
-              <Input
-                value={search}
-                onChange={(event) => setSearch(event.target.value)}
-                placeholder="Search projects or tags"
-                className="pl-9"
-              />
+            <div className="space-y-3">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 w-4 h-4 -translate-y-1/2 text-muted-foreground" />
+                <Input
+                  value={searchName}
+                  onChange={(event) => setSearchName(event.target.value)}
+                  placeholder="Filter by project name"
+                  className="pl-9"
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="text-[11px] font-mono uppercase text-muted-foreground">Filter by tags</div>
+                <div className="flex flex-wrap gap-2">
+                  {availableTags.map((tag) => {
+                    const active = searchTags.includes(tag);
+                    return (
+                      <button
+                        key={tag}
+                        type="button"
+                        onClick={() => toggleSearchTag(tag)}
+                        className={`rounded-full border px-3 py-1 text-[11px] font-mono uppercase transition-colors ${active ? 'border-primary bg-primary/10 text-primary' : 'border-border text-muted-foreground hover:bg-accent'}`}
+                      >
+                        {tag}
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+
+              {(searchName || searchTags.length > 0) && (
+                <div className="flex items-center justify-between rounded-lg border border-border bg-card/40 px-3 py-2 text-xs text-muted-foreground">
+                  <span>{filteredProjects.length} matching projects</span>
+                  <Button type="button" variant="ghost" size="sm" onClick={() => { setSearchName(''); setSearchTags([]); }}>
+                    Clear filters
+                  </Button>
+                </div>
+              )}
             </div>
 
             <div className="max-h-[70vh] overflow-y-auto rounded-lg border border-border">
@@ -365,8 +607,8 @@ export default function ProjectLauncher() {
                         )}
                       </div>
                       <div className="text-right text-[10px] font-mono text-muted-foreground shrink-0">
-                        <div>Updated</div>
-                        <div>{new Date(project.updated_at).toLocaleDateString()}</div>
+                        <div>Last used</div>
+                        <div>{new Date(project.last_used_at).toLocaleDateString()}</div>
                       </div>
                     </div>
                   </button>
@@ -400,6 +642,37 @@ export default function ProjectLauncher() {
             >
               Continue
             </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!renameTarget} onOpenChange={(open) => !open && setRenameTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Rename project</DialogTitle>
+            <DialogDescription>
+              {renameTarget ? `Update the name for “${renameTarget.name}”.` : 'Rename this project.'}
+            </DialogDescription>
+          </DialogHeader>
+          <Input value={renameValue} onChange={(event) => setRenameValue(event.target.value)} placeholder="Project name" autoFocus />
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setRenameTarget(null)}>Cancel</Button>
+            <Button type="button" onClick={handleRenameProject} disabled={renaming}>{renaming ? 'Saving…' : 'Save'}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Delete project?</DialogTitle>
+            <DialogDescription>
+              {deleteTarget ? `This will remove “${deleteTarget.name}”. This action cannot be undone.` : 'Delete this project.'}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setDeleteTarget(null)}>Cancel</Button>
+            <Button type="button" variant="destructive" onClick={handleDeleteProject} disabled={deleting}>{deleting ? 'Deleting…' : 'Delete'}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
