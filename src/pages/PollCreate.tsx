@@ -38,7 +38,7 @@ import { themePresets } from '@/lib/themes';
 import { TemplateName, Poll, PollOption, QRPosition, VotingState, LiveState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
 import { broadcastOutputState } from '@/lib/output-state';
-import { FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Monitor, Radio, Undo2 } from 'lucide-react';
+import { FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Monitor, Radio, Undo2, Redo2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { loadPoll, savePoll, listPolls, listProjects, DraftPollPayload, SavedPoll, BlockLetter } from '@/lib/poll-persistence';
 import { OperatorOutputMode } from '@/components/operator/OperatorOutputMode';
@@ -689,6 +689,7 @@ export default function PollCreate() {
   const [deleteFolderTargetId, setDeleteFolderTargetId] = useState<string | null>(null);
   const [foldersLoadedForProject, setFoldersLoadedForProject] = useState<string | null>(null);
   const [undoStack, setUndoStack] = useState<EditorSnapshot[]>([]);
+  const [redoStack, setRedoStack] = useState<EditorSnapshot[]>([]);
 
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
@@ -722,39 +723,55 @@ export default function PollCreate() {
     folderState: cloneSnapshotValue(folderState),
   }), [answerType, answers, assetColors, assetState, assetTransforms, autoClose, bgColor, bgImage, blockLetter, blockPosition, folderState, internalName, mcLabelStyle, previewDataMode, question, selectedAssetId, selectedTemplate, showFinalResults, showLiveResults, showThankYou, slug, subheadline]);
 
+  const restoreSnapshot = useCallback((snapshot: EditorSnapshot) => {
+    setQuestion(snapshot.question);
+    setInternalName(snapshot.internalName);
+    setSlug(snapshot.slug);
+    setSubheadline(snapshot.subheadline);
+    setSelectedTemplate(snapshot.selectedTemplate);
+    setAnswerType(snapshot.answerType);
+    setMcLabelStyle(snapshot.mcLabelStyle);
+    setPreviewDataMode(snapshot.previewDataMode);
+    setAnswers(cloneSnapshotValue(snapshot.answers));
+    setShowLiveResults(snapshot.showLiveResults);
+    setShowThankYou(snapshot.showThankYou);
+    setShowFinalResults(snapshot.showFinalResults);
+    setAutoClose(snapshot.autoClose);
+    setBgColor(snapshot.bgColor);
+    setBgImage(snapshot.bgImage);
+    setBlockLetter(snapshot.blockLetter);
+    setBlockPosition(snapshot.blockPosition);
+    setSelectedAssetId(snapshot.selectedAssetId);
+    setAssetState(cloneSnapshotValue(snapshot.assetState));
+    setAssetTransforms(cloneSnapshotValue(snapshot.assetTransforms));
+    setAssetColors(cloneSnapshotValue(snapshot.assetColors));
+    setFolderState(cloneSnapshotValue(snapshot.folderState));
+  }, []);
+
   const pushUndoSnapshot = useCallback(() => {
     const snapshot = createSnapshot();
     setUndoStack((current) => [...current.slice(-24), snapshot]);
+    setRedoStack([]);
   }, [createSnapshot]);
 
   const handleUndoChanges = () => {
     setUndoStack((current) => {
       const previous = current[current.length - 1];
       if (!previous) return current;
-
-      setQuestion(previous.question);
-      setInternalName(previous.internalName);
-      setSlug(previous.slug);
-      setSubheadline(previous.subheadline);
-      setSelectedTemplate(previous.selectedTemplate);
-      setAnswerType(previous.answerType);
-      setMcLabelStyle(previous.mcLabelStyle);
-      setPreviewDataMode(previous.previewDataMode);
-      setAnswers(cloneSnapshotValue(previous.answers));
-      setShowLiveResults(previous.showLiveResults);
-      setShowThankYou(previous.showThankYou);
-      setShowFinalResults(previous.showFinalResults);
-      setAutoClose(previous.autoClose);
-      setBgColor(previous.bgColor);
-      setBgImage(previous.bgImage);
-      setBlockLetter(previous.blockLetter);
-      setBlockPosition(previous.blockPosition);
-      setSelectedAssetId(previous.selectedAssetId);
-      setAssetState(cloneSnapshotValue(previous.assetState));
-      setAssetTransforms(cloneSnapshotValue(previous.assetTransforms));
-      setAssetColors(cloneSnapshotValue(previous.assetColors));
-      setFolderState(cloneSnapshotValue(previous.folderState));
+      setRedoStack((redoCurrent) => [...redoCurrent.slice(-24), createSnapshot()]);
+      restoreSnapshot(previous);
       toast.success('Undid latest change');
+      return current.slice(0, -1);
+    });
+  };
+
+  const handleRedoChanges = () => {
+    setRedoStack((current) => {
+      const next = current[current.length - 1];
+      if (!next) return current;
+      setUndoStack((undoCurrent) => [...undoCurrent.slice(-24), createSnapshot()]);
+      restoreSnapshot(next);
+      toast.success('Redid latest change');
       return current.slice(0, -1);
     });
   };
@@ -820,6 +837,26 @@ export default function PollCreate() {
       setQuestion(nextQuestion);
     }
   }, [activeFolder, question]);
+
+  useEffect(() => {
+    setAssetColors((current) => {
+      const desiredCount = Math.max(answers.length, 1);
+      const currentBars = current.answers.barColors ?? [];
+      const nextBars = Array.from({ length: desiredCount }, (_, index) => currentBars[index] ?? DEFAULT_ASSET_COLORS.answers.barColors?.[index % (DEFAULT_ASSET_COLORS.answers.barColors?.length ?? 1)] ?? 'hsl(0 0% 100%)');
+
+      if (currentBars.length === nextBars.length && currentBars.every((color, index) => color === nextBars[index])) {
+        return current;
+      }
+
+      return {
+        ...current,
+        answers: {
+          ...current.answers,
+          barColors: nextBars,
+        },
+      };
+    });
+  }, [answers.length, selectedTemplate]);
 
   useEffect(() => {
     if (!user || !projectId || foldersLoadedForProject !== projectId) return;
@@ -1099,6 +1136,10 @@ export default function PollCreate() {
               <DropdownMenuItem onClick={handleUndoChanges} disabled={undoStack.length === 0} className="text-xs gap-2">
                 <Undo2 className="w-3 h-3" />
                 Undo Change
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleRedoChanges} disabled={redoStack.length === 0} className="text-xs gap-2">
+                <Redo2 className="w-3 h-3" />
+                Redo Change
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
