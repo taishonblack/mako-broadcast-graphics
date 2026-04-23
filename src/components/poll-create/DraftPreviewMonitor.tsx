@@ -7,7 +7,7 @@ import { Monitor, Smartphone, Globe, Copy, Link2, Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { AnswerType, MCLabelStyle, PreviewDataMode, getMCLabel } from './ContentPanel';
-import { AssetId, AssetState, AssetTransformMap } from './polling-assets/types';
+import { AssetColorMap, AssetId, AssetState, AssetTransformMap } from './polling-assets/types';
 import { QRPosition } from '@/lib/types';
 import { WordmarkLockup } from '@/components/broadcast/WordmarkLockup';
 import { usePreviewOverlays } from '@/lib/preview-overlays';
@@ -43,6 +43,7 @@ interface DraftPreviewMonitorProps {
   brandingPosition: QRPosition;
   enabledAssetIds: AssetId[];
   transforms: AssetTransformMap;
+  assetColors: AssetColorMap;
   qrVisible: boolean;
   qrUrlVisible: boolean;
 }
@@ -68,7 +69,7 @@ export function DraftPreviewMonitor({
   question, subheadline, options, totalVotes, colors, template, theme, hasContent,
   answerType, mcLabelStyle, previewDataMode, answers, bgColor, bgImage, fullUrl, shortUrl, wordmark,
   slug,
-  qrSize, qrPosition, showBranding, brandingPosition, enabledAssetIds, transforms, qrVisible,
+  qrSize, qrPosition, showBranding, brandingPosition, enabledAssetIds, transforms, assetColors, qrVisible,
   qrUrlVisible,
 }: DraftPreviewMonitorProps) {
   const [previewMode, setPreviewMode] = useState<PreviewMode>('program');
@@ -147,6 +148,7 @@ export function DraftPreviewMonitor({
             brandingPosition={brandingPosition}
             enabledAssetIds={enabledAssetIds}
             transforms={transforms}
+            assetColors={assetColors}
             debugVoteUrl={voteUrl}
           />
         </div>
@@ -186,6 +188,7 @@ export function DraftPreviewMonitor({
             brandingPosition={brandingPosition}
             enabledAssetIds={enabledAssetIds}
             transforms={transforms}
+            assetColors={assetColors}
             debugVoteUrl={voteUrl}
           />
         )}

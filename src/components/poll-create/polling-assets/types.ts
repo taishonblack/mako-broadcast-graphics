@@ -33,6 +33,12 @@ export interface AssetState {
   wordmarkShowGuides: boolean;
 }
 
+export interface AssetColorConfig {
+  textPrimary?: string;
+  textSecondary?: string;
+  barColors?: string[];
+}
+
 export type TransformField =
   | 'x'
   | 'y'
@@ -58,6 +64,7 @@ export interface AssetTransformConfig {
 }
 
 export type AssetTransformMap = Record<AssetId, AssetTransformConfig>;
+export type AssetColorMap = Record<AssetId, AssetColorConfig>;
 
 const DEFAULT_TRANSFORM_LOCKS: Record<TransformField, boolean> = {
   x: false,
@@ -92,6 +99,20 @@ export const DEFAULT_ASSET_TRANSFORMS: AssetTransformMap = {
   qr: createDefaultTransform(),
   logo: createDefaultTransform(),
   voterTally: createDefaultTransform(),
+};
+
+export const DEFAULT_ASSET_COLORS: AssetColorMap = {
+  question: { textPrimary: 'hsl(0 0% 100%)' },
+  answers: {
+    textPrimary: 'hsl(0 0% 100%)',
+    textSecondary: 'hsl(215 15% 65%)',
+    barColors: ['hsl(24 95% 53%)', 'hsl(210 70% 50%)', 'hsl(142 71% 45%)', 'hsl(280 65% 55%)'],
+  },
+  subheadline: { textSecondary: 'hsl(215 15% 65%)' },
+  background: {},
+  qr: { textSecondary: 'hsl(215 15% 65%)' },
+  logo: { textSecondary: 'hsl(215 15% 65%)' },
+  voterTally: { textPrimary: 'hsl(0 0% 100%)', textSecondary: 'hsl(215 15% 65%)' },
 };
 
 export const DEFAULT_ASSET_STATE: AssetState = {

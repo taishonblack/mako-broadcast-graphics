@@ -9,7 +9,7 @@ import { PollingAssetsPane, SEEDED_ASSETS } from '@/components/poll-create/polli
 import { AssetInspector } from '@/components/poll-create/polling-assets/AssetInspector';
 import { AssetTransformControls } from '@/components/poll-create/AssetTransformControls';
 import { ASSET_REGISTRY } from '@/components/poll-create/polling-assets/PollingAssetsPane';
-import { AssetId, AssetState, DEFAULT_ASSET_STATE, DEFAULT_ASSET_TRANSFORMS, TransformField } from '@/components/poll-create/polling-assets/types';
+import { AssetColorMap, AssetId, AssetState, DEFAULT_ASSET_COLORS, DEFAULT_ASSET_STATE, DEFAULT_ASSET_TRANSFORMS, TransformField } from '@/components/poll-create/polling-assets/types';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -163,6 +163,7 @@ export default function PollCreate() {
   const [qrPosition, setQrPosition] = useState<QRPosition>('bottom-right');
   const [showBranding, setShowBranding] = useState(true);
   const [brandingPosition, setBrandingPosition] = useState<QRPosition>('bottom-left');
+  const theme = themePresets[0];
 
   // Load existing poll if visiting /polls/:id
   useEffect(() => {
@@ -356,9 +357,6 @@ export default function PollCreate() {
     await persistProjectSave(selectedProjectId, selectedProjectName, 'manual');
   };
 
-  const theme = themePresets[0];
-  const previewColors = [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
-
   const previewOptions: PollOption[] = useMemo(() =>
     answers.map((a, i) => ({
       id: a.id,
@@ -431,6 +429,7 @@ export default function PollCreate() {
       brandingPosition,
       enabledAssetIds: enabledAssets,
       transforms: assetTransforms,
+        assetColors,
       wordmarkWeight: assetState.wordmarkWeight,
       wordmarkTracking: assetState.wordmarkTracking,
       wordmarkScale: assetState.wordmarkScale,
@@ -476,6 +475,7 @@ export default function PollCreate() {
         brandingPosition,
         enabledAssetIds: enabledAssets,
         transforms: assetTransforms,
+        assetColors,
         wordmarkWeight: assetState.wordmarkWeight,
         wordmarkTracking: assetState.wordmarkTracking,
         wordmarkScale: assetState.wordmarkScale,
@@ -499,6 +499,7 @@ export default function PollCreate() {
         brandingPosition,
         enabledAssetIds: enabledAssets,
         transforms: assetTransforms,
+        assetColors,
         wordmarkWeight: assetState.wordmarkWeight,
         wordmarkTracking: assetState.wordmarkTracking,
         wordmarkScale: assetState.wordmarkScale,
@@ -653,6 +654,7 @@ export default function PollCreate() {
   const [selectedAssetId, setSelectedAssetId] = useState<AssetId | null>(null);
   const [assetState, setAssetState] = useState<AssetState>(DEFAULT_ASSET_STATE);
   const [assetTransforms, setAssetTransforms] = useState(DEFAULT_ASSET_TRANSFORMS);
+  const [assetColors, setAssetColors] = useState<AssetColorMap>(DEFAULT_ASSET_COLORS);
   const [highlightField, setHighlightField] = useState<string | null>(null);
   const [folderState, setFolderState] = useState<PollingAssetFolderState>(() => createDefaultFolderState(question));
   const [deleteFolderTargetId, setDeleteFolderTargetId] = useState<string | null>(null);
@@ -660,6 +662,10 @@ export default function PollCreate() {
 
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
+  const previewColors = assetColors.answers.barColors?.length
+    ? assetColors.answers.barColors
+    : [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
+
   useEffect(() => {
     if (!activeFolder) return;
     if (blockLetter !== activeFolder.blockLetter) {
@@ -680,6 +686,7 @@ export default function PollCreate() {
       }
       setFolderState(nextState);
       setAssetTransforms(DEFAULT_ASSET_TRANSFORMS);
+      setAssetColors(DEFAULT_ASSET_COLORS);
       return;
     }
 
@@ -692,6 +699,7 @@ export default function PollCreate() {
         }
         setFolderState(nextState);
         setAssetTransforms(DEFAULT_ASSET_TRANSFORMS);
+        setAssetColors(DEFAULT_ASSET_COLORS);
         setFoldersLoadedForProject(projectId);
       })
       .catch(() => {
@@ -702,6 +710,7 @@ export default function PollCreate() {
         }
         setFolderState(nextState);
         setAssetTransforms(DEFAULT_ASSET_TRANSFORMS);
+        setAssetColors(DEFAULT_ASSET_COLORS);
         setFoldersLoadedForProject(projectId);
       });
   }, [projectId, question, user]);
@@ -898,6 +907,16 @@ export default function PollCreate() {
           ...current[selectedAssetId].locks,
           [field]: !current[selectedAssetId].locks[field],
         },
+      },
+    }));
+  };
+
+  const handleAssetColorsChange = (assetId: AssetId, nextColors: AssetColorMap[AssetId]) => {
+    setAssetColors((current) => ({
+      ...current,
+      [assetId]: {
+        ...current[assetId],
+        ...nextColors,
       },
     }));
   };
@@ -1160,13 +1179,16 @@ export default function PollCreate() {
                   brandingPosition={brandingPosition}
                   enabledAssetIds={enabledAssets}
                   transforms={assetTransforms}
+                    assetColors={assetColors}
                   />
                   <AssetTransformControls
                     assetId={selectedAssetId}
                     assetLabel={selectedAssetId ? ASSET_REGISTRY[selectedAssetId]?.label : undefined}
                     transform={selectedAssetId ? assetTransforms[selectedAssetId] : undefined}
+                    colors={selectedAssetId ? assetColors[selectedAssetId] : undefined}
                     onChange={handleTransformChange}
                     onToggleLock={handleToggleTransformLock}
+                    onColorsChange={selectedAssetId ? (nextColors) => handleAssetColorsChange(selectedAssetId, nextColors) : undefined}
                   />
                 </div>
               </Pane>
