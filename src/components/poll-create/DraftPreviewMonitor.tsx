@@ -44,6 +44,7 @@ interface DraftPreviewMonitorProps {
   enabledAssetIds: AssetId[];
   transforms: AssetTransformMap;
   qrVisible: boolean;
+  qrUrlVisible: boolean;
 }
 
 /**
@@ -68,6 +69,7 @@ export function DraftPreviewMonitor({
   answerType, mcLabelStyle, previewDataMode, answers, bgColor, bgImage, fullUrl, shortUrl, wordmark,
   slug,
   qrSize, qrPosition, showBranding, brandingPosition, enabledAssetIds, transforms, qrVisible,
+  qrUrlVisible,
 }: DraftPreviewMonitorProps) {
   const [previewMode, setPreviewMode] = useState<PreviewMode>('program');
   const [copied, setCopied] = useState<'full' | 'short' | null>(null);
@@ -140,6 +142,7 @@ export function DraftPreviewMonitor({
             qrSize={qrSize}
             qrPosition={qrPosition}
             qrVisible={qrVisible}
+            qrUrlVisible={qrUrlVisible}
             showBranding={showBranding}
             brandingPosition={brandingPosition}
             enabledAssetIds={enabledAssetIds}
@@ -178,6 +181,7 @@ export function DraftPreviewMonitor({
             qrSize={qrSize}
             qrPosition={qrPosition}
             qrVisible={qrVisible}
+            qrUrlVisible={qrUrlVisible}
             showBranding={showBranding}
             brandingPosition={brandingPosition}
             enabledAssetIds={enabledAssetIds}

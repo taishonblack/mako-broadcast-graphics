@@ -10,6 +10,7 @@ interface AssetOverlayProps {
   qrSize: number;
   qrPosition: QRPosition;
   debugVoteUrl?: string;
+  showQrUrl?: boolean;
   /** Show the MakoVote bug/logo */
   showBranding: boolean;
   brandingPosition: QRPosition;
@@ -37,6 +38,7 @@ export function AssetOverlay({
   qrSize,
   qrPosition,
   debugVoteUrl,
+  showQrUrl = true,
   showBranding,
   brandingPosition,
   theme,
@@ -60,9 +62,11 @@ export function AssetOverlay({
               size={canvasQrSize}
               level="M"
             />
-            <span className="max-w-[280px] text-center font-mono text-[10px] leading-tight" style={{ color: theme.textSecondary }}>
-              {debugVoteUrl ?? `https://makovote.app/vote/${qrSlug}`}
-            </span>
+            {showQrUrl && (
+              <span className="max-w-[280px] text-center font-mono text-[10px] leading-tight" style={{ color: theme.textSecondary }}>
+                {debugVoteUrl ?? `https://makovote.app/vote/${qrSlug}`}
+              </span>
+            )}
           </div>
         </div>
       )}
