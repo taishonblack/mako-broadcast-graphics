@@ -404,7 +404,16 @@ export default function PollCreate() {
   }, [projectPolls, currentWorkspacePoll, projectId, answerType, mcLabelStyle, answers, previewDataMode, bgColor, bgImage]);
 
   const renderOutputScene = () => {
-    const sharedAssets = { slug: slugForUrl, qrSize, qrPosition, showBranding, brandingPosition };
+    const sharedAssets = {
+      slug: slugForUrl,
+      qrSize,
+      qrPosition,
+      showBranding,
+      brandingPosition,
+      wordmarkWeight: assetState.wordmarkWeight,
+      wordmarkTracking: assetState.wordmarkTracking,
+      wordmarkScale: assetState.wordmarkScale,
+    };
     const props = {
       question: currentWorkspacePoll.question || 'Your question here?',
       subheadline,
@@ -433,12 +442,40 @@ export default function PollCreate() {
 
   const handleTake = () => {
     setProgramScene(previewScene);
-    broadcastOutputState({ poll: currentWorkspacePoll, scene: previewScene, layers: [], assets: { qrSize, qrPosition, showBranding, brandingPosition } });
+    broadcastOutputState({
+      poll: currentWorkspacePoll,
+      scene: previewScene,
+      layers: [],
+      assets: {
+        qrSize,
+        qrPosition,
+        showBranding,
+        brandingPosition,
+        wordmarkWeight: assetState.wordmarkWeight,
+        wordmarkTracking: assetState.wordmarkTracking,
+        wordmarkScale: assetState.wordmarkScale,
+        wordmarkShowGuides: assetState.wordmarkShowGuides,
+      },
+    });
   };
 
   const handleCut = () => {
     setProgramScene(previewScene);
-    broadcastOutputState({ poll: currentWorkspacePoll, scene: previewScene, layers: [], assets: { qrSize, qrPosition, showBranding, brandingPosition } });
+    broadcastOutputState({
+      poll: currentWorkspacePoll,
+      scene: previewScene,
+      layers: [],
+      assets: {
+        qrSize,
+        qrPosition,
+        showBranding,
+        brandingPosition,
+        wordmarkWeight: assetState.wordmarkWeight,
+        wordmarkTracking: assetState.wordmarkTracking,
+        wordmarkScale: assetState.wordmarkScale,
+        wordmarkShowGuides: assetState.wordmarkShowGuides,
+      },
+    });
   };
 
   const handleGoLive = () => {
@@ -1011,6 +1048,7 @@ export default function PollCreate() {
                   bgImage={bgImage}
                   fullUrl={fullUrl}
                   shortUrl={shortUrl}
+                  wordmark={assetState}
                 />
               </Pane>
             </ResizablePanel>
@@ -1037,6 +1075,8 @@ export default function PollCreate() {
                       setSelectedTemplate={setSelectedTemplate}
                       bgColor={bgColor} setBgColor={setBgColor}
                       bgImage={bgImage} setBgImage={setBgImage}
+                      wordmark={assetState}
+                      setWordmark={(next) => setAssetState((current) => ({ ...current, ...next }))}
                     />
                   </Pane>
                 </ResizablePanel>
