@@ -26,13 +26,13 @@ import { themePresets } from '@/lib/themes';
 import { TemplateName, Poll, PollOption, QRPosition, VotingState, LiveState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
 import { broadcastOutputState } from '@/lib/output-state';
-import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Grid3x3, Monitor, Radio, Palette } from 'lucide-react';
+import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Grid3x3, Monitor, Radio } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { loadPoll, savePoll, listPolls, DraftPollPayload, SavedPoll, BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-persistence';
 import { OperatorOutputMode } from '@/components/operator/OperatorOutputMode';
 import { toast } from 'sonner';
 
-type OperatorMode = 'build' | 'edit' | 'output';
+type OperatorMode = 'build' | 'output';
 
 /* ---------- Workspace layout persistence ---------- */
 
@@ -123,7 +123,7 @@ export default function PollCreate() {
   const [draftStatus, setDraftStatus] = useState<'unsaved' | 'draft-saved' | 'saved-to-project'>('unsaved');
   const [blockLetter, setBlockLetter] = useState<BlockLetter>('A');
   const [blockPosition, setBlockPosition] = useState<number>(1);
-  const [mode, setMode] = useState<OperatorMode>((searchParams.get('mode') as OperatorMode) || 'build');
+  const [mode, setMode] = useState<OperatorMode>(searchParams.get('mode') === 'output' ? 'output' : 'build');
   const [projectPolls, setProjectPolls] = useState<SavedPoll[]>([]);
   const [outputActiveBlock, setOutputActiveBlock] = useState<BlockLetter>('A');
   const [votingState, setVotingState] = useState<VotingState>('not_open');
@@ -181,11 +181,17 @@ export default function PollCreate() {
   }, [question, internalName, slug, subheadline, selectedTemplate, answerType, mcLabelStyle, answers, showLiveResults, showThankYou, showFinalResults, autoClose, bgColor, bgImage, previewDataMode]);
 
   useEffect(() => {
-    const nextMode = (searchParams.get('mode') as OperatorMode) || 'build';
-    if (nextMode === 'build' || nextMode === 'edit' || nextMode === 'output') {
+    const rawMode = searchParams.get('mode');
+    const nextMode: OperatorMode = rawMode === 'output' ? 'output' : 'build';
+    if (mode !== nextMode) {
       setMode(nextMode);
     }
-  }, [searchParams]);
+    if (rawMode === 'edit') {
+      const nextParams = new URLSearchParams(searchParams);
+      nextParams.set('mode', 'build');
+      setSearchParams(nextParams, { replace: true });
+    }
+  }, [mode, searchParams, setSearchParams]);
 
   useEffect(() => {
     if (!user || !projectId) {
@@ -664,14 +670,6 @@ export default function PollCreate() {
             <Button
               variant="ghost"
               size="sm"
-              onClick={() => setWorkspaceMode('edit')}
-              className={`h-7 gap-1 px-2 text-[10px] ${mode === 'edit' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}
-            >
-              <Palette className="h-3 w-3" /> Edit
-            </Button>
-            <Button
-              variant="ghost"
-              size="sm"
               onClick={() => setWorkspaceMode('output')}
               className={`h-7 gap-1 px-2 text-[10px] ${mode === 'output' ? 'bg-background text-foreground shadow-sm' : 'text-muted-foreground'}`}
             >
@@ -760,7 +758,7 @@ export default function PollCreate() {
             }}
           >
             <ResizablePanel defaultSize={layout.hSizes[0]} minSize={18} maxSize={36}>
-              <Pane title={mode === 'build' ? 'Polling Assets' : 'Edit Assets'} hint={mode === 'build' ? 'Question · Answers · Logic' : 'Selection · Layers · Content'}>
+              <Pane title="Polling Assets" hint="Question · Answers · Logic">
                 <PollingAssetsPane
                   enabledAssets={enabledAssets}
                   onEnabledAssetsChange={setEnabledAssets}
@@ -780,7 +778,7 @@ export default function PollCreate() {
             <ResizableHandle withHandle />
 
             <ResizablePanel defaultSize={layout.hSizes[1]} minSize={35}>
-              <Pane title={mode === 'build' ? 'Program Preview' : 'Edit Preview'} hint={mode === 'build' ? 'Operator workspace monitor' : 'Asset editing monitor'}>
+              <Pane title="Program Preview" hint="Operator workspace monitor">
                 <DraftPreviewMonitor
                   question={previewQuestion}
                   subheadline={subheadline}
