@@ -2,7 +2,8 @@ import { ThemePreset, PollOption, TemplateName, QRPosition } from '@/lib/types';
 import { GraphicLayer } from '@/lib/layers';
 import { AssetOverlay } from '@/components/broadcast/AssetOverlay';
 import { renderChart } from '@/lib/render-chart';
-import { AssetState, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
+import { AssetColorMap, AssetState, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
+import { getAssetTransformStyle } from '@/lib/asset-transforms';
 import { WordmarkLockup } from '@/components/broadcast/WordmarkLockup';
 
 interface FullscreenSceneProps {
@@ -25,6 +26,7 @@ interface FullscreenSceneProps {
   brandingPosition?: QRPosition;
   enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally'>;
   transforms?: AssetTransformMap;
+  assetColors?: AssetColorMap;
   wordmarkWeight?: AssetState['wordmarkWeight'];
   wordmarkTracking?: number;
   wordmarkScale?: number;
@@ -56,6 +58,7 @@ export function FullscreenScene({
   brandingPosition = 'bottom-left',
   enabledAssetIds,
   transforms,
+  assetColors,
   wordmarkWeight = 'semibold',
   wordmarkTracking = 0,
   wordmarkScale = 1,
@@ -70,6 +73,7 @@ export function FullscreenScene({
       className="absolute inset-0 overflow-hidden"
       style={{
         background: `linear-gradient(135deg, ${theme.tintColor}, hsl(220, 25%, 6%))`,
+        ...getAssetTransformStyle(transforms?.background),
       }}
     >
       {/* Vignette */}
@@ -95,27 +99,28 @@ export function FullscreenScene({
               data-layer="question"
               className="font-bold text-center leading-tight mb-20"
               style={{
-                color: theme.textPrimary,
+                color: assetColors?.question?.textPrimary ?? theme.textPrimary,
                 fontSize: '88px',
                 maxWidth: '1600px',
+                ...getAssetTransformStyle(transforms?.question),
               }}
             >
               {question}
             </h1>
             )}
 
-            <div className="w-full" style={{ maxWidth: '1600px' }}>
+            <div className="w-full" style={{ maxWidth: '1600px', ...getAssetTransformStyle(transforms?.answers) }}>
               {visibleAssets.has('answers') && (useNativeChart ? (
                 <div
                   data-layer="answerBars"
                   className="flex w-full items-center justify-center"
                   style={{
-                    minHeight: template === 'pie-donut' ? '520px' : undefined,
+                    minHeight: template === 'pie-donut' ? '520px' : template === 'vertical-bar' ? '620px' : undefined,
                   }}
                 >
                   <div
                     style={{
-                      transform: template === 'pie-donut' ? 'scale(2.75)' : 'scale(2.4)',
+                      transform: template === 'pie-donut' ? 'scale(2.75)' : template === 'vertical-bar' ? 'scale(2.1)' : 'scale(2.4)',
                       transformOrigin: 'center center',
                     }}
                   >
@@ -130,7 +135,7 @@ export function FullscreenScene({
                     return (
                       <div key={option.id} className="flex flex-col gap-2">
                         <div className="flex items-end justify-between">
-                          <span className="font-semibold" style={{ color: theme.textPrimary, fontSize: '40px' }}>
+                          <span className="font-semibold" style={{ color: assetColors?.answers?.textPrimary ?? theme.textPrimary, fontSize: '40px' }}>
                             {option.text}
                           </span>
                           <span className="font-bold font-mono tabular-nums" style={{ color, fontSize: '56px' }}>
@@ -156,7 +161,7 @@ export function FullscreenScene({
 
               {visibleAssets.has('voterTally') && (
               <div data-layer="votesText" className="mt-12 text-center">
-                <span className="font-mono" style={{ color: theme.textSecondary, fontSize: '28px' }}>
+                <span className="font-mono" style={{ color: assetColors?.voterTally?.textSecondary ?? theme.textSecondary, fontSize: '28px', ...getAssetTransformStyle(transforms?.voterTally) }}>
                   {totalVotes.toLocaleString()} total votes
                 </span>
               </div>
