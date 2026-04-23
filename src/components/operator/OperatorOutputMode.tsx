@@ -219,8 +219,8 @@ export function OperatorOutputMode({
               <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs">
                 <Eye className="h-3.5 w-3.5" /> Preview Slate
               </Button>
-              <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs" onClick={() => navigate(`/polls/${currentPoll.id}?mode=edit`)}>
-                <Eye className="h-3.5 w-3.5" /> Open Edit Mode
+              <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs" onClick={() => navigate(`/polls/${currentPoll.id}?mode=build`)}>
+                <Eye className="h-3.5 w-3.5" /> Open Build Mode
               </Button>
             </div>
           </div>
