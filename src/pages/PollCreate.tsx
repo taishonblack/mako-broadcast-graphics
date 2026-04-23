@@ -1131,6 +1131,7 @@ export default function PollCreate() {
                     wordmark={assetState}
                   qrSize={qrSize}
                   qrPosition={qrPosition}
+                  qrVisible={assetState.qrVisible}
                   showBranding={showBranding}
                   brandingPosition={brandingPosition}
                   enabledAssetIds={enabledAssets}
