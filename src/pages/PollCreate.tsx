@@ -627,6 +627,7 @@ export default function PollCreate() {
   // Modular polling-assets state
   const [selectedAssetId, setSelectedAssetId] = useState<AssetId | null>(null);
   const [assetState, setAssetState] = useState<AssetState>(DEFAULT_ASSET_STATE);
+  const [assetTransforms, setAssetTransforms] = useState(DEFAULT_ASSET_TRANSFORMS);
   const [highlightField, setHighlightField] = useState<string | null>(null);
   const [folderState, setFolderState] = useState<PollingAssetFolderState>(() => createDefaultFolderState(question));
   const [deleteFolderTargetId, setDeleteFolderTargetId] = useState<string | null>(null);
@@ -655,6 +656,7 @@ export default function PollCreate() {
         nextState.activeFolderId = savedActiveFolderId;
       }
       setFolderState(nextState);
+      setAssetTransforms(DEFAULT_ASSET_TRANSFORMS);
       return;
     }
 
@@ -666,6 +668,7 @@ export default function PollCreate() {
           nextState.activeFolderId = savedActiveFolderId;
         }
         setFolderState(nextState);
+        setAssetTransforms(DEFAULT_ASSET_TRANSFORMS);
         setFoldersLoadedForProject(projectId);
       })
       .catch(() => {
@@ -675,6 +678,7 @@ export default function PollCreate() {
           nextState.activeFolderId = savedActiveFolderId;
         }
         setFolderState(nextState);
+        setAssetTransforms(DEFAULT_ASSET_TRANSFORMS);
         setFoldersLoadedForProject(projectId);
       });
   }, [projectId, user]);
@@ -844,6 +848,35 @@ export default function PollCreate() {
       ...answers,
       { id: String(Date.now()), text: '', shortLabel: '', testVotes: 0 },
     ]);
+  };
+
+  const handleTransformChange = (field: TransformField, value: number) => {
+    if (!selectedAssetId) return;
+    setAssetTransforms((current) => {
+      const currentTransform = current[selectedAssetId];
+      if (currentTransform.locks[field]) return current;
+      return {
+        ...current,
+        [selectedAssetId]: {
+          ...currentTransform,
+          [field]: value,
+        },
+      };
+    });
+  };
+
+  const handleToggleTransformLock = (field: TransformField) => {
+    if (!selectedAssetId) return;
+    setAssetTransforms((current) => ({
+      ...current,
+      [selectedAssetId]: {
+        ...current[selectedAssetId],
+        locks: {
+          ...current[selectedAssetId].locks,
+          [field]: !current[selectedAssetId].locks[field],
+        },
+      },
+    }));
   };
 
   const handleFolderQuestionChange = (nextQuestion: string) => {
