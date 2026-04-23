@@ -10,13 +10,18 @@ import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
 import { BroadcastCanvas } from '@/components/broadcast/BroadcastCanvas';
 import { DEFAULT_LAYERS, GraphicLayer, cloneLayers } from '@/lib/layers';
 import { OUTPUT_STATE_STORAGE_KEY, OutputAssets, readOutputState } from '@/lib/output-state';
-import { Poll, QRPosition } from '@/lib/types';
+import { Poll } from '@/lib/types';
+import { DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/types';
 
 const DEFAULT_ASSETS: OutputAssets = {
   qrSize: 120,
   qrPosition: 'bottom-right',
   showBranding: true,
   brandingPosition: 'bottom-left',
+  wordmarkWeight: DEFAULT_ASSET_STATE.wordmarkWeight,
+  wordmarkTracking: DEFAULT_ASSET_STATE.wordmarkTracking,
+  wordmarkScale: DEFAULT_ASSET_STATE.wordmarkScale,
+  wordmarkShowGuides: DEFAULT_ASSET_STATE.wordmarkShowGuides,
 };
 
 export default function ProgramOutput() {
@@ -86,6 +91,9 @@ export default function ProgramOutput() {
       qrPosition: assets.qrPosition,
       showBranding: assets.showBranding,
       brandingPosition: assets.brandingPosition,
+      wordmarkWeight: assets.wordmarkWeight,
+      wordmarkTracking: assets.wordmarkTracking,
+      wordmarkScale: assets.wordmarkScale,
     };
     const baseProps = {
       question: poll.question, options: liveOptions, totalVotes: total,

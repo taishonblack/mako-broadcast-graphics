@@ -257,14 +257,10 @@ export function AssetInspector(p: AssetInspectorProps) {
 
         {id === 'logo' && (
           <div className="space-y-3">
-            <Label className="text-[10px] text-muted-foreground">Logo URL</Label>
-            <Input
-              value={p.assetState.logoUrl ?? ''}
-              onChange={(e) => p.setAssetState({ ...p.assetState, logoUrl: e.target.value || undefined })}
-              placeholder="https://…/logo.png"
-              className="bg-background/50 h-8 text-[11px]"
-            />
-            <Label className="text-[10px] text-muted-foreground pt-1">Position</Label>
+            <p className="text-[10px] text-muted-foreground/80">
+              Use Theme &amp; Graphics to tune the split Mako Vote wordmark and verify center alignment guides.
+            </p>
+            <Label className="text-[10px] text-muted-foreground pt-1">Bug Position</Label>
             <div className="grid grid-cols-2 gap-1">
               {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map((pos) => (
                 <button
