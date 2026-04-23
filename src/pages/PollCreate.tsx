@@ -31,6 +31,17 @@ import { useAuth } from '@/hooks/useAuth';
 import { loadPoll, savePoll, listPolls, listProjects, DraftPollPayload, SavedPoll, BlockLetter } from '@/lib/poll-persistence';
 import { OperatorOutputMode } from '@/components/operator/OperatorOutputMode';
 import { toast } from 'sonner';
+import {
+  createDefaultFolderState,
+  createFolderId,
+  createFolderName,
+  findAssetFolder,
+  getAvailableAssets,
+  getFolderById,
+  loadProjectPollingAssetFolders,
+  PollingAssetFolderState,
+  saveProjectPollingAssetFolders,
+} from '@/lib/polling-asset-folders';
 
 type OperatorMode = 'build' | 'output';
 
@@ -549,8 +560,13 @@ export default function PollCreate() {
   const [selectedAssetId, setSelectedAssetId] = useState<AssetId | null>(null);
   const [assetState, setAssetState] = useState<AssetState>(DEFAULT_ASSET_STATE);
   const [highlightField, setHighlightField] = useState<string | null>(null);
-  const [folderName, setFolderName] = useState('Folder 1');
-  const [folderCount, setFolderCount] = useState(1);
+  const [folderState, setFolderState] = useState<PollingAssetFolderState>(createDefaultFolderState);
+  const [deleteFolderOpen, setDeleteFolderOpen] = useState(false);
+  const [foldersLoadedForProject, setFoldersLoadedForProject] = useState<string | null>(null);
+
+  const activeFolder = getFolderById(folderState, folderState.activeFolderId);
+  const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
+  const availableAssets = getAvailableAssets(folderState);
 
   // Map a JSON import field name to the matching asset id in the workspace
   const fieldToAssetId = (field: string): AssetId | null => {
@@ -565,7 +581,10 @@ export default function PollCreate() {
     const target = fieldToAssetId(field);
     if (target) {
       // Ensure the asset is mounted, then select it so the Inspector shows its controls
-      setEnabledAssets((curr) => (curr.includes(target) ? curr : [...curr, target]));
+      const sourceFolder = findAssetFolder(folderState, target);
+      if (sourceFolder && sourceFolder.id !== folderState.activeFolderId) {
+        setFolderState((current) => ({ ...current, activeFolderId: sourceFolder.id }));
+      }
       setSelectedAssetId(target);
     }
     setHighlightField(field);
@@ -574,13 +593,73 @@ export default function PollCreate() {
     toast.message(`Jumped to ${field}`);
   };
 
+  const updateFolderState = (updater: (current: PollingAssetFolderState) => PollingAssetFolderState) => {
+    setFolderState((current) => updater(current));
+  };
+
   const handleNewFolder = () => {
-    const nextCount = folderCount + 1;
-    setFolderCount(nextCount);
-    setFolderName(`Folder ${nextCount}`);
-    setEnabledAssets(SEEDED_ASSETS);
+    updateFolderState((current) => {
+      const nextIndex = current.folders.length + 1;
+      const nextFolder = {
+        id: createFolderId(),
+        name: createFolderName(nextIndex),
+        blockLetter: blockLetter,
+        assetIds: [...SEEDED_ASSETS],
+      };
+
+      return {
+        activeFolderId: nextFolder.id,
+        folders: [
+          ...current.folders.map((folder) => ({
+            ...folder,
+            assetIds: folder.assetIds.filter((assetId) => !SEEDED_ASSETS.includes(assetId)),
+          })),
+          nextFolder,
+        ],
+      };
+    });
+    setSelectedAssetId('question');
+    toast.success('Created new folder');
+  };
+
+  const handleDeleteFolder = () => {
+    updateFolderState((current) => {
+      const targetFolder = getFolderById(current, current.activeFolderId);
+      if (!targetFolder || current.folders.length === 1) return current;
+
+      const remainingFolders = current.folders.filter((folder) => folder.id !== targetFolder.id);
+      const fallbackFolder = remainingFolders[0];
+      const mergedAssets = Array.from(new Set([...SEEDED_ASSETS, ...fallbackFolder.assetIds, ...targetFolder.assetIds.filter((assetId) => !SEEDED_ASSETS.includes(assetId))]));
+
+      return {
+        activeFolderId: fallbackFolder.id,
+        folders: remainingFolders.map((folder) => folder.id === fallbackFolder.id ? { ...folder, assetIds: mergedAssets } : folder),
+      };
+    });
+    setDeleteFolderOpen(false);
     setSelectedAssetId(null);
-    toast.success(`Created ${`Folder ${nextCount}`}`);
+    toast.success('Folder deleted');
+  };
+
+  const handleSetEnabledAssets = (nextAssets: AssetId[]) => {
+    updateFolderState((current) => ({
+      ...current,
+      folders: current.folders.map((folder) => folder.id === current.activeFolderId ? { ...folder, assetIds: nextAssets } : folder),
+    }));
+  };
+
+  const handleMoveAssetToFolder = (assetId: AssetId, folderId: string) => {
+    updateFolderState((current) => {
+      const nextFolders = current.folders.map((folder) => ({
+        ...folder,
+        assetIds: folder.id === folderId
+          ? Array.from(new Set([...folder.assetIds, assetId]))
+          : folder.assetIds.filter((id) => id !== assetId || SEEDED_ASSETS.includes(id)),
+      }));
+
+      return { ...current, folders: nextFolders, activeFolderId: folderId };
+    });
+    setSelectedAssetId(assetId);
   };
 
   if (loadingExisting) {
