@@ -215,7 +215,9 @@ export default function PollCreate() {
         setFolderState((current) => ({
           ...current,
           folders: current.folders.map((folder) => (
-            folder.id === current.activeFolderId ? { ...folder, questionText: p.question } : folder
+            folder.id === current.activeFolderId
+              ? { ...folder, questionText: p.question, bgColor: p.bgColor, bgImage: p.bgImage }
+              : folder
           )),
         }));
         setSubheadline(p.subheadline);
@@ -575,7 +577,9 @@ export default function PollCreate() {
     setFolderState((current) => ({
       ...current,
       folders: current.folders.map((folder) => (
-        folder.id === current.activeFolderId ? { ...folder, questionText: p.question } : folder
+        folder.id === current.activeFolderId
+          ? { ...folder, questionText: p.question, bgColor: p.bgColor, bgImage: p.bgImage }
+          : folder
       )),
     }));
     setSubheadline(p.subheadline);
@@ -660,7 +664,9 @@ export default function PollCreate() {
       setFolderState((current) => ({
         ...current,
         folders: current.folders.map((folder) => (
-          folder.id === current.activeFolderId ? { ...folder, questionText: data.question } : folder
+          folder.id === current.activeFolderId
+            ? { ...folder, questionText: data.question, bgColor: data.bgColor, bgImage: data.bgImage }
+            : folder
         )),
       }));
       setSubheadline(data.subheadline);
@@ -838,7 +844,7 @@ export default function PollCreate() {
   useEffect(() => {
     if (!user || !projectId) {
       setFoldersLoadedForProject(null);
-      const nextState = createDefaultFolderState(question);
+      const nextState = createDefaultFolderState(question, bgColor);
       const savedActiveFolderId = localStorage.getItem(buildActiveFolderStorageKey(projectId));
       if (savedActiveFolderId && nextState.folders.some((folder) => folder.id === savedActiveFolderId)) {
         nextState.activeFolderId = savedActiveFolderId;
@@ -851,7 +857,7 @@ export default function PollCreate() {
 
     loadProjectPollingAssetFolders(projectId, user.id)
       .then((savedState) => {
-        const nextState = savedState ?? createDefaultFolderState(question);
+        const nextState = savedState ?? createDefaultFolderState(question, bgColor);
         const savedActiveFolderId = localStorage.getItem(buildActiveFolderStorageKey(projectId));
         if (savedActiveFolderId && nextState.folders.some((folder) => folder.id === savedActiveFolderId)) {
           nextState.activeFolderId = savedActiveFolderId;
@@ -862,7 +868,7 @@ export default function PollCreate() {
         setFoldersLoadedForProject(projectId);
       })
       .catch(() => {
-        const nextState = createDefaultFolderState(question);
+        const nextState = createDefaultFolderState(question, bgColor);
         const savedActiveFolderId = localStorage.getItem(buildActiveFolderStorageKey(projectId));
         if (savedActiveFolderId && nextState.folders.some((folder) => folder.id === savedActiveFolderId)) {
           nextState.activeFolderId = savedActiveFolderId;
@@ -872,7 +878,7 @@ export default function PollCreate() {
         setAssetColors(DEFAULT_ASSET_COLORS);
         setFoldersLoadedForProject(projectId);
       });
-  }, [projectId, question, user]);
+  }, [bgColor, projectId, question, user]);
 
   useEffect(() => {
     if (!folderState.activeFolderId) return;
@@ -885,7 +891,14 @@ export default function PollCreate() {
     if (question !== nextQuestion) {
       setQuestion(nextQuestion);
     }
-  }, [activeFolder, question]);
+    const nextBgColor = activeFolder.bgColor ?? '#1a1a2e';
+    if (bgColor !== nextBgColor) {
+      setBgColor(nextBgColor);
+    }
+    if (bgImage !== activeFolder.bgImage) {
+      setBgImage(activeFolder.bgImage);
+    }
+  }, [activeFolder, bgColor, bgImage, question]);
 
   useEffect(() => {
     setAssetColors((current) => {
@@ -952,6 +965,31 @@ export default function PollCreate() {
     }));
   };
 
+  const syncActiveFolderBackground = (nextBackground: { bgColor?: string; bgImage?: string }) => {
+    updateFolderState((current) => ({
+      ...current,
+      folders: current.folders.map((folder) => (
+        folder.id === current.activeFolderId
+          ? {
+              ...folder,
+              ...(nextBackground.bgColor !== undefined ? { bgColor: nextBackground.bgColor } : {}),
+              ...(Object.prototype.hasOwnProperty.call(nextBackground, 'bgImage') ? { bgImage: nextBackground.bgImage } : {}),
+            }
+          : folder
+      )),
+    }));
+  };
+
+  const handleBackgroundColorChange = (nextColor: string) => {
+    setBgColor(nextColor);
+    syncActiveFolderBackground({ bgColor: nextColor });
+  };
+
+  const handleBackgroundImageChange = (nextImage: string | undefined) => {
+    setBgImage(nextImage);
+    syncActiveFolderBackground({ bgImage: nextImage });
+  };
+
   const handleNewFolder = () => {
     updateFolderState((current) => {
       const nextIndex = current.folders.length + 1;
@@ -960,6 +998,8 @@ export default function PollCreate() {
         name: createFolderName(nextIndex),
         blockLetter: blockLetter,
         questionText: '',
+        bgColor,
+        bgImage,
         assetIds: [...SEEDED_ASSETS],
       };
 
@@ -1419,8 +1459,8 @@ export default function PollCreate() {
                       section="template"
                       selectedTemplate={selectedTemplate}
                       setSelectedTemplate={setSelectedTemplate}
-                      bgColor={bgColor} setBgColor={setBgColor}
-                      bgImage={bgImage} setBgImage={setBgImage}
+                      bgColor={bgColor} setBgColor={handleBackgroundColorChange}
+                      bgImage={bgImage} setBgImage={handleBackgroundImageChange}
                       wordmark={assetState}
                       setWordmark={(next) => setAssetState((current) => ({ ...current, ...next }))}
                     />
@@ -1438,9 +1478,9 @@ export default function PollCreate() {
                       answerType={answerType} setAnswerType={setAnswerType}
                       mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
                       answers={answers} setAnswers={setAnswers}
-                      bgColor={bgColor} setBgColor={setBgColor}
+                      bgColor={bgColor} setBgColor={handleBackgroundColorChange}
                       bgImage={bgImage}
-                      setBgImage={setBgImage}
+                      setBgImage={handleBackgroundImageChange}
                       assetState={assetState}
                       setAssetState={setAssetState}
                       highlightField={highlightField}
