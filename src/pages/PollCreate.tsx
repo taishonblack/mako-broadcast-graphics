@@ -1048,6 +1048,11 @@ export default function PollCreate() {
     toast.success('Folder deleted');
   };
 
+  const confirmDeleteFolder = () => {
+    if (!deleteFolderTargetId) return;
+    handleDeleteFolder(deleteFolderTargetId);
+  };
+
   const handleSetEnabledAssets = (nextAssets: AssetId[]) => {
     updateFolderState((current) => ({
       ...current,
@@ -1308,7 +1313,7 @@ export default function PollCreate() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { if (deleteFolderTargetId) handleDeleteFolder(deleteFolderTargetId); }}>Delete folder</AlertDialogAction>
+            <Button type="button" onClick={confirmDeleteFolder}>Delete folder</Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
