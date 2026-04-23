@@ -767,6 +767,10 @@ export default function PollCreate() {
                 <FolderOpen className="w-3 h-3" />
                 New Folder
               </DropdownMenuItem>
+              <DropdownMenuItem onClick={() => setDeleteFolderOpen(true)} disabled={folderState.folders.length <= 1} className="text-xs gap-2">
+                <FolderOpen className="w-3 h-3" />
+                Delete Folder
+              </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setLoadDialogOpen(true)} className="text-xs gap-2">
                 <FolderOpen className="w-3 h-3" />
@@ -818,6 +822,20 @@ export default function PollCreate() {
           </Tooltip>
         </div>
       </header>
+      <AlertDialog open={deleteFolderOpen} onOpenChange={setDeleteFolderOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete folder?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This removes the active folder and moves its assets into the next available folder.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={handleDeleteFolder}>Delete folder</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <LoadPollDialog
         open={loadDialogOpen}
         onOpenChange={setLoadDialogOpen}
@@ -885,13 +903,19 @@ export default function PollCreate() {
             <ResizablePanel defaultSize={layout.hSizes[0]} minSize={18} maxSize={36}>
               <Pane title="Polling Assets" hint="Question · Answers · Logic" icon={FolderOpen}>
                 <PollingAssetsPane
+                  folders={folderState.folders}
+                  activeFolderId={folderState.activeFolderId}
+                  availableAssets={availableAssets}
                   enabledAssets={enabledAssets}
-                  onEnabledAssetsChange={setEnabledAssets}
+                  onEnabledAssetsChange={handleSetEnabledAssets}
                   selectedAssetId={selectedAssetId}
                   onSelectAsset={setSelectedAssetId}
-                  folderName={folderName}
+                  onSelectFolder={handleSelectFolder}
+                  onCreateFolder={handleNewFolder}
+                  onMoveAssetToFolder={handleMoveAssetToFolder}
+                  folderName={activeFolder?.name ?? 'Folder'}
                   blockLetter={blockLetter}
-                  onBlockLetterChange={setBlockLetter}
+                  onBlockLetterChange={handleBlockLetterChange}
                   question={question} setQuestion={setQuestion}
                   subheadline={subheadline} setSubheadline={setSubheadline}
                   internalName={internalName} setInternalName={setInternalName}
