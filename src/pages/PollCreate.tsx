@@ -9,7 +9,7 @@ import { PollingAssetsPane, SEEDED_ASSETS } from '@/components/poll-create/polli
 import { AssetInspector } from '@/components/poll-create/polling-assets/AssetInspector';
 import { AssetTransformControls } from '@/components/poll-create/AssetTransformControls';
 import { ASSET_REGISTRY } from '@/components/poll-create/polling-assets/PollingAssetsPane';
-import { AssetId, AssetState, DEFAULT_ASSET_STATE, DEFAULT_ASSET_TRANSFORMS, TransformField } from '@/components/poll-create/polling-assets/types';
+import { AssetColorMap, AssetId, AssetState, DEFAULT_ASSET_COLORS, DEFAULT_ASSET_STATE, DEFAULT_ASSET_TRANSFORMS, TransformField } from '@/components/poll-create/polling-assets/types';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -357,7 +357,9 @@ export default function PollCreate() {
   };
 
   const theme = themePresets[0];
-  const previewColors = [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
+  const previewColors = assetColors.answers.barColors?.length
+    ? assetColors.answers.barColors
+    : [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
 
   const previewOptions: PollOption[] = useMemo(() =>
     answers.map((a, i) => ({
@@ -653,6 +655,7 @@ export default function PollCreate() {
   const [selectedAssetId, setSelectedAssetId] = useState<AssetId | null>(null);
   const [assetState, setAssetState] = useState<AssetState>(DEFAULT_ASSET_STATE);
   const [assetTransforms, setAssetTransforms] = useState(DEFAULT_ASSET_TRANSFORMS);
+  const [assetColors, setAssetColors] = useState<AssetColorMap>(DEFAULT_ASSET_COLORS);
   const [highlightField, setHighlightField] = useState<string | null>(null);
   const [folderState, setFolderState] = useState<PollingAssetFolderState>(() => createDefaultFolderState(question));
   const [deleteFolderTargetId, setDeleteFolderTargetId] = useState<string | null>(null);
@@ -680,6 +683,7 @@ export default function PollCreate() {
       }
       setFolderState(nextState);
       setAssetTransforms(DEFAULT_ASSET_TRANSFORMS);
+      setAssetColors(DEFAULT_ASSET_COLORS);
       return;
     }
 
@@ -692,6 +696,7 @@ export default function PollCreate() {
         }
         setFolderState(nextState);
         setAssetTransforms(DEFAULT_ASSET_TRANSFORMS);
+        setAssetColors(DEFAULT_ASSET_COLORS);
         setFoldersLoadedForProject(projectId);
       })
       .catch(() => {
@@ -702,6 +707,7 @@ export default function PollCreate() {
         }
         setFolderState(nextState);
         setAssetTransforms(DEFAULT_ASSET_TRANSFORMS);
+        setAssetColors(DEFAULT_ASSET_COLORS);
         setFoldersLoadedForProject(projectId);
       });
   }, [projectId, question, user]);
