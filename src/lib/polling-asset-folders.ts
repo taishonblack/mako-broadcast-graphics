@@ -16,7 +16,6 @@ export interface PollingAssetFolderState {
   activeFolderId: string;
 }
 
-const REQUIRED_ASSETS: AssetId[] = ['question', 'answers'];
 const VALID_ASSETS: AssetId[] = ['question', 'answers', 'subheadline', 'background', 'qr', 'logo', 'voterTally'];
 const DEFAULT_BLOCK: BlockLetter = 'A';
 
@@ -34,7 +33,7 @@ export function createDefaultFolderState(initialQuestionText = ''): PollingAsset
   const id = createFolderId();
   return {
     activeFolderId: id,
-    folders: [{ id, name: createFolderName(1), blockLetter: DEFAULT_BLOCK, collapsed: false, questionText: initialQuestionText, assetIds: [...REQUIRED_ASSETS] }],
+    folders: [{ id, name: createFolderName(1), blockLetter: DEFAULT_BLOCK, collapsed: false, questionText: initialQuestionText, assetIds: [] }],
   };
 }
 
@@ -66,15 +65,13 @@ export function normalizeFolderState(input: unknown): PollingAssetFolderState {
         ? folder.assetIds.filter((assetId): assetId is AssetId => VALID_ASSETS.includes(assetId as AssetId))
         : [];
 
-      const seededAssets = Array.from(new Set([...REQUIRED_ASSETS, ...assetIds]));
-
       return {
         id: typeof folder.id === 'string' && folder.id.length > 0 ? folder.id : createFolderId(),
         name: typeof folder.name === 'string' && folder.name.trim().length > 0 ? folder.name.trim() : createFolderName(index + 1),
         blockLetter: ['A', 'B', 'C', 'D', 'E'].includes(String(folder.blockLetter)) ? folder.blockLetter as BlockLetter : DEFAULT_BLOCK,
         collapsed: Boolean(folder.collapsed),
         questionText: typeof folder.questionText === 'string' ? folder.questionText : undefined,
-        assetIds: seededAssets,
+        assetIds: Array.from(new Set(assetIds)),
       };
     })
     .filter((folder) => folder.assetIds.length > 0 || folder.name.length > 0);
