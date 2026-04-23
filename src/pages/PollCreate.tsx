@@ -67,21 +67,24 @@ function saveWorkspaceLayout(partial: Partial<WorkspaceLayout>) {
 
 /* ---------- Pane chrome ---------- */
 
-function PaneHeader({ title, hint }: { title: string; hint?: string }) {
+function PaneHeader({ title, hint, icon: Icon }: { title: string; hint?: string; icon?: typeof FolderOpen }) {
   return (
     <div className="h-7 px-3 flex items-center justify-between border-b border-border/60 bg-muted/30 shrink-0">
-      <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{title}</span>
+      <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+        {Icon && <Icon className="w-3 h-3" />}
+        {title}
+      </span>
       {hint && <span className="text-[9px] text-muted-foreground/60">{hint}</span>}
     </div>
   );
 }
 
 function Pane({
-  title, hint, children, contentClassName,
-}: { title: string; hint?: string; children: React.ReactNode; contentClassName?: string }) {
+  title, hint, icon, children, contentClassName,
+}: { title: string; hint?: string; icon?: typeof FolderOpen; children: React.ReactNode; contentClassName?: string }) {
   return (
     <div className="h-full flex flex-col bg-background">
-      <PaneHeader title={title} hint={hint} />
+      <PaneHeader title={title} hint={hint} icon={icon} />
       <div className={`flex-1 min-h-0 overflow-auto ${contentClassName ?? ''}`}>
         {children}
       </div>
@@ -546,6 +549,8 @@ export default function PollCreate() {
   const [selectedAssetId, setSelectedAssetId] = useState<AssetId | null>(null);
   const [assetState, setAssetState] = useState<AssetState>(DEFAULT_ASSET_STATE);
   const [highlightField, setHighlightField] = useState<string | null>(null);
+  const [folderName, setFolderName] = useState('Folder 1');
+  const [folderCount, setFolderCount] = useState(1);
 
   // Map a JSON import field name to the matching asset id in the workspace
   const fieldToAssetId = (field: string): AssetId | null => {
@@ -567,6 +572,15 @@ export default function PollCreate() {
     // Clear highlight after the pulse animation
     window.setTimeout(() => setHighlightField((f) => (f === field ? null : f)), 2400);
     toast.message(`Jumped to ${field}`);
+  };
+
+  const handleNewFolder = () => {
+    const nextCount = folderCount + 1;
+    setFolderCount(nextCount);
+    setFolderName(`Folder ${nextCount}`);
+    setEnabledAssets(SEEDED_ASSETS);
+    setSelectedAssetId(null);
+    toast.success(`Created ${`Folder ${nextCount}`}`);
   };
 
   if (loadingExisting) {
@@ -619,6 +633,10 @@ export default function PollCreate() {
                   ? <Loader2 className="w-3 h-3 animate-spin" />
                   : <FolderPlus className="w-3 h-3" />}
                 Save to Project…
+              </DropdownMenuItem>
+              <DropdownMenuItem onClick={handleNewFolder} className="text-xs gap-2">
+                <FolderOpen className="w-3 h-3" />
+                New Folder
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setLoadDialogOpen(true)} className="text-xs gap-2">
@@ -736,12 +754,13 @@ export default function PollCreate() {
             }}
           >
             <ResizablePanel defaultSize={layout.hSizes[0]} minSize={18} maxSize={36}>
-              <Pane title="Polling Assets" hint="Question · Answers · Logic">
+              <Pane title="Polling Assets" hint="Question · Answers · Logic" icon={FolderOpen}>
                 <PollingAssetsPane
                   enabledAssets={enabledAssets}
                   onEnabledAssetsChange={setEnabledAssets}
                   selectedAssetId={selectedAssetId}
                   onSelectAsset={setSelectedAssetId}
+                  folderName={folderName}
                   blockLetter={blockLetter}
                   onBlockLetterChange={setBlockLetter}
                   question={question} setQuestion={setQuestion}
