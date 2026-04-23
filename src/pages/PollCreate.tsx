@@ -603,7 +603,7 @@ export default function PollCreate() {
         setFolderState(createDefaultFolderState(question));
         setFoldersLoadedForProject(projectId);
       });
-  }, [projectId, question, user]);
+  }, [projectId, user]);
 
   useEffect(() => {
     if (!activeFolder) return;
@@ -645,6 +645,17 @@ export default function PollCreate() {
 
   const updateFolderState = (updater: (current: PollingAssetFolderState) => PollingAssetFolderState) => {
     setFolderState((current) => updater(current));
+  };
+
+  const syncActiveFolderQuestion = (nextQuestion: string) => {
+    updateFolderState((current) => ({
+      ...current,
+      folders: current.folders.map((folder) => (
+        folder.id === current.activeFolderId
+          ? { ...folder, questionText: nextQuestion }
+          : folder
+      )),
+    }));
   };
 
   const handleNewFolder = () => {
@@ -741,14 +752,7 @@ export default function PollCreate() {
 
   const handleFolderQuestionChange = (nextQuestion: string) => {
     setQuestion(nextQuestion);
-    updateFolderState((current) => ({
-      ...current,
-      folders: current.folders.map((folder) => (
-        folder.id === current.activeFolderId
-          ? { ...folder, questionText: nextQuestion }
-          : folder
-      )),
-    }));
+    syncActiveFolderQuestion(nextQuestion);
   };
 
   if (loadingExisting) {
