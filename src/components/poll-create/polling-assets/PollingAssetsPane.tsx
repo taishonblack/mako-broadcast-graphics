@@ -28,7 +28,6 @@ export const SEEDED_ASSETS: AssetId[] = ['question', 'answers'];
 interface PollingAssetsPaneProps {
   folders: { id: string; name: string; blockLetter: BlockLetter; collapsed?: boolean; assetIds: AssetId[] }[];
   activeFolderId: string;
-  availableAssets: AssetId[];
   enabledAssets: AssetId[];
   onEnabledAssetsChange: (next: AssetId[]) => void;
   selectedAssetId: AssetId | null;
@@ -58,7 +57,6 @@ interface PollingAssetsPaneProps {
 export function PollingAssetsPane({
   folders,
   activeFolderId,
-  availableAssets,
   enabledAssets, onEnabledAssetsChange,
   selectedAssetId, onSelectAsset,
   onSelectFolder,
@@ -421,7 +419,14 @@ function AssetEditor(props: {
             className="bg-background/50 h-7 text-[11px]"
           />
         ))}
-        <Button type="button" variant="outline" size="sm" className="h-7 w-full gap-1 text-[10px]" onClick={props.onAddAnswer}>
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 w-full gap-1 text-[10px]"
+          onClick={props.onAddAnswer}
+          disabled={props.answerType === 'yes-no' || props.answers.length >= 4}
+        >
           <Plus className="w-3 h-3" /> Add Answer Bar
         </Button>
         <p className="text-[9px] text-muted-foreground">
