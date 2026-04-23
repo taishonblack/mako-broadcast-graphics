@@ -1,6 +1,7 @@
 import { ThemePreset, PollOption, TemplateName, QRPosition } from '@/lib/types';
 import { AssetOverlay } from '@/components/broadcast/AssetOverlay';
-import { AssetTransformMap } from '@/components/poll-create/polling-assets/types';
+import { AssetColorMap, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
+import { getAssetTransformStyle } from '@/lib/asset-transforms';
 
 interface LowerThirdSceneProps {
   question: string;
@@ -21,6 +22,7 @@ interface LowerThirdSceneProps {
   brandingPosition?: QRPosition;
   enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally'>;
   transforms?: AssetTransformMap;
+  assetColors?: AssetColorMap;
 }
 
 /**
@@ -47,6 +49,7 @@ export function LowerThirdScene({
   brandingPosition = 'top-left',
   enabledAssetIds,
   transforms,
+  assetColors,
 }: LowerThirdSceneProps) {
   // Clamp height to broadcast-safe range (20%-45%)
   const bannerHeight = Math.max(20, Math.min(45, height));
@@ -57,6 +60,7 @@ export function LowerThirdScene({
       className="absolute inset-0 overflow-hidden"
       style={{
         background: `linear-gradient(135deg, ${theme.tintColor}, hsl(220, 25%, 6%))`,
+        ...getAssetTransformStyle(transforms?.background),
       }}
     >
       {/* Bottom-anchored banner */}
@@ -78,15 +82,16 @@ export function LowerThirdScene({
         />
 
         {/* Safe-area padded layout: left = Q+answers, right = totals */}
-        <div className="flex-1 min-h-0 flex items-center gap-16 px-24 py-8">
+          <div className="flex-1 min-h-0 flex items-center gap-16 px-24 py-8">
           {/* LEFT: Question + Answers stacked */}
-          <div className="flex-1 min-w-0 flex flex-col justify-center gap-6 h-full py-2">
+            <div className="flex-1 min-w-0 flex flex-col justify-center gap-8 h-full py-2">
             {visibleAssets.has('question') && (
             <h2
               className="font-bold leading-tight truncate"
               style={{
-                color: theme.textPrimary,
+                 color: assetColors?.question?.textPrimary ?? theme.textPrimary,
                 fontSize: '56px',
+                 ...getAssetTransformStyle(transforms?.question),
               }}
             >
               {question}
@@ -95,7 +100,7 @@ export function LowerThirdScene({
 
             {/* Answer rows — thick, broadcast-readable bars */}
             {visibleAssets.has('answers') && (
-            <div className="flex flex-col gap-3">
+            <div className="flex flex-col gap-4" style={getAssetTransformStyle(transforms?.answers)}>
               {options.slice(0, 4).map((option, i) => {
                 const pct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
                 const color = colors[i % colors.length];
@@ -104,7 +109,7 @@ export function LowerThirdScene({
                     <span
                       className="font-semibold shrink-0 truncate"
                       style={{
-                        color: theme.textPrimary,
+                        color: assetColors?.answers?.textPrimary ?? theme.textPrimary,
                         fontSize: '28px',
                         width: '280px',
                       }}
@@ -149,16 +154,16 @@ export function LowerThirdScene({
 
           {/* RIGHT: Vote total */}
           {visibleAssets.has('voterTally') && (
-          <div className="shrink-0 flex flex-col items-center justify-center" style={{ width: '220px' }}>
+          <div className="shrink-0 flex flex-col items-center justify-center" style={{ width: '220px', ...getAssetTransformStyle(transforms?.voterTally) }}>
             <span
               className="font-bold font-mono tabular-nums leading-none"
-              style={{ color: theme.textPrimary, fontSize: '64px' }}
+              style={{ color: assetColors?.voterTally?.textPrimary ?? theme.textPrimary, fontSize: '64px' }}
             >
               {totalVotes.toLocaleString()}
             </span>
             <span
               className="font-mono mt-2 tracking-widest uppercase"
-              style={{ color: theme.textSecondary, fontSize: '16px' }}
+              style={{ color: assetColors?.voterTally?.textSecondary ?? theme.textSecondary, fontSize: '16px' }}
             >
               Total Votes
             </span>
