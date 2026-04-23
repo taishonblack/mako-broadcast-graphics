@@ -15,6 +15,7 @@ interface LowerThirdSceneProps {
   qrSize?: number;
   qrPosition?: QRPosition;
   qrVisible?: boolean;
+  qrUrlVisible?: boolean;
   debugVoteUrl?: string;
   showBranding?: boolean;
   brandingPosition?: QRPosition;
@@ -40,6 +41,7 @@ export function LowerThirdScene({
   qrSize,
   qrPosition = 'top-right',
   qrVisible = true,
+  qrUrlVisible = true,
   debugVoteUrl,
   showBranding = false,
   brandingPosition = 'top-left',
@@ -174,6 +176,7 @@ export function LowerThirdScene({
           qrSize={qrSize ?? 0}
           qrPosition={qrPosition}
           debugVoteUrl={debugVoteUrl}
+          showQrUrl={qrUrlVisible}
           showBranding={visibleAssets.has('logo') && showBranding}
           brandingPosition={brandingPosition}
           theme={theme}

@@ -19,6 +19,7 @@ interface FullscreenSceneProps {
   qrSize?: number;
   qrPosition?: QRPosition;
   qrVisible?: boolean;
+  qrUrlVisible?: boolean;
   debugVoteUrl?: string;
   showBranding?: boolean;
   brandingPosition?: QRPosition;
@@ -49,6 +50,7 @@ export function FullscreenScene({
   qrSize,
   qrPosition,
   qrVisible = true,
+  qrUrlVisible = true,
   debugVoteUrl,
   showBranding = false,
   brandingPosition = 'bottom-left',
@@ -158,6 +160,7 @@ export function FullscreenScene({
           qrSize={qrSize ?? 0}
           qrPosition={qrPosition ?? 'bottom-right'}
           debugVoteUrl={debugVoteUrl}
+          showQrUrl={qrUrlVisible}
           showBranding={visibleAssets.has('logo') && showBranding}
           brandingPosition={brandingPosition}
           theme={theme}

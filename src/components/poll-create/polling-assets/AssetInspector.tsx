@@ -269,6 +269,16 @@ export function AssetInspector(p: AssetInspectorProps) {
                 onCheckedChange={(checked) => p.setAssetState({ ...p.assetState, qrVisible: checked })}
               />
             </div>
+            <div className="flex items-center justify-between rounded-md border border-border/50 bg-background/40 px-2.5 py-2">
+              <div>
+                <Label className="text-[10px] text-muted-foreground">Show URL label</Label>
+                <p className="text-[10px] text-muted-foreground/70">Toggles the visible vote URL beneath the QR code.</p>
+              </div>
+              <Switch
+                checked={p.assetState.qrUrlVisible}
+                onCheckedChange={(checked) => p.setAssetState({ ...p.assetState, qrUrlVisible: checked })}
+              />
+            </div>
             <div>
               <Label className="text-[10px] text-muted-foreground">Position</Label>
               <div className="grid grid-cols-2 gap-1 mt-1">

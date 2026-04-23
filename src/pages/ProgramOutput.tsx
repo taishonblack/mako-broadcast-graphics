@@ -17,6 +17,7 @@ const DEFAULT_ASSETS: OutputAssets = {
   qrSize: 120,
   qrPosition: 'bottom-right',
   qrVisible: DEFAULT_ASSET_STATE.qrVisible,
+  qrUrlVisible: DEFAULT_ASSET_STATE.qrUrlVisible,
   showBranding: true,
   brandingPosition: 'bottom-left',
   wordmarkWeight: DEFAULT_ASSET_STATE.wordmarkWeight,
@@ -91,6 +92,7 @@ export default function ProgramOutput() {
       qrSize: assets.qrSize,
       qrPosition: assets.qrPosition,
       qrVisible: assets.qrVisible,
+      qrUrlVisible: assets.qrUrlVisible,
       showBranding: assets.showBranding,
       brandingPosition: assets.brandingPosition,
       enabledAssetIds: assets.enabledAssetIds,
@@ -108,7 +110,7 @@ export default function ProgramOutput() {
       case 'lowerThird':
         return <LowerThirdScene {...baseProps} />;
       case 'qr':
-        return <QRScene slug={poll.slug} theme={theme} enabledAssetIds={assets.enabledAssetIds} transforms={assets.transforms} qrVisible={assets.qrVisible} debugVoteUrl={`https://makovote.app/vote/${poll.slug}`} />;
+        return <QRScene slug={poll.slug} theme={theme} enabledAssetIds={assets.enabledAssetIds} transforms={assets.transforms} qrVisible={assets.qrVisible} qrUrlVisible={assets.qrUrlVisible} debugVoteUrl={`https://makovote.app/vote/${poll.slug}`} />;
       case 'results':
         return <ResultsScene {...baseProps} />;
       case 'fullscreen':

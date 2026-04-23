@@ -22,6 +22,7 @@ export interface AssetState {
   qrPosition: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
   qrSize: number;
   qrVisible: boolean;
+  qrUrlVisible: boolean;
   logoUrl?: string;
   logoPosition: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left';
   voterTallyFormat: 'number' | 'compact' | 'percent';
@@ -97,6 +98,7 @@ export const DEFAULT_ASSET_STATE: AssetState = {
   qrPosition: 'bottom-right',
   qrSize: 120,
   qrVisible: true,
+  qrUrlVisible: true,
   logoUrl: undefined,
   logoPosition: 'bottom-left',
   voterTallyFormat: 'number',
