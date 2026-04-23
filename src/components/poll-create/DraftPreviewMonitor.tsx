@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { AnswerType, MCLabelStyle, PreviewDataMode, getMCLabel } from './ContentPanel';
 import { AssetState } from './polling-assets/types';
 import { WordmarkLockup } from '@/components/broadcast/WordmarkLockup';
+import { usePreviewOverlays } from '@/lib/preview-overlays';
 
 type PreviewMode = 'program' | 'mobile' | 'desktop';
 
@@ -59,9 +60,22 @@ export function DraftPreviewMonitor({
 }: DraftPreviewMonitorProps) {
   const [previewMode, setPreviewMode] = useState<PreviewMode>('program');
   const [copied, setCopied] = useState<'full' | 'short' | null>(null);
+  const overlayApi = usePreviewOverlays();
 
   const labelledOptions = resolveOptionLabels(options, answerType, mcLabelStyle, answers);
   const isLowerThird = template === 'lower-third';
+
+  const showWordmarkGuides = wordmark.wordmarkShowGuides;
+
+  if (overlayApi.state.titleSafe !== showWordmarkGuides) {
+    overlayApi.update('titleSafe', showWordmarkGuides);
+  }
+  if (overlayApi.state.centerCrosshair !== showWordmarkGuides) {
+    overlayApi.update('centerCrosshair', showWordmarkGuides);
+  }
+  if (overlayApi.state.snap !== showWordmarkGuides) {
+    overlayApi.update('snap', showWordmarkGuides);
+  }
 
   const copyUrl = (url: string, kind: 'full' | 'short') => {
     navigator.clipboard?.writeText(url);
@@ -260,7 +274,7 @@ export function DraftPreviewMonitor({
       {/* Preview area — tightened to lift monitor toward the header */}
       <div className="flex-1 flex flex-col items-center justify-start pt-2 px-4 pb-4 bg-background/30 min-h-0 overflow-auto gap-2">
         {previewMode === 'program' ? (
-          <PreviewWithOverlays showLabel label="1920×1080">
+          <PreviewWithOverlays showLabel label="1920×1080" onApiReady={() => undefined}>
             {renderProgramContent()}
           </PreviewWithOverlays>
         ) : (
