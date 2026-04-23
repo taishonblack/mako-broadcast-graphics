@@ -38,6 +38,21 @@ const CONTROL_DEFS: Array<{
   { field: 'cropBottom', label: 'Crop Bottom', min: 0, max: 0.45, step: 0.01, format: (v) => `${Math.round(v * 100)}%` },
 ];
 
+interface ColorFieldConfig {
+  key: 'textPrimary' | 'textSecondary' | 'barColors';
+  label: string;
+  value?: string;
+  index?: number;
+  apply: (value: string) => AssetColorConfig;
+  reset: () => AssetColorConfig;
+}
+
+interface ColorSection {
+  assetId: AssetId;
+  label: string;
+  fields: ColorFieldConfig[];
+}
+
 export function AssetTransformControls({ assetId, assetLabel, folderLabel, folderAssetIds, transforms, colors, answerCount, onChange, onToggleLock, onColorsChange }: AssetTransformControlsProps) {
   const [transformOpen, setTransformOpen] = useState(true);
   const [colorsOpen, setColorsOpen] = useState(true);
@@ -47,7 +62,7 @@ export function AssetTransformControls({ assetId, assetLabel, folderLabel, folde
   const transformSections = visibleAssetIds
     .map((id) => ({ id, label: assetId ? (assetLabel ?? id) : getAssetLabel(id), transform: transforms[id] }))
     .filter((section) => Boolean(section.transform));
-  const colorSections = visibleAssetIds.flatMap((id) => buildColorSections(id, colors[id], answerCount));
+  const colorSections: ColorSection[] = visibleAssetIds.flatMap((id) => buildColorSections(id, colors[id], answerCount));
 
   if (visibleAssetIds.length === 0) {
     return <div className="px-4 py-3 text-[11px] text-muted-foreground">Select an asset or folder to adjust transforms and colors.</div>;
@@ -208,7 +223,7 @@ function getTemplateColors(assetId: AssetId, answerCount: number): AssetColorCon
   };
 }
 
-function buildColorSections(assetId: AssetId, colors: AssetColorConfig | undefined, answerCount: number) {
+function buildColorSections(assetId: AssetId, colors: AssetColorConfig | undefined, answerCount: number): ColorSection[] {
   const resolvedColors = { ...getTemplateColors(assetId, answerCount), ...colors };
   const textPrimary = resolvedColors.textPrimary;
   const textSecondary = resolvedColors.textSecondary;
@@ -219,7 +234,7 @@ function buildColorSections(assetId: AssetId, colors: AssetColorConfig | undefin
     label: string;
     value?: string;
     index?: number;
-  }) => ({
+  }): ColorFieldConfig => ({
     ...config,
     apply: (value: string) => {
       if (config.key === 'barColors') {
