@@ -897,6 +897,7 @@ export default function PollCreate() {
     if (question !== nextQuestion) {
       setQuestion(nextQuestion);
     }
+    setBackgroundImageMissing(false);
     const nextBgColor = activeFolder.bgColor ?? '#1a1a2e';
     if (bgColor !== nextBgColor) {
       setBgColor(nextBgColor);
