@@ -456,6 +456,7 @@ export type Database = {
           default_background_id: string | null
           description: string | null
           id: string
+          last_used_at: string
           name: string
           notes: string
           project_date: string
@@ -470,6 +471,7 @@ export type Database = {
           default_background_id?: string | null
           description?: string | null
           id?: string
+          last_used_at?: string
           name: string
           notes?: string
           project_date?: string
@@ -484,6 +486,7 @@ export type Database = {
           default_background_id?: string | null
           description?: string | null
           id?: string
+          last_used_at?: string
           name?: string
           notes?: string
           project_date?: string
