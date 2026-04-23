@@ -8,7 +8,7 @@ export function loadAutosaveMinutes() {
   const rawValue = window.localStorage.getItem(OPERATOR_AUTOSAVE_MINUTES_KEY);
   const parsedValue = rawValue ? Number(rawValue) : Number.NaN;
 
-  return AUTOSAVE_MINUTES.includes(parsedValue as (typeof AUTOSAVE_MINUTE_OPTIONS)[number])
+  return AUTOSAVE_MINUTE_OPTIONS.includes(parsedValue as (typeof AUTOSAVE_MINUTE_OPTIONS)[number])
     ? parsedValue
     : DEFAULT_AUTOSAVE_MINUTES;
 }

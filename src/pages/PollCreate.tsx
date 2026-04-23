@@ -282,7 +282,7 @@ export default function PollCreate() {
     return () => window.removeEventListener('storage', handleStorage);
   }, []);
 
-  const buildPayload = (): DraftPollPayload => ({
+  const buildPayload = useCallback((): DraftPollPayload => ({
     internalName,
     question,
     subheadline,
@@ -300,31 +300,7 @@ export default function PollCreate() {
     previewDataMode,
     blockLetter,
     blockPosition,
-  });
-
-  const handleSaveDraft = async () => {
-    if (!user) { toast.error('Please sign in first'); return; }
-    setSaving('draft');
-    try {
-      const saved = await savePoll({
-        id: pollId,
-        payload: buildPayload(),
-        userId: user.id,
-        status: projectId ? 'saved' : 'draft',
-        projectId,
-      });
-      if (!pollId) {
-        setPollId(saved.id);
-        navigate(`/polls/${saved.id}`, { replace: true });
-      }
-      setDraftStatus(projectId ? 'saved-to-project' : 'draft-saved');
-      toast.success('Draft saved');
-    } catch (e) {
-      toast.error(`Save failed: ${(e as Error).message}`);
-    } finally {
-      setSaving(null);
-    }
-  };
+  }), [internalName, question, subheadline, slug, selectedTemplate, answerType, mcLabelStyle, answers, showLiveResults, showThankYou, showFinalResults, autoClose, bgColor, bgImage, previewDataMode, blockLetter, blockPosition]);
 
   const persistProjectSave = useCallback(async (selectedProjectId: string, selectedProjectName?: string, source: 'manual' | 'autosave' = 'manual') => {
     if (!user) { toast.error('Please sign in first'); return false; }
@@ -347,7 +323,9 @@ export default function PollCreate() {
         setProjectName(selectedProjectName);
       }
       setDraftStatus('saved-to-project');
-      toast.success(source === 'autosave' ? 'Project autosaved' : `Saved to "${selectedProjectName ?? projectName ?? 'project'}"`);
+      if (source === 'manual') {
+        toast.success(`Saved to "${selectedProjectName ?? projectName ?? 'project'}"`);
+      }
       return true;
     } catch (e) {
       toast.error(`${source === 'autosave' ? 'Autosave' : 'Save'} failed: ${(e as Error).message}`);
@@ -355,7 +333,7 @@ export default function PollCreate() {
     } finally {
       setSaving(null);
     }
-  }, [navigate, pollId, projectName, question, internalName, slug, subheadline, selectedTemplate, answerType, mcLabelStyle, answers, showLiveResults, showThankYou, showFinalResults, autoClose, bgColor, bgImage, previewDataMode, blockLetter, blockPosition, user]);
+  }, [buildPayload, navigate, pollId, projectName, user]);
 
   const handleSaveToProject = () => {
     if (!user) { toast.error('Please sign in first'); return; }
