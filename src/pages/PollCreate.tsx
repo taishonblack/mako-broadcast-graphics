@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { AnswerType, MCLabelStyle, PreviewDataMode } from '@/components/poll-create/ContentPanel';
@@ -326,45 +326,9 @@ export default function PollCreate() {
     }
   };
 
-  const handleSaveToProject = () => {
-    if (!user) { toast.error('Please sign in first'); return; }
-    setPickerOpen(true);
-  };
+  const persistProjectSave = useCallback(async (selectedProjectId: string, selectedProjectName?: string, source: 'manual' | 'autosave' = 'manual') => {
+    if (!user) { toast.error('Please sign in first'); return false; }
 
-  useEffect(() => {
-    if (!user || !projectId || draftStatus === 'saved-to-project') return;
-
-    const intervalMs = Math.max(1, autosaveMinutes) * 60 * 1000;
-    const timer = window.setInterval(async () => {
-      if (saving !== null) return;
-
-      setSaving('project');
-      try {
-        const saved = await savePoll({
-          id: pollId,
-          payload: buildPayload(),
-          userId: user.id,
-          status: 'saved',
-          projectId,
-        });
-        if (!pollId) {
-          setPollId(saved.id);
-          navigate(`/polls/${saved.id}`, { replace: true });
-        }
-        setDraftStatus('saved-to-project');
-        toast.success('Project autosaved');
-      } catch (e) {
-        toast.error(`Autosave failed: ${(e as Error).message}`);
-      } finally {
-        setSaving(null);
-      }
-    }, intervalMs);
-
-    return () => window.clearInterval(timer);
-  }, [autosaveMinutes, draftStatus, navigate, pollId, projectId, saving, user, question, internalName, slug, subheadline, selectedTemplate, answerType, mcLabelStyle, answers, showLiveResults, showThankYou, showFinalResults, autoClose, bgColor, bgImage, previewDataMode, blockLetter, blockPosition]);
-
-  const handleProjectSelected = async (selectedProjectId: string, selectedProjectName: string) => {
-    if (!user) return;
     setSaving('project');
     try {
       const saved = await savePoll({
@@ -379,14 +343,39 @@ export default function PollCreate() {
         navigate(`/polls/${saved.id}`, { replace: true });
       }
       setProjectId(selectedProjectId);
-      setProjectName(selectedProjectName);
+      if (selectedProjectName) {
+        setProjectName(selectedProjectName);
+      }
       setDraftStatus('saved-to-project');
-      toast.success(`Saved to "${selectedProjectName}"`);
+      toast.success(source === 'autosave' ? 'Project autosaved' : `Saved to "${selectedProjectName ?? projectName ?? 'project'}"`);
+      return true;
     } catch (e) {
-      toast.error(`Save failed: ${(e as Error).message}`);
+      toast.error(`${source === 'autosave' ? 'Autosave' : 'Save'} failed: ${(e as Error).message}`);
+      return false;
     } finally {
       setSaving(null);
     }
+  }, [navigate, pollId, projectName, question, internalName, slug, subheadline, selectedTemplate, answerType, mcLabelStyle, answers, showLiveResults, showThankYou, showFinalResults, autoClose, bgColor, bgImage, previewDataMode, blockLetter, blockPosition, user]);
+
+  const handleSaveToProject = () => {
+    if (!user) { toast.error('Please sign in first'); return; }
+    setPickerOpen(true);
+  };
+
+  useEffect(() => {
+    if (!user || !projectId || draftStatus === 'saved-to-project') return;
+
+    const intervalMs = Math.max(1, autosaveMinutes) * 60 * 1000;
+    const timer = window.setInterval(() => {
+      if (saving !== null) return;
+      void persistProjectSave(projectId, projectName, 'autosave');
+    }, intervalMs);
+
+    return () => window.clearInterval(timer);
+  }, [autosaveMinutes, draftStatus, persistProjectSave, projectId, projectName, saving, user]);
+
+  const handleProjectSelected = async (selectedProjectId: string, selectedProjectName: string) => {
+    await persistProjectSave(selectedProjectId, selectedProjectName, 'manual');
   };
 
   const theme = themePresets[0];
@@ -979,12 +968,6 @@ export default function PollCreate() {
               <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
                 Poll
               </DropdownMenuLabel>
-              <DropdownMenuItem onClick={handleSaveDraft} disabled={saving !== null} className="text-xs gap-2">
-                {saving === 'draft'
-                  ? <Loader2 className="w-3 h-3 animate-spin" />
-                  : <Save className="w-3 h-3" />}
-                Save Draft
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleSaveToProject} disabled={saving !== null} className="text-xs gap-2">
                 {saving === 'project'
                   ? <Loader2 className="w-3 h-3 animate-spin" />
@@ -994,10 +977,6 @@ export default function PollCreate() {
               <DropdownMenuItem onClick={handleNewFolder} className="text-xs gap-2">
                 <FolderOpen className="w-3 h-3" />
                 New Folder
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDeleteFolderTargetId(folderState.activeFolderId)} disabled={folderState.folders.length <= 1} className="text-xs gap-2">
-                <FolderOpen className="w-3 h-3" />
-                Delete Folder
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setLoadDialogOpen(true)} className="text-xs gap-2">
@@ -1035,6 +1014,19 @@ export default function PollCreate() {
           </div>
         </div>
         <div className="flex items-center gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSaveToProject}
+            disabled={saving !== null}
+            className="gap-1.5 h-7 px-2 text-[10px]"
+          >
+            {saving === 'project' ? <Loader2 className="w-3 h-3 animate-spin" /> : <FolderPlus className="w-3 h-3" />}
+            Save to Project
+          </Button>
+          <span className="text-[10px] text-muted-foreground">
+            Autosaves every {autosaveMinutes} min
+          </span>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
