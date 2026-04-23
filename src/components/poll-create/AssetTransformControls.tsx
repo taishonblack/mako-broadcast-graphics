@@ -1,18 +1,22 @@
-import { ChevronDown, ChevronRight, Lock, Unlock } from 'lucide-react';
+import { ChevronDown, ChevronRight, Lock, RotateCcw, Unlock } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
-import { AssetColorConfig, AssetId, AssetTransformConfig, TransformField } from '@/components/poll-create/polling-assets/types';
+import { Input } from '@/components/ui/input';
+import { AssetColorConfig, AssetColorMap, AssetId, AssetTransformMap, DEFAULT_ASSET_COLORS, TransformField } from '@/components/poll-create/polling-assets/types';
 import { useState } from 'react';
 
 interface AssetTransformControlsProps {
   assetId: AssetId | null;
   assetLabel?: string;
-  transform?: AssetTransformConfig;
-   colors?: AssetColorConfig;
-  onChange: (field: Exclude<TransformField, never>, value: number) => void;
-  onToggleLock: (field: TransformField) => void;
-   onColorsChange?: (next: AssetColorConfig) => void;
+  folderLabel?: string;
+  folderAssetIds?: AssetId[];
+  transforms: AssetTransformMap;
+  colors: AssetColorMap;
+  answerCount: number;
+  onChange: (assetId: AssetId, field: TransformField, value: number) => void;
+  onToggleLock: (assetId: AssetId, field: TransformField) => void;
+  onColorsChange: (assetId: AssetId, next: AssetColorConfig) => void;
 }
 
 const CONTROL_DEFS: Array<{
@@ -34,20 +38,47 @@ const CONTROL_DEFS: Array<{
   { field: 'cropBottom', label: 'Crop Bottom', min: 0, max: 0.45, step: 0.01, format: (v) => `${Math.round(v * 100)}%` },
 ];
 
-export function AssetTransformControls({ assetId, assetLabel, transform, colors, onChange, onToggleLock, onColorsChange }: AssetTransformControlsProps) {
+interface ColorFieldConfig {
+  key: 'textPrimary' | 'textSecondary' | 'barColors';
+  label: string;
+  value?: string;
+  index?: number;
+  apply: (value: string) => AssetColorConfig;
+  reset: () => AssetColorConfig;
+}
+
+interface ColorSection {
+  assetId: AssetId;
+  label: string;
+  fields: ColorFieldConfig[];
+}
+
+export function AssetTransformControls({ assetId, assetLabel, folderLabel, folderAssetIds, transforms, colors, answerCount, onChange, onToggleLock, onColorsChange }: AssetTransformControlsProps) {
   const [transformOpen, setTransformOpen] = useState(true);
   const [colorsOpen, setColorsOpen] = useState(true);
 
-  if (!assetId || !transform) {
-    return <div className="px-4 py-3 text-[11px] text-muted-foreground">Select an asset to adjust its transform controls.</div>;
+  const visibleAssetIds = assetId ? [assetId] : (folderAssetIds ?? []);
+  const title = assetId ? (assetLabel ?? assetId) : (folderLabel ?? 'Selected folder');
+  const transformSections = visibleAssetIds
+    .map((id) => ({ id, label: assetId ? (assetLabel ?? id) : getAssetLabel(id), transform: transforms[id] }))
+    .filter((section) => Boolean(section.transform));
+  const colorSections: ColorSection[] = visibleAssetIds.flatMap((id) => buildColorSections(id, colors[id], answerCount));
+
+  if (visibleAssetIds.length === 0) {
+    return <div className="px-4 py-3 text-[11px] text-muted-foreground">Select an asset or folder to adjust transforms and colors.</div>;
   }
+
+  const resetAllVisibleColors = () => {
+    const uniqueIds = Array.from(new Set<AssetId>(colorSections.map((section) => section.assetId)));
+    uniqueIds.forEach((id) => onColorsChange(id, getTemplateColors(id, answerCount)));
+  };
 
   return (
     <div className="border-t border-border/60 bg-background/70 px-4 py-3 space-y-3">
       <div className="flex items-center justify-between">
         <div>
-          <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Asset transforms</p>
-          <h3 className="text-xs font-medium text-foreground">{assetLabel ?? assetId}</h3>
+          <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Transform & colors</p>
+          <h3 className="text-xs font-medium text-foreground">{title}</h3>
         </div>
       </div>
 
@@ -57,39 +88,46 @@ export function AssetTransformControls({ assetId, assetLabel, transform, colors,
           {transformOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
         </button>
         {transformOpen && (
-          <div className="grid gap-2 border-t border-border/50 px-3 py-3 md:grid-cols-2 xl:grid-cols-3">
-            {CONTROL_DEFS.map((control) => {
-              const locked = transform.locks[control.field];
-              const value = transform[control.field];
-              return (
-                <div key={control.field} className="rounded-md border border-border/50 bg-card/40 px-2.5 py-2 space-y-1.5">
-                  <div className="flex items-center justify-between gap-2">
-                    <Label className="text-[10px] text-muted-foreground">{control.label}</Label>
-                    <div className="flex items-center gap-2">
-                      <span className="text-[10px] font-mono text-muted-foreground">{control.format ? control.format(Number(value)) : value}</span>
-                      <Button
-                        type="button"
-                        size="icon"
-                        variant="ghost"
-                        className="h-6 w-6"
-                        onClick={() => onToggleLock(control.field)}
-                        aria-label={`${locked ? 'Unlock' : 'Lock'} ${control.label}`}
-                      >
-                        {locked ? <Lock className="h-3 w-3 text-primary" /> : <Unlock className="h-3 w-3 text-muted-foreground" />}
-                      </Button>
-                    </div>
-                  </div>
-                  <Slider
-                    value={[Number(value)]}
-                    min={control.min}
-                    max={control.max}
-                    step={control.step}
-                    disabled={locked}
-                    onValueChange={([next]) => onChange(control.field, next)}
-                  />
+          <div className="space-y-3 border-t border-border/50 px-3 py-3">
+            {transformSections.map((section) => (
+              <div key={section.id} className="space-y-2 rounded-md border border-border/50 bg-card/30 p-2.5">
+                {transformSections.length > 1 && <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{section.label}</p>}
+                <div className="grid gap-2 md:grid-cols-2 xl:grid-cols-3">
+                  {CONTROL_DEFS.map((control) => {
+                    const locked = section.transform.locks[control.field];
+                    const value = section.transform[control.field];
+                    return (
+                      <div key={`${section.id}-${control.field}`} className="rounded-md border border-border/50 bg-card/40 px-2.5 py-2 space-y-1.5">
+                        <div className="flex items-center justify-between gap-2">
+                          <Label className="text-[10px] text-muted-foreground">{control.label}</Label>
+                          <div className="flex items-center gap-2">
+                            <span className="text-[10px] font-mono text-muted-foreground">{control.format ? control.format(Number(value)) : value}</span>
+                            <Button
+                              type="button"
+                              size="icon"
+                              variant="ghost"
+                              className="h-6 w-6"
+                              onClick={() => onToggleLock(section.id, control.field)}
+                              aria-label={`${locked ? 'Unlock' : 'Lock'} ${control.label}`}
+                            >
+                              {locked ? <Lock className="h-3 w-3 text-primary" /> : <Unlock className="h-3 w-3 text-muted-foreground" />}
+                            </Button>
+                          </div>
+                        </div>
+                        <Slider
+                          value={[Number(value)]}
+                          min={control.min}
+                          max={control.max}
+                          step={control.step}
+                          disabled={locked}
+                          onValueChange={([next]) => onChange(section.id, control.field, next)}
+                        />
+                      </div>
+                    );
+                  })}
                 </div>
-              );
-            })}
+              </div>
+            ))}
           </div>
         )}
       </div>
@@ -101,25 +139,33 @@ export function AssetTransformControls({ assetId, assetLabel, transform, colors,
         </button>
         {colorsOpen && (
           <div className="space-y-3 border-t border-border/50 px-3 py-3">
-            {onColorsChange ? (
+            {colorSections.length > 0 ? (
               <>
-                <ColorInput label="Primary text" value={colors?.textPrimary} onChange={(value) => onColorsChange({ ...colors, textPrimary: value })} />
-                <ColorInput label="Secondary text" value={colors?.textSecondary} onChange={(value) => onColorsChange({ ...colors, textSecondary: value })} />
-                {Array.from({ length: 4 }).map((_, index) => (
-                  <ColorInput
-                    key={`bar-${index}`}
-                    label={`Bar ${index + 1}`}
-                    value={colors?.barColors?.[index]}
-                    onChange={(value) => {
-                      const nextBarColors = [...(colors?.barColors ?? [])];
-                      nextBarColors[index] = value;
-                      onColorsChange({ ...colors, barColors: nextBarColors });
-                    }}
-                  />
+                <div className="flex items-center justify-end">
+                  <Button type="button" variant="ghost" size="sm" className="h-7 gap-1 px-2 text-[10px] text-muted-foreground" onClick={resetAllVisibleColors}>
+                    <RotateCcw className="h-3 w-3" />
+                    Reset visible to template
+                  </Button>
+                </div>
+                {colorSections.map((section) => (
+                  <div key={`${section.assetId}-${section.label}`} className="space-y-2 rounded-md border border-border/50 bg-card/30 p-2.5">
+                    {(colorSections.length > 1 || !assetId) && <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{section.label}</p>}
+                    <div className="space-y-2">
+                      {section.fields.map((field) => (
+                        <ColorInput
+                          key={`${section.assetId}-${field.key}-${field.index ?? 'single'}`}
+                          label={field.label}
+                          value={field.value}
+                          onChange={(value) => onColorsChange(section.assetId, field.apply(value))}
+                          onReset={() => onColorsChange(section.assetId, field.reset())}
+                        />
+                      ))}
+                    </div>
+                  </div>
                 ))}
               </>
             ) : (
-              <p className="text-[11px] text-muted-foreground">This asset has no color overrides.</p>
+              <p className="text-[11px] text-muted-foreground">This selection has no color overrides.</p>
             )}
           </div>
         )}
@@ -128,7 +174,7 @@ export function AssetTransformControls({ assetId, assetLabel, transform, colors,
   );
 }
 
-function ColorInput({ label, value, onChange }: { label: string; value?: string; onChange: (value: string) => void }) {
+function ColorInput({ label, value, onChange, onReset }: { label: string; value?: string; onChange: (value: string) => void; onReset: () => void }) {
   return (
     <div className="flex items-center gap-3">
       <Label className="w-24 text-[10px] text-muted-foreground">{label}</Label>
@@ -138,14 +184,105 @@ function ColorInput({ label, value, onChange }: { label: string; value?: string;
         onChange={(event) => onChange(event.target.value)}
         className="h-8 w-10 cursor-pointer rounded border border-border bg-transparent p-0"
       />
-      <input
-        type="text"
+      <Input
         value={value ?? ''}
         onChange={(event) => onChange(event.target.value)}
-        className="h-8 flex-1 rounded-md border border-input bg-background/50 px-2 text-[10px] font-mono text-foreground"
+        className="h-8 flex-1 bg-background/50 px-2 text-[10px] font-mono"
       />
+      <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-[10px] text-muted-foreground" onClick={onReset}>
+        Reset
+      </Button>
     </div>
   );
+}
+
+function getAssetLabel(assetId: AssetId) {
+  switch (assetId) {
+    case 'question': return 'Question Text';
+    case 'answers': return 'Answer Bars';
+    case 'subheadline': return 'Subheadline';
+    case 'background': return 'Background';
+    case 'qr': return 'QR Code';
+    case 'logo': return 'Logo';
+    case 'voterTally': return 'Voter Tally';
+  }
+}
+
+function getTemplateBarColor(index: number) {
+  const defaults = DEFAULT_ASSET_COLORS.answers.barColors ?? ['hsl(0 0% 100%)'];
+  return defaults[index % defaults.length] ?? defaults[0];
+}
+
+function getTemplateColors(assetId: AssetId, answerCount: number): AssetColorConfig {
+  const base = DEFAULT_ASSET_COLORS[assetId] ?? {};
+  if (assetId !== 'answers') return { ...base };
+
+  return {
+    ...base,
+    barColors: Array.from({ length: Math.max(answerCount, 1) }, (_, index) => getTemplateBarColor(index)),
+  };
+}
+
+function buildColorSections(assetId: AssetId, colors: AssetColorConfig | undefined, answerCount: number): ColorSection[] {
+  const resolvedColors = { ...getTemplateColors(assetId, answerCount), ...colors };
+  const textPrimary = resolvedColors.textPrimary;
+  const textSecondary = resolvedColors.textSecondary;
+  const barColors = Array.from({ length: Math.max(answerCount, 1) }, (_, index) => resolvedColors.barColors?.[index] ?? getTemplateBarColor(index));
+
+  const createField = (config: {
+    key: 'textPrimary' | 'textSecondary' | 'barColors';
+    label: string;
+    value?: string;
+    index?: number;
+  }): ColorFieldConfig => ({
+    ...config,
+    apply: (value: string) => {
+      if (config.key === 'barColors') {
+        const nextBarColors = [...barColors];
+        nextBarColors[config.index ?? 0] = value;
+        return { ...resolvedColors, barColors: nextBarColors };
+      }
+
+      return { ...resolvedColors, [config.key]: value };
+    },
+    reset: () => {
+      if (config.key === 'barColors') {
+        const nextBarColors = [...barColors];
+        nextBarColors[config.index ?? 0] = getTemplateBarColor(config.index ?? 0);
+        return { ...resolvedColors, barColors: nextBarColors };
+      }
+
+      return { ...resolvedColors, [config.key]: getTemplateColors(assetId, answerCount)[config.key] };
+    },
+  });
+
+  switch (assetId) {
+    case 'question':
+      return [{ assetId, label: 'Question text', fields: [createField({ key: 'textPrimary', label: 'Text', value: textPrimary })] }];
+    case 'answers':
+      return [{
+        assetId,
+        label: 'Answer bars',
+        fields: barColors.map((value, index) => createField({ key: 'barColors', label: `Bar ${index + 1}`, value, index })),
+      }];
+    case 'subheadline':
+      return [{ assetId, label: 'Subheadline', fields: [createField({ key: 'textSecondary', label: 'Text', value: textSecondary })] }];
+    case 'qr':
+      return [{ assetId, label: 'QR URL label', fields: [createField({ key: 'textSecondary', label: 'Label', value: textSecondary })] }];
+    case 'logo':
+      return [{ assetId, label: 'Logo', fields: [createField({ key: 'textSecondary', label: 'Accent', value: textSecondary })] }];
+    case 'voterTally':
+      return [{
+        assetId,
+        label: 'Voter tally',
+        fields: [
+          createField({ key: 'textPrimary', label: 'Primary', value: textPrimary }),
+          createField({ key: 'textSecondary', label: 'Secondary', value: textSecondary }),
+        ],
+      }];
+    default:
+      return [];
+  }
 }
 
 function toHex(value?: string) {

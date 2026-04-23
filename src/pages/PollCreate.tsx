@@ -38,7 +38,7 @@ import { themePresets } from '@/lib/themes';
 import { TemplateName, Poll, PollOption, QRPosition, VotingState, LiveState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
 import { broadcastOutputState } from '@/lib/output-state';
-import { FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Monitor, Radio } from 'lucide-react';
+import { FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Monitor, Radio, Undo2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { loadPoll, savePoll, listPolls, listProjects, DraftPollPayload, SavedPoll, BlockLetter } from '@/lib/poll-persistence';
 import { OperatorOutputMode } from '@/components/operator/OperatorOutputMode';
@@ -66,6 +66,35 @@ const buildActiveFolderStorageKey = (projectId?: string) => `mako-active-folder:
 interface WorkspaceLayout {
   hSizes: [number, number, number]; // left / center / right
   rightVSizes: [number, number];     // Template / Inspector
+}
+
+interface EditorSnapshot {
+  question: string;
+  internalName: string;
+  slug: string;
+  subheadline: string;
+  selectedTemplate: TemplateName;
+  answerType: AnswerType;
+  mcLabelStyle: MCLabelStyle;
+  previewDataMode: PreviewDataMode;
+  answers: { id: string; text: string; shortLabel: string; testVotes?: number }[];
+  showLiveResults: boolean;
+  showThankYou: boolean;
+  showFinalResults: boolean;
+  autoClose: string;
+  bgColor: string;
+  bgImage?: string;
+  blockLetter: BlockLetter;
+  blockPosition: number;
+  selectedAssetId: AssetId | null;
+  assetState: AssetState;
+  assetTransforms: typeof DEFAULT_ASSET_TRANSFORMS;
+  assetColors: AssetColorMap;
+  folderState: PollingAssetFolderState;
+}
+
+function cloneSnapshotValue<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
 }
 
 const DEFAULT_WORKSPACE_LAYOUT: WorkspaceLayout = {
@@ -659,12 +688,76 @@ export default function PollCreate() {
   const [folderState, setFolderState] = useState<PollingAssetFolderState>(() => createDefaultFolderState(question));
   const [deleteFolderTargetId, setDeleteFolderTargetId] = useState<string | null>(null);
   const [foldersLoadedForProject, setFoldersLoadedForProject] = useState<string | null>(null);
+  const [undoStack, setUndoStack] = useState<EditorSnapshot[]>([]);
 
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
+  const activeInspectorAssetIds = selectedAssetId ? [selectedAssetId] : enabledAssets;
   const previewColors = assetColors.answers.barColors?.length
     ? assetColors.answers.barColors
     : [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
+
+  const createSnapshot = useCallback((): EditorSnapshot => ({
+    question,
+    internalName,
+    slug,
+    subheadline,
+    selectedTemplate,
+    answerType,
+    mcLabelStyle,
+    previewDataMode,
+    answers: cloneSnapshotValue(answers),
+    showLiveResults,
+    showThankYou,
+    showFinalResults,
+    autoClose,
+    bgColor,
+    bgImage,
+    blockLetter,
+    blockPosition,
+    selectedAssetId,
+    assetState: cloneSnapshotValue(assetState),
+    assetTransforms: cloneSnapshotValue(assetTransforms),
+    assetColors: cloneSnapshotValue(assetColors),
+    folderState: cloneSnapshotValue(folderState),
+  }), [answerType, answers, assetColors, assetState, assetTransforms, autoClose, bgColor, bgImage, blockLetter, blockPosition, folderState, internalName, mcLabelStyle, previewDataMode, question, selectedAssetId, selectedTemplate, showFinalResults, showLiveResults, showThankYou, slug, subheadline]);
+
+  const pushUndoSnapshot = useCallback(() => {
+    const snapshot = createSnapshot();
+    setUndoStack((current) => [...current.slice(-24), snapshot]);
+  }, [createSnapshot]);
+
+  const handleUndoChanges = () => {
+    setUndoStack((current) => {
+      const previous = current[current.length - 1];
+      if (!previous) return current;
+
+      setQuestion(previous.question);
+      setInternalName(previous.internalName);
+      setSlug(previous.slug);
+      setSubheadline(previous.subheadline);
+      setSelectedTemplate(previous.selectedTemplate);
+      setAnswerType(previous.answerType);
+      setMcLabelStyle(previous.mcLabelStyle);
+      setPreviewDataMode(previous.previewDataMode);
+      setAnswers(cloneSnapshotValue(previous.answers));
+      setShowLiveResults(previous.showLiveResults);
+      setShowThankYou(previous.showThankYou);
+      setShowFinalResults(previous.showFinalResults);
+      setAutoClose(previous.autoClose);
+      setBgColor(previous.bgColor);
+      setBgImage(previous.bgImage);
+      setBlockLetter(previous.blockLetter);
+      setBlockPosition(previous.blockPosition);
+      setSelectedAssetId(previous.selectedAssetId);
+      setAssetState(cloneSnapshotValue(previous.assetState));
+      setAssetTransforms(cloneSnapshotValue(previous.assetTransforms));
+      setAssetColors(cloneSnapshotValue(previous.assetColors));
+      setFolderState(cloneSnapshotValue(previous.folderState));
+      toast.success('Undid latest change');
+      return current.slice(0, -1);
+    });
+  };
 
   useEffect(() => {
     if (!activeFolder) return;
@@ -821,8 +914,7 @@ export default function PollCreate() {
 
   const handleSelectFolder = (folderId: string) => {
     updateFolderState((current) => ({ ...current, activeFolderId: folderId }));
-    const nextFolder = getFolderById(folderState, folderId);
-    setSelectedAssetId(nextFolder?.assetIds[0] ?? null);
+    setSelectedAssetId(null);
   };
 
   const handleBlockLetterChange = (next: BlockLetter) => {
@@ -882,14 +974,14 @@ export default function PollCreate() {
     ]);
   };
 
-  const handleTransformChange = (field: TransformField, value: number) => {
-    if (!selectedAssetId) return;
+  const handleTransformChange = (assetId: AssetId, field: TransformField, value: number) => {
+    pushUndoSnapshot();
     setAssetTransforms((current) => {
-      const currentTransform = current[selectedAssetId];
+      const currentTransform = current[assetId];
       if (currentTransform.locks[field]) return current;
       return {
         ...current,
-        [selectedAssetId]: {
+        [assetId]: {
           ...currentTransform,
           [field]: value,
         },
@@ -897,21 +989,22 @@ export default function PollCreate() {
     });
   };
 
-  const handleToggleTransformLock = (field: TransformField) => {
-    if (!selectedAssetId) return;
+  const handleToggleTransformLock = (assetId: AssetId, field: TransformField) => {
+    pushUndoSnapshot();
     setAssetTransforms((current) => ({
       ...current,
-      [selectedAssetId]: {
-        ...current[selectedAssetId],
+      [assetId]: {
+        ...current[assetId],
         locks: {
-          ...current[selectedAssetId].locks,
-          [field]: !current[selectedAssetId].locks[field],
+          ...current[assetId].locks,
+          [field]: !current[assetId].locks[field],
         },
       },
     }));
   };
 
   const handleAssetColorsChange = (assetId: AssetId, nextColors: AssetColorMap[AssetId]) => {
+    pushUndoSnapshot();
     setAssetColors((current) => ({
       ...current,
       [assetId]: {
@@ -987,6 +1080,25 @@ export default function PollCreate() {
               <DropdownMenuItem onClick={handleDuplicate} disabled={saving !== null} className="text-xs gap-2">
                 <Copy className="w-3 h-3" />
                 Duplicate
+              </DropdownMenuItem>
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="ghost" size="sm" className="gap-1 text-[10px] h-7 px-2">
+                <Undo2 className="w-3 h-3" />
+                Edit
+                <ChevronDown className="w-2.5 h-2.5 opacity-60" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start" className="w-44">
+              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
+                History
+              </DropdownMenuLabel>
+              <DropdownMenuItem onClick={handleUndoChanges} disabled={undoStack.length === 0} className="text-xs gap-2">
+                <Undo2 className="w-3 h-3" />
+                Undo Change
               </DropdownMenuItem>
             </DropdownMenuContent>
           </DropdownMenu>
@@ -1184,11 +1296,14 @@ export default function PollCreate() {
                   <AssetTransformControls
                     assetId={selectedAssetId}
                     assetLabel={selectedAssetId ? ASSET_REGISTRY[selectedAssetId]?.label : undefined}
-                    transform={selectedAssetId ? assetTransforms[selectedAssetId] : undefined}
-                    colors={selectedAssetId ? assetColors[selectedAssetId] : undefined}
+                    folderLabel={selectedAssetId ? undefined : activeFolder?.name}
+                    folderAssetIds={selectedAssetId ? undefined : activeInspectorAssetIds}
+                    transforms={assetTransforms}
+                    colors={assetColors}
+                    answerCount={answers.length}
                     onChange={handleTransformChange}
                     onToggleLock={handleToggleTransformLock}
-                    onColorsChange={selectedAssetId ? (nextColors) => handleAssetColorsChange(selectedAssetId, nextColors) : undefined}
+                    onColorsChange={handleAssetColorsChange}
                   />
                 </div>
               </Pane>
