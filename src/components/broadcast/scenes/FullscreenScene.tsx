@@ -2,7 +2,7 @@ import { ThemePreset, PollOption, TemplateName, QRPosition } from '@/lib/types';
 import { GraphicLayer } from '@/lib/layers';
 import { AssetOverlay } from '@/components/broadcast/AssetOverlay';
 import { renderChart } from '@/lib/render-chart';
-import { AssetState } from '@/components/poll-create/polling-assets/types';
+import { AssetState, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
 import { WordmarkLockup } from '@/components/broadcast/WordmarkLockup';
 
 interface FullscreenSceneProps {
@@ -20,6 +20,8 @@ interface FullscreenSceneProps {
   qrPosition?: QRPosition;
   showBranding?: boolean;
   brandingPosition?: QRPosition;
+  enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally'>;
+  transforms?: AssetTransformMap;
   wordmarkWeight?: AssetState['wordmarkWeight'];
   wordmarkTracking?: number;
   wordmarkScale?: number;
@@ -46,12 +48,15 @@ export function FullscreenScene({
   qrPosition,
   showBranding = false,
   brandingPosition = 'bottom-left',
+  enabledAssetIds,
+  transforms,
   wordmarkWeight = 'semibold',
   wordmarkTracking = 0,
   wordmarkScale = 1,
 }: FullscreenSceneProps) {
   const useNativeChart = template === 'pie-donut' || template === 'puck-slider' || template === 'vertical-bar';
   const showWordmarkPlaceholder = !question.trim() && options.every((option) => !option.text.trim()) && totalVotes === 0;
+  const visibleAssets = new Set(enabledAssetIds ?? ['question', 'answers', 'logo']);
 
   return (
     <div
@@ -79,6 +84,7 @@ export function FullscreenScene({
           />
         ) : (
           <>
+            {visibleAssets.has('question') && (
             <h1
               data-layer="question"
               className="font-bold text-center leading-tight mb-20"
@@ -90,9 +96,10 @@ export function FullscreenScene({
             >
               {question}
             </h1>
+            )}
 
             <div className="w-full" style={{ maxWidth: '1600px' }}>
-              {useNativeChart ? (
+              {visibleAssets.has('answers') && (useNativeChart ? (
                 <div data-layer="answerBars" style={{ transform: 'scale(2.4)', transformOrigin: 'center top' }}>
                   {renderChart({ template, options, totalVotes, colors })}
                 </div>
@@ -126,27 +133,31 @@ export function FullscreenScene({
                     );
                   })}
                 </div>
-              )}
+              ))}
 
+              {visibleAssets.has('voterTally') && (
               <div data-layer="votesText" className="mt-12 text-center">
                 <span className="font-mono" style={{ color: theme.textSecondary, fontSize: '28px' }}>
                   {totalVotes.toLocaleString()} total votes
                 </span>
               </div>
+              )}
             </div>
           </>
         )}
       </div>
 
-      {(qrSize !== undefined || showBranding) && (
+      {((visibleAssets.has('qr') && qrSize !== undefined) || (visibleAssets.has('logo') && showBranding)) && (
         <AssetOverlay
-          showQR={qrSize !== undefined && qrSize > 0}
+          showQR={visibleAssets.has('qr') && qrSize !== undefined && qrSize > 0}
           qrSlug={slug ?? ''}
           qrSize={qrSize ?? 0}
           qrPosition={qrPosition ?? 'bottom-right'}
-          showBranding={showBranding}
+          showBranding={visibleAssets.has('logo') && showBranding}
           brandingPosition={brandingPosition}
           theme={theme}
+          qrTransform={transforms?.qr}
+          logoTransform={transforms?.logo}
         />
       )}
     </div>
