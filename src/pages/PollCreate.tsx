@@ -194,7 +194,6 @@ export default function PollCreate() {
   const [previewScene, setPreviewScene] = useState<SceneType>('fullscreen');
   const [programScene, setProgramScene] = useState<SceneType>('fullscreen');
   const [qrSize, setQrSize] = useState(120);
-  const [qrPosition, setQrPosition] = useState<QRPosition>('bottom-right');
   const [showBranding, setShowBranding] = useState(true);
   const [brandingPosition, setBrandingPosition] = useState<QRPosition>('bottom-left');
   const theme = themePresets[0];
@@ -456,7 +455,7 @@ export default function PollCreate() {
     const sharedAssets = {
       slug: slugForUrl,
       qrSize,
-      qrPosition,
+      qrPosition: assetState.qrPosition,
       qrVisible: assetState.qrVisible,
       qrUrlVisible: assetState.qrUrlVisible,
       showBranding,
@@ -481,7 +480,7 @@ export default function PollCreate() {
 
     switch (previewScene) {
       case 'lowerThird': return <LowerThirdScene {...props} />;
-      case 'qr': return <QRScene slug={slugForUrl} theme={theme} />;
+      case 'qr': return <QRScene slug={slugForUrl} theme={theme} {...sharedAssets} />;
       case 'results': return <ResultsScene {...props} />;
       default: return <FullscreenScene {...props} layers={[]} />;
     }
@@ -502,7 +501,7 @@ export default function PollCreate() {
       layers: [],
       assets: {
         qrSize,
-        qrPosition,
+        qrPosition: assetState.qrPosition,
         qrVisible: assetState.qrVisible,
         qrUrlVisible: assetState.qrUrlVisible,
         showBranding,
@@ -526,7 +525,7 @@ export default function PollCreate() {
       layers: [],
       assets: {
         qrSize,
-        qrPosition,
+        qrPosition: assetState.qrPosition,
         qrVisible: assetState.qrVisible,
         qrUrlVisible: assetState.qrUrlVisible,
         showBranding,
@@ -768,7 +767,7 @@ export default function PollCreate() {
     });
   }, [activeHistoryKey, createSnapshot]);
 
-  const handleUndoChanges = () => {
+  const handleUndoChanges = useCallback(() => {
     setSelectionHistory((current) => {
       const existing = current[activeHistoryKey] ?? { undo: [], redo: [] };
       const previous = existing.undo[existing.undo.length - 1];
@@ -783,9 +782,9 @@ export default function PollCreate() {
         },
       };
     });
-  };
+  }, [activeHistoryKey, createSnapshot, restoreSnapshot]);
 
-  const handleRedoChanges = () => {
+  const handleRedoChanges = useCallback(() => {
     setSelectionHistory((current) => {
       const existing = current[activeHistoryKey] ?? { undo: [], redo: [] };
       const next = existing.redo[existing.redo.length - 1];
@@ -800,7 +799,7 @@ export default function PollCreate() {
         },
       };
     });
-  };
+  }, [activeHistoryKey, createSnapshot, restoreSnapshot]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1282,7 +1281,7 @@ export default function PollCreate() {
             previewScene={previewScene}
             programScene={programScene}
             qrSize={qrSize}
-            qrPosition={qrPosition}
+            qrPosition={assetState.qrPosition}
             showBranding={showBranding}
             brandingPosition={brandingPosition}
             previewNode={renderOutputScene()}
@@ -1301,7 +1300,7 @@ export default function PollCreate() {
             onCloseVoting={() => setVotingState('closed')}
             onDuplicatePoll={handleDuplicate}
             onQrSizeChange={setQrSize}
-            onQrPositionChange={setQrPosition}
+            onQrPositionChange={(next) => setAssetState((current) => ({ ...current, qrPosition: next }))}
             onShowBrandingChange={setShowBranding}
             onBrandingPositionChange={setBrandingPosition}
           />
@@ -1375,7 +1374,7 @@ export default function PollCreate() {
                     shortUrl={shortUrl}
                     wordmark={assetState}
                   qrSize={qrSize}
-                  qrPosition={qrPosition}
+                  qrPosition={assetState.qrPosition}
                   qrVisible={assetState.qrVisible}
                   qrUrlVisible={assetState.qrUrlVisible}
                   showBranding={showBranding}

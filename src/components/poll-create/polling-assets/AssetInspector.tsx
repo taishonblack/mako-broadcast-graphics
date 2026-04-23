@@ -280,8 +280,11 @@ export function AssetInspector(p: AssetInspectorProps) {
               />
             </div>
             <div>
-              <Label className="text-[10px] text-muted-foreground">Position</Label>
-              <div className="grid grid-cols-2 gap-1 mt-1">
+              <div className="flex items-center justify-between">
+                <Label className="text-[10px] text-muted-foreground">Quick placement</Label>
+                <span className="text-[10px] font-mono uppercase text-primary">{p.assetState.qrPosition.replace('-', ' ')}</span>
+              </div>
+              <div className="mt-1 grid grid-cols-2 gap-1">
                 {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map((pos) => (
                   <button
                     key={pos}
@@ -292,10 +295,18 @@ export function AssetInspector(p: AssetInspectorProps) {
                         : 'bg-accent/30 border-border/50 text-muted-foreground hover:bg-accent/50'
                     }`}
                   >
-                    {pos.replace('-', ' ')}
+                    {pos === 'top-left' ? 'TL' : pos === 'top-right' ? 'TR' : pos === 'bottom-left' ? 'BL' : 'BR'}
                   </button>
                 ))}
               </div>
+            </div>
+            <div className="rounded-md border border-border/50 bg-background/30 px-2.5 py-2">
+              <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Quick test checklist</p>
+              <ul className="mt-1.5 space-y-1 text-[10px] text-muted-foreground/80">
+                <li>• Turn off Show URL label, switch templates, and confirm it stays off.</li>
+                <li>• Toggle Show QR in scene off/on, close and reopen the inspector, and confirm it holds.</li>
+                <li>• Move the QR with a preset button, switch templates, and confirm the same corner stays selected.</li>
+              </ul>
             </div>
           </div>
         )}
