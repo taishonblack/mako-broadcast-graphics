@@ -83,14 +83,16 @@ export function DraftPreviewMonitor({
               background: 'radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.55) 100%)',
             }}
           />
-          <div className="relative z-10 flex flex-col items-center justify-center gap-10 px-24 text-center">
-            <img
-              src={makoVoteLogo}
-              alt="MakoVote"
-              className="select-none"
-              style={{ width: '50%', maxWidth: '900px', height: 'auto', display: 'block', margin: '0 auto', filter: 'drop-shadow(0 8px 32px rgba(0,0,0,0.6)) brightness(0) invert(1)' }}
-              draggable={false}
-            />
+          <div className="relative z-10 flex w-full flex-col items-center justify-center gap-10 px-24 text-center">
+            <div className="flex w-full justify-center">
+              <img
+                src={makoVoteLogo}
+                alt="MakoVote"
+                className="select-none"
+                style={{ width: '50%', maxWidth: '900px', height: 'auto', display: 'block', filter: 'drop-shadow(0 8px 32px rgba(0,0,0,0.6)) brightness(0) invert(1) translateX(14px)' }}
+                draggable={false}
+              />
+            </div>
             <p
               className="font-mono uppercase tracking-[0.2em] text-center"
               style={{ color: theme.textSecondary, fontSize: '32px', opacity: 0.7 }}
