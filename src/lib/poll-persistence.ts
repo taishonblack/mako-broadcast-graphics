@@ -129,14 +129,14 @@ export async function savePoll(opts: {
 
 export async function listProjects() {
   const { data, error } = await supabase
-    .from('projects').select('id, name, description').order('updated_at', { ascending: false });
+    .from('projects').select('id, name, description, tags, created_at, updated_at, project_date').order('updated_at', { ascending: false });
   if (error) throw error;
   return data ?? [];
 }
 
-export async function createProject(name: string, userId: string) {
+export async function createProject(name: string, userId: string, tags: string[] = []) {
   const { data, error } = await supabase
-    .from('projects').insert({ name, user_id: userId, account_id: userId, created_by: userId }).select().single();
+    .from('projects').insert({ name, user_id: userId, account_id: userId, created_by: userId, tags }).select().single();
   if (error) throw error;
   return data;
 }
