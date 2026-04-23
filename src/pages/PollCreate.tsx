@@ -356,11 +356,6 @@ export default function PollCreate() {
     await persistProjectSave(selectedProjectId, selectedProjectName, 'manual');
   };
 
-  const theme = themePresets[0];
-  const previewColors = assetColors.answers.barColors?.length
-    ? assetColors.answers.barColors
-    : [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
-
   const previewOptions: PollOption[] = useMemo(() =>
     answers.map((a, i) => ({
       id: a.id,
@@ -663,6 +658,11 @@ export default function PollCreate() {
 
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
+  const theme = themePresets[0];
+  const previewColors = assetColors.answers.barColors?.length
+    ? assetColors.answers.barColors
+    : [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
+
   useEffect(() => {
     if (!activeFolder) return;
     if (blockLetter !== activeFolder.blockLetter) {
