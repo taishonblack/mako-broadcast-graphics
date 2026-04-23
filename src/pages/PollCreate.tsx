@@ -1181,8 +1181,10 @@ export default function PollCreate() {
                     assetId={selectedAssetId}
                     assetLabel={selectedAssetId ? ASSET_REGISTRY[selectedAssetId]?.label : undefined}
                     transform={selectedAssetId ? assetTransforms[selectedAssetId] : undefined}
+                    colors={selectedAssetId ? assetColors[selectedAssetId] : undefined}
                     onChange={handleTransformChange}
                     onToggleLock={handleToggleTransformLock}
+                    onColorsChange={selectedAssetId ? (nextColors) => handleAssetColorsChange(selectedAssetId, nextColors) : undefined}
                   />
                 </div>
               </Pane>
