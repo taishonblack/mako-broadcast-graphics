@@ -1459,8 +1459,8 @@ export default function PollCreate() {
                       section="template"
                       selectedTemplate={selectedTemplate}
                       setSelectedTemplate={setSelectedTemplate}
-                      bgColor={bgColor} setBgColor={setBgColor}
-                      bgImage={bgImage} setBgImage={setBgImage}
+                      bgColor={bgColor} setBgColor={handleBackgroundColorChange}
+                      bgImage={bgImage} setBgImage={handleBackgroundImageChange}
                       wordmark={assetState}
                       setWordmark={(next) => setAssetState((current) => ({ ...current, ...next }))}
                     />
@@ -1478,9 +1478,9 @@ export default function PollCreate() {
                       answerType={answerType} setAnswerType={setAnswerType}
                       mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
                       answers={answers} setAnswers={setAnswers}
-                      bgColor={bgColor} setBgColor={setBgColor}
+                      bgColor={bgColor} setBgColor={handleBackgroundColorChange}
                       bgImage={bgImage}
-                      setBgImage={setBgImage}
+                      setBgImage={handleBackgroundImageChange}
                       assetState={assetState}
                       setAssetState={setAssetState}
                       highlightField={highlightField}
