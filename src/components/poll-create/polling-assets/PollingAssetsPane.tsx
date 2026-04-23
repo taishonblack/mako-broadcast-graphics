@@ -30,6 +30,7 @@ interface PollingAssetsPaneProps {
   onEnabledAssetsChange: (next: AssetId[]) => void;
   selectedAssetId: AssetId | null;
   onSelectAsset: (id: AssetId | null) => void;
+  folderName: string;
   blockLetter: BlockLetter;
   onBlockLetterChange: (next: BlockLetter) => void;
 
@@ -47,6 +48,7 @@ interface PollingAssetsPaneProps {
 export function PollingAssetsPane({
   enabledAssets, onEnabledAssetsChange,
   selectedAssetId, onSelectAsset,
+  folderName,
   blockLetter, onBlockLetterChange,
   question, setQuestion,
   subheadline, setSubheadline,
@@ -103,7 +105,7 @@ export function PollingAssetsPane({
           <div className="flex items-center gap-2 px-2.5 py-2 border-b border-border/40 bg-background/30">
             <FolderOpen className="w-3.5 h-3.5 text-primary shrink-0" />
             <div className="min-w-0 flex-1">
-              <p className="text-[11px] font-medium text-foreground truncate">Polling Assets Folder</p>
+              <p className="text-[11px] font-medium text-foreground truncate">{folderName}</p>
               <p className="text-[10px] text-muted-foreground truncate">{DEFAULT_BLOCK_LABELS[blockLetter]}</p>
             </div>
 
