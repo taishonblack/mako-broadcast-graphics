@@ -7,7 +7,6 @@ import { Monitor, Smartphone, Globe, Copy, Link2, Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { AnswerType, MCLabelStyle, PreviewDataMode, getMCLabel } from './ContentPanel';
-import makoVoteLogo from '@/assets/makovote-logo.svg';
 
 type PreviewMode = 'program' | 'mobile' | 'desktop';
 
@@ -84,14 +83,30 @@ export function DraftPreviewMonitor({
             }}
           />
           <div className="relative z-10 flex w-full flex-col items-center justify-center gap-10 px-24 text-center">
-            <div className="flex w-full justify-center">
-              <img
-                src={makoVoteLogo}
-                alt="MakoVote"
-                className="select-none"
-                style={{ width: '50%', maxWidth: '900px', height: 'auto', display: 'block', filter: 'drop-shadow(0 8px 32px rgba(0,0,0,0.6)) brightness(0) invert(1) translateX(14px)' }}
-                draggable={false}
-              />
+            <div className="flex items-baseline justify-center font-semibold leading-none select-none">
+              <span
+                className="text-right"
+                style={{
+                  width: '6.5ch',
+                  fontSize: '78px',
+                  color: 'hsl(var(--foreground))',
+                  opacity: 0.88,
+                  textShadow: '0 8px 32px rgba(0,0,0,0.45)',
+                }}
+              >
+                Mako
+              </span>
+              <span
+                className="text-left"
+                style={{
+                  width: '6.5ch',
+                  fontSize: '78px',
+                  color: 'hsl(var(--primary))',
+                  textShadow: '0 8px 32px rgba(0,0,0,0.45)',
+                }}
+              >
+                Vote
+              </span>
             </div>
             <p
               className="font-mono uppercase tracking-[0.2em] text-center"
@@ -161,12 +176,10 @@ export function DraftPreviewMonitor({
     if (!hasContent) {
       return (
         <div className="flex flex-col items-center justify-center h-full gap-4 px-6 text-center">
-          <img
-            src={makoVoteLogo}
-            alt="MakoVote"
-            className="select-none w-3/4 max-w-[220px] h-auto"
-            draggable={false}
-          />
+          <div className="flex items-baseline justify-center font-semibold leading-none select-none text-3xl">
+            <span className="text-foreground/90">Mako</span>
+            <span className="text-primary">Vote</span>
+          </div>
           <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/80">
             Start building your poll to preview the voter view
           </p>
