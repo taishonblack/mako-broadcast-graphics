@@ -3,7 +3,7 @@ import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
-  DropdownMenuLabel, DropdownMenuSeparator,
+  DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
   Type, ListChecks, AlignLeft, Image as ImageIcon, QrCode,
@@ -147,11 +147,18 @@ export function PollingAssetsPane({
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onSelectFolder(folder.id)}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    onClick={() => onSelectFolder(folder.id)}
+                    aria-label={`Open add asset menu for ${folder.name}`}
+                    title={`Add asset to ${folder.name}`}
+                  >
                     <Plus className="w-3.5 h-3.5" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56">
+                <DropdownMenuContent align="end" className="w-56" aria-label={`Add asset options for ${folder.name}`}>
                   <DropdownMenuLabel className="text-[10px] uppercase font-mono">
                     Add Asset To Folder
                   </DropdownMenuLabel>
@@ -179,12 +186,20 @@ export function PollingAssetsPane({
 
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                  <Button size="icon" variant="ghost" className="h-7 w-7" onClick={() => onSelectFolder(folder.id)}>
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-7 w-7"
+                    onClick={() => onSelectFolder(folder.id)}
+                    aria-label={`Open folder actions for ${folder.name}`}
+                    title={`Folder actions for ${folder.name}`}
+                  >
                     <MoreVertical className="w-3.5 h-3.5" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-44">
+                <DropdownMenuContent align="end" className="w-44" aria-label={`Folder actions for ${folder.name}`}>
                   <DropdownMenuItem
+                    aria-label={`Rename folder ${folder.name}`}
                     onClick={() => {
                       const nextName = window.prompt('Rename folder', folder.name);
                       if (nextName) onRenameFolder(folder.id, nextName);
@@ -193,14 +208,25 @@ export function PollingAssetsPane({
                     Rename
                   </DropdownMenuItem>
                   <DropdownMenuLabel className="text-[10px] uppercase font-mono">Set Block</DropdownMenuLabel>
-                  {BLOCK_LETTERS.map((letter) => (
-                    <DropdownMenuItem key={`${folder.id}-${letter}`} onClick={() => onSetFolderBlock(folder.id, letter)} className="justify-between">
-                      <span>{letter}</span>
-                      {folder.blockLetter === letter && <span className="text-[9px] text-primary">●</span>}
-                    </DropdownMenuItem>
-                  ))}
+                  <DropdownMenuRadioGroup value={folder.blockLetter}>
+                    {BLOCK_LETTERS.map((letter) => (
+                      <DropdownMenuRadioItem
+                        key={`${folder.id}-${letter}`}
+                        value={letter}
+                        aria-label={`Set ${folder.name} to Block ${letter}`}
+                        onSelect={() => onSetFolderBlock(folder.id, letter)}
+                        className="justify-between"
+                      >
+                        <span>{letter}</span>
+                      </DropdownMenuRadioItem>
+                    ))}
+                  </DropdownMenuRadioGroup>
                   <DropdownMenuSeparator />
-                  <DropdownMenuItem disabled={folders.length <= 1} onClick={() => onDeleteFolder(folder.id)}>
+                  <DropdownMenuItem
+                    disabled={folders.length <= 1}
+                    aria-label={`Delete folder ${folder.name}`}
+                    onClick={() => onDeleteFolder(folder.id)}
+                  >
                     Delete Folder
                   </DropdownMenuItem>
                 </DropdownMenuContent>
