@@ -18,6 +18,8 @@ interface FullscreenSceneProps {
   slug?: string;
   qrSize?: number;
   qrPosition?: QRPosition;
+  qrVisible?: boolean;
+  debugVoteUrl?: string;
   showBranding?: boolean;
   brandingPosition?: QRPosition;
   enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally'>;
@@ -46,6 +48,8 @@ export function FullscreenScene({
   slug,
   qrSize,
   qrPosition,
+  qrVisible = true,
+  debugVoteUrl,
   showBranding = false,
   brandingPosition = 'bottom-left',
   enabledAssetIds,
@@ -147,12 +151,13 @@ export function FullscreenScene({
         )}
       </div>
 
-      {((visibleAssets.has('qr') && qrSize !== undefined) || (visibleAssets.has('logo') && showBranding)) && (
+      {((visibleAssets.has('qr') && qrVisible && qrSize !== undefined) || (visibleAssets.has('logo') && showBranding)) && (
         <AssetOverlay
-          showQR={visibleAssets.has('qr') && qrSize !== undefined && qrSize > 0}
+          showQR={visibleAssets.has('qr') && qrVisible && qrSize !== undefined && qrSize > 0}
           qrSlug={slug ?? ''}
           qrSize={qrSize ?? 0}
           qrPosition={qrPosition ?? 'bottom-right'}
+          debugVoteUrl={debugVoteUrl}
           showBranding={visibleAssets.has('logo') && showBranding}
           brandingPosition={brandingPosition}
           theme={theme}

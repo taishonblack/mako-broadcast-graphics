@@ -14,6 +14,8 @@ interface LowerThirdSceneProps {
   slug?: string;
   qrSize?: number;
   qrPosition?: QRPosition;
+  qrVisible?: boolean;
+  debugVoteUrl?: string;
   showBranding?: boolean;
   brandingPosition?: QRPosition;
   enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally'>;
@@ -37,6 +39,8 @@ export function LowerThirdScene({
   slug,
   qrSize,
   qrPosition = 'top-right',
+  qrVisible = true,
+  debugVoteUrl,
   showBranding = false,
   brandingPosition = 'top-left',
   enabledAssetIds,
@@ -163,12 +167,13 @@ export function LowerThirdScene({
 
       {/* Asset overlay (QR + bug). Default positions are top corners so they
           sit above the banner and don't overlap content. */}
-      {((visibleAssets.has('qr') && qrSize !== undefined) || (visibleAssets.has('logo') && showBranding)) && (
+      {((visibleAssets.has('qr') && qrVisible && qrSize !== undefined) || (visibleAssets.has('logo') && showBranding)) && (
         <AssetOverlay
-          showQR={visibleAssets.has('qr') && qrSize !== undefined && qrSize > 0}
+          showQR={visibleAssets.has('qr') && qrVisible && qrSize !== undefined && qrSize > 0}
           qrSlug={slug ?? ''}
           qrSize={qrSize ?? 0}
           qrPosition={qrPosition}
+          debugVoteUrl={debugVoteUrl}
           showBranding={visibleAssets.has('logo') && showBranding}
           brandingPosition={brandingPosition}
           theme={theme}
