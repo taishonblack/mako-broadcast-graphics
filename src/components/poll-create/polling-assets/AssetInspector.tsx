@@ -27,6 +27,8 @@ interface AssetInspectorProps {
   bgColor: string; setBgColor: (v: string) => void;
   bgImage?: string;
   setBgImage: (v: string | undefined) => void;
+  imageMissing?: boolean;
+  onImageMissing?: () => void;
   // New asset state
   assetState: AssetState;
   setAssetState: Dispatch<SetStateAction<AssetState>>;
@@ -254,6 +256,8 @@ export function AssetInspector(p: AssetInspectorProps) {
             setBgColor={p.setBgColor}
             bgImage={p.bgImage}
             setBgImage={p.setBgImage}
+            imageMissing={p.imageMissing}
+            onImageMissing={p.onImageMissing}
           />
         )}
 
