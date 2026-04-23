@@ -173,6 +173,12 @@ export default function PollCreate() {
         setPollId(p.id);
         setInternalName(p.internalName);
         setQuestion(p.question);
+        setFolderState((current) => ({
+          ...current,
+          folders: current.folders.map((folder) => (
+            folder.id === current.activeFolderId ? { ...folder, questionText: p.question } : folder
+          )),
+        }));
         setSubheadline(p.subheadline);
         setSlug(p.slug);
         setSelectedTemplate(p.template);
@@ -466,6 +472,12 @@ export default function PollCreate() {
     navigate(`/polls/${p.id}`, { replace: true });
     setInternalName(p.internalName);
     setQuestion(p.question);
+    setFolderState((current) => ({
+      ...current,
+      folders: current.folders.map((folder) => (
+        folder.id === current.activeFolderId ? { ...folder, questionText: p.question } : folder
+      )),
+    }));
     setSubheadline(p.subheadline);
     setSlug(p.slug);
     setSelectedTemplate(p.template);
@@ -545,6 +557,12 @@ export default function PollCreate() {
       const data = result.data;
       setInternalName(data.internalName);
       setQuestion(data.question);
+      setFolderState((current) => ({
+        ...current,
+        folders: current.folders.map((folder) => (
+          folder.id === current.activeFolderId ? { ...folder, questionText: data.question } : folder
+        )),
+      }));
       setSubheadline(data.subheadline);
       setSlug(data.slug);
       setSelectedTemplate(data.template);
