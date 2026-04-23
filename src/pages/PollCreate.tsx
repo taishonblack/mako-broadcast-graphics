@@ -908,6 +908,16 @@ export default function PollCreate() {
     }));
   };
 
+  const handleAssetColorsChange = (assetId: AssetId, nextColors: AssetColorMap[AssetId]) => {
+    setAssetColors((current) => ({
+      ...current,
+      [assetId]: {
+        ...current[assetId],
+        ...nextColors,
+      },
+    }));
+  };
+
   const handleFolderQuestionChange = (nextQuestion: string) => {
     setQuestion(nextQuestion);
     syncActiveFolderQuestion(nextQuestion);
