@@ -11,7 +11,7 @@ import { Save, FolderOpen, Copy, Upload, FileDown, X } from 'lucide-react';
 import { useRef } from 'react';
 
 const templateOptions: TemplateName[] = [
-  'horizontal-bar', 'vertical-bar', 'pie-donut', 'progress-bar',
+  'horizontal-bar', 'vertical-bar', 'pie-donut',
   'puck-slider', 'lower-third',
 ];
 
