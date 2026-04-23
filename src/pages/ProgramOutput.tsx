@@ -16,6 +16,7 @@ import { DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/typ
 const DEFAULT_ASSETS: OutputAssets = {
   qrSize: 120,
   qrPosition: 'bottom-right',
+  qrVisible: DEFAULT_ASSET_STATE.qrVisible,
   showBranding: true,
   brandingPosition: 'bottom-left',
   wordmarkWeight: DEFAULT_ASSET_STATE.wordmarkWeight,
@@ -89,6 +90,7 @@ export default function ProgramOutput() {
       slug: poll.slug,
       qrSize: assets.qrSize,
       qrPosition: assets.qrPosition,
+      qrVisible: assets.qrVisible,
       showBranding: assets.showBranding,
       brandingPosition: assets.brandingPosition,
       enabledAssetIds: assets.enabledAssetIds,
@@ -106,7 +108,7 @@ export default function ProgramOutput() {
       case 'lowerThird':
         return <LowerThirdScene {...baseProps} />;
       case 'qr':
-        return <QRScene slug={poll.slug} theme={theme} enabledAssetIds={assets.enabledAssetIds} transforms={assets.transforms} />;
+        return <QRScene slug={poll.slug} theme={theme} enabledAssetIds={assets.enabledAssetIds} transforms={assets.transforms} qrVisible={assets.qrVisible} debugVoteUrl={`https://makovote.app/vote/${poll.slug}`} />;
       case 'results':
         return <ResultsScene {...baseProps} />;
       case 'fullscreen':

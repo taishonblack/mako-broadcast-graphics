@@ -259,6 +259,16 @@ export function AssetInspector(p: AssetInspectorProps) {
 
         {id === 'qr' && (
           <div className="space-y-3">
+            <div className="flex items-center justify-between rounded-md border border-border/50 bg-background/40 px-2.5 py-2">
+              <div>
+                <Label className="text-[10px] text-muted-foreground">Show QR in scene</Label>
+                <p className="text-[10px] text-muted-foreground/70">Confirms the QR asset is enabled for this poll scene.</p>
+              </div>
+              <Switch
+                checked={p.assetState.qrVisible}
+                onCheckedChange={(checked) => p.setAssetState({ ...p.assetState, qrVisible: checked })}
+              />
+            </div>
             <div>
               <Label className="text-[10px] text-muted-foreground">Position</Label>
               <div className="grid grid-cols-2 gap-1 mt-1">

@@ -12,6 +12,8 @@ interface ResultsSceneProps {
   slug?: string;
   qrSize?: number;
   qrPosition?: QRPosition;
+  qrVisible?: boolean;
+  debugVoteUrl?: string;
   showBranding?: boolean;
   brandingPosition?: QRPosition;
   enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally'>;
@@ -27,6 +29,8 @@ export function ResultsScene({
   slug,
   qrSize,
   qrPosition = 'bottom-right',
+  qrVisible = true,
+  debugVoteUrl,
   showBranding = false,
   brandingPosition = 'bottom-left',
   enabledAssetIds,
@@ -139,12 +143,13 @@ export function ResultsScene({
         )}
       </div>
 
-      {((visibleAssets.has('qr') && qrSize !== undefined) || (visibleAssets.has('logo') && showBranding)) && (
+      {((visibleAssets.has('qr') && qrVisible && qrSize !== undefined) || (visibleAssets.has('logo') && showBranding)) && (
         <AssetOverlay
-          showQR={visibleAssets.has('qr') && qrSize !== undefined && qrSize > 0}
+          showQR={visibleAssets.has('qr') && qrVisible && qrSize !== undefined && qrSize > 0}
           qrSlug={slug ?? ''}
           qrSize={qrSize ?? 0}
           qrPosition={qrPosition}
+          debugVoteUrl={debugVoteUrl}
           showBranding={visibleAssets.has('logo') && showBranding}
           brandingPosition={brandingPosition}
           theme={theme}

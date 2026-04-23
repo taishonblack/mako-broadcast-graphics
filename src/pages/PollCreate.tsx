@@ -411,6 +411,7 @@ export default function PollCreate() {
       slug: slugForUrl,
       qrSize,
       qrPosition,
+      qrVisible: assetState.qrVisible,
       showBranding,
       brandingPosition,
       enabledAssetIds: enabledAssets,
@@ -454,6 +455,7 @@ export default function PollCreate() {
       assets: {
         qrSize,
         qrPosition,
+        qrVisible: assetState.qrVisible,
         showBranding,
         brandingPosition,
         enabledAssetIds: enabledAssets,
@@ -475,6 +477,7 @@ export default function PollCreate() {
       assets: {
         qrSize,
         qrPosition,
+        qrVisible: assetState.qrVisible,
         showBranding,
         brandingPosition,
         enabledAssetIds: enabledAssets,
@@ -1131,6 +1134,7 @@ export default function PollCreate() {
                     wordmark={assetState}
                   qrSize={qrSize}
                   qrPosition={qrPosition}
+                  qrVisible={assetState.qrVisible}
                   showBranding={showBranding}
                   brandingPosition={brandingPosition}
                   enabledAssetIds={enabledAssets}

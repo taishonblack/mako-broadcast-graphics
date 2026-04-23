@@ -8,6 +8,7 @@ export const OUTPUT_STATE_STORAGE_KEY = 'mako-output-state';
 export interface OutputAssets {
   qrSize: number;
   qrPosition: QRPosition;
+  qrVisible?: boolean;
   showBranding: boolean;
   brandingPosition: QRPosition;
   enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally'>;
@@ -61,6 +62,7 @@ export function readOutputState(): OutputStatePayload | null {
       assets: parsed.assets
         ? {
             ...parsed.assets,
+              qrVisible: parsed.assets.qrVisible ?? DEFAULT_ASSET_STATE.qrVisible,
               enabledAssetIds: parsed.assets.enabledAssetIds ?? ['question', 'answers', 'logo'],
               transforms: parsed.assets.transforms ?? DEFAULT_ASSET_TRANSFORMS,
             wordmarkWeight: parsed.assets.wordmarkWeight ?? DEFAULT_ASSET_STATE.wordmarkWeight,
