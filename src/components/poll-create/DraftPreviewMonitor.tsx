@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { PreviewWithOverlays } from '@/components/broadcast/preview/PreviewWithOverlays';
 import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
 import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
@@ -60,22 +60,19 @@ export function DraftPreviewMonitor({
 }: DraftPreviewMonitorProps) {
   const [previewMode, setPreviewMode] = useState<PreviewMode>('program');
   const [copied, setCopied] = useState<'full' | 'short' | null>(null);
-  const overlayApi = usePreviewOverlays();
+  const overlayApiRef = useRef<ReturnType<typeof usePreviewOverlays> | null>(null);
 
   const labelledOptions = resolveOptionLabels(options, answerType, mcLabelStyle, answers);
   const isLowerThird = template === 'lower-third';
 
-  const showWordmarkGuides = wordmark.wordmarkShowGuides;
-
-  if (overlayApi.state.titleSafe !== showWordmarkGuides) {
-    overlayApi.update('titleSafe', showWordmarkGuides);
-  }
-  if (overlayApi.state.centerCrosshair !== showWordmarkGuides) {
-    overlayApi.update('centerCrosshair', showWordmarkGuides);
-  }
-  if (overlayApi.state.snap !== showWordmarkGuides) {
-    overlayApi.update('snap', showWordmarkGuides);
-  }
+  useEffect(() => {
+    const api = overlayApiRef.current;
+    if (!api) return;
+    api.update('titleSafe', wordmark.wordmarkShowGuides);
+    api.update('actionSafe', wordmark.wordmarkShowGuides);
+    api.update('centerCrosshair', wordmark.wordmarkShowGuides);
+    api.update('snap', wordmark.wordmarkShowGuides);
+  }, [wordmark.wordmarkShowGuides]);
 
   const copyUrl = (url: string, kind: 'full' | 'short') => {
     navigator.clipboard?.writeText(url);
@@ -274,7 +271,7 @@ export function DraftPreviewMonitor({
       {/* Preview area — tightened to lift monitor toward the header */}
       <div className="flex-1 flex flex-col items-center justify-start pt-2 px-4 pb-4 bg-background/30 min-h-0 overflow-auto gap-2">
         {previewMode === 'program' ? (
-          <PreviewWithOverlays showLabel label="1920×1080" onApiReady={() => undefined}>
+          <PreviewWithOverlays showLabel label="1920×1080" onApiReady={(api) => { overlayApiRef.current = api; }}>
             {renderProgramContent()}
           </PreviewWithOverlays>
         ) : (
