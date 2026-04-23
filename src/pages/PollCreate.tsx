@@ -194,7 +194,6 @@ export default function PollCreate() {
   const [previewScene, setPreviewScene] = useState<SceneType>('fullscreen');
   const [programScene, setProgramScene] = useState<SceneType>('fullscreen');
   const [qrSize, setQrSize] = useState(120);
-  const [qrPosition, setQrPosition] = useState<QRPosition>('bottom-right');
   const [showBranding, setShowBranding] = useState(true);
   const [brandingPosition, setBrandingPosition] = useState<QRPosition>('bottom-left');
   const theme = themePresets[0];
@@ -456,7 +455,7 @@ export default function PollCreate() {
     const sharedAssets = {
       slug: slugForUrl,
       qrSize,
-      qrPosition,
+      qrPosition: assetState.qrPosition,
       qrVisible: assetState.qrVisible,
       qrUrlVisible: assetState.qrUrlVisible,
       showBranding,
@@ -481,7 +480,7 @@ export default function PollCreate() {
 
     switch (previewScene) {
       case 'lowerThird': return <LowerThirdScene {...props} />;
-      case 'qr': return <QRScene slug={slugForUrl} theme={theme} />;
+      case 'qr': return <QRScene slug={slugForUrl} theme={theme} {...sharedAssets} />;
       case 'results': return <ResultsScene {...props} />;
       default: return <FullscreenScene {...props} layers={[]} />;
     }
@@ -502,7 +501,7 @@ export default function PollCreate() {
       layers: [],
       assets: {
         qrSize,
-        qrPosition,
+        qrPosition: assetState.qrPosition,
         qrVisible: assetState.qrVisible,
         qrUrlVisible: assetState.qrUrlVisible,
         showBranding,
@@ -526,7 +525,7 @@ export default function PollCreate() {
       layers: [],
       assets: {
         qrSize,
-        qrPosition,
+        qrPosition: assetState.qrPosition,
         qrVisible: assetState.qrVisible,
         qrUrlVisible: assetState.qrUrlVisible,
         showBranding,
