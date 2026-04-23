@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { AnswerType, MCLabelStyle, PreviewDataMode } from '@/components/poll-create/ContentPanel';
@@ -38,7 +38,7 @@ import { themePresets } from '@/lib/themes';
 import { TemplateName, Poll, PollOption, QRPosition, VotingState, LiveState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
 import { broadcastOutputState } from '@/lib/output-state';
-import { FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Monitor, Radio } from 'lucide-react';
+import { FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Monitor, Radio, Undo2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { loadPoll, savePoll, listPolls, listProjects, DraftPollPayload, SavedPoll, BlockLetter } from '@/lib/poll-persistence';
 import { OperatorOutputMode } from '@/components/operator/OperatorOutputMode';
@@ -66,6 +66,35 @@ const buildActiveFolderStorageKey = (projectId?: string) => `mako-active-folder:
 interface WorkspaceLayout {
   hSizes: [number, number, number]; // left / center / right
   rightVSizes: [number, number];     // Template / Inspector
+}
+
+interface EditorSnapshot {
+  question: string;
+  internalName: string;
+  slug: string;
+  subheadline: string;
+  selectedTemplate: TemplateName;
+  answerType: AnswerType;
+  mcLabelStyle: MCLabelStyle;
+  previewDataMode: PreviewDataMode;
+  answers: { id: string; text: string; shortLabel: string; testVotes?: number }[];
+  showLiveResults: boolean;
+  showThankYou: boolean;
+  showFinalResults: boolean;
+  autoClose: string;
+  bgColor: string;
+  bgImage?: string;
+  blockLetter: BlockLetter;
+  blockPosition: number;
+  selectedAssetId: AssetId | null;
+  assetState: AssetState;
+  assetTransforms: typeof DEFAULT_ASSET_TRANSFORMS;
+  assetColors: AssetColorMap;
+  folderState: PollingAssetFolderState;
+}
+
+function cloneSnapshotValue<T>(value: T): T {
+  return JSON.parse(JSON.stringify(value)) as T;
 }
 
 const DEFAULT_WORKSPACE_LAYOUT: WorkspaceLayout = {
