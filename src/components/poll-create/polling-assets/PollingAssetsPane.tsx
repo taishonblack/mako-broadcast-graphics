@@ -14,8 +14,8 @@ import { AssetId, AssetMeta } from './types';
 import { BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-persistence';
 
 export const ASSET_REGISTRY: Record<AssetId, AssetMeta> = {
-  question:    { id: 'question',    label: 'Question Text', icon: Type,        description: 'Main on-air question shown above answers',   required: true },
-  answers:     { id: 'answers',     label: 'Answer Bars',   icon: ListChecks,  description: 'Voter response options and labels',           required: true },
+  question:    { id: 'question',    label: 'Question Text', icon: Type,        description: 'Main on-air question shown above answers' },
+  answers:     { id: 'answers',     label: 'Answer Bars',   icon: ListChecks,  description: 'Voter response options and labels' },
   subheadline: { id: 'subheadline', label: 'Subheadline',   icon: AlignLeft,   description: 'Optional secondary line beneath the question' },
   background:  { id: 'background',  label: 'Background',    icon: ImageIcon,   description: 'Solid color or uploaded image backdrop' },
   qr:          { id: 'qr',          label: 'QR Code',       icon: QrCode,      description: 'Scannable code linking viewers to the vote URL' },
@@ -23,7 +23,7 @@ export const ASSET_REGISTRY: Record<AssetId, AssetMeta> = {
   voterTally:  { id: 'voterTally',  label: 'Voter Tally',   icon: Users,       description: 'Live count of received votes' },
 };
 
-export const SEEDED_ASSETS: AssetId[] = ['question', 'answers'];
+export const SEEDED_ASSETS: AssetId[] = [];
 
 interface PollingAssetsPaneProps {
   folders: { id: string; name: string; blockLetter: BlockLetter; collapsed?: boolean; assetIds: AssetId[] }[];
@@ -250,9 +250,9 @@ export function PollingAssetsPane({
 
             {!isCollapsed && (
               <div className="p-2.5 space-y-2">
-                {folderAssets.length === 0 && (
+                 {folderAssets.length === 0 && (
                   <div className="rounded-md border border-dashed border-border/60 bg-background/30 px-3 py-4 text-center">
-                    <p className="text-xs text-muted-foreground">This folder is seeded—add extra assets with + if needed.</p>
+                     <p className="text-xs text-muted-foreground">Add only the assets you want shown for this folder.</p>
                   </div>
                 )}
                 {folderAssets.map((id) => (
