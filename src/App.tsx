@@ -18,13 +18,13 @@ const queryClient = new QueryClient();
 const LegacyGraphicsRedirect = () => {
   const { id } = useParams<{ id: string }>();
 
-  return <Navigate to={id ? `/polls/${id}?mode=edit` : "/polls/new?mode=edit"} replace />;
+  return <Navigate to={id ? `/polls/${id}?mode=build` : "/polls/new?mode=build"} replace />;
 };
 
 const LegacyPollEditRedirect = () => {
   const { id } = useParams<{ id: string }>();
 
-  return <Navigate to={id ? `/polls/${id}?mode=edit` : "/polls/new?mode=edit"} replace />;
+  return <Navigate to={id ? `/polls/${id}?mode=build` : "/polls/new?mode=build"} replace />;
 };
 
 const App = () => (
