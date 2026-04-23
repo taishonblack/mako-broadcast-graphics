@@ -3,6 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Badge } from '@/components/ui/badge';
 import { AssetColorConfig, AssetColorMap, AssetId, AssetTransformMap, DEFAULT_ASSET_COLORS, TransformField } from '@/components/poll-create/polling-assets/types';
 import { useState } from 'react';
 
@@ -63,6 +64,7 @@ export function AssetTransformControls({ assetId, assetLabel, folderLabel, folde
     .map((id) => ({ id, label: assetId ? (assetLabel ?? id) : getAssetLabel(id), transform: transforms[id] }))
     .filter((section) => Boolean(section.transform));
   const colorSections: ColorSection[] = visibleAssetIds.flatMap((id) => buildColorSections(id, colors[id], answerCount));
+  const visibleColorFieldCount = colorSections.reduce((total, section) => total + section.fields.length, 0);
 
   if (visibleAssetIds.length === 0) {
     return <div className="px-4 py-3 text-[11px] text-muted-foreground">Select an asset or folder to adjust transforms and colors.</div>;
@@ -134,7 +136,14 @@ export function AssetTransformControls({ assetId, assetLabel, folderLabel, folde
 
       <div className="rounded-md border border-border/50 bg-card/30">
         <button type="button" onClick={() => setColorsOpen((value) => !value)} className="flex w-full items-center justify-between px-3 py-2 text-left">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Colors</span>
+          <span className="flex items-center gap-2">
+            <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Colors</span>
+            {visibleColorFieldCount > 0 && (
+              <Badge variant="outline" className="h-5 rounded-md px-1.5 text-[9px] font-mono uppercase tracking-wider text-muted-foreground">
+                {visibleColorFieldCount} field{visibleColorFieldCount === 1 ? '' : 's'}
+              </Badge>
+            )}
+          </span>
           {colorsOpen ? <ChevronDown className="h-3.5 w-3.5 text-muted-foreground" /> : <ChevronRight className="h-3.5 w-3.5 text-muted-foreground" />}
         </button>
         {colorsOpen && (
