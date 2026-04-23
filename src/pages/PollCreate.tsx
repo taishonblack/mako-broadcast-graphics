@@ -7,7 +7,9 @@ import { DraftPreviewMonitor } from '@/components/poll-create/DraftPreviewMonito
 import { ProjectPickerDialog } from '@/components/poll-create/ProjectPickerDialog';
 import { PollingAssetsPane, SEEDED_ASSETS } from '@/components/poll-create/polling-assets/PollingAssetsPane';
 import { AssetInspector } from '@/components/poll-create/polling-assets/AssetInspector';
-import { AssetId, AssetState, DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/types';
+import { AssetTransformControls } from '@/components/poll-create/AssetTransformControls';
+import { ASSET_REGISTRY } from '@/components/poll-create/polling-assets/PollingAssetsPane';
+import { AssetId, AssetState, DEFAULT_ASSET_STATE, DEFAULT_ASSET_TRANSFORMS, TransformField } from '@/components/poll-create/polling-assets/types';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
