@@ -106,8 +106,21 @@ export function FullscreenScene({
 
             <div className="w-full" style={{ maxWidth: '1600px' }}>
               {visibleAssets.has('answers') && (useNativeChart ? (
-                <div data-layer="answerBars" style={{ transform: 'scale(2.4)', transformOrigin: 'center top' }}>
-                  {renderChart({ template, options, totalVotes, colors })}
+                <div
+                  data-layer="answerBars"
+                  className="flex w-full items-center justify-center"
+                  style={{
+                    minHeight: template === 'pie-donut' ? '520px' : undefined,
+                  }}
+                >
+                  <div
+                    style={{
+                      transform: template === 'pie-donut' ? 'scale(2.75)' : 'scale(2.4)',
+                      transformOrigin: 'center center',
+                    }}
+                  >
+                    {renderChart({ template, options, totalVotes, colors })}
+                  </div>
                 </div>
               ) : (
                 <div data-layer="answerBars" className="space-y-8">
