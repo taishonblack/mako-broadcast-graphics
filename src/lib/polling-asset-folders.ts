@@ -48,8 +48,8 @@ export function listAssignedAssets(state: PollingAssetFolderState) {
   return state.folders.flatMap((folder) => folder.assetIds);
 }
 
-export function getAvailableAssets(state: PollingAssetFolderState) {
-  const assigned = new Set(listAssignedAssets(state));
+export function getAvailableAssets(assetIds: AssetId[]) {
+  const assigned = new Set(assetIds);
   return VALID_ASSETS.filter((assetId) => !assigned.has(assetId));
 }
 
@@ -57,21 +57,20 @@ export function normalizeFolderState(input: unknown): PollingAssetFolderState {
   const fallback = createDefaultFolderState();
   if (!isRecord(input) || !Array.isArray(input.folders)) return fallback;
 
-  const seenAssets = new Set<AssetId>();
   const folders = input.folders
     .filter(isRecord)
     .map((folder, index) => {
       const assetIds = Array.isArray(folder.assetIds)
-        ? folder.assetIds.filter((assetId): assetId is AssetId => VALID_ASSETS.includes(assetId as AssetId) && !seenAssets.has(assetId as AssetId))
+        ? folder.assetIds.filter((assetId): assetId is AssetId => VALID_ASSETS.includes(assetId as AssetId))
         : [];
 
-      assetIds.forEach((assetId) => seenAssets.add(assetId));
+      const seededAssets = Array.from(new Set([...REQUIRED_ASSETS, ...assetIds]));
 
       return {
         id: typeof folder.id === 'string' && folder.id.length > 0 ? folder.id : createFolderId(),
         name: typeof folder.name === 'string' && folder.name.trim().length > 0 ? folder.name.trim() : createFolderName(index + 1),
         blockLetter: ['A', 'B', 'C', 'D', 'E'].includes(String(folder.blockLetter)) ? folder.blockLetter as BlockLetter : DEFAULT_BLOCK,
-        assetIds,
+        assetIds: seededAssets,
       };
     })
     .filter((folder) => folder.assetIds.length > 0 || folder.name.length > 0);
@@ -79,12 +78,6 @@ export function normalizeFolderState(input: unknown): PollingAssetFolderState {
   if (folders.length === 0) {
     return fallback;
   }
-
-  REQUIRED_ASSETS.forEach((assetId) => {
-    if (seenAssets.has(assetId)) return;
-    folders[0].assetIds = Array.from(new Set([...folders[0].assetIds, assetId]));
-    seenAssets.add(assetId);
-  });
 
   const activeFolderId = typeof input.activeFolderId === 'string' && folders.some((folder) => folder.id === input.activeFolderId)
     ? input.activeFolderId
