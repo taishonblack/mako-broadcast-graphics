@@ -8,10 +8,12 @@ interface QRSceneProps {
   theme: ThemePreset;
   enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally'>;
   transforms?: AssetTransformMap;
+  qrVisible?: boolean;
+  debugVoteUrl?: string;
 }
 
-export function QRScene({ slug, theme, enabledAssetIds, transforms }: QRSceneProps) {
-  const url = `https://makovote.tv/vote/${slug}`;
+export function QRScene({ slug, theme, enabledAssetIds, transforms, qrVisible = true, debugVoteUrl }: QRSceneProps) {
+  const url = debugVoteUrl ?? `https://makovote.app/vote/${slug}`;
   const visibleAssets = new Set(enabledAssetIds ?? ['question', 'answers', 'logo']);
 
   return (
@@ -39,7 +41,7 @@ export function QRScene({ slug, theme, enabledAssetIds, transforms }: QRScenePro
         </h1>
         )}
 
-        {visibleAssets.has('qr') && (
+        {visibleAssets.has('qr') && qrVisible && (
         <div
           className="p-6 rounded-3xl shadow-[0_0_60px_-10px_hsla(0,0%,100%,0.15)]"
           style={{ backgroundColor: 'hsla(0, 0%, 100%, 0.95)', ...getAssetTransformStyle(transforms?.qr) }}
@@ -48,7 +50,7 @@ export function QRScene({ slug, theme, enabledAssetIds, transforms }: QRScenePro
         </div>
         )}
 
-        {visibleAssets.has('subheadline') && (
+        {visibleAssets.has('subheadline') && qrVisible && (
         <p
           className="font-mono text-lg tracking-wide"
           style={{ color: theme.textSecondary }}
