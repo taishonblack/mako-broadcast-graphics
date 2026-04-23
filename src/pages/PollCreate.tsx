@@ -1179,6 +1179,7 @@ export default function PollCreate() {
                   brandingPosition={brandingPosition}
                   enabledAssetIds={enabledAssets}
                   transforms={assetTransforms}
+                    assetColors={assetColors}
                   />
                   <AssetTransformControls
                     assetId={selectedAssetId}
