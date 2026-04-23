@@ -1478,6 +1478,7 @@ export default function PollCreate() {
                       setSelectedTemplate={setSelectedTemplate}
                       bgColor={bgColor} setBgColor={handleBackgroundColorChange}
                       bgImage={bgImage} setBgImage={handleBackgroundImageChange}
+                      backgroundStatus={backgroundStatus}
                       wordmark={assetState}
                       setWordmark={(next) => setAssetState((current) => ({ ...current, ...next }))}
                     />
@@ -1498,6 +1499,8 @@ export default function PollCreate() {
                       bgColor={bgColor} setBgColor={handleBackgroundColorChange}
                       bgImage={bgImage}
                       setBgImage={handleBackgroundImageChange}
+                      imageMissing={backgroundImageMissing}
+                      onImageMissing={handleMissingBackgroundImage}
                       assetState={assetState}
                       setAssetState={setAssetState}
                       highlightField={highlightField}
