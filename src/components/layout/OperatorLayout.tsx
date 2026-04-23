@@ -47,9 +47,17 @@ export function OperatorLayout({ children }: { children: ReactNode }) {
         })}
 
         <div className="mt-auto">
-          <button className="w-10 h-10 rounded-xl flex items-center justify-center text-sidebar-foreground hover:text-foreground hover:bg-sidebar-accent transition-colors">
+          <Link
+            to="/settings"
+            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+              location.pathname.startsWith('/settings')
+                ? 'bg-sidebar-accent text-primary'
+                : 'text-sidebar-foreground hover:text-foreground hover:bg-sidebar-accent'
+            }`}
+            title="Settings"
+          >
             <Settings className="w-5 h-5" />
-          </button>
+          </Link>
         </div>
       </aside>
 

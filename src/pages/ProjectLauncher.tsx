@@ -432,8 +432,10 @@ export default function ProjectLauncher() {
       </div>
 
       <div className="absolute bottom-6 left-6">
-        <Button variant="ghost" size="icon" aria-label="Settings">
+        <Button asChild variant="ghost" size="icon" aria-label="Settings">
+          <Link to="/settings">
           <Settings className="w-5 h-5" />
+          </Link>
         </Button>
       </div>
 

@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { AnswerType, MCLabelStyle, PreviewDataMode } from '@/components/poll-create/ContentPanel';
@@ -38,7 +38,7 @@ import { themePresets } from '@/lib/themes';
 import { TemplateName, Poll, PollOption, QRPosition, VotingState, LiveState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
 import { broadcastOutputState } from '@/lib/output-state';
-import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Monitor, Radio } from 'lucide-react';
+import { FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Monitor, Radio } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { loadPoll, savePoll, listPolls, listProjects, DraftPollPayload, SavedPoll, BlockLetter } from '@/lib/poll-persistence';
 import { OperatorOutputMode } from '@/components/operator/OperatorOutputMode';
@@ -53,6 +53,7 @@ import {
   PollingAssetFolderState,
   saveProjectPollingAssetFolders,
 } from '@/lib/polling-asset-folders';
+import { DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes } from '@/lib/operator-settings';
 
 type OperatorMode = 'build' | 'output';
 
@@ -128,6 +129,7 @@ export default function PollCreate() {
   const [projectId, setProjectId] = useState<string | undefined>(undefined);
   const [projectName, setProjectName] = useState<string | undefined>(undefined);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [autosaveMinutes, setAutosaveMinutes] = useState<number>(DEFAULT_AUTOSAVE_MINUTES);
 
   const [question, setQuestion] = useState('');
   const [internalName, setInternalName] = useState('');
@@ -267,7 +269,20 @@ export default function PollCreate() {
       .catch(() => undefined);
   }, [projectId]);
 
-  const buildPayload = (): DraftPollPayload => ({
+  useEffect(() => {
+    setAutosaveMinutes(loadAutosaveMinutes());
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key) {
+        setAutosaveMinutes(loadAutosaveMinutes());
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
+  const buildPayload = useCallback((): DraftPollPayload => ({
     internalName,
     question,
     subheadline,
@@ -285,39 +300,11 @@ export default function PollCreate() {
     previewDataMode,
     blockLetter,
     blockPosition,
-  });
+  }), [internalName, question, subheadline, slug, selectedTemplate, answerType, mcLabelStyle, answers, showLiveResults, showThankYou, showFinalResults, autoClose, bgColor, bgImage, previewDataMode, blockLetter, blockPosition]);
 
-  const handleSaveDraft = async () => {
-    if (!user) { toast.error('Please sign in first'); return; }
-    setSaving('draft');
-    try {
-      const saved = await savePoll({
-        id: pollId,
-        payload: buildPayload(),
-        userId: user.id,
-        status: projectId ? 'saved' : 'draft',
-        projectId,
-      });
-      if (!pollId) {
-        setPollId(saved.id);
-        navigate(`/polls/${saved.id}`, { replace: true });
-      }
-      setDraftStatus(projectId ? 'saved-to-project' : 'draft-saved');
-      toast.success('Draft saved');
-    } catch (e) {
-      toast.error(`Save failed: ${(e as Error).message}`);
-    } finally {
-      setSaving(null);
-    }
-  };
+  const persistProjectSave = useCallback(async (selectedProjectId: string, selectedProjectName?: string, source: 'manual' | 'autosave' = 'manual') => {
+    if (!user) { toast.error('Please sign in first'); return false; }
 
-  const handleSaveToProject = () => {
-    if (!user) { toast.error('Please sign in first'); return; }
-    setPickerOpen(true);
-  };
-
-  const handleProjectSelected = async (selectedProjectId: string, selectedProjectName: string) => {
-    if (!user) return;
     setSaving('project');
     try {
       const saved = await savePoll({
@@ -332,14 +319,41 @@ export default function PollCreate() {
         navigate(`/polls/${saved.id}`, { replace: true });
       }
       setProjectId(selectedProjectId);
-      setProjectName(selectedProjectName);
+      if (selectedProjectName) {
+        setProjectName(selectedProjectName);
+      }
       setDraftStatus('saved-to-project');
-      toast.success(`Saved to "${selectedProjectName}"`);
+      if (source === 'manual') {
+        toast.success(`Saved to "${selectedProjectName ?? projectName ?? 'project'}"`);
+      }
+      return true;
     } catch (e) {
-      toast.error(`Save failed: ${(e as Error).message}`);
+      toast.error(`${source === 'autosave' ? 'Autosave' : 'Save'} failed: ${(e as Error).message}`);
+      return false;
     } finally {
       setSaving(null);
     }
+  }, [buildPayload, navigate, pollId, projectName, user]);
+
+  const handleSaveToProject = () => {
+    if (!user) { toast.error('Please sign in first'); return; }
+    setPickerOpen(true);
+  };
+
+  useEffect(() => {
+    if (!user || !projectId || draftStatus === 'saved-to-project') return;
+
+    const intervalMs = Math.max(1, autosaveMinutes) * 60 * 1000;
+    const timer = window.setInterval(() => {
+      if (saving !== null) return;
+      void persistProjectSave(projectId, projectName, 'autosave');
+    }, intervalMs);
+
+    return () => window.clearInterval(timer);
+  }, [autosaveMinutes, draftStatus, persistProjectSave, projectId, projectName, saving, user]);
+
+  const handleProjectSelected = async (selectedProjectId: string, selectedProjectName: string) => {
+    await persistProjectSave(selectedProjectId, selectedProjectName, 'manual');
   };
 
   const theme = themePresets[0];
@@ -932,12 +946,6 @@ export default function PollCreate() {
               <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
                 Poll
               </DropdownMenuLabel>
-              <DropdownMenuItem onClick={handleSaveDraft} disabled={saving !== null} className="text-xs gap-2">
-                {saving === 'draft'
-                  ? <Loader2 className="w-3 h-3 animate-spin" />
-                  : <Save className="w-3 h-3" />}
-                Save Draft
-              </DropdownMenuItem>
               <DropdownMenuItem onClick={handleSaveToProject} disabled={saving !== null} className="text-xs gap-2">
                 {saving === 'project'
                   ? <Loader2 className="w-3 h-3 animate-spin" />
@@ -947,10 +955,6 @@ export default function PollCreate() {
               <DropdownMenuItem onClick={handleNewFolder} className="text-xs gap-2">
                 <FolderOpen className="w-3 h-3" />
                 New Folder
-              </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDeleteFolderTargetId(folderState.activeFolderId)} disabled={folderState.folders.length <= 1} className="text-xs gap-2">
-                <FolderOpen className="w-3 h-3" />
-                Delete Folder
               </DropdownMenuItem>
               <DropdownMenuSeparator />
               <DropdownMenuItem onClick={() => setLoadDialogOpen(true)} className="text-xs gap-2">
@@ -988,6 +992,19 @@ export default function PollCreate() {
           </div>
         </div>
         <div className="flex items-center gap-1.5">
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSaveToProject}
+            disabled={saving !== null}
+            className="gap-1.5 h-7 px-2 text-[10px]"
+          >
+            {saving === 'project' ? <Loader2 className="w-3 h-3 animate-spin" /> : <FolderPlus className="w-3 h-3" />}
+            Save to Project
+          </Button>
+          <span className="text-[10px] text-muted-foreground">
+            Autosaves every {autosaveMinutes} min
+          </span>
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
