@@ -75,7 +75,7 @@ export function PollingAssetsPane({
   answers, setAnswers,
 }: PollingAssetsPaneProps) {
   const [draggedId, setDraggedId] = useState<AssetId | null>(null);
-  const [folderCollapsed, setFolderCollapsed] = useState(false);
+  const [collapsedFolderIds, setCollapsedFolderIds] = useState<string[]>([]);
 
   const reorder = (fromId: AssetId, toId: AssetId) => {
     if (fromId === toId) return;
@@ -107,6 +107,7 @@ export function PollingAssetsPane({
           const folderAvailableAssets = (Object.keys(ASSET_REGISTRY) as AssetId[])
             .filter((assetId) => !folderAssets.includes(assetId));
           const isActiveFolder = folder.id === activeFolderId;
+          const isCollapsed = collapsedFolderIds.includes(folder.id);
 
           return (
             <div key={folder.id} className={`rounded-lg border overflow-hidden transition-colors ${isActiveFolder ? 'border-primary/40 bg-primary/5' : 'border-border/60 bg-card/40'}`}>
@@ -238,14 +239,17 @@ export function PollingAssetsPane({
                 className="h-7 w-7"
                 onClick={() => {
                   onSelectFolder(folder.id);
-                  setFolderCollapsed((value) => !value);
+                  setCollapsedFolderIds((current) => current.includes(folder.id)
+                    ? current.filter((id) => id !== folder.id)
+                    : [...current, folder.id]);
                 }}
+                aria-label={`${isCollapsed ? 'Expand' : 'Collapse'} folder ${folder.name}`}
               >
-                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${folderCollapsed && isActiveFolder ? '-rotate-90' : ''}`} />
+                <ChevronDown className={`w-3.5 h-3.5 transition-transform ${isCollapsed ? '-rotate-90' : ''}`} />
               </Button>
             </div>
 
-            {(!folderCollapsed || !isActiveFolder) && (
+            {!isCollapsed && (
               <div className="p-2.5 space-y-2">
                 {folderAssets.length === 0 && (
                   <div className="rounded-md border border-dashed border-border/60 bg-background/30 px-3 py-4 text-center">

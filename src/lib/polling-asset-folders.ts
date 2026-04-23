@@ -6,6 +6,7 @@ export interface PollingAssetFolder {
   id: string;
   name: string;
   blockLetter: BlockLetter;
+  questionText?: string;
   assetIds: AssetId[];
 }
 
@@ -28,11 +29,11 @@ export function createFolderName(index: number) {
   return `Folder ${index}`;
 }
 
-export function createDefaultFolderState(): PollingAssetFolderState {
+export function createDefaultFolderState(initialQuestionText = ''): PollingAssetFolderState {
   const id = createFolderId();
   return {
     activeFolderId: id,
-    folders: [{ id, name: createFolderName(1), blockLetter: DEFAULT_BLOCK, assetIds: [...REQUIRED_ASSETS] }],
+    folders: [{ id, name: createFolderName(1), blockLetter: DEFAULT_BLOCK, questionText: initialQuestionText, assetIds: [...REQUIRED_ASSETS] }],
   };
 }
 
@@ -70,6 +71,7 @@ export function normalizeFolderState(input: unknown): PollingAssetFolderState {
         id: typeof folder.id === 'string' && folder.id.length > 0 ? folder.id : createFolderId(),
         name: typeof folder.name === 'string' && folder.name.trim().length > 0 ? folder.name.trim() : createFolderName(index + 1),
         blockLetter: ['A', 'B', 'C', 'D', 'E'].includes(String(folder.blockLetter)) ? folder.blockLetter as BlockLetter : DEFAULT_BLOCK,
+        questionText: typeof folder.questionText === 'string' ? folder.questionText : undefined,
         assetIds: seededAssets,
       };
     })
