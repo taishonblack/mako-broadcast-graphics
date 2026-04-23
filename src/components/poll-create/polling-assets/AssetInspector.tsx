@@ -10,7 +10,7 @@ import { ASSET_REGISTRY } from './PollingAssetsPane';
 import { AssetId, AssetState } from './types';
 import { Trash2, PlusCircle, GripVertical } from 'lucide-react';
 import { BackgroundPicker } from '@/components/poll-create/BackgroundPicker';
-import { useState } from 'react';
+import { Dispatch, SetStateAction, useState } from 'react';
 
 interface AssetInspectorProps {
   selectedAssetId: AssetId | null;
@@ -29,7 +29,7 @@ interface AssetInspectorProps {
   setBgImage: (v: string | undefined) => void;
   // New asset state
   assetState: AssetState;
-  setAssetState: (next: AssetState) => void;
+  setAssetState: Dispatch<SetStateAction<AssetState>>;
   /** When set, the inspector pulses the matching control to draw operator attention */
   highlightField?: string | null;
 }
@@ -266,7 +266,7 @@ export function AssetInspector(p: AssetInspectorProps) {
               </div>
               <Switch
                 checked={p.assetState.qrVisible}
-                onCheckedChange={(checked) => p.setAssetState({ ...p.assetState, qrVisible: checked })}
+                onCheckedChange={(checked) => p.setAssetState((current) => ({ ...current, qrVisible: checked }))}
               />
             </div>
             <div className="flex items-center justify-between rounded-md border border-border/50 bg-background/40 px-2.5 py-2">
@@ -276,7 +276,7 @@ export function AssetInspector(p: AssetInspectorProps) {
               </div>
               <Switch
                 checked={p.assetState.qrUrlVisible}
-                onCheckedChange={(checked) => p.setAssetState({ ...p.assetState, qrUrlVisible: checked })}
+                onCheckedChange={(checked) => p.setAssetState((current) => ({ ...current, qrUrlVisible: checked }))}
               />
             </div>
             <div>
@@ -285,7 +285,7 @@ export function AssetInspector(p: AssetInspectorProps) {
                 {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map((pos) => (
                   <button
                     key={pos}
-                    onClick={() => p.setAssetState({ ...p.assetState, qrPosition: pos })}
+                    onClick={() => p.setAssetState((current) => ({ ...current, qrPosition: pos }))}
                     className={`p-1.5 rounded-md text-[10px] font-medium border transition-all ${
                       p.assetState.qrPosition === pos
                         ? 'bg-primary/10 border-primary/30 text-primary'
@@ -296,18 +296,6 @@ export function AssetInspector(p: AssetInspectorProps) {
                   </button>
                 ))}
               </div>
-            </div>
-            <div>
-              <div className="flex items-center justify-between">
-                <Label className="text-[10px] text-muted-foreground">Size</Label>
-                <span className="text-[10px] font-mono text-muted-foreground">{p.assetState.qrSize}px</span>
-              </div>
-              <Slider
-                value={[p.assetState.qrSize]}
-                min={64} max={240} step={8}
-                onValueChange={(v) => p.setAssetState({ ...p.assetState, qrSize: v[0] })}
-                className="mt-2"
-              />
             </div>
           </div>
         )}
