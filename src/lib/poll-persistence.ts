@@ -1,6 +1,7 @@
 import { supabase } from '@/integrations/supabase/client';
 import { TemplateName } from '@/lib/types';
 import { AnswerType, MCLabelStyle, PreviewDataMode } from '@/components/poll-create/ContentPanel';
+import { projectCreateSchema, projectRenameSchema } from '@/lib/project-validation';
 
 export interface DraftAnswer {
   id: string;
@@ -129,16 +130,38 @@ export async function savePoll(opts: {
 
 export async function listProjects() {
   const { data, error } = await supabase
-    .from('projects').select('id, name, description, tags, created_at, updated_at, project_date').order('updated_at', { ascending: false });
+    .from('projects').select('id, name, description, tags, created_at, updated_at, project_date, last_used_at').order('last_used_at', { ascending: false });
   if (error) throw error;
   return data ?? [];
 }
 
 export async function createProject(name: string, userId: string, tags: string[] = []) {
+  const parsed = projectCreateSchema.parse({ name, tags });
   const { data, error } = await supabase
-    .from('projects').insert({ name, user_id: userId, account_id: userId, created_by: userId, tags }).select().single();
+    .from('projects').insert({ name: parsed.name, user_id: userId, account_id: userId, created_by: userId, tags: parsed.tags } as never).select().single();
   if (error) throw error;
   return data;
+}
+
+export async function renameProject(projectId: string, name: string) {
+  const parsed = projectRenameSchema.parse({ name });
+  const { data, error } = await supabase
+    .from('projects').update({ name: parsed.name } as never).eq('id', projectId).select().single();
+  if (error) throw error;
+  return data;
+}
+
+export async function deleteProject(projectId: string) {
+  const { error } = await supabase.from('projects').delete().eq('id', projectId);
+  if (error) throw error;
+}
+
+export async function markProjectLastUsed(projectId: string) {
+  const timestamp = new Date().toISOString();
+  const { data, error } = await supabase
+    .from('projects').update({ last_used_at: timestamp } as never).eq('id', projectId).select('id, last_used_at').single();
+  if (error) throw error;
+  return data as { id: string; last_used_at: string };
 }
 
 export async function listPolls(): Promise<SavedPoll[]> {
