@@ -215,7 +215,9 @@ export default function PollCreate() {
         setFolderState((current) => ({
           ...current,
           folders: current.folders.map((folder) => (
-            folder.id === current.activeFolderId ? { ...folder, questionText: p.question } : folder
+            folder.id === current.activeFolderId
+              ? { ...folder, questionText: p.question, bgColor: p.bgColor, bgImage: p.bgImage }
+              : folder
           )),
         }));
         setSubheadline(p.subheadline);
@@ -575,7 +577,9 @@ export default function PollCreate() {
     setFolderState((current) => ({
       ...current,
       folders: current.folders.map((folder) => (
-        folder.id === current.activeFolderId ? { ...folder, questionText: p.question } : folder
+        folder.id === current.activeFolderId
+          ? { ...folder, questionText: p.question, bgColor: p.bgColor, bgImage: p.bgImage }
+          : folder
       )),
     }));
     setSubheadline(p.subheadline);
@@ -660,7 +664,9 @@ export default function PollCreate() {
       setFolderState((current) => ({
         ...current,
         folders: current.folders.map((folder) => (
-          folder.id === current.activeFolderId ? { ...folder, questionText: data.question } : folder
+          folder.id === current.activeFolderId
+            ? { ...folder, questionText: data.question, bgColor: data.bgColor, bgImage: data.bgImage }
+            : folder
         )),
       }));
       setSubheadline(data.subheadline);
