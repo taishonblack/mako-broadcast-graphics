@@ -785,7 +785,7 @@ export default function PollCreate() {
                 <FolderOpen className="w-3 h-3" />
                 New Folder
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => setDeleteFolderOpen(true)} disabled={folderState.folders.length <= 1} className="text-xs gap-2">
+              <DropdownMenuItem onClick={() => setDeleteFolderTargetId(folderState.activeFolderId)} disabled={folderState.folders.length <= 1} className="text-xs gap-2">
                 <FolderOpen className="w-3 h-3" />
                 Delete Folder
               </DropdownMenuItem>
@@ -840,7 +840,7 @@ export default function PollCreate() {
           </Tooltip>
         </div>
       </header>
-      <AlertDialog open={deleteFolderOpen} onOpenChange={setDeleteFolderOpen}>
+      <AlertDialog open={Boolean(deleteFolderTargetId)} onOpenChange={(open) => { if (!open) setDeleteFolderTargetId(null); }}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete folder?</AlertDialogTitle>
@@ -850,7 +850,7 @@ export default function PollCreate() {
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={handleDeleteFolder}>Delete folder</AlertDialogAction>
+            <AlertDialogAction onClick={() => { if (deleteFolderTargetId) handleDeleteFolder(deleteFolderTargetId); }}>Delete folder</AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
