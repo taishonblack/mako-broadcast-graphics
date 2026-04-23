@@ -43,6 +43,7 @@ interface DraftPreviewMonitorProps {
   brandingPosition: QRPosition;
   enabledAssetIds: AssetId[];
   transforms: AssetTransformMap;
+  qrVisible: boolean;
 }
 
 /**
@@ -66,7 +67,7 @@ export function DraftPreviewMonitor({
   question, subheadline, options, totalVotes, colors, template, theme, hasContent,
   answerType, mcLabelStyle, previewDataMode, answers, bgColor, bgImage, fullUrl, shortUrl, wordmark,
   slug,
-  qrSize, qrPosition, showBranding, brandingPosition, enabledAssetIds, transforms,
+  qrSize, qrPosition, showBranding, brandingPosition, enabledAssetIds, transforms, qrVisible,
 }: DraftPreviewMonitorProps) {
   const [previewMode, setPreviewMode] = useState<PreviewMode>('program');
   const [copied, setCopied] = useState<'full' | 'short' | null>(null);
@@ -74,6 +75,7 @@ export function DraftPreviewMonitor({
 
   const labelledOptions = resolveOptionLabels(options, answerType, mcLabelStyle, answers);
   const isLowerThird = template === 'lower-third';
+  const voteUrl = `https://makovote.app/vote/${slug}`;
 
   useEffect(() => {
     const api = overlayApiRef.current;
@@ -137,10 +139,12 @@ export function DraftPreviewMonitor({
             slug={slug}
             qrSize={qrSize}
             qrPosition={qrPosition}
+            qrVisible={qrVisible}
             showBranding={showBranding}
             brandingPosition={brandingPosition}
             enabledAssetIds={enabledAssetIds}
             transforms={transforms}
+            debugVoteUrl={voteUrl}
           />
         </div>
       );
@@ -173,10 +177,12 @@ export function DraftPreviewMonitor({
             slug={slug}
             qrSize={qrSize}
             qrPosition={qrPosition}
+            qrVisible={qrVisible}
             showBranding={showBranding}
             brandingPosition={brandingPosition}
             enabledAssetIds={enabledAssetIds}
             transforms={transforms}
+            debugVoteUrl={voteUrl}
           />
         )}
       </div>
