@@ -10,7 +10,7 @@ import {
   Sparkles, Users, Plus, X, GripVertical, ChevronDown, MoreVertical, FolderOpen,
 } from 'lucide-react';
 import { AnswerType, MCLabelStyle } from '@/components/poll-create/ContentPanel';
-import { AssetId, AssetMeta, AssetState } from './types';
+import { AssetId, AssetMeta } from './types';
 import { BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-persistence';
 
 export const ASSET_REGISTRY: Record<AssetId, AssetMeta> = {

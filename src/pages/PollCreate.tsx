@@ -26,7 +26,7 @@ import { themePresets } from '@/lib/themes';
 import { TemplateName, Poll, PollOption, QRPosition, VotingState, LiveState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
 import { broadcastOutputState } from '@/lib/output-state';
-import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Grid3x3, Monitor, Radio } from 'lucide-react';
+import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Monitor, Radio } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { loadPoll, savePoll, listPolls, DraftPollPayload, SavedPoll, BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-persistence';
 import { OperatorOutputMode } from '@/components/operator/OperatorOutputMode';
@@ -203,6 +203,36 @@ export default function PollCreate() {
       .then((items) => setProjectPolls(items.filter((poll) => poll.projectId === projectId)))
       .catch(() => setProjectPolls([]));
   }, [user, projectId, pollId, draftStatus]);
+
+  useEffect(() => {
+    if (projectId) {
+      listProjects()
+        .then((items) => {
+          const match = items.find((project) => project.id === projectId);
+          if (match) {
+            setProjectName(match.name);
+            localStorage.setItem('mako-active-project', match.id);
+          }
+        })
+        .catch(() => undefined);
+      return;
+    }
+
+    const activeProjectId = localStorage.getItem('mako-active-project');
+    if (!activeProjectId) {
+      setProjectName(undefined);
+      return;
+    }
+
+    listProjects()
+      .then((items) => {
+        const match = items.find((project) => project.id === activeProjectId);
+        if (!match) return;
+        setProjectId(match.id);
+        setProjectName(match.name);
+      })
+      .catch(() => undefined);
+  }, [projectId]);
 
   const buildPayload = (): DraftPollPayload => ({
     internalName,
@@ -568,6 +598,13 @@ export default function PollCreate() {
       {/* Header */}
       <header className="h-11 border-b border-border flex items-center justify-between px-4 bg-card/50 shrink-0">
         <div className="flex items-center gap-2">
+          {projectName && (
+            <div className="mr-2 flex items-center gap-2 pr-3 border-r border-border/60 min-w-0">
+              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Project</span>
+              <span className="text-xs font-medium text-foreground truncate max-w-[220px]">{projectName}</span>
+            </div>
+          )}
+
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" size="sm" className="gap-1 text-[10px] h-7 px-2">
@@ -605,56 +642,6 @@ export default function PollCreate() {
                 <Copy className="w-3 h-3" />
                 Duplicate
               </DropdownMenuItem>
-            </DropdownMenuContent>
-          </DropdownMenu>
-
-          {/* Block dropdown — assign poll to A–E */}
-          <DropdownMenu>
-            <DropdownMenuTrigger asChild>
-              <Button variant="ghost" size="sm" className="gap-1 text-[10px] h-7 px-2">
-                <Grid3x3 className="w-3 h-3" />
-                Block
-                <span className="font-mono text-primary font-semibold">{blockLetter}/{String(blockPosition).padStart(2, '0')}</span>
-                <ChevronDown className="w-2.5 h-2.5 opacity-60" />
-              </Button>
-            </DropdownMenuTrigger>
-            <DropdownMenuContent align="start" className="w-56">
-              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                Assign to Block
-              </DropdownMenuLabel>
-              {BLOCK_LETTERS.map((letter) => (
-                <DropdownMenuItem
-                  key={letter}
-                  onClick={() => setBlockLetter(letter)}
-                  className="text-xs gap-2 justify-between"
-                >
-                  <span className="flex items-center gap-2">
-                    <span className={`font-mono font-bold w-4 ${blockLetter === letter ? 'text-primary' : 'text-muted-foreground'}`}>{letter}</span>
-                    <span className="text-muted-foreground">{DEFAULT_BLOCK_LABELS[letter]}</span>
-                  </span>
-                  {blockLetter === letter && <span className="text-[9px] text-primary">●</span>}
-                </DropdownMenuItem>
-              ))}
-              <DropdownMenuSeparator />
-              <DropdownMenuLabel className="text-[10px] uppercase tracking-wider text-muted-foreground">
-                Position (1–99)
-              </DropdownMenuLabel>
-              <div className="px-2 py-1.5">
-                <input
-                  type="number"
-                  min={1}
-                  max={99}
-                  value={blockPosition}
-                  onChange={(e) => {
-                    const n = Math.min(99, Math.max(1, Number(e.target.value) || 1));
-                    setBlockPosition(n);
-                  }}
-                  className="w-full h-7 rounded-md border border-border bg-background/50 px-2 text-xs font-mono"
-                />
-                <p className="text-[9px] text-muted-foreground mt-1">
-                  Position within block {blockLetter} (default: 1)
-                </p>
-              </div>
             </DropdownMenuContent>
           </DropdownMenu>
 
@@ -764,6 +751,8 @@ export default function PollCreate() {
                   onEnabledAssetsChange={setEnabledAssets}
                   selectedAssetId={selectedAssetId}
                   onSelectAsset={setSelectedAssetId}
+                  blockLetter={blockLetter}
+                  onBlockLetterChange={setBlockLetter}
                   question={question} setQuestion={setQuestion}
                   subheadline={subheadline} setSubheadline={setSubheadline}
                   internalName={internalName} setInternalName={setInternalName}

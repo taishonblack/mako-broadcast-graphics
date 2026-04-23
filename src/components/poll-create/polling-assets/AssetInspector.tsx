@@ -46,7 +46,7 @@ export function AssetInspector(p: AssetInspectorProps) {
           Select an asset on the left to edit its properties.
         </p>
         <p className="text-[10px] text-muted-foreground/60 italic">
-          Tip: right-click the Polling Assets pane to add new assets.
+          Select a block folder, then use its add-asset icon.
         </p>
       </div>
     );
@@ -94,7 +94,7 @@ export function AssetInspector(p: AssetInspectorProps) {
             </div>
             {(p.highlightField === 'blockLetter' || p.highlightField === 'blockPosition') && (
               <p className={`text-[10px] mt-1 px-2 py-1 rounded bg-primary/10 text-primary border border-primary/30 ${hl(p.highlightField)}`}>
-                Open the Block menu in the header to fix <span className="font-mono">{p.highlightField}</span>.
+                Open the block folder controls in Polling Assets to fix <span className="font-mono">{p.highlightField}</span>.
               </p>
             )}
           </div>
