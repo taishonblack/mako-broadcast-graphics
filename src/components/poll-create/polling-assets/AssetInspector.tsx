@@ -10,6 +10,7 @@ import { ASSET_REGISTRY } from './PollingAssetsPane';
 import { AssetId, AssetState } from './types';
 import { Trash2, PlusCircle, GripVertical } from 'lucide-react';
 import { BackgroundPicker } from '@/components/poll-create/BackgroundPicker';
+import { useState } from 'react';
 
 interface AssetInspectorProps {
   selectedAssetId: AssetId | null;
@@ -35,6 +36,7 @@ interface AssetInspectorProps {
 
 export function AssetInspector(p: AssetInspectorProps) {
   const id = p.selectedAssetId;
+  const [draggedAnswerId, setDraggedAnswerId] = useState<string | null>(null);
   const hl = (field: string) =>
     p.highlightField === field
       ? 'ring-2 ring-primary/70 animate-pulse'
@@ -54,6 +56,16 @@ export function AssetInspector(p: AssetInspectorProps) {
 
   const meta = ASSET_REGISTRY[id];
   const Icon = meta.icon;
+  const reorderAnswers = (fromId: string, toId: string) => {
+    if (fromId === toId) return;
+    const next = [...p.answers];
+    const fromIndex = next.findIndex((answer) => answer.id === fromId);
+    const toIndex = next.findIndex((answer) => answer.id === toId);
+    if (fromIndex < 0 || toIndex < 0) return;
+    const [moved] = next.splice(fromIndex, 1);
+    next.splice(toIndex, 0, moved);
+    p.setAnswers(next);
+  };
 
   const Header = (
     <div className="flex items-center gap-2 px-3 py-2 border-b border-border/60 bg-muted/20">
@@ -160,8 +172,33 @@ export function AssetInspector(p: AssetInspectorProps) {
             <div className="space-y-1.5">
               <Label className="text-[10px] text-muted-foreground">Answers · Test Votes</Label>
               {p.answers.map((a, i) => (
-                <div key={a.id} className="flex items-center gap-1.5 p-1.5 rounded-md bg-accent/30 border border-border/40">
-                  <GripVertical className="w-3 h-3 text-muted-foreground/40" />
+                <div
+                  key={a.id}
+                  className="flex items-center gap-1.5 rounded-md border border-border/40 bg-accent/30 p-1.5"
+                  onDragOver={(event) => {
+                    if (!draggedAnswerId) return;
+                    event.preventDefault();
+                  }}
+                  onDrop={() => {
+                    if (!draggedAnswerId) return;
+                    reorderAnswers(draggedAnswerId, a.id);
+                    setDraggedAnswerId(null);
+                  }}
+                >
+                  <button
+                    type="button"
+                    draggable
+                    onDragStart={(event) => {
+                      setDraggedAnswerId(a.id);
+                      event.dataTransfer.effectAllowed = 'move';
+                    }}
+                    onDragEnd={() => setDraggedAnswerId(null)}
+                    className="flex h-7 w-7 shrink-0 cursor-grab items-center justify-center rounded border border-border/50 bg-background/40 text-muted-foreground/60 transition-colors hover:text-foreground active:cursor-grabbing"
+                    aria-label={`Reorder answer ${i + 1}`}
+                    title={`Drag to reorder answer ${i + 1}`}
+                  >
+                    <GripVertical className="h-3.5 w-3.5" />
+                  </button>
                   <Input
                     value={a.text}
                     onChange={(e) => {
