@@ -1112,25 +1112,34 @@ export default function PollCreate() {
 
             <ResizablePanel defaultSize={layout.hSizes[1]} minSize={35}>
               <Pane title="Program Preview" hint="Operator workspace monitor">
-                <DraftPreviewMonitor
-                  question={previewQuestion}
-                  subheadline={subheadline}
-                  options={previewOptions}
-                  totalVotes={previewTotal}
-                  colors={previewColors}
-                  template={selectedTemplate}
-                  theme={theme}
-                  hasContent={hasContent}
-                  answerType={answerType}
-                  mcLabelStyle={mcLabelStyle}
-                  previewDataMode={previewDataMode}
-                  answers={answers}
-                  bgColor={bgColor}
-                  bgImage={bgImage}
-                  fullUrl={fullUrl}
-                  shortUrl={shortUrl}
-                  wordmark={assetState}
-                />
+                <div className="h-full flex flex-col min-h-0">
+                  <DraftPreviewMonitor
+                    question={previewQuestion}
+                    subheadline={subheadline}
+                    options={previewOptions}
+                    totalVotes={previewTotal}
+                    colors={previewColors}
+                    template={selectedTemplate}
+                    theme={theme}
+                    hasContent={hasContent}
+                    answerType={answerType}
+                    mcLabelStyle={mcLabelStyle}
+                    previewDataMode={previewDataMode}
+                    answers={answers}
+                    bgColor={bgColor}
+                    bgImage={bgImage}
+                    fullUrl={fullUrl}
+                    shortUrl={shortUrl}
+                    wordmark={assetState}
+                  />
+                  <AssetTransformControls
+                    assetId={selectedAssetId}
+                    assetLabel={selectedAssetId ? ASSET_REGISTRY[selectedAssetId]?.label : undefined}
+                    transform={selectedAssetId ? assetTransforms[selectedAssetId] : undefined}
+                    onChange={handleTransformChange}
+                    onToggleLock={handleToggleTransformLock}
+                  />
+                </div>
               </Pane>
             </ResizablePanel>
 
