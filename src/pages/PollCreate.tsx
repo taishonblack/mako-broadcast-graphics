@@ -59,6 +59,8 @@ type OperatorMode = 'build' | 'output';
 
 const WORKSPACE_LAYOUT_KEY = 'mako-draft-workspace-layout-v1';
 
+const buildActiveFolderStorageKey = (projectId?: string) => `mako-active-folder:${projectId ?? 'draft'}`;
+
 interface WorkspaceLayout {
   hSizes: [number, number, number]; // left / center / right
   rightVSizes: [number, number];     // Template / Inspector
@@ -645,20 +647,40 @@ export default function PollCreate() {
   useEffect(() => {
     if (!user || !projectId) {
       setFoldersLoadedForProject(null);
-      setFolderState(createDefaultFolderState(question));
+      const nextState = createDefaultFolderState(question);
+      const savedActiveFolderId = localStorage.getItem(buildActiveFolderStorageKey(projectId));
+      if (savedActiveFolderId && nextState.folders.some((folder) => folder.id === savedActiveFolderId)) {
+        nextState.activeFolderId = savedActiveFolderId;
+      }
+      setFolderState(nextState);
       return;
     }
 
     loadProjectPollingAssetFolders(projectId, user.id)
       .then((savedState) => {
-        setFolderState(savedState ?? createDefaultFolderState(question));
+        const nextState = savedState ?? createDefaultFolderState(question);
+        const savedActiveFolderId = localStorage.getItem(buildActiveFolderStorageKey(projectId));
+        if (savedActiveFolderId && nextState.folders.some((folder) => folder.id === savedActiveFolderId)) {
+          nextState.activeFolderId = savedActiveFolderId;
+        }
+        setFolderState(nextState);
         setFoldersLoadedForProject(projectId);
       })
       .catch(() => {
-        setFolderState(createDefaultFolderState(question));
+        const nextState = createDefaultFolderState(question);
+        const savedActiveFolderId = localStorage.getItem(buildActiveFolderStorageKey(projectId));
+        if (savedActiveFolderId && nextState.folders.some((folder) => folder.id === savedActiveFolderId)) {
+          nextState.activeFolderId = savedActiveFolderId;
+        }
+        setFolderState(nextState);
         setFoldersLoadedForProject(projectId);
       });
   }, [projectId, user]);
+
+  useEffect(() => {
+    if (!folderState.activeFolderId) return;
+    localStorage.setItem(buildActiveFolderStorageKey(projectId), folderState.activeFolderId);
+  }, [folderState.activeFolderId, projectId]);
 
   useEffect(() => {
     if (!activeFolder) return;
