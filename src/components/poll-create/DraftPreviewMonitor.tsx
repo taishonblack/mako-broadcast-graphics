@@ -7,6 +7,8 @@ import { Monitor, Smartphone, Globe, Copy, Link2, Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { AnswerType, MCLabelStyle, PreviewDataMode, getMCLabel } from './ContentPanel';
+import { AssetState } from './polling-assets/types';
+import { WordmarkLockup } from '@/components/broadcast/WordmarkLockup';
 
 type PreviewMode = 'program' | 'mobile' | 'desktop';
 
@@ -31,6 +33,7 @@ interface DraftPreviewMonitorProps {
   bgImage?: string;
   fullUrl: string;
   shortUrl: string;
+  wordmark: Pick<AssetState, 'wordmarkWeight' | 'wordmarkTracking' | 'wordmarkScale' | 'wordmarkShowGuides'>;
 }
 
 /**
@@ -52,7 +55,7 @@ function resolveOptionLabels(
 
 export function DraftPreviewMonitor({
   question, subheadline, options, totalVotes, colors, template, theme, hasContent,
-  answerType, mcLabelStyle, previewDataMode, answers, bgColor, bgImage, fullUrl, shortUrl,
+  answerType, mcLabelStyle, previewDataMode, answers, bgColor, bgImage, fullUrl, shortUrl, wordmark,
 }: DraftPreviewMonitorProps) {
   const [previewMode, setPreviewMode] = useState<PreviewMode>('program');
   const [copied, setCopied] = useState<'full' | 'short' | null>(null);
@@ -82,39 +85,13 @@ export function DraftPreviewMonitor({
               background: 'radial-gradient(ellipse at center, transparent 45%, rgba(0,0,0,0.55) 100%)',
             }}
           />
-          <div className="relative z-10 flex w-full flex-col items-center justify-center gap-10 px-24 text-center">
-            <div className="flex items-baseline justify-center font-semibold leading-none select-none">
-              <span
-                className="text-right"
-                style={{
-                  width: '6.5ch',
-                  fontSize: '78px',
-                  color: 'hsl(var(--foreground))',
-                  opacity: 0.88,
-                  textShadow: '0 8px 32px rgba(0,0,0,0.45)',
-                }}
-              >
-                Mako
-              </span>
-              <span
-                className="text-left"
-                style={{
-                  width: '6.5ch',
-                  fontSize: '78px',
-                  color: 'hsl(var(--primary))',
-                  textShadow: '0 8px 32px rgba(0,0,0,0.45)',
-                }}
-              >
-                Vote
-              </span>
-            </div>
-            <p
-              className="font-mono uppercase tracking-[0.2em] text-center"
-              style={{ color: theme.textSecondary, fontSize: '32px', opacity: 0.7 }}
-            >
-              Start building your poll to preview the graphic
-            </p>
-          </div>
+          <WordmarkLockup
+            theme={theme}
+            weight={wordmark.wordmarkWeight}
+            tracking={wordmark.wordmarkTracking}
+            scale={wordmark.wordmarkScale}
+            showGuides={wordmark.wordmarkShowGuides}
+          />
         </div>
       );
     }
