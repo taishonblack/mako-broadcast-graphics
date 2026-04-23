@@ -8,6 +8,8 @@ export interface PollingAssetFolder {
   blockLetter: BlockLetter;
   collapsed?: boolean;
   questionText?: string;
+  bgColor?: string;
+  bgImage?: string;
   assetIds: AssetId[];
 }
 
@@ -29,11 +31,11 @@ export function createFolderName(index: number) {
   return `Folder ${index}`;
 }
 
-export function createDefaultFolderState(initialQuestionText = ''): PollingAssetFolderState {
+export function createDefaultFolderState(initialQuestionText = '', initialBgColor = '#1a1a2e'): PollingAssetFolderState {
   const id = createFolderId();
   return {
     activeFolderId: id,
-    folders: [{ id, name: createFolderName(1), blockLetter: DEFAULT_BLOCK, collapsed: false, questionText: initialQuestionText, assetIds: [] }],
+    folders: [{ id, name: createFolderName(1), blockLetter: DEFAULT_BLOCK, collapsed: false, questionText: initialQuestionText, bgColor: initialBgColor, assetIds: [] }],
   };
 }
 
@@ -71,6 +73,8 @@ export function normalizeFolderState(input: unknown): PollingAssetFolderState {
         blockLetter: ['A', 'B', 'C', 'D', 'E'].includes(String(folder.blockLetter)) ? folder.blockLetter as BlockLetter : DEFAULT_BLOCK,
         collapsed: Boolean(folder.collapsed),
         questionText: typeof folder.questionText === 'string' ? folder.questionText : undefined,
+        bgColor: typeof folder.bgColor === 'string' ? folder.bgColor : undefined,
+        bgImage: typeof folder.bgImage === 'string' ? folder.bgImage : undefined,
         assetIds: Array.from(new Set(assetIds)),
       };
     })
