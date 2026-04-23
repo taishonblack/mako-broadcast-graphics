@@ -38,7 +38,7 @@ import { themePresets } from '@/lib/themes';
 import { TemplateName, Poll, PollOption, QRPosition, VotingState, LiveState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
 import { broadcastOutputState } from '@/lib/output-state';
-import { Save, FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Monitor, Radio } from 'lucide-react';
+import { FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Monitor, Radio } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { loadPoll, savePoll, listPolls, listProjects, DraftPollPayload, SavedPoll, BlockLetter } from '@/lib/poll-persistence';
 import { OperatorOutputMode } from '@/components/operator/OperatorOutputMode';
@@ -53,6 +53,7 @@ import {
   PollingAssetFolderState,
   saveProjectPollingAssetFolders,
 } from '@/lib/polling-asset-folders';
+import { DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes } from '@/lib/operator-settings';
 
 type OperatorMode = 'build' | 'output';
 
@@ -128,6 +129,7 @@ export default function PollCreate() {
   const [projectId, setProjectId] = useState<string | undefined>(undefined);
   const [projectName, setProjectName] = useState<string | undefined>(undefined);
   const [pickerOpen, setPickerOpen] = useState(false);
+  const [autosaveMinutes, setAutosaveMinutes] = useState<number>(DEFAULT_AUTOSAVE_MINUTES);
 
   const [question, setQuestion] = useState('');
   const [internalName, setInternalName] = useState('');
@@ -267,6 +269,19 @@ export default function PollCreate() {
       .catch(() => undefined);
   }, [projectId]);
 
+  useEffect(() => {
+    setAutosaveMinutes(loadAutosaveMinutes());
+
+    const handleStorage = (event: StorageEvent) => {
+      if (event.key) {
+        setAutosaveMinutes(loadAutosaveMinutes());
+      }
+    };
+
+    window.addEventListener('storage', handleStorage);
+    return () => window.removeEventListener('storage', handleStorage);
+  }, []);
+
   const buildPayload = (): DraftPollPayload => ({
     internalName,
     question,
@@ -315,6 +330,38 @@ export default function PollCreate() {
     if (!user) { toast.error('Please sign in first'); return; }
     setPickerOpen(true);
   };
+
+  useEffect(() => {
+    if (!user || !projectId || draftStatus === 'saved-to-project') return;
+
+    const intervalMs = Math.max(1, autosaveMinutes) * 60 * 1000;
+    const timer = window.setInterval(async () => {
+      if (saving !== null) return;
+
+      setSaving('project');
+      try {
+        const saved = await savePoll({
+          id: pollId,
+          payload: buildPayload(),
+          userId: user.id,
+          status: 'saved',
+          projectId,
+        });
+        if (!pollId) {
+          setPollId(saved.id);
+          navigate(`/polls/${saved.id}`, { replace: true });
+        }
+        setDraftStatus('saved-to-project');
+        toast.success('Project autosaved');
+      } catch (e) {
+        toast.error(`Autosave failed: ${(e as Error).message}`);
+      } finally {
+        setSaving(null);
+      }
+    }, intervalMs);
+
+    return () => window.clearInterval(timer);
+  }, [autosaveMinutes, draftStatus, navigate, pollId, projectId, saving, user, question, internalName, slug, subheadline, selectedTemplate, answerType, mcLabelStyle, answers, showLiveResults, showThankYou, showFinalResults, autoClose, bgColor, bgImage, previewDataMode, blockLetter, blockPosition]);
 
   const handleProjectSelected = async (selectedProjectId: string, selectedProjectName: string) => {
     if (!user) return;
