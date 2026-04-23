@@ -173,6 +173,12 @@ export default function PollCreate() {
         setPollId(p.id);
         setInternalName(p.internalName);
         setQuestion(p.question);
+        setFolderState((current) => ({
+          ...current,
+          folders: current.folders.map((folder) => (
+            folder.id === current.activeFolderId ? { ...folder, questionText: p.question } : folder
+          )),
+        }));
         setSubheadline(p.subheadline);
         setSlug(p.slug);
         setSelectedTemplate(p.template);
@@ -466,6 +472,12 @@ export default function PollCreate() {
     navigate(`/polls/${p.id}`, { replace: true });
     setInternalName(p.internalName);
     setQuestion(p.question);
+    setFolderState((current) => ({
+      ...current,
+      folders: current.folders.map((folder) => (
+        folder.id === current.activeFolderId ? { ...folder, questionText: p.question } : folder
+      )),
+    }));
     setSubheadline(p.subheadline);
     setSlug(p.slug);
     setSelectedTemplate(p.template);
@@ -545,6 +557,12 @@ export default function PollCreate() {
       const data = result.data;
       setInternalName(data.internalName);
       setQuestion(data.question);
+      setFolderState((current) => ({
+        ...current,
+        folders: current.folders.map((folder) => (
+          folder.id === current.activeFolderId ? { ...folder, questionText: data.question } : folder
+        )),
+      }));
       setSubheadline(data.subheadline);
       setSlug(data.slug);
       setSelectedTemplate(data.template);
@@ -569,7 +587,7 @@ export default function PollCreate() {
   const [selectedAssetId, setSelectedAssetId] = useState<AssetId | null>(null);
   const [assetState, setAssetState] = useState<AssetState>(DEFAULT_ASSET_STATE);
   const [highlightField, setHighlightField] = useState<string | null>(null);
-  const [folderState, setFolderState] = useState<PollingAssetFolderState>(createDefaultFolderState);
+  const [folderState, setFolderState] = useState<PollingAssetFolderState>(() => createDefaultFolderState(question));
   const [deleteFolderTargetId, setDeleteFolderTargetId] = useState<string | null>(null);
   const [foldersLoadedForProject, setFoldersLoadedForProject] = useState<string | null>(null);
 
@@ -590,20 +608,28 @@ export default function PollCreate() {
   useEffect(() => {
     if (!user || !projectId) {
       setFoldersLoadedForProject(null);
-      setFolderState(createDefaultFolderState());
+      setFolderState(createDefaultFolderState(question));
       return;
     }
 
     loadProjectPollingAssetFolders(projectId, user.id)
       .then((savedState) => {
-        setFolderState(savedState ?? createDefaultFolderState());
+        setFolderState(savedState ?? createDefaultFolderState(question));
         setFoldersLoadedForProject(projectId);
       })
       .catch(() => {
-        setFolderState(createDefaultFolderState());
+        setFolderState(createDefaultFolderState(question));
         setFoldersLoadedForProject(projectId);
       });
   }, [projectId, user]);
+
+  useEffect(() => {
+    if (!activeFolder) return;
+    const nextQuestion = activeFolder.questionText ?? '';
+    if (question !== nextQuestion) {
+      setQuestion(nextQuestion);
+    }
+  }, [activeFolder, question]);
 
   useEffect(() => {
     if (!user || !projectId || foldersLoadedForProject !== projectId) return;
@@ -639,6 +665,17 @@ export default function PollCreate() {
     setFolderState((current) => updater(current));
   };
 
+  const syncActiveFolderQuestion = (nextQuestion: string) => {
+    updateFolderState((current) => ({
+      ...current,
+      folders: current.folders.map((folder) => (
+        folder.id === current.activeFolderId
+          ? { ...folder, questionText: nextQuestion }
+          : folder
+      )),
+    }));
+  };
+
   const handleNewFolder = () => {
     updateFolderState((current) => {
       const nextIndex = current.folders.length + 1;
@@ -646,6 +683,7 @@ export default function PollCreate() {
         id: createFolderId(),
         name: createFolderName(nextIndex),
         blockLetter: blockLetter,
+        questionText: '',
         assetIds: [...SEEDED_ASSETS],
       };
 
@@ -728,6 +766,11 @@ export default function PollCreate() {
       )),
     }));
     setSelectedAssetId(assetId);
+  };
+
+  const handleFolderQuestionChange = (nextQuestion: string) => {
+    setQuestion(nextQuestion);
+    syncActiveFolderQuestion(nextQuestion);
   };
 
   if (loadingExisting) {
@@ -936,7 +979,7 @@ export default function PollCreate() {
                   onDeleteFolder={(folderId) => setDeleteFolderTargetId(folderId)}
                   blockLetter={blockLetter}
                   onBlockLetterChange={handleBlockLetterChange}
-                  question={question} setQuestion={setQuestion}
+                question={question} setQuestion={handleFolderQuestionChange}
                   subheadline={subheadline} setSubheadline={setSubheadline}
                   internalName={internalName} setInternalName={setInternalName}
                   slug={slug} setSlug={setSlug}
@@ -1002,7 +1045,7 @@ export default function PollCreate() {
                   <Pane title="Inspector" hint={mode === 'build' ? 'Poll basics and content' : 'Transforms and per-asset properties'}>
                     <AssetInspector
                       selectedAssetId={selectedAssetId}
-                      question={question} setQuestion={setQuestion}
+                question={question} setQuestion={handleFolderQuestionChange}
                       subheadline={subheadline} setSubheadline={setSubheadline}
                       internalName={internalName} setInternalName={setInternalName}
                       slug={slug} setSlug={setSlug}
