@@ -1,5 +1,6 @@
 import { ThemePreset, PollOption, TemplateName, QRPosition } from '@/lib/types';
 import { AssetOverlay } from '@/components/broadcast/AssetOverlay';
+import { AssetTransformMap } from '@/components/poll-create/polling-assets/types';
 
 interface LowerThirdSceneProps {
   question: string;
@@ -15,6 +16,8 @@ interface LowerThirdSceneProps {
   qrPosition?: QRPosition;
   showBranding?: boolean;
   brandingPosition?: QRPosition;
+  enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally'>;
+  transforms?: AssetTransformMap;
 }
 
 /**
@@ -36,9 +39,12 @@ export function LowerThirdScene({
   qrPosition = 'top-right',
   showBranding = false,
   brandingPosition = 'top-left',
+  enabledAssetIds,
+  transforms,
 }: LowerThirdSceneProps) {
   // Clamp height to broadcast-safe range (20%-45%)
   const bannerHeight = Math.max(20, Math.min(45, height));
+  const visibleAssets = new Set(enabledAssetIds ?? ['question', 'answers', 'logo']);
 
   return (
     <div
@@ -69,6 +75,7 @@ export function LowerThirdScene({
         <div className="flex-1 min-h-0 flex items-center gap-16 px-24 py-8">
           {/* LEFT: Question + Answers stacked */}
           <div className="flex-1 min-w-0 flex flex-col justify-center gap-6 h-full py-2">
+            {visibleAssets.has('question') && (
             <h2
               className="font-bold leading-tight truncate"
               style={{
@@ -78,8 +85,10 @@ export function LowerThirdScene({
             >
               {question}
             </h2>
+            )}
 
             {/* Answer rows — thick, broadcast-readable bars */}
+            {visibleAssets.has('answers') && (
             <div className="flex flex-col gap-3">
               {options.slice(0, 4).map((option, i) => {
                 const pct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
@@ -123,6 +132,7 @@ export function LowerThirdScene({
                 );
               })}
             </div>
+            )}
           </div>
 
           {/* Divider */}
@@ -132,6 +142,7 @@ export function LowerThirdScene({
           />
 
           {/* RIGHT: Vote total */}
+          {visibleAssets.has('voterTally') && (
           <div className="shrink-0 flex flex-col items-center justify-center" style={{ width: '220px' }}>
             <span
               className="font-bold font-mono tabular-nums leading-none"
@@ -146,20 +157,23 @@ export function LowerThirdScene({
               Total Votes
             </span>
           </div>
+          )}
         </div>
       </div>
 
       {/* Asset overlay (QR + bug). Default positions are top corners so they
           sit above the banner and don't overlap content. */}
-      {(qrSize !== undefined || showBranding) && (
+      {((visibleAssets.has('qr') && qrSize !== undefined) || (visibleAssets.has('logo') && showBranding)) && (
         <AssetOverlay
-          showQR={qrSize !== undefined && qrSize > 0}
+          showQR={visibleAssets.has('qr') && qrSize !== undefined && qrSize > 0}
           qrSlug={slug ?? ''}
           qrSize={qrSize ?? 0}
           qrPosition={qrPosition}
-          showBranding={showBranding}
+          showBranding={visibleAssets.has('logo') && showBranding}
           brandingPosition={brandingPosition}
           theme={theme}
+          qrTransform={transforms?.qr}
+          logoTransform={transforms?.logo}
         />
       )}
     </div>
