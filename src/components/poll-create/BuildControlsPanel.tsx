@@ -1,9 +1,12 @@
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { templateLabels } from '@/lib/mock-data';
 import { TemplateName } from '@/lib/types';
+import { AssetState } from '@/components/poll-create/polling-assets/types';
 import { Save, FolderOpen, Copy, Upload, FileDown, X } from 'lucide-react';
 import { useRef } from 'react';
 
@@ -19,6 +22,8 @@ interface BuildControlsPanelProps {
   setBgColor: (v: string) => void;
   bgImage?: string;
   setBgImage: (v: string | undefined) => void;
+  wordmark: Pick<AssetState, 'wordmarkWeight' | 'wordmarkTracking' | 'wordmarkScale' | 'wordmarkShowGuides'>;
+  setWordmark: (next: Pick<AssetState, 'wordmarkWeight' | 'wordmarkTracking' | 'wordmarkScale' | 'wordmarkShowGuides'>) => void;
   /** Render only one section. Defaults to 'all' for backward-compat. */
   section?: 'all' | 'template' | 'background' | 'actions';
 }
@@ -27,6 +32,7 @@ export function BuildControlsPanel({
   selectedTemplate, setSelectedTemplate,
   bgColor, setBgColor,
   bgImage, setBgImage,
+  wordmark, setWordmark,
   section = 'all',
 }: BuildControlsPanelProps) {
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -142,6 +148,68 @@ export function BuildControlsPanel({
       </div>
   );
 
+  const Wordmark = (
+      <div className="mako-panel p-4 space-y-3">
+        <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Theme &amp; Graphics</h2>
+        <div className="space-y-3">
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground">Wordmark Weight</Label>
+            <div className="grid grid-cols-3 gap-1">
+              {(['medium', 'semibold', 'bold'] as const).map((weight) => (
+                <button
+                  key={weight}
+                  onClick={() => setWordmark({ ...wordmark, wordmarkWeight: weight })}
+                  className={`p-1.5 rounded-md text-[10px] font-medium border transition-all capitalize ${
+                    wordmark.wordmarkWeight === weight
+                      ? 'bg-primary/10 border-primary/30 text-primary'
+                      : 'bg-accent/30 border-border/50 text-muted-foreground hover:bg-accent/50'
+                  }`}
+                >
+                  {weight}
+                </button>
+              ))}
+            </div>
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] text-muted-foreground">Mako/Vote Spacing</Label>
+              <span className="text-[10px] text-muted-foreground font-mono">{wordmark.wordmarkTracking.toFixed(2)}em</span>
+            </div>
+            <Slider
+              value={[wordmark.wordmarkTracking]}
+              min={-0.1}
+              max={0.35}
+              step={0.01}
+              onValueChange={([v]) => setWordmark({ ...wordmark, wordmarkTracking: v })}
+            />
+          </div>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between">
+              <Label className="text-[10px] text-muted-foreground">Wordmark Scale</Label>
+              <span className="text-[10px] text-muted-foreground font-mono">{Math.round(wordmark.wordmarkScale * 100)}%</span>
+            </div>
+            <Slider
+              value={[wordmark.wordmarkScale]}
+              min={0.8}
+              max={1.25}
+              step={0.01}
+              onValueChange={([v]) => setWordmark({ ...wordmark, wordmarkScale: v })}
+            />
+          </div>
+          <div className="flex items-center justify-between rounded-md border border-border/50 bg-background/40 px-2.5 py-2">
+            <div>
+              <Label className="text-[10px] text-muted-foreground">Alignment Guides</Label>
+              <p className="text-[10px] text-muted-foreground/70">Show safe-area and center lines over the wordmark preview.</p>
+            </div>
+            <Switch
+              checked={wordmark.wordmarkShowGuides}
+              onCheckedChange={(checked) => setWordmark({ ...wordmark, wordmarkShowGuides: checked })}
+            />
+          </div>
+        </div>
+      </div>
+  );
+
   const Actions = (
       <div className="mako-panel p-4 space-y-3">
         <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">Actions</h2>
@@ -198,6 +266,7 @@ export function BuildControlsPanel({
     <div className="h-full overflow-y-auto space-y-3 p-3">
       {Template}
       {Background}
+      {Wordmark}
       {Actions}
     </div>
   );
