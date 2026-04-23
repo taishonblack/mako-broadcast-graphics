@@ -699,12 +699,18 @@ export default function PollCreate() {
   const [deleteFolderTargetId, setDeleteFolderTargetId] = useState<string | null>(null);
   const [foldersLoadedForProject, setFoldersLoadedForProject] = useState<string | null>(null);
   const [selectionHistory, setSelectionHistory] = useState<Record<string, SelectionHistory>>({});
+  const [backgroundImageMissing, setBackgroundImageMissing] = useState(false);
 
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
   const activeInspectorAssetIds = selectedAssetId ? [selectedAssetId] : enabledAssets;
   const activeHistoryKey = selectedAssetId ?? `folder:${folderState.activeFolderId ?? 'none'}`;
   const currentHistory = selectionHistory[activeHistoryKey] ?? { undo: [], redo: [] };
+  const backgroundStatus = {
+    hasColor: Boolean(activeFolder?.bgColor ?? bgColor),
+    hasImage: Boolean(activeFolder?.bgImage),
+    imageMissing: backgroundImageMissing,
+  };
   const previewColors = assetColors.answers.barColors?.length
     ? assetColors.answers.barColors
     : [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
