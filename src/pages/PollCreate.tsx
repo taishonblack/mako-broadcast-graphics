@@ -7,7 +7,9 @@ import { DraftPreviewMonitor } from '@/components/poll-create/DraftPreviewMonito
 import { ProjectPickerDialog } from '@/components/poll-create/ProjectPickerDialog';
 import { PollingAssetsPane, SEEDED_ASSETS } from '@/components/poll-create/polling-assets/PollingAssetsPane';
 import { AssetInspector } from '@/components/poll-create/polling-assets/AssetInspector';
-import { AssetId, AssetState, DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/types';
+import { AssetTransformControls } from '@/components/poll-create/AssetTransformControls';
+import { ASSET_REGISTRY } from '@/components/poll-create/polling-assets/PollingAssetsPane';
+import { AssetId, AssetState, DEFAULT_ASSET_STATE, DEFAULT_ASSET_TRANSFORMS, TransformField } from '@/components/poll-create/polling-assets/types';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -412,6 +414,8 @@ export default function PollCreate() {
       qrPosition,
       showBranding,
       brandingPosition,
+      enabledAssetIds: enabledAssets,
+      transforms: assetTransforms,
       wordmarkWeight: assetState.wordmarkWeight,
       wordmarkTracking: assetState.wordmarkTracking,
       wordmarkScale: assetState.wordmarkScale,
@@ -453,6 +457,8 @@ export default function PollCreate() {
         qrPosition,
         showBranding,
         brandingPosition,
+        enabledAssetIds: enabledAssets,
+        transforms: assetTransforms,
         wordmarkWeight: assetState.wordmarkWeight,
         wordmarkTracking: assetState.wordmarkTracking,
         wordmarkScale: assetState.wordmarkScale,
@@ -472,6 +478,8 @@ export default function PollCreate() {
         qrPosition,
         showBranding,
         brandingPosition,
+        enabledAssetIds: enabledAssets,
+        transforms: assetTransforms,
         wordmarkWeight: assetState.wordmarkWeight,
         wordmarkTracking: assetState.wordmarkTracking,
         wordmarkScale: assetState.wordmarkScale,
@@ -625,6 +633,7 @@ export default function PollCreate() {
   // Modular polling-assets state
   const [selectedAssetId, setSelectedAssetId] = useState<AssetId | null>(null);
   const [assetState, setAssetState] = useState<AssetState>(DEFAULT_ASSET_STATE);
+  const [assetTransforms, setAssetTransforms] = useState(DEFAULT_ASSET_TRANSFORMS);
   const [highlightField, setHighlightField] = useState<string | null>(null);
   const [folderState, setFolderState] = useState<PollingAssetFolderState>(() => createDefaultFolderState(question));
   const [deleteFolderTargetId, setDeleteFolderTargetId] = useState<string | null>(null);
@@ -632,8 +641,6 @@ export default function PollCreate() {
 
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
-  const availableAssets = getAvailableAssets(enabledAssets);
-
   useEffect(() => {
     if (!activeFolder) return;
     if (blockLetter !== activeFolder.blockLetter) {
@@ -653,6 +660,7 @@ export default function PollCreate() {
         nextState.activeFolderId = savedActiveFolderId;
       }
       setFolderState(nextState);
+      setAssetTransforms(DEFAULT_ASSET_TRANSFORMS);
       return;
     }
 
@@ -664,6 +672,7 @@ export default function PollCreate() {
           nextState.activeFolderId = savedActiveFolderId;
         }
         setFolderState(nextState);
+        setAssetTransforms(DEFAULT_ASSET_TRANSFORMS);
         setFoldersLoadedForProject(projectId);
       })
       .catch(() => {
@@ -673,6 +682,7 @@ export default function PollCreate() {
           nextState.activeFolderId = savedActiveFolderId;
         }
         setFolderState(nextState);
+        setAssetTransforms(DEFAULT_ASSET_TRANSFORMS);
         setFoldersLoadedForProject(projectId);
       });
   }, [projectId, user]);
@@ -842,6 +852,35 @@ export default function PollCreate() {
       ...answers,
       { id: String(Date.now()), text: '', shortLabel: '', testVotes: 0 },
     ]);
+  };
+
+  const handleTransformChange = (field: TransformField, value: number) => {
+    if (!selectedAssetId) return;
+    setAssetTransforms((current) => {
+      const currentTransform = current[selectedAssetId];
+      if (currentTransform.locks[field]) return current;
+      return {
+        ...current,
+        [selectedAssetId]: {
+          ...currentTransform,
+          [field]: value,
+        },
+      };
+    });
+  };
+
+  const handleToggleTransformLock = (field: TransformField) => {
+    if (!selectedAssetId) return;
+    setAssetTransforms((current) => ({
+      ...current,
+      [selectedAssetId]: {
+        ...current[selectedAssetId],
+        locks: {
+          ...current[selectedAssetId].locks,
+          [field]: !current[selectedAssetId].locks[field],
+        },
+      },
+    }));
   };
 
   const handleFolderQuestionChange = (nextQuestion: string) => {
@@ -1071,25 +1110,34 @@ export default function PollCreate() {
 
             <ResizablePanel defaultSize={layout.hSizes[1]} minSize={35}>
               <Pane title="Program Preview" hint="Operator workspace monitor">
-                <DraftPreviewMonitor
-                  question={previewQuestion}
-                  subheadline={subheadline}
-                  options={previewOptions}
-                  totalVotes={previewTotal}
-                  colors={previewColors}
-                  template={selectedTemplate}
-                  theme={theme}
-                  hasContent={hasContent}
-                  answerType={answerType}
-                  mcLabelStyle={mcLabelStyle}
-                  previewDataMode={previewDataMode}
-                  answers={answers}
-                  bgColor={bgColor}
-                  bgImage={bgImage}
-                  fullUrl={fullUrl}
-                  shortUrl={shortUrl}
-                  wordmark={assetState}
-                />
+                <div className="h-full flex flex-col min-h-0">
+                  <DraftPreviewMonitor
+                    question={previewQuestion}
+                    subheadline={subheadline}
+                    options={previewOptions}
+                    totalVotes={previewTotal}
+                    colors={previewColors}
+                    template={selectedTemplate}
+                    theme={theme}
+                    hasContent={hasContent}
+                    answerType={answerType}
+                    mcLabelStyle={mcLabelStyle}
+                    previewDataMode={previewDataMode}
+                    answers={answers}
+                    bgColor={bgColor}
+                    bgImage={bgImage}
+                    fullUrl={fullUrl}
+                    shortUrl={shortUrl}
+                    wordmark={assetState}
+                  />
+                  <AssetTransformControls
+                    assetId={selectedAssetId}
+                    assetLabel={selectedAssetId ? ASSET_REGISTRY[selectedAssetId]?.label : undefined}
+                    transform={selectedAssetId ? assetTransforms[selectedAssetId] : undefined}
+                    onChange={handleTransformChange}
+                    onToggleLock={handleToggleTransformLock}
+                  />
+                </div>
               </Pane>
             </ResizablePanel>
 

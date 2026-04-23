@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ThemePreset, PollOption, QRPosition } from '@/lib/types';
 import { AssetOverlay } from '@/components/broadcast/AssetOverlay';
+import { AssetTransformMap } from '@/components/poll-create/polling-assets/types';
 
 interface ResultsSceneProps {
   question: string;
@@ -13,6 +14,8 @@ interface ResultsSceneProps {
   qrPosition?: QRPosition;
   showBranding?: boolean;
   brandingPosition?: QRPosition;
+  enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally'>;
+  transforms?: AssetTransformMap;
 }
 
 export function ResultsScene({
@@ -26,8 +29,11 @@ export function ResultsScene({
   qrPosition = 'bottom-right',
   showBranding = false,
   brandingPosition = 'bottom-left',
+  enabledAssetIds,
+  transforms,
 }: ResultsSceneProps) {
   const [animProgress, setAnimProgress] = useState(0);
+  const visibleAssets = new Set(enabledAssetIds ?? ['question', 'answers', 'logo']);
 
   useEffect(() => {
     setAnimProgress(0);
@@ -60,13 +66,16 @@ export function ResultsScene({
       />
 
       <div className="relative z-20 flex flex-col items-center w-full px-32" style={{ maxWidth: '1600px' }}>
+        {visibleAssets.has('question') && (
         <h1
           className="font-bold mb-16 text-center leading-tight"
           style={{ color: theme.textPrimary, fontSize: '88px' }}
         >
           {question}
         </h1>
+        )}
 
+        {visibleAssets.has('answers') && (
         <div className="w-full space-y-10">
           {options.map((option, i) => {
             const pct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
@@ -119,17 +128,28 @@ export function ResultsScene({
             );
           })}
         </div>
+        )}
+
+        {visibleAssets.has('voterTally') && (
+          <div data-layer="votesText" className="mt-10 text-center">
+            <span className="font-mono" style={{ color: theme.textSecondary, fontSize: '28px' }}>
+              {totalVotes.toLocaleString()} total votes
+            </span>
+          </div>
+        )}
       </div>
 
-      {(qrSize !== undefined || showBranding) && (
+      {((visibleAssets.has('qr') && qrSize !== undefined) || (visibleAssets.has('logo') && showBranding)) && (
         <AssetOverlay
-          showQR={qrSize !== undefined && qrSize > 0}
+          showQR={visibleAssets.has('qr') && qrSize !== undefined && qrSize > 0}
           qrSlug={slug ?? ''}
           qrSize={qrSize ?? 0}
           qrPosition={qrPosition}
-          showBranding={showBranding}
+          showBranding={visibleAssets.has('logo') && showBranding}
           brandingPosition={brandingPosition}
           theme={theme}
+          qrTransform={transforms?.qr}
+          logoTransform={transforms?.logo}
         />
       )}
     </div>

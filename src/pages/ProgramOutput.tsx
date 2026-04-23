@@ -91,6 +91,8 @@ export default function ProgramOutput() {
       qrPosition: assets.qrPosition,
       showBranding: assets.showBranding,
       brandingPosition: assets.brandingPosition,
+      enabledAssetIds: assets.enabledAssetIds,
+      transforms: assets.transforms,
       wordmarkWeight: assets.wordmarkWeight,
       wordmarkTracking: assets.wordmarkTracking,
       wordmarkScale: assets.wordmarkScale,
@@ -104,7 +106,7 @@ export default function ProgramOutput() {
       case 'lowerThird':
         return <LowerThirdScene {...baseProps} />;
       case 'qr':
-        return <QRScene slug={poll.slug} theme={theme} />;
+        return <QRScene slug={poll.slug} theme={theme} enabledAssetIds={assets.enabledAssetIds} transforms={assets.transforms} />;
       case 'results':
         return <ResultsScene {...baseProps} />;
       case 'fullscreen':

@@ -1,7 +1,7 @@
 import { DEFAULT_LAYERS, GraphicLayer, cloneLayers } from './layers';
 import { SceneType } from './scenes';
 import { Poll, QRPosition } from './types';
-import { AssetState, DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/types';
+import { AssetState, DEFAULT_ASSET_STATE, AssetTransformMap, DEFAULT_ASSET_TRANSFORMS } from '@/components/poll-create/polling-assets/types';
 
 export const OUTPUT_STATE_STORAGE_KEY = 'mako-output-state';
 
@@ -10,6 +10,8 @@ export interface OutputAssets {
   qrPosition: QRPosition;
   showBranding: boolean;
   brandingPosition: QRPosition;
+  enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally'>;
+  transforms?: AssetTransformMap;
   wordmarkWeight?: AssetState['wordmarkWeight'];
   wordmarkTracking?: number;
   wordmarkScale?: number;
@@ -59,6 +61,8 @@ export function readOutputState(): OutputStatePayload | null {
       assets: parsed.assets
         ? {
             ...parsed.assets,
+              enabledAssetIds: parsed.assets.enabledAssetIds ?? ['question', 'answers', 'logo'],
+              transforms: parsed.assets.transforms ?? DEFAULT_ASSET_TRANSFORMS,
             wordmarkWeight: parsed.assets.wordmarkWeight ?? DEFAULT_ASSET_STATE.wordmarkWeight,
             wordmarkTracking: parsed.assets.wordmarkTracking ?? DEFAULT_ASSET_STATE.wordmarkTracking,
             wordmarkScale: parsed.assets.wordmarkScale ?? DEFAULT_ASSET_STATE.wordmarkScale,

@@ -1,13 +1,18 @@
 import { ThemePreset } from '@/lib/types';
 import { QRCodeSVG } from 'qrcode.react';
+import { AssetTransformMap } from '@/components/poll-create/polling-assets/types';
+import { getAssetTransformStyle } from '@/lib/asset-transforms';
 
 interface QRSceneProps {
   slug: string;
   theme: ThemePreset;
+  enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally'>;
+  transforms?: AssetTransformMap;
 }
 
-export function QRScene({ slug, theme }: QRSceneProps) {
+export function QRScene({ slug, theme, enabledAssetIds, transforms }: QRSceneProps) {
   const url = `https://makovote.tv/vote/${slug}`;
+  const visibleAssets = new Set(enabledAssetIds ?? ['question', 'answers', 'logo']);
 
   return (
     <div
@@ -25,35 +30,42 @@ export function QRScene({ slug, theme }: QRSceneProps) {
       />
 
       <div className="relative z-10 flex flex-col items-center gap-8 animate-scale-in-scene">
+        {visibleAssets.has('question') && (
         <h1
           className="text-5xl font-bold tracking-tight"
           style={{ color: theme.textPrimary }}
         >
           Vote Now
         </h1>
+        )}
 
+        {visibleAssets.has('qr') && (
         <div
           className="p-6 rounded-3xl shadow-[0_0_60px_-10px_hsla(0,0%,100%,0.15)]"
-          style={{ backgroundColor: 'hsla(0, 0%, 100%, 0.95)' }}
+          style={{ backgroundColor: 'hsla(0, 0%, 100%, 0.95)', ...getAssetTransformStyle(transforms?.qr) }}
         >
           <QRCodeSVG value={url} size={240} level="H" />
         </div>
+        )}
 
+        {visibleAssets.has('subheadline') && (
         <p
           className="font-mono text-lg tracking-wide"
           style={{ color: theme.textSecondary }}
         >
           {url}
         </p>
+        )}
       </div>
 
-      {/* Bug */}
-      <div className="absolute bottom-8 left-8 flex items-center gap-2 opacity-50 z-20">
+      {visibleAssets.has('logo') && (
+      <div className="absolute bottom-8 left-8 flex items-center gap-2 opacity-50 z-20" style={getAssetTransformStyle(transforms?.logo)}>
         <div className="w-6 h-6 rounded bg-primary flex items-center justify-center">
           <span className="text-primary-foreground font-bold text-[10px]">M</span>
         </div>
         <span className="font-mono text-[10px]" style={{ color: theme.textSecondary }}>MakoVote</span>
       </div>
+      )}
     </div>
   );
 }
