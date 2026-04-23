@@ -1,21 +1,17 @@
 import { useState } from 'react';
 import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
   DropdownMenuLabel, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
-  ContextMenu, ContextMenuContent, ContextMenuItem,
-  ContextMenuLabel, ContextMenuSeparator, ContextMenuTrigger,
-} from '@/components/ui/context-menu';
-import {
   Type, ListChecks, AlignLeft, Image as ImageIcon, QrCode,
-  Sparkles, Users, Plus, X, GripVertical, ChevronDown, MoreVertical,
+  Sparkles, Users, Plus, X, GripVertical, ChevronDown, MoreVertical, FolderOpen,
 } from 'lucide-react';
 import { AnswerType, MCLabelStyle } from '@/components/poll-create/ContentPanel';
-import { AssetId, AssetMeta, AssetState } from './types';
+import { AssetId, AssetMeta } from './types';
+import { BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-persistence';
 
 export const ASSET_REGISTRY: Record<AssetId, AssetMeta> = {
   question:    { id: 'question',    label: 'Question Text', icon: Type,        description: 'Main on-air question shown above answers',   required: true },
@@ -34,6 +30,8 @@ interface PollingAssetsPaneProps {
   onEnabledAssetsChange: (next: AssetId[]) => void;
   selectedAssetId: AssetId | null;
   onSelectAsset: (id: AssetId | null) => void;
+  blockLetter: BlockLetter;
+  onBlockLetterChange: (next: BlockLetter) => void;
 
   // Underlying poll state (passed in)
   question: string; setQuestion: (v: string) => void;
@@ -49,6 +47,7 @@ interface PollingAssetsPaneProps {
 export function PollingAssetsPane({
   enabledAssets, onEnabledAssetsChange,
   selectedAssetId, onSelectAsset,
+  blockLetter, onBlockLetterChange,
   question, setQuestion,
   subheadline, setSubheadline,
   internalName, setInternalName,
@@ -58,6 +57,7 @@ export function PollingAssetsPane({
   answers, setAnswers,
 }: PollingAssetsPaneProps) {
   const [draggedId, setDraggedId] = useState<AssetId | null>(null);
+  const [folderCollapsed, setFolderCollapsed] = useState(false);
 
   const availableToAdd = (Object.keys(ASSET_REGISTRY) as AssetId[])
     .filter((id) => !enabledAssets.includes(id));
@@ -86,24 +86,60 @@ export function PollingAssetsPane({
   };
 
   return (
-    <ContextMenu>
-      <ContextMenuTrigger asChild>
-        <div className="h-full flex flex-col">
-          {/* Header strip with Add button */}
-          <div className="px-3 py-2 border-b border-border/60 flex items-center justify-between bg-background/40">
-            <span className="text-[10px] text-muted-foreground font-mono uppercase">
-              {enabledAssets.length} asset{enabledAssets.length === 1 ? '' : 's'}
-            </span>
+    <div className="h-full flex flex-col">
+      <div className="px-3 py-2 border-b border-border/60 flex items-center justify-between bg-background/40">
+        <div>
+          <span className="text-[10px] text-muted-foreground font-mono uppercase">
+            {enabledAssets.length} asset{enabledAssets.length === 1 ? '' : 's'}
+          </span>
+          <p className="text-[10px] text-muted-foreground/70 mt-0.5">
+            Assets live inside block folders.
+          </p>
+        </div>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-3">
+        <div className="rounded-lg border border-border/60 bg-card/40 overflow-hidden">
+          <div className="flex items-center gap-2 px-2.5 py-2 border-b border-border/40 bg-background/30">
+            <FolderOpen className="w-3.5 h-3.5 text-primary shrink-0" />
+            <div className="min-w-0 flex-1">
+              <p className="text-[11px] font-medium text-foreground truncate">Polling Assets Folder</p>
+              <p className="text-[10px] text-muted-foreground truncate">{DEFAULT_BLOCK_LABELS[blockLetter]}</p>
+            </div>
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button size="sm" variant="outline" className="h-6 gap-1 text-[10px] px-2">
-                  <Plus className="w-3 h-3" /> Add Asset
-                  <ChevronDown className="w-2.5 h-2.5 opacity-60" />
+                <Button size="sm" variant="ghost" className="h-7 gap-1 px-2 text-[10px]">
+                  Block {blockLetter}
+                  <ChevronDown className="w-3 h-3 opacity-60" />
+                </Button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="end" className="w-48">
+                <DropdownMenuLabel className="text-[10px] uppercase font-mono">
+                  Assign Folder Block
+                </DropdownMenuLabel>
+                <DropdownMenuSeparator />
+                {BLOCK_LETTERS.map((letter) => (
+                  <DropdownMenuItem key={letter} onClick={() => onBlockLetterChange(letter)} className="gap-2 justify-between">
+                    <span className="flex items-center gap-2">
+                      <span className={`font-mono text-[11px] ${blockLetter === letter ? 'text-primary' : 'text-muted-foreground'}`}>{letter}</span>
+                      <span className="text-xs">{DEFAULT_BLOCK_LABELS[letter]}</span>
+                    </span>
+                    {blockLetter === letter && <span className="text-[9px] text-primary">●</span>}
+                  </DropdownMenuItem>
+                ))}
+              </DropdownMenuContent>
+            </DropdownMenu>
+
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <Button size="icon" variant="ghost" className="h-7 w-7">
+                  <Plus className="w-3.5 h-3.5" />
                 </Button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="end" className="w-56">
                 <DropdownMenuLabel className="text-[10px] uppercase font-mono">
-                  Available Assets
+                  Add Asset To Folder
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
                 {availableToAdd.length === 0 && (
@@ -128,65 +164,47 @@ export function PollingAssetsPane({
                 })}
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <Button
+              size="icon"
+              variant="ghost"
+              className="h-7 w-7"
+              onClick={() => setFolderCollapsed((value) => !value)}
+            >
+              <ChevronDown className={`w-3.5 h-3.5 transition-transform ${folderCollapsed ? '-rotate-90' : ''}`} />
+            </Button>
           </div>
 
-          {/* Asset stack */}
-          <div className="flex-1 overflow-y-auto p-3 space-y-2">
-            {enabledAssets.map((id) => (
-              <AssetCard
-                key={id}
-                meta={ASSET_REGISTRY[id]}
-                isSelected={selectedAssetId === id}
-                onSelect={() => onSelectAsset(id)}
-                onRemove={() => removeAsset(id)}
-                onDragStart={() => setDraggedId(id)}
-                onDragOver={(e) => { e.preventDefault(); }}
-                onDrop={() => { if (draggedId) reorder(draggedId, id); setDraggedId(null); }}
-              >
-                <AssetEditor
-                  assetId={id}
-                  question={question} setQuestion={setQuestion}
-                  subheadline={subheadline} setSubheadline={setSubheadline}
-                  internalName={internalName} setInternalName={setInternalName}
-                  slug={slug} setSlug={setSlug}
-                  answerType={answerType} setAnswerType={setAnswerType}
-                  mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
-                  answers={answers} setAnswers={setAnswers}
-                />
-              </AssetCard>
-            ))}
-            {enabledAssets.length === 0 && (
-              <div className="text-center py-10 text-muted-foreground">
-                <p className="text-xs">No assets added.</p>
-                <p className="text-[10px] mt-1">Use the Add Asset menu to start building.</p>
-              </div>
-            )}
-          </div>
+          {!folderCollapsed && (
+            <div className="p-2.5 space-y-2">
+              {enabledAssets.map((id) => (
+                <AssetCard
+                  key={id}
+                  meta={ASSET_REGISTRY[id]}
+                  isSelected={selectedAssetId === id}
+                  onSelect={() => onSelectAsset(id)}
+                  onRemove={() => removeAsset(id)}
+                  onDragStart={() => setDraggedId(id)}
+                  onDragOver={(e) => { e.preventDefault(); }}
+                  onDrop={() => { if (draggedId) reorder(draggedId, id); setDraggedId(null); }}
+                >
+                  <AssetEditor
+                    assetId={id}
+                    question={question} setQuestion={setQuestion}
+                    subheadline={subheadline} setSubheadline={setSubheadline}
+                    internalName={internalName} setInternalName={setInternalName}
+                    slug={slug} setSlug={setSlug}
+                    answerType={answerType} setAnswerType={setAnswerType}
+                    mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
+                    answers={answers} setAnswers={setAnswers}
+                  />
+                </AssetCard>
+              ))}
+            </div>
+          )}
         </div>
-      </ContextMenuTrigger>
-
-      <ContextMenuContent className="w-56">
-        <ContextMenuLabel className="text-[10px] uppercase font-mono">
-          Add Asset
-        </ContextMenuLabel>
-        <ContextMenuSeparator />
-        {availableToAdd.length === 0 && (
-          <div className="px-2 py-1.5 text-[11px] text-muted-foreground italic">
-            All assets added.
-          </div>
-        )}
-        {availableToAdd.map((id) => {
-          const meta = ASSET_REGISTRY[id];
-          const Icon = meta.icon;
-          return (
-            <ContextMenuItem key={id} onClick={() => addAsset(id)} className="gap-2">
-              <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-              <span className="text-xs">{meta.label}</span>
-            </ContextMenuItem>
-          );
-        })}
-      </ContextMenuContent>
-    </ContextMenu>
+      </div>
+    </div>
   );
 }
 
