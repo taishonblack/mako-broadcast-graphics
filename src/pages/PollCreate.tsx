@@ -988,13 +988,23 @@ export default function PollCreate() {
 
   const handleBackgroundColorChange = (nextColor: string) => {
     setBgColor(nextColor);
+    setBackgroundImageMissing(false);
     syncActiveFolderBackground({ bgColor: nextColor });
   };
 
   const handleBackgroundImageChange = (nextImage: string | undefined) => {
     setBgImage(nextImage);
+    setBackgroundImageMissing(false);
     syncActiveFolderBackground({ bgImage: nextImage });
   };
+
+  const handleMissingBackgroundImage = useCallback(() => {
+    if (!activeFolder?.bgImage) return;
+    setBackgroundImageMissing(true);
+    setBgImage(undefined);
+    syncActiveFolderBackground({ bgImage: undefined });
+    toast.error('Background image missing — reverted to folder color');
+  }, [activeFolder?.bgImage]);
 
   const handleNewFolder = () => {
     updateFolderState((current) => {
@@ -1020,7 +1030,7 @@ export default function PollCreate() {
 
   const handleDeleteFolder = (folderId: string) => {
     updateFolderState((current) => {
-      const targetFolder = getFolderById(current, folderId);
+      const targetFolder = current.folders.find((folder) => folder.id === folderId);
       if (!targetFolder || current.folders.length === 1) return current;
 
       const remainingFolders = current.folders.filter((folder) => folder.id !== targetFolder.id);
