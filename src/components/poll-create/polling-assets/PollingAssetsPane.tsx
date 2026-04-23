@@ -26,10 +26,16 @@ export const ASSET_REGISTRY: Record<AssetId, AssetMeta> = {
 export const SEEDED_ASSETS: AssetId[] = ['question', 'answers'];
 
 interface PollingAssetsPaneProps {
+  folders: { id: string; name: string; blockLetter: BlockLetter; assetIds: AssetId[] }[];
+  activeFolderId: string;
+  availableAssets: AssetId[];
   enabledAssets: AssetId[];
   onEnabledAssetsChange: (next: AssetId[]) => void;
   selectedAssetId: AssetId | null;
   onSelectAsset: (id: AssetId | null) => void;
+  onSelectFolder: (folderId: string) => void;
+  onCreateFolder: () => void;
+  onMoveAssetToFolder: (assetId: AssetId, folderId: string) => void;
   folderName: string;
   blockLetter: BlockLetter;
   onBlockLetterChange: (next: BlockLetter) => void;
@@ -46,8 +52,14 @@ interface PollingAssetsPaneProps {
 }
 
 export function PollingAssetsPane({
+  folders,
+  activeFolderId,
+  availableAssets,
   enabledAssets, onEnabledAssetsChange,
   selectedAssetId, onSelectAsset,
+  onSelectFolder,
+  onCreateFolder,
+  onMoveAssetToFolder,
   folderName,
   blockLetter, onBlockLetterChange,
   question, setQuestion,
@@ -61,11 +73,8 @@ export function PollingAssetsPane({
   const [draggedId, setDraggedId] = useState<AssetId | null>(null);
   const [folderCollapsed, setFolderCollapsed] = useState(false);
 
-  const availableToAdd = (Object.keys(ASSET_REGISTRY) as AssetId[])
-    .filter((id) => !enabledAssets.includes(id));
-
   const addAsset = (id: AssetId) => {
-    if (enabledAssets.includes(id)) return;
+    if (!availableAssets.includes(id)) return;
     onEnabledAssetsChange([...enabledAssets, id]);
     onSelectAsset(id);
   };
@@ -100,9 +109,38 @@ export function PollingAssetsPane({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3">
-        <div className="rounded-lg border border-border/60 bg-card/40 overflow-hidden">
-          <div className="flex items-center gap-2 px-2.5 py-2 border-b border-border/40 bg-background/30">
+      <div className="flex-1 min-h-0 grid grid-cols-[112px_minmax(0,1fr)]">
+        <div className="border-r border-border/60 bg-background/20 p-2 space-y-2 overflow-y-auto">
+          {folders.map((folder) => (
+            <button
+              key={folder.id}
+              type="button"
+              onClick={() => onSelectFolder(folder.id)}
+              className={`w-full rounded-md border px-2 py-2 text-left transition-colors ${
+                folder.id === activeFolderId
+                  ? 'border-primary/40 bg-primary/10 text-primary'
+                  : 'border-border/50 bg-card/30 text-foreground hover:bg-accent/40'
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
+                <FolderOpen className="w-3.5 h-3.5 shrink-0" />
+                <span className="text-[11px] font-medium truncate">{folder.name}</span>
+              </div>
+              <div className="mt-1 flex items-center justify-between text-[9px] font-mono uppercase">
+                <span>{folder.blockLetter}</span>
+                <span className="text-muted-foreground">{folder.assetIds.length} assets</span>
+              </div>
+            </button>
+          ))}
+
+          <Button type="button" variant="outline" size="sm" className="w-full h-8 text-[10px] gap-1" onClick={onCreateFolder}>
+            <Plus className="w-3.5 h-3.5" /> New
+          </Button>
+        </div>
+
+        <div className="overflow-y-auto p-3 space-y-3">
+          <div className="rounded-lg border border-border/60 bg-card/40 overflow-hidden">
+            <div className="flex items-center gap-2 px-2.5 py-2 border-b border-border/40 bg-background/30">
             <FolderOpen className="w-3.5 h-3.5 text-primary shrink-0" />
             <div className="min-w-0 flex-1">
               <p className="text-[11px] font-medium text-foreground truncate">{folderName}</p>
@@ -144,12 +182,12 @@ export function PollingAssetsPane({
                   Add Asset To Folder
                 </DropdownMenuLabel>
                 <DropdownMenuSeparator />
-                {availableToAdd.length === 0 && (
+                {availableAssets.length === 0 && (
                   <div className="px-2 py-2 text-[11px] text-muted-foreground italic">
                     All assets added.
                   </div>
                 )}
-                {availableToAdd.map((id) => {
+                {availableAssets.map((id) => {
                   const meta = ASSET_REGISTRY[id];
                   const Icon = meta.icon;
                   return (
@@ -175,35 +213,73 @@ export function PollingAssetsPane({
             >
               <ChevronDown className={`w-3.5 h-3.5 transition-transform ${folderCollapsed ? '-rotate-90' : ''}`} />
             </Button>
+            </div>
+
+            {!folderCollapsed && (
+              <div className="p-2.5 space-y-2">
+                {enabledAssets.length === 0 && (
+                  <div className="rounded-md border border-dashed border-border/60 bg-background/30 px-3 py-4 text-center">
+                    <p className="text-xs text-muted-foreground">No assets in this folder yet.</p>
+                    <p className="text-[10px] text-muted-foreground/70 mt-1">Use the add icon or move one in from the asset list.</p>
+                  </div>
+                )}
+                {enabledAssets.map((id) => (
+                  <AssetCard
+                    key={id}
+                    meta={ASSET_REGISTRY[id]}
+                    isSelected={selectedAssetId === id}
+                    onSelect={() => onSelectAsset(id)}
+                    onRemove={() => removeAsset(id)}
+                    onDragStart={() => setDraggedId(id)}
+                    onDragOver={(e) => { e.preventDefault(); }}
+                    onDrop={() => { if (draggedId) reorder(draggedId, id); setDraggedId(null); }}
+                  >
+                    <AssetEditor
+                      assetId={id}
+                      question={question} setQuestion={setQuestion}
+                      subheadline={subheadline} setSubheadline={setSubheadline}
+                      internalName={internalName} setInternalName={setInternalName}
+                      slug={slug} setSlug={setSlug}
+                      answerType={answerType} setAnswerType={setAnswerType}
+                      mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
+                      answers={answers} setAnswers={setAnswers}
+                    />
+                  </AssetCard>
+                ))}
+              </div>
+            )}
           </div>
 
-          {!folderCollapsed && (
-            <div className="p-2.5 space-y-2">
-              {enabledAssets.map((id) => (
-                <AssetCard
-                  key={id}
-                  meta={ASSET_REGISTRY[id]}
-                  isSelected={selectedAssetId === id}
-                  onSelect={() => onSelectAsset(id)}
-                  onRemove={() => removeAsset(id)}
-                  onDragStart={() => setDraggedId(id)}
-                  onDragOver={(e) => { e.preventDefault(); }}
-                  onDrop={() => { if (draggedId) reorder(draggedId, id); setDraggedId(null); }}
-                >
-                  <AssetEditor
-                    assetId={id}
-                    question={question} setQuestion={setQuestion}
-                    subheadline={subheadline} setSubheadline={setSubheadline}
-                    internalName={internalName} setInternalName={setInternalName}
-                    slug={slug} setSlug={setSlug}
-                    answerType={answerType} setAnswerType={setAnswerType}
-                    mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
-                    answers={answers} setAnswers={setAnswers}
-                  />
-                </AssetCard>
-              ))}
+          <div className="rounded-lg border border-border/60 bg-card/30 overflow-hidden">
+            <div className="px-2.5 py-2 border-b border-border/40 bg-background/30">
+              <p className="text-[10px] font-mono uppercase text-muted-foreground">Assets List</p>
             </div>
-          )}
+            <div className="p-2.5 space-y-1.5">
+              {availableAssets.length === 0 && (
+                <p className="text-[11px] text-muted-foreground italic">All assets are already assigned to folders.</p>
+              )}
+              {availableAssets.map((id) => {
+                const meta = ASSET_REGISTRY[id];
+                const Icon = meta.icon;
+                return (
+                  <button
+                    key={id}
+                    type="button"
+                    onClick={() => onMoveAssetToFolder(id, activeFolderId)}
+                    className="w-full rounded-md border border-border/50 bg-background/30 px-2 py-2 text-left hover:bg-accent/40 transition-colors"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Icon className="w-3.5 h-3.5 text-muted-foreground" />
+                      <div className="min-w-0 flex-1">
+                        <p className="text-xs truncate">{meta.label}</p>
+                        <p className="text-[10px] text-muted-foreground truncate">Move to active folder</p>
+                      </div>
+                    </div>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
         </div>
       </div>
     </div>
