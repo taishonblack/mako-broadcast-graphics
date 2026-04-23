@@ -767,7 +767,7 @@ export default function PollCreate() {
     });
   }, [activeHistoryKey, createSnapshot]);
 
-  const handleUndoChanges = () => {
+  const handleUndoChanges = useCallback(() => {
     setSelectionHistory((current) => {
       const existing = current[activeHistoryKey] ?? { undo: [], redo: [] };
       const previous = existing.undo[existing.undo.length - 1];
@@ -782,9 +782,9 @@ export default function PollCreate() {
         },
       };
     });
-  };
+  }, [activeHistoryKey, createSnapshot, restoreSnapshot]);
 
-  const handleRedoChanges = () => {
+  const handleRedoChanges = useCallback(() => {
     setSelectionHistory((current) => {
       const existing = current[activeHistoryKey] ?? { undo: [], redo: [] };
       const next = existing.redo[existing.redo.length - 1];
@@ -799,7 +799,7 @@ export default function PollCreate() {
         },
       };
     });
-  };
+  }, [activeHistoryKey, createSnapshot, restoreSnapshot]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -1281,7 +1281,7 @@ export default function PollCreate() {
             previewScene={previewScene}
             programScene={programScene}
             qrSize={qrSize}
-            qrPosition={qrPosition}
+            qrPosition={assetState.qrPosition}
             showBranding={showBranding}
             brandingPosition={brandingPosition}
             previewNode={renderOutputScene()}
@@ -1300,7 +1300,7 @@ export default function PollCreate() {
             onCloseVoting={() => setVotingState('closed')}
             onDuplicatePoll={handleDuplicate}
             onQrSizeChange={setQrSize}
-            onQrPositionChange={setQrPosition}
+            onQrPositionChange={(next) => setAssetState((current) => ({ ...current, qrPosition: next }))}
             onShowBrandingChange={setShowBranding}
             onBrandingPositionChange={setBrandingPosition}
           />
@@ -1374,7 +1374,7 @@ export default function PollCreate() {
                     shortUrl={shortUrl}
                     wordmark={assetState}
                   qrSize={qrSize}
-                  qrPosition={qrPosition}
+                  qrPosition={assetState.qrPosition}
                   qrVisible={assetState.qrVisible}
                   qrUrlVisible={assetState.qrUrlVisible}
                   showBranding={showBranding}
