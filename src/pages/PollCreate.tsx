@@ -421,15 +421,6 @@ export default function PollCreate() {
     setVotingState('closed');
   };
 
-  const statusLabel = {
-    'unsaved': { text: 'Unsaved', cls: 'bg-mako-warning/15 text-mako-warning border-mako-warning/30' },
-    'draft-saved': { text: 'Draft Saved', cls: 'bg-primary/15 text-primary border-primary/30' },
-    'saved-to-project': {
-      text: projectName ? `Saved to ${projectName}` : 'Saved to Project',
-      cls: 'bg-mako-success/15 text-mako-success border-mako-success/30'
-    },
-  }[draftStatus];
-
   const [layout, setLayout] = useState<WorkspaceLayout>(loadWorkspaceLayout);
   const [layoutKey, setLayoutKey] = useState(0);
   const resetLayout = () => {
