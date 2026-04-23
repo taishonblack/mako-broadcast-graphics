@@ -3,7 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { AssetColorConfig, AssetColorMap, AssetId, AssetTransformConfig, AssetTransformMap, DEFAULT_ASSET_COLORS, TransformField } from '@/components/poll-create/polling-assets/types';
+import { AssetColorConfig, AssetColorMap, AssetId, AssetTransformMap, DEFAULT_ASSET_COLORS, TransformField } from '@/components/poll-create/polling-assets/types';
 import { useState } from 'react';
 
 interface AssetTransformControlsProps {
@@ -38,7 +38,7 @@ const CONTROL_DEFS: Array<{
   { field: 'cropBottom', label: 'Crop Bottom', min: 0, max: 0.45, step: 0.01, format: (v) => `${Math.round(v * 100)}%` },
 ];
 
-export function AssetTransformControls({ assetId, assetLabel, transform, colors, onChange, onToggleLock, onColorsChange }: AssetTransformControlsProps) {
+export function AssetTransformControls({ assetId, assetLabel, folderLabel, folderAssetIds, transforms, colors, answerCount, onChange, onToggleLock, onColorsChange }: AssetTransformControlsProps) {
   const [transformOpen, setTransformOpen] = useState(true);
   const [colorsOpen, setColorsOpen] = useState(true);
 
@@ -54,7 +54,7 @@ export function AssetTransformControls({ assetId, assetLabel, transform, colors,
   }
 
   const resetAllVisibleColors = () => {
-    const uniqueIds = Array.from(new Set(colorSections.map((section) => section.assetId)));
+    const uniqueIds = Array.from(new Set<AssetId>(colorSections.map((section) => section.assetId)));
     uniqueIds.forEach((id) => onColorsChange(id, getTemplateColors(id, answerCount)));
   };
 
