@@ -1084,6 +1084,25 @@ export default function PollCreate() {
   };
 
   const handleSetEnabledAssets = (nextAssets: AssetId[]) => {
+    const previousFolder = folderState.folders.find((folder) => folder.id === folderState.activeFolderId);
+    const previousCount = previousFolder?.assetIds.length ?? 0;
+    const isRemoval = nextAssets.length < previousCount;
+    if (isRemoval) {
+      if (deletionLock) return;
+      const snapshot = cloneSnapshotValue(folderState);
+      setDeletionLock(true);
+      setLastDeletedFolderState(snapshot);
+      toast.success('Asset removed', {
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            setFolderState(cloneSnapshotValue(snapshot));
+            setLastDeletedFolderState(null);
+          },
+        },
+      });
+      window.setTimeout(() => setDeletionLock(false), 1200);
+    }
     updateFolderState((current) => ({
       ...current,
       folders: current.folders.map((folder) => folder.id === current.activeFolderId ? { ...folder, assetIds: nextAssets } : folder),
