@@ -173,15 +173,21 @@ export function OperatorOutputMode({
   const [targetsOpen, setTargetsOpen] = useState(false);
 
   // ─── Output Inspector state ────────────────────────────────────────────
-  // Polling Slate: text or image shown when no poll is on-air. Countdown
-  // (seconds) optional; when it hits zero we auto-switch to the live scene
-  // by invoking onGoLive (per Phase 2 product spec).
+  // Polling Slate: a still image / message shown to mobile voters (and on
+  // program output) until voting opens. Toggle-only — no countdown. Mobile
+  // QR landing renders the slate while `slateActive` is true.
   const [slateText, setSlateText] = useState('Polling will open soon');
   const [slateImage, setSlateImage] = useState<string | undefined>(undefined);
   const [slateActive, setSlateActive] = useState(false);
-  const [slateCountdown, setSlateCountdown] = useState<number>(60); // seconds
-  const [slateRemaining, setSlateRemaining] = useState<number | null>(null);
-  const slateTimerRef = useRef<number | null>(null);
+
+  // Tracks whether the operator has opened the fullscreen Output window.
+  // Drives the green "ACTIVE" state on the Open Output quick action so
+  // operators can see at a glance that a fullscreen surface is live.
+  const [outputOpen, setOutputOpen] = useState(false);
+
+  // Confirmation dialogs for destructive / on-air actions.
+  const [confirmGoLive, setConfirmGoLive] = useState(false);
+  const [confirmOpenVoting, setConfirmOpenVoting] = useState(false);
 
   // Open Vote scheduling. 'now' opens immediately. 'in' opens after N
   // minutes. 'at' opens at a specific HH:MM (local time).
@@ -190,24 +196,6 @@ export function OperatorOutputMode({
   const [voteAtTime, setVoteAtTime] = useState(''); // HH:MM
   const [voteScheduledFor, setVoteScheduledFor] = useState<number | null>(null);
   const voteTimerRef = useRef<number | null>(null);
-
-  // Tick the slate countdown. When it reaches 0 we hand off by calling
-  // onGoLive — operator can also cancel mid-countdown by clicking Stop.
-  useEffect(() => {
-    if (!slateActive || slateRemaining === null) return;
-    if (slateRemaining <= 0) {
-      setSlateActive(false);
-      setSlateRemaining(null);
-      onGoLive();
-      return;
-    }
-    slateTimerRef.current = window.setTimeout(() => {
-      setSlateRemaining((r) => (r === null ? null : r - 1));
-    }, 1000);
-    return () => {
-      if (slateTimerRef.current) window.clearTimeout(slateTimerRef.current);
-    };
-  }, [slateActive, slateRemaining, onGoLive]);
 
   // Wait for the scheduled Open Vote moment, then trigger onOpenVoting once.
   useEffect(() => {
@@ -222,17 +210,19 @@ export function OperatorOutputMode({
     };
   }, [voteScheduledFor, onOpenVoting]);
 
-  const handleStartSlate = () => {
-    setSlateActive(true);
-    setSlateRemaining(slateCountdown > 0 ? slateCountdown : null);
+  const handleToggleSlate = () => setSlateActive((v) => !v);
+
+  const handleOpenOutputClick = () => {
+    onOpenOutput();
+    setOutputOpen(true);
   };
-  const handleStopSlate = () => {
-    setSlateActive(false);
-    setSlateRemaining(null);
-  };
+
   const handleScheduleVote = () => {
     if (voteSchedule === 'now') {
-      onOpenVoting();
+      // Confirm before opening voting immediately — operator could change
+      // their mind. Scheduled votes skip this since there's a built-in
+      // delay during which the schedule can be cancelled.
+      setConfirmOpenVoting(true);
       return;
     }
     let target = Date.now();
@@ -252,7 +242,7 @@ export function OperatorOutputMode({
   const slateActiveClass = slateActive
     ? 'border-mako-success/60 bg-mako-success/15 text-mako-success hover:bg-mako-success/25'
     : '';
-  const outputActiveClass = liveState !== 'not_live'
+  const outputActiveClass = outputOpen || liveState !== 'not_live'
     ? 'border-mako-success/60 bg-mako-success/15 text-mako-success hover:bg-mako-success/25'
     : '';
   const votingActiveClass = votingState === 'open'
