@@ -39,6 +39,8 @@ export interface Poll {
   showFinalResults: boolean;
   blockLetter?: 'A' | 'B' | 'C' | 'D' | 'E';
   blockPosition?: number;
+  bgColor?: string;
+  bgImage?: string;
   createdAt: string;
   openedAt?: string;
   closedAt?: string;

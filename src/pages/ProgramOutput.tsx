@@ -106,17 +106,23 @@ export default function ProgramOutput() {
       colors, theme, template: poll.template, ...sharedAssets,
     };
 
+    const bgStyle: React.CSSProperties = poll.bgImage
+      ? { backgroundImage: `url(${poll.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+      : poll.bgColor
+        ? { background: `linear-gradient(135deg, ${poll.bgColor}, hsla(220, 20%, 8%, 0.95))` }
+        : {};
+
+    let inner: React.ReactNode;
     switch (scene) {
-      case 'lowerThird':
-        return <LowerThirdScene {...baseProps} />;
+      case 'lowerThird': inner = <LowerThirdScene {...baseProps} />; break;
       case 'qr':
-        return <QRScene slug={poll.slug} theme={theme} enabledAssetIds={assets.enabledAssetIds} transforms={assets.transforms} qrVisible={assets.qrVisible} qrUrlVisible={assets.qrUrlVisible} debugVoteUrl={`https://makovote.app/vote/${poll.slug}`} />;
-      case 'results':
-        return <ResultsScene {...baseProps} />;
+        inner = <QRScene slug={poll.slug} theme={theme} enabledAssetIds={assets.enabledAssetIds} transforms={assets.transforms} qrVisible={assets.qrVisible} qrUrlVisible={assets.qrUrlVisible} debugVoteUrl={`https://makovote.app/vote/${poll.slug}`} />;
+        break;
+      case 'results': inner = <ResultsScene {...baseProps} />; break;
       case 'fullscreen':
-      default:
-        return <FullscreenScene {...baseProps} layers={layers} />;
+      default: inner = <FullscreenScene {...baseProps} layers={layers} />;
     }
+    return <div className="absolute inset-0" style={bgStyle}>{inner}</div>;
   };
 
   const animClass = transitionType === 'cut' ? '' : 'animate-fade-in';
