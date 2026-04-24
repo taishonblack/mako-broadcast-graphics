@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { BLOCK_LETTERS, BlockLetter, DEFAULT_BLOCK_LABELS, SavedPoll } from '@/lib/poll-persistence';
 import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { Copy, Eye, Monitor, Pin, PinOff, Play, Square, Vote, XCircle } from 'lucide-react';
+import { Copy, Eye, Monitor, Pin, PinOff, Play, RefreshCw, Square, Vote, XCircle } from 'lucide-react';
 
 export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
 
@@ -51,6 +51,7 @@ interface OperatorOutputModeProps {
   onOpenVoting: () => void;
   onCloseVoting: () => void;
   onDuplicatePoll: () => void;
+  onRescanPolls?: () => void;
   onQrSizeChange: (size: number) => void;
   onQrPositionChange: (position: QRPosition) => void;
   onShowBrandingChange: (show: boolean) => void;
@@ -86,6 +87,7 @@ export function OperatorOutputMode({
   onOpenVoting,
   onCloseVoting,
   onDuplicatePoll,
+  onRescanPolls,
   onQrSizeChange,
   onQrPositionChange,
   onShowBrandingChange,
