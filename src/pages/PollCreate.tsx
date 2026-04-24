@@ -700,7 +700,6 @@ export default function PollCreate() {
   const [selectionHistory, setSelectionHistory] = useState<Record<string, SelectionHistory>>({});
   const [backgroundImageMissing, setBackgroundImageMissing] = useState(false);
   const [lastDeletedFolderState, setLastDeletedFolderState] = useState<PollingAssetFolderState | null>(null);
-  const [deletionLock, setDeletionLock] = useState(false);
 
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
