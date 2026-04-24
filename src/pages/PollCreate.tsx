@@ -700,7 +700,6 @@ export default function PollCreate() {
   const [selectionHistory, setSelectionHistory] = useState<Record<string, SelectionHistory>>({});
   const [backgroundImageMissing, setBackgroundImageMissing] = useState(false);
   const [lastDeletedFolderState, setLastDeletedFolderState] = useState<PollingAssetFolderState | null>(null);
-  const [deletionLock, setDeletionLock] = useState(false);
 
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
@@ -1041,9 +1040,9 @@ export default function PollCreate() {
   };
 
   const handleDeleteFolder = (folderId: string) => {
-    if (deletionLock) return;
     const snapshot = cloneSnapshotValue(folderState);
-    setDeletionLock(true);
+    const previousActiveId = folderState.activeFolderId;
+    const previousActiveName = folderState.folders.find((f) => f.id === previousActiveId)?.name ?? 'previous folder';
     updateFolderState((current) => {
       const targetFolder = current.folders.find((folder) => folder.id === folderId);
       if (!targetFolder) return current;
@@ -1071,11 +1070,10 @@ export default function PollCreate() {
         onClick: () => {
           setFolderState(cloneSnapshotValue(snapshot));
           setLastDeletedFolderState(null);
+          toast.info(`Restored — switching back to "${previousActiveName}"`);
         },
       },
     });
-    // Release the lock once the save effect has had a chance to commit.
-    window.setTimeout(() => setDeletionLock(false), 1200);
   };
 
   const confirmDeleteFolder = () => {
@@ -1085,23 +1083,26 @@ export default function PollCreate() {
 
   const handleSetEnabledAssets = (nextAssets: AssetId[]) => {
     const previousFolder = folderState.folders.find((folder) => folder.id === folderState.activeFolderId);
-    const previousCount = previousFolder?.assetIds.length ?? 0;
-    const isRemoval = nextAssets.length < previousCount;
-    if (isRemoval) {
-      if (deletionLock) return;
+    const previousAssets = previousFolder?.assetIds ?? [];
+    const sameLength = previousAssets.length === nextAssets.length;
+    const sameSet = sameLength && previousAssets.every((id) => nextAssets.includes(id));
+    const isReorder = sameLength && sameSet && previousAssets.some((id, i) => nextAssets[i] !== id);
+    const isRemoval = nextAssets.length < previousAssets.length;
+    const previousActiveName = previousFolder?.name ?? 'previous folder';
+
+    if (isRemoval || isReorder) {
       const snapshot = cloneSnapshotValue(folderState);
-      setDeletionLock(true);
       setLastDeletedFolderState(snapshot);
-      toast.success('Asset removed', {
+      toast.success(isReorder ? 'Asset reordered' : 'Asset removed', {
         action: {
           label: 'Undo',
           onClick: () => {
             setFolderState(cloneSnapshotValue(snapshot));
             setLastDeletedFolderState(null);
+            toast.info(`Restored — switching back to "${previousActiveName}"`);
           },
         },
       });
-      window.setTimeout(() => setDeletionLock(false), 1200);
     }
     updateFolderState((current) => ({
       ...current,
@@ -1361,11 +1362,8 @@ export default function PollCreate() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deletionLock}>Cancel</AlertDialogCancel>
-            <Button type="button" onClick={confirmDeleteFolder} disabled={deletionLock}>
-              {deletionLock ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-              Delete folder
-            </Button>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button type="button" onClick={confirmDeleteFolder}>Delete folder</Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
