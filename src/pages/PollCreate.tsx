@@ -358,7 +358,11 @@ export default function PollCreate() {
 
   useEffect(() => {
     void rescanProjectPolls();
-  }, [rescanProjectPolls, pollId, draftStatus]);
+    // Re-derive output block lists whenever folders change too — creating,
+    // renaming, deleting, or moving a folder must immediately reflect in
+    // Output mode without requiring a manual re-scan.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [rescanProjectPolls, pollId, draftStatus, folderState]);
 
   useEffect(() => {
     if (projectId) {
