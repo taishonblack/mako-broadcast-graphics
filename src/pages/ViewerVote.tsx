@@ -18,7 +18,7 @@ export default function ViewerVote() {
   // Slate: Not Open Yet
   if (votingState === 'not_open') {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'hsl(220, 20%, 7%)' }}>
+      <div key="slate-not-open" className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={{ background: 'hsl(220, 20%, 7%)' }}>
         <div className="text-center space-y-4">
           <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto">
             <Clock className="w-8 h-8 text-muted-foreground" />
@@ -34,7 +34,7 @@ export default function ViewerVote() {
   // Slate: Voting Closed
   if (votingState === 'closed') {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'hsl(220, 20%, 7%)' }}>
+      <div key="slate-closed" className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={{ background: 'hsl(220, 20%, 7%)' }}>
         <div className="text-center space-y-4">
           <div className="w-16 h-16 rounded-full bg-mako-warning/20 flex items-center justify-center mx-auto">
             <XCircle className="w-8 h-8 text-mako-warning" />
@@ -70,7 +70,7 @@ export default function ViewerVote() {
   // Slate: Vote Submitted
   if (hasVoted) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6" style={{ background: 'hsl(220, 20%, 7%)' }}>
+      <div key="slate-voted" className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={{ background: 'hsl(220, 20%, 7%)' }}>
         <div className="text-center space-y-4">
           <div className="w-16 h-16 rounded-full bg-mako-success/20 flex items-center justify-center mx-auto">
             <CheckCircle className="w-8 h-8 text-mako-success" />
@@ -104,7 +104,7 @@ export default function ViewerVote() {
 
   // Active Voting
   return (
-    <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12" style={{ background: 'hsl(220, 20%, 7%)' }}>
+    <div key="voting-active" className="min-h-screen flex flex-col items-center justify-center px-6 py-12 animate-fade-in" style={{ background: 'hsl(220, 20%, 7%)' }}>
       <div className="w-full max-w-sm space-y-8">
         <div className="text-center">
           <h1 className="text-2xl font-bold text-foreground leading-tight">{poll.question}</h1>
