@@ -58,7 +58,7 @@ interface ColorSection {
   fields: ColorFieldConfig[];
 }
 
-export function AssetTransformControls({ assetId, assetLabel, folderLabel, folderAssetIds, transforms, colors, answerCount, onChange, onToggleLock, onColorsChange }: AssetTransformControlsProps) {
+export function AssetTransformControls({ assetId, assetLabel, folderLabel, folderAssetIds, transforms, colors, answerCount, onChange, onToggleLock, onColorsChange, onCenterAsset }: AssetTransformControlsProps) {
   const [transformOpen, setTransformOpen] = useState(true);
   const [colorsOpen, setColorsOpen] = useState(true);
 
@@ -95,6 +95,21 @@ export function AssetTransformControls({ assetId, assetLabel, folderLabel, folde
         </button>
         {transformOpen && (
           <div className="space-y-3 border-t border-border/50 px-3 py-3">
+            {transformSections.map((section) => onCenterAsset ? (
+              <div key={`center-${section.id}`} className="flex items-center justify-end">
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="h-7 gap-1.5 px-2 text-[10px]"
+                  onClick={() => onCenterAsset(section.id)}
+                  title={`Center ${section.label} in the 1920×1080 frame`}
+                >
+                  <Crosshair className="h-3 w-3" />
+                  Center {section.label}
+                </Button>
+              </div>
+            ) : null)}
             {transformSections.map((section) => (
               <div key={section.id} className="space-y-2 rounded-md border border-border/50 bg-card/30 p-2.5">
                 {transformSections.length > 1 && <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">{section.label}</p>}
