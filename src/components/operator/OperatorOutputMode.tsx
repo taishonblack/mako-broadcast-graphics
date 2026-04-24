@@ -911,10 +911,17 @@ export function OperatorOutputMode({
 }
 
 /**
- * Lightweight viewer mockup used in Output's Program Preview tabs. Shows the
- * background + MakoVote wordmark — and, when the polling slate is active,
- * overlays the slate image / message — so operators can confirm what mobile
- * and desktop voters currently see while waiting for voting to open.
+ * Faithful preview of the real QR viewer's "polling slate" page. Renders the
+ * actual ViewerVote slate layout (Clock icon, "Voting Will Begin Shortly",
+ * subline, BrandBug) at native viewport resolution inside a scaled device
+ * frame so safe-area, padding, and proportions match exactly what voters see.
+ *
+ * - Mobile: 375 × 667 (iPhone SE viewport)
+ * - Desktop: 1280 × 800 (laptop viewport)
+ *
+ * The operator's background image / color is layered behind, and when the
+ * slate is active any uploaded slate image + custom text overrides the
+ * default "Voting Will Begin Shortly" copy.
  */
 function ViewerSlatePreview({
   mode,
@@ -931,42 +938,82 @@ function ViewerSlatePreview({
   slateText: string;
   slateImage?: string;
 }) {
-  const sizeClass = mode === 'mobile' ? 'w-[280px] h-[500px]' : 'w-full max-w-lg h-[420px]';
+  // Native viewport dimensions of the real viewer page. Scaling these into
+  // the operator's device frame preserves every spacing, font size, and
+  // safe-area value from ViewerVote.tsx 1:1.
+  const NATIVE_W = mode === 'mobile' ? 375 : 1280;
+  const NATIVE_H = mode === 'mobile' ? 667 : 800;
+
+  // Frame dimensions inside the Output workspace.
+  const FRAME_W = mode === 'mobile' ? 280 : 560;
+  const FRAME_H = mode === 'mobile' ? 498 : 350;
+  const scale = Math.min(FRAME_W / NATIVE_W, FRAME_H / NATIVE_H);
+
   const bgStyle: React.CSSProperties = bgImage
     ? { backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-    : { background: `linear-gradient(135deg, ${bgColor || 'hsl(220 25% 6%)'}, hsl(220, 25%, 4%))` };
+    : { background: bgColor || 'hsl(220, 20%, 7%)' };
 
   return (
-    <div className={`bg-background border border-border rounded-lg overflow-hidden shadow-xl ${sizeClass}`}>
+    <div
+      className="bg-background border border-border rounded-lg overflow-hidden shadow-xl"
+      style={{ width: FRAME_W, height: FRAME_H + 24 }}
+    >
+      {/* Browser chrome */}
       <div className="h-6 bg-card/80 border-b border-border flex items-center px-2 gap-1">
         <div className="w-1.5 h-1.5 rounded-full bg-destructive/60" />
         <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
         <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
         <span className="text-[8px] text-muted-foreground ml-1 font-mono truncate">makovote.app/vote</span>
       </div>
-      <div className="relative h-[calc(100%-1.5rem)] overflow-hidden" style={bgStyle}>
-        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%)' }} />
-        <div className="relative h-full flex flex-col items-center justify-center gap-4 px-6 text-center">
-          <div className="flex items-baseline justify-center font-semibold leading-none select-none text-3xl">
-            <span className="text-foreground/90">Mako</span>
-            <span className="text-primary">Vote</span>
-          </div>
-          {slateActive ? (
-            <>
-              {slateImage && (
+
+      {/* Scaled native viewport — content inside is rendered at real px sizes */}
+      <div className="relative overflow-hidden" style={{ width: FRAME_W, height: FRAME_H }}>
+        <div
+          className="absolute left-0 top-0 origin-top-left"
+          style={{
+            width: NATIVE_W,
+            height: NATIVE_H,
+            transform: `scale(${scale})`,
+          }}
+        >
+          {/* Background layer — matches real viewer's flat solid bg, with
+              optional operator-provided image/color overlaid. */}
+          <div className="absolute inset-0" style={bgStyle} />
+          {bgImage && (
+            <div
+              className="absolute inset-0 pointer-events-none"
+              style={{ background: 'radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.55) 100%)' }}
+            />
+          )}
+
+          {/* Slate content — mirrors ViewerVote's "not_open" branch exactly */}
+          <div className="absolute inset-0 flex items-center justify-center px-6">
+            <div className="text-center space-y-4 flex flex-col items-center">
+              {slateActive && slateImage ? (
                 <img
                   src={slateImage}
                   alt="Polling slate"
-                  className="max-h-[40%] max-w-[80%] object-contain rounded-md border border-border/40"
+                  className="max-h-[280px] max-w-[80%] object-contain rounded-lg border border-border/40"
                 />
+              ) : (
+                <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto">
+                  <Clock className="w-8 h-8 text-muted-foreground" />
+                </div>
               )}
-              <p className="text-xs font-mono uppercase tracking-wider text-foreground/90">{slateText}</p>
-            </>
-          ) : (
-            <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/80">
-              Waiting for voting to open
-            </p>
-          )}
+              <h1 className="text-xl font-bold text-foreground">
+                {slateActive ? slateText : 'Voting Will Begin Shortly'}
+              </h1>
+              <p className="text-sm text-muted-foreground">
+                Stay tuned — the poll will open soon.
+              </p>
+              <div className="flex items-center justify-center gap-2 pt-4 opacity-30">
+                <div className="w-4 h-4 rounded bg-primary flex items-center justify-center">
+                  <span className="text-primary-foreground font-bold text-[8px]">M</span>
+                </div>
+                <span className="font-mono text-[10px] text-muted-foreground">MakoVote</span>
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
