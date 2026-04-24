@@ -150,6 +150,7 @@ export function OperatorOutputMode({
   // Local controlled inputs for the test-vote runner.
   const [testVoteTotal, setTestVoteTotal] = useState(100);
   const [testVoteDuration, setTestVoteDuration] = useState(30);
+  const [targetsOpen, setTargetsOpen] = useState(false);
   // Per-answer target percentages for the test-vote runner. Initialized to
   // an even split across the active poll's answers; auto-rebalances so the
   // sum is always exactly 100. When the operator edits one bar, the other
