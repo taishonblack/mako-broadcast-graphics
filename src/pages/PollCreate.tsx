@@ -302,13 +302,6 @@ export default function PollCreate() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [question, internalName, slug, subheadline, selectedTemplate, answerType, mcLabelStyle, answers, showLiveResults, showThankYou, showFinalResults, autoClose, bgColor, bgImage, previewDataMode]);
 
-  // Persist asset state (QR position, visibility, etc.) so it survives reloads
-  useEffect(() => {
-    try {
-      localStorage.setItem(ASSET_STATE_STORAGE_KEY, JSON.stringify(assetState));
-    } catch { /* ignore */ }
-  }, [assetState]);
-
   useEffect(() => {
     const rawMode = searchParams.get('mode');
     const nextMode: OperatorMode = rawMode === 'output' ? 'output' : 'build';
