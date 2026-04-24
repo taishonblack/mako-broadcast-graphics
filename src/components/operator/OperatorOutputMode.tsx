@@ -187,7 +187,9 @@ export function OperatorOutputMode({
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-medium text-foreground">{poll.internalName || poll.question || 'Untitled poll'}</p>
+                        <p className="truncate text-xs font-medium text-foreground">
+                          {folderNameByBlock[activeBlock] || poll.internalName || poll.question || 'Untitled poll'}
+                        </p>
                         <p className="mt-0.5 truncate text-[10px] text-muted-foreground">Pos {String(poll.blockPosition ?? 1).padStart(2, '0')} · {poll.question || 'No on-air question yet'}</p>
                       </div>
                       <PollStatusChip state={poll.status === 'saved' ? 'ready' : poll.status} />
