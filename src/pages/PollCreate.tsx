@@ -403,7 +403,6 @@ export default function PollCreate() {
   );
   const previewTotal = previewOptions.reduce((sum, o) => sum + o.votes, 0);
   const previewQuestion = question || 'Your question here?';
-  const hasContent = question.length > 0 || answers.some(a => a.text.length > 0);
 
   const slugForUrl = slug || 'your-poll-slug';
   const fullUrl = `https://makovote.app/vote/${slugForUrl}`;
