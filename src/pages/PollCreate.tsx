@@ -699,6 +699,8 @@ export default function PollCreate() {
   const [foldersLoadedForProject, setFoldersLoadedForProject] = useState<string | null>(null);
   const [selectionHistory, setSelectionHistory] = useState<Record<string, SelectionHistory>>({});
   const [backgroundImageMissing, setBackgroundImageMissing] = useState(false);
+  const [lastDeletedFolderState, setLastDeletedFolderState] = useState<PollingAssetFolderState | null>(null);
+  const [deletionLock, setDeletionLock] = useState(false);
 
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
@@ -1039,6 +1041,9 @@ export default function PollCreate() {
   };
 
   const handleDeleteFolder = (folderId: string) => {
+    if (deletionLock) return;
+    const snapshot = cloneSnapshotValue(folderState);
+    setDeletionLock(true);
     updateFolderState((current) => {
       const targetFolder = current.folders.find((folder) => folder.id === folderId);
       if (!targetFolder) return current;
@@ -1059,7 +1064,18 @@ export default function PollCreate() {
     });
     setDeleteFolderTargetId(null);
     setSelectedAssetId(null);
-    toast.success('Folder deleted');
+    setLastDeletedFolderState(snapshot);
+    toast.success('Folder deleted', {
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          setFolderState(cloneSnapshotValue(snapshot));
+          setLastDeletedFolderState(null);
+        },
+      },
+    });
+    // Release the lock once the save effect has had a chance to commit.
+    window.setTimeout(() => setDeletionLock(false), 1200);
   };
 
   const confirmDeleteFolder = () => {
@@ -1068,6 +1084,25 @@ export default function PollCreate() {
   };
 
   const handleSetEnabledAssets = (nextAssets: AssetId[]) => {
+    const previousFolder = folderState.folders.find((folder) => folder.id === folderState.activeFolderId);
+    const previousCount = previousFolder?.assetIds.length ?? 0;
+    const isRemoval = nextAssets.length < previousCount;
+    if (isRemoval) {
+      if (deletionLock) return;
+      const snapshot = cloneSnapshotValue(folderState);
+      setDeletionLock(true);
+      setLastDeletedFolderState(snapshot);
+      toast.success('Asset removed', {
+        action: {
+          label: 'Undo',
+          onClick: () => {
+            setFolderState(cloneSnapshotValue(snapshot));
+            setLastDeletedFolderState(null);
+          },
+        },
+      });
+      window.setTimeout(() => setDeletionLock(false), 1200);
+    }
     updateFolderState((current) => ({
       ...current,
       folders: current.folders.map((folder) => folder.id === current.activeFolderId ? { ...folder, assetIds: nextAssets } : folder),
@@ -1326,8 +1361,11 @@ export default function PollCreate() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <Button type="button" onClick={confirmDeleteFolder}>Delete folder</Button>
+            <AlertDialogCancel disabled={deletionLock}>Cancel</AlertDialogCancel>
+            <Button type="button" onClick={confirmDeleteFolder} disabled={deletionLock}>
+              {deletionLock ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
+              Delete folder
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
