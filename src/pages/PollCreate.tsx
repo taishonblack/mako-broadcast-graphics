@@ -550,13 +550,22 @@ export default function PollCreate() {
     ];
   }, [projectPolls, currentWorkspacePoll, projectId, pollId, question, answerType, mcLabelStyle, answers, previewDataMode, bgColor, bgImage]);
 
+  const outputFolders = useMemo(
+    () => folderState.folders
+      .filter((folder) => folder.assetIds.length > 0)
+      .map((folder) => ({ id: folder.id, name: folder.name, blockLetter: folder.blockLetter })),
+    [folderState.folders],
+  );
+
   // In output mode, auto-select the first block that actually has polls (A → E priority),
   // unless the operator has pinned a specific block. Tracks WHY the block was selected.
   useEffect(() => {
     if (mode !== 'output') return;
     const order: BlockLetter[] = ['A', 'B', 'C', 'D', 'E'];
     const counts = order.reduce<Record<BlockLetter, number>>((acc, letter) => {
-      acc[letter] = outputPolls.filter((p) => (p.blockLetter ?? 'A') === letter).length;
+      const pollCount = outputPolls.filter((p) => (p.blockLetter ?? 'A') === letter).length;
+      const folderCount = outputFolders.filter((folder) => folder.blockLetter === letter).length;
+      acc[letter] = pollCount + folderCount;
       return acc;
     }, { A: 0, B: 0, C: 0, D: 0, E: 0 });
 
@@ -576,7 +585,7 @@ export default function PollCreate() {
       setOutputActiveBlock(firstNonEmpty);
       setOutputBlockSource('auto-promoted');
     }
-  }, [mode, outputPolls, outputActiveBlock, outputBlockPinned]);
+  }, [mode, outputFolders, outputPolls, outputActiveBlock, outputBlockPinned]);
 
   // Persist last selected block + pin toggle so they survive reloads.
   useEffect(() => {
@@ -1653,7 +1662,7 @@ export default function PollCreate() {
             projectName={projectName}
             currentPoll={currentWorkspacePoll}
             projectPolls={outputPolls}
-            folders={folderState.folders.map((f) => ({ id: f.id, name: f.name, blockLetter: f.blockLetter }))}
+            folders={outputFolders}
             activeFolderId={folderState.activeFolderId}
             onSelectFolder={handleSelectFolder}
             activeBlock={outputActiveBlock}
