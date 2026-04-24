@@ -319,6 +319,47 @@ export function OperatorOutputMode({
             </PreviewWithOverlays>
           </MonitorContainer>
 
+          {/* Live answer-bar percentages. Edits write back into the same Build
+              state that the inspector reads from, so Build and Output stay in
+              perfect sync without any extra storage layer. */}
+          {answers && onSetAnswers && answers.length > 0 && (
+            <div className="mako-panel p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-mono uppercase text-muted-foreground">Answer Bars · Live %</p>
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  {percentsFromAnswers(answers).reduce((s, v) => s + v, 0).toFixed(0)}%
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                {answers.map((a, i) => {
+                  const livePercents = percentsFromAnswers(answers);
+                  return (
+                    <div key={a.id} className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-sm bg-primary/70" />
+                      <span className="flex-1 truncate text-[11px] text-foreground">{a.text || `Answer ${i + 1}`}</span>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={livePercents[i] ?? 0}
+                        onChange={(e) => {
+                          const next = rebalancePercents(livePercents, i, Number(e.target.value));
+                          onSetAnswers(answersFromPercents(answers, next));
+                        }}
+                        className="h-7 w-16 text-right text-xs"
+                      />
+                      <span className="text-[10px] text-muted-foreground">%</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Edits sync to Build's inspector instantly.
+              </p>
+            </div>
+          )}
+
           {/* Test-vote runner — inject N votes over T seconds and watch the
               bars + counters animate in the preview above. Useful for QA'ing
               the chart animation without opening a viewer browser. */}
