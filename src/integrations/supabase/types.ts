@@ -59,6 +59,96 @@ export type Database = {
         }
         Relationships: []
       }
+      images: {
+        Row: {
+          account_id: string
+          created_at: string
+          created_by: string | null
+          file_path: string
+          id: string
+          image_url: string
+          name: string
+          tags: string[]
+          thumbnail_path: string | null
+          thumbnail_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          created_by?: string | null
+          file_path: string
+          id?: string
+          image_url: string
+          name?: string
+          tags?: string[]
+          thumbnail_path?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          created_by?: string | null
+          file_path?: string
+          id?: string
+          image_url?: string
+          name?: string
+          tags?: string[]
+          thumbnail_path?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      logos: {
+        Row: {
+          account_id: string
+          created_at: string
+          created_by: string | null
+          file_path: string
+          id: string
+          image_url: string
+          name: string
+          tags: string[]
+          thumbnail_path: string | null
+          thumbnail_url: string | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          account_id: string
+          created_at?: string
+          created_by?: string | null
+          file_path: string
+          id?: string
+          image_url: string
+          name?: string
+          tags?: string[]
+          thumbnail_path?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          account_id?: string
+          created_at?: string
+          created_by?: string | null
+          file_path?: string
+          id?: string
+          image_url?: string
+          name?: string
+          tags?: string[]
+          thumbnail_path?: string | null
+          thumbnail_url?: string | null
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       poll_answers: {
         Row: {
           color: string
