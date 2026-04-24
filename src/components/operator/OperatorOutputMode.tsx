@@ -10,7 +10,7 @@ import { useState } from 'react';
 import { BLOCK_LETTERS, BlockLetter, DEFAULT_BLOCK_LABELS, SavedPoll } from '@/lib/poll-persistence';
 import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { ChevronDown, ChevronRight, Eye, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Sliders, Square, StopCircle, Vote, XCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Eye, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Square, StopCircle, Vote, XCircle } from 'lucide-react';
 import { percentsFromAnswers, rebalancePercents, answersFromPercents, AnswerLite } from '@/lib/answer-percents';
 
 export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';

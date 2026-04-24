@@ -1726,11 +1726,12 @@ export default function PollCreate() {
             onEndPoll={handleEndPoll}
             onOpenVoting={() => setVotingState('open')}
             onCloseVoting={() => setVotingState('closed')}
-            onDuplicatePoll={handleDuplicate}
             testVoteRunning={testVoteRunning}
             onStartTestVotes={handleStartTestVotes}
             onStopTestVotes={handleStopTestVotes}
             onResetTestVotes={handleResetTestVotes}
+            answers={answers}
+            onSetAnswers={setAnswers}
             onQrSizeChange={setQrSize}
             onQrPositionChange={(next) => setAssetState((current) => ({ ...current, qrPosition: next }))}
             onShowBrandingChange={setShowBranding}
