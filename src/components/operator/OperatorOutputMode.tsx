@@ -223,6 +223,9 @@ export function OperatorOutputMode({
     if (voteScheduledFor === null) return;
     const ms = Math.max(0, voteScheduledFor - Date.now());
     voteTimerRef.current = window.setTimeout(() => {
+      // Dismiss the polling slate so voters immediately see the voting UI
+      // instead of the "polling will open soon" holding screen.
+      setSlateActive(false);
       onOpenVoting();
       setVoteScheduledFor(null);
     }, ms);
@@ -1031,7 +1034,12 @@ export function OperatorOutputMode({
                 e.preventDefault();
                 if (openVotingPending) return;
                 setOpenVotingPending(true);
-                try { onOpenVoting(); } finally {
+                try {
+                  // Take down the slate the moment voting opens so mobile/
+                  // desktop voters transition straight into the voting screen.
+                  setSlateActive(false);
+                  onOpenVoting();
+                } finally {
                   setTimeout(() => {
                     setOpenVotingPending(false);
                     setConfirmOpenVoting(false);
