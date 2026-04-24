@@ -283,7 +283,7 @@ export function PollingAssetsPane({
                     meta={ASSET_REGISTRY[id]}
                     isSelected={selectedAssetId === id}
                     onSelect={() => { onSelectFolder(folder.id); onSelectAsset(id); }}
-                    onRemove={() => { onSelectFolder(folder.id); onEnabledAssetsChange(folderAssets.filter((assetId) => assetId !== id)); if (selectedAssetId === id) onSelectAsset(null); }}
+                    onRemove={() => setPendingRemoval({ folderId: folder.id, assetId: id })}
                     onDragStart={() => setDraggedId(id)}
                     onDragOver={(e) => { e.preventDefault(); }}
                     onDrop={() => { onSelectFolder(folder.id); if (draggedId) reorder(draggedId, id); setDraggedId(null); }}
