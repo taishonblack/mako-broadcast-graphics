@@ -56,6 +56,10 @@ interface OperatorOutputModeProps {
   onQrPositionChange: (position: QRPosition) => void;
   onShowBrandingChange: (show: boolean) => void;
   onBrandingPositionChange: (position: QRPosition) => void;
+  /** Test-vote runner: inject N votes over T seconds across the active poll's answers. */
+  testVoteRunning?: boolean;
+  onStartTestVotes?: (totalVotes: number, durationSeconds: number) => void;
+  onStopTestVotes?: () => void;
 }
 
 export function OperatorOutputMode({
