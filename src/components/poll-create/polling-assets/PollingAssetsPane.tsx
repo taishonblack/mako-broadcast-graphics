@@ -86,6 +86,19 @@ export function PollingAssetsPane({
   onAddAnswer,
 }: PollingAssetsPaneProps) {
   const [draggedId, setDraggedId] = useState<AssetId | null>(null);
+  const [pendingRemoval, setPendingRemoval] = useState<{ folderId: string; assetId: AssetId } | null>(null);
+
+  const confirmRemoval = () => {
+    if (!pendingRemoval) return;
+    const { folderId, assetId } = pendingRemoval;
+    const folder = folders.find((f) => f.id === folderId);
+    if (folder) {
+      onSelectFolder(folderId);
+      onEnabledAssetsChange(folder.assetIds.filter((id) => id !== assetId));
+      if (selectedAssetId === assetId) onSelectAsset(null);
+    }
+    setPendingRemoval(null);
+  };
 
   const reorder = (fromId: AssetId, toId: AssetId) => {
     if (fromId === toId) return;
