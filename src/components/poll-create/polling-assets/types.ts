@@ -119,7 +119,7 @@ export const DEFAULT_ASSET_STATE: AssetState = {
   qrPosition: 'bottom-right',
   qrSize: 120,
   qrVisible: true,
-  qrUrlVisible: true,
+  qrUrlVisible: false,
   logoUrl: undefined,
   logoPosition: 'bottom-left',
   voterTallyFormat: 'number',

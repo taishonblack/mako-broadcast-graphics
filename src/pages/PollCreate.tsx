@@ -377,7 +377,9 @@ export default function PollCreate() {
   };
 
   useEffect(() => {
-    if (!user || !projectId || draftStatus === 'saved-to-project') return;
+    // Autosave should keep running for as long as the operator has a project
+    // selected — it stops only when there is no user or no project.
+    if (!user || !projectId) return;
 
     const intervalMs = Math.max(1, autosaveMinutes) * 60 * 1000;
     const timer = window.setInterval(() => {
@@ -386,7 +388,7 @@ export default function PollCreate() {
     }, intervalMs);
 
     return () => window.clearInterval(timer);
-  }, [autosaveMinutes, draftStatus, persistProjectSave, projectId, projectName, saving, user]);
+  }, [autosaveMinutes, persistProjectSave, projectId, projectName, saving, user]);
 
   const handleProjectSelected = async (selectedProjectId: string, selectedProjectName: string) => {
     await persistProjectSave(selectedProjectId, selectedProjectName, 'manual');

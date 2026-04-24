@@ -28,8 +28,10 @@ const CONTROL_DEFS: Array<{
   step: number;
   format?: (value: number) => string;
 }> = [
-  { field: 'x', label: 'X', min: -400, max: 400, step: 1, format: (v) => `${Math.round(v)}px` },
-  { field: 'y', label: 'Y', min: -300, max: 300, step: 1, format: (v) => `${Math.round(v)}px` },
+  // Range covers the full 1920x1080 broadcast stage so an asset anchored
+  // at any corner can travel to dead-center (or beyond) of the frame.
+  { field: 'x', label: 'X', min: -960, max: 960, step: 1, format: (v) => `${Math.round(v)}px` },
+  { field: 'y', label: 'Y', min: -540, max: 540, step: 1, format: (v) => `${Math.round(v)}px` },
   { field: 'scale', label: 'Scale', min: 0.25, max: 2.5, step: 0.01, format: (v) => `${Math.round(v * 100)}%` },
   { field: 'opacity', label: 'Transparency', min: 0, max: 1, step: 0.01, format: (v) => `${Math.round(v * 100)}%` },
   { field: 'rotation', label: 'Rotation', min: -180, max: 180, step: 1, format: (v) => `${Math.round(v)}°` },
