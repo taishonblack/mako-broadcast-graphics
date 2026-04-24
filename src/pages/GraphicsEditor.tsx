@@ -135,6 +135,14 @@ export default function GraphicsEditor() {
                 <div className="w-full max-w-md">
                   {renderChart()}
                 </div>
+                {showQR && (
+                  <div className={`absolute ${cornerClass} flex flex-col items-center gap-1 p-2 rounded-lg bg-white/95 shadow-lg`}>
+                    <QRCodeSVG value={qrUrl} size={56} level="M" />
+                    {showQRUrl && (
+                      <span className="font-mono text-[7px] text-foreground/70 max-w-[80px] truncate">{qrUrl}</span>
+                    )}
+                  </div>
+                )}
               </div>
             </BroadcastPreviewFrame>
           </div>
@@ -200,6 +208,40 @@ export default function GraphicsEditor() {
                     <span className="text-[10px] text-muted-foreground">{c.label}</span>
                   </div>
                 ))}
+              </div>
+            </div>
+
+            <div className="border-t border-border pt-3">
+              <p className="text-[10px] text-muted-foreground font-mono uppercase mb-2 flex items-center gap-1.5">
+                <QrCode className="w-3 h-3" /> QR Placement
+              </p>
+              <div className="space-y-3">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] text-muted-foreground">Show QR</Label>
+                  <Switch checked={showQR} onCheckedChange={setShowQR} />
+                </div>
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] text-muted-foreground">Show URL label</Label>
+                  <Switch checked={showQRUrl} onCheckedChange={setShowQRUrl} />
+                </div>
+                <div>
+                  <Label className="text-[10px] text-muted-foreground mb-1.5 block">Corner</Label>
+                  <div className="grid grid-cols-2 gap-1.5">
+                    {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map((corner) => (
+                      <button
+                        key={corner}
+                        onClick={() => setQrCorner(corner)}
+                        className={`text-[9px] px-2 py-1.5 rounded border transition-colors ${
+                          qrCorner === corner
+                            ? 'bg-primary/20 border-primary/30 text-primary'
+                            : 'bg-accent/30 border-border/50 text-muted-foreground hover:bg-accent/50'
+                        }`}
+                      >
+                        {corner.replace('-', ' ')}
+                      </button>
+                    ))}
+                  </div>
+                </div>
               </div>
             </div>
 
