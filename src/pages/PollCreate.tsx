@@ -1363,11 +1363,8 @@ export default function PollCreate() {
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deletionLock}>Cancel</AlertDialogCancel>
-            <Button type="button" onClick={confirmDeleteFolder} disabled={deletionLock}>
-              {deletionLock ? <Loader2 className="w-3 h-3 animate-spin" /> : null}
-              Delete folder
-            </Button>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button type="button" onClick={confirmDeleteFolder}>Delete folder</Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
