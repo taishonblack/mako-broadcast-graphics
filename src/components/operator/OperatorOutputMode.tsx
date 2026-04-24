@@ -145,6 +145,48 @@ export function OperatorOutputMode({
   // Local controlled inputs for the test-vote runner.
   const [testVoteTotal, setTestVoteTotal] = useState(100);
   const [testVoteDuration, setTestVoteDuration] = useState(30);
+  // Per-answer target percentages for the test-vote runner. Initialized to
+  // an even split across the active poll's answers; auto-rebalances so the
+  // sum is always exactly 100. When the operator edits one bar, the other
+  // bars share the remaining percentage proportionally to their current
+  // values (or evenly if they are all zero).
+  const answerCount = currentPoll.answers.length;
+  const [targetPercents, setTargetPercents] = useState<number[]>(() =>
+    answerCount > 0 ? Array.from({ length: answerCount }, () => +(100 / answerCount).toFixed(1)) : [],
+  );
+  // Keep the array length in sync if the operator switches polls.
+  if (targetPercents.length !== answerCount) {
+    const next = answerCount > 0
+      ? Array.from({ length: answerCount }, () => +(100 / answerCount).toFixed(1))
+      : [];
+    // Defer to the next render to avoid setting state during render.
+    queueMicrotask(() => setTargetPercents(next));
+  }
+
+  const handleTargetChange = (index: number, raw: number) => {
+    const clamped = Math.max(0, Math.min(100, Number.isFinite(raw) ? raw : 0));
+    setTargetPercents((prev) => {
+      if (prev.length <= 1) return [100];
+      const next = [...prev];
+      next[index] = clamped;
+      const remainder = Math.max(0, 100 - clamped);
+      const others = prev.map((v, i) => (i === index ? 0 : v));
+      const otherSum = others.reduce((s, v) => s + v, 0);
+      for (let i = 0; i < next.length; i += 1) {
+        if (i === index) continue;
+        next[i] = otherSum > 0
+          ? +((others[i] / otherSum) * remainder).toFixed(1)
+          : +(remainder / (next.length - 1)).toFixed(1);
+      }
+      // Fix any rounding drift on the last non-edited slot.
+      const drift = +(100 - next.reduce((s, v) => s + v, 0)).toFixed(1);
+      if (drift !== 0) {
+        const lastOther = next.findIndex((_, i) => i !== index);
+        if (lastOther >= 0) next[lastOther] = +(next[lastOther] + drift).toFixed(1);
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="h-full overflow-hidden">
