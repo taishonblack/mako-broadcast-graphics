@@ -549,36 +549,6 @@ export default function PollCreate() {
     ];
   }, [projectPolls, currentWorkspacePoll, projectId, pollId, question, answerType, mcLabelStyle, answers, previewDataMode, bgColor, bgImage]);
 
-  // In output mode, auto-select the first block that actually has polls (A → E priority),
-  // unless the operator has pinned a specific block. Tracks WHY the block was selected.
-  useEffect(() => {
-    if (mode !== 'output') return;
-    const order: BlockLetter[] = ['A', 'B', 'C', 'D', 'E'];
-    const counts = order.reduce<Record<BlockLetter, number>>((acc, letter) => {
-      const pollCount = outputPolls.filter((p) => (p.blockLetter ?? 'A') === letter).length;
-      const folderCount = outputFolders.filter((folder) => folder.blockLetter === letter).length;
-      acc[letter] = pollCount + folderCount;
-      return acc;
-    }, { A: 0, B: 0, C: 0, D: 0, E: 0 });
-
-    // Pinned: respect the operator's choice as long as that block has polls.
-    if (outputBlockPinned && counts[outputActiveBlock] > 0) {
-      setOutputBlockSource('pinned');
-      return;
-    }
-
-    const firstNonEmpty = order.find((letter) => counts[letter] > 0);
-    if (!firstNonEmpty) return;
-
-    if (counts[outputActiveBlock] === 0) {
-      setOutputActiveBlock(firstNonEmpty);
-      setOutputBlockSource('auto-first-populated');
-    } else if (!outputBlockPinned && order.indexOf(firstNonEmpty) < order.indexOf(outputActiveBlock)) {
-      setOutputActiveBlock(firstNonEmpty);
-      setOutputBlockSource('auto-promoted');
-    }
-  }, [mode, outputFolders, outputPolls, outputActiveBlock, outputBlockPinned]);
-
   // Persist last selected block + pin toggle so they survive reloads.
   useEffect(() => {
     try {
@@ -854,6 +824,35 @@ export default function PollCreate() {
       .map((folder) => ({ id: folder.id, name: folder.name, blockLetter: folder.blockLetter })),
     [folderState.folders],
   );
+
+  // In output mode, auto-select the first block that actually has content
+  // (polls and/or folders) in A → E priority, unless the operator pinned a block.
+  useEffect(() => {
+    if (mode !== 'output') return;
+    const order: BlockLetter[] = ['A', 'B', 'C', 'D', 'E'];
+    const counts = order.reduce<Record<BlockLetter, number>>((acc, letter) => {
+      const pollCount = outputPolls.filter((p) => (p.blockLetter ?? 'A') === letter).length;
+      const folderCount = outputFolders.filter((folder) => folder.blockLetter === letter).length;
+      acc[letter] = pollCount + folderCount;
+      return acc;
+    }, { A: 0, B: 0, C: 0, D: 0, E: 0 });
+
+    if (outputBlockPinned && counts[outputActiveBlock] > 0) {
+      setOutputBlockSource('pinned');
+      return;
+    }
+
+    const firstNonEmpty = order.find((letter) => counts[letter] > 0);
+    if (!firstNonEmpty) return;
+
+    if (counts[outputActiveBlock] === 0) {
+      setOutputActiveBlock(firstNonEmpty);
+      setOutputBlockSource('auto-first-populated');
+    } else if (!outputBlockPinned && order.indexOf(firstNonEmpty) < order.indexOf(outputActiveBlock)) {
+      setOutputActiveBlock(firstNonEmpty);
+      setOutputBlockSource('auto-promoted');
+    }
+  }, [mode, outputFolders, outputPolls, outputActiveBlock, outputBlockPinned]);
 
   // Signature of folders relevant to Output mode (id, name, blockLetter).
   // When this changes (rename / delete / new / re-block), trigger a rescan
