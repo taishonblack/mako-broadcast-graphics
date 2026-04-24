@@ -335,7 +335,10 @@ export function AssetInspector(p: AssetInspectorProps) {
               {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map((pos) => (
                 <button
                   key={pos}
-                  onClick={() => p.setAssetState({ ...p.assetState, logoPosition: pos })}
+                  onClick={() => {
+                    p.setAssetState({ ...p.assetState, logoPosition: pos });
+                    p.onResetAssetPosition?.('logo');
+                  }}
                   className={`p-1.5 rounded-md text-[10px] font-medium border transition-all ${
                     p.assetState.logoPosition === pos
                       ? 'bg-primary/10 border-primary/30 text-primary'
