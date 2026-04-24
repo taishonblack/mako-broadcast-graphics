@@ -70,6 +70,8 @@ export function OperatorOutputMode({
   currentPoll,
   projectPolls,
   folders = [],
+  activeFolderId,
+  onSelectFolder,
   activeBlock,
   blockSource = 'default',
   blockPinned = false,
@@ -102,6 +104,7 @@ export function OperatorOutputMode({
   testVoteRunning = false,
   onStartTestVotes,
   onStopTestVotes,
+  onResetTestVotes,
 }: OperatorOutputModeProps) {
   const navigate = useNavigate();
   // Suppress unused-prop warnings until those features come back. Kept in the
