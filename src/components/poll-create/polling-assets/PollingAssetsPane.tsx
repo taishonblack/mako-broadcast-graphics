@@ -311,6 +311,27 @@ export function PollingAssetsPane({
           <Plus className="w-3.5 h-3.5" /> New Folder
         </Button>
       </div>
+      <AlertDialog
+        open={Boolean(pendingRemoval)}
+        onOpenChange={(open) => { if (!open) setPendingRemoval(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove asset?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingRemoval
+                ? `Remove "${ASSET_REGISTRY[pendingRemoval.assetId]?.label ?? 'this asset'}" from this folder? You can re-add it from the folder menu.`
+                : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button type="button" variant="destructive" onClick={confirmRemoval}>
+              Remove
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
