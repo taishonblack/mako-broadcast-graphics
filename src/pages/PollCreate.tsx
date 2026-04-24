@@ -37,6 +37,7 @@ import { themePresets } from '@/lib/themes';
 import { TemplateName, Poll, PollOption, QRPosition, VotingState, LiveState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
 import { broadcastOutputState } from '@/lib/output-state';
+import { EQUAL_BASE, equalShareAnswers } from '@/lib/answer-percents';
 import { FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Monitor, Radio, Undo2, Redo2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
 import { loadPoll, savePoll, listPolls, listProjects, DraftPollPayload, SavedPoll, BlockLetter } from '@/lib/poll-persistence';
@@ -248,8 +249,8 @@ export default function PollCreate() {
   const [mcLabelStyle, setMcLabelStyle] = useState<MCLabelStyle>('letters');
   const [previewDataMode, setPreviewDataMode] = useState<PreviewDataMode>('test');
   const [answers, setAnswers] = useState<{ id: string; text: string; shortLabel: string; testVotes?: number }[]>([
-    { id: '1', text: '', shortLabel: '', testVotes: 720 },
-    { id: '2', text: '', shortLabel: '', testVotes: 540 },
+    { id: '1', text: '', shortLabel: '', testVotes: EQUAL_BASE },
+    { id: '2', text: '', shortLabel: '', testVotes: EQUAL_BASE },
   ]);
   const [showLiveResults, setShowLiveResults] = useState(true);
   const [showThankYou, setShowThankYou] = useState(true);
@@ -303,10 +304,9 @@ export default function PollCreate() {
         setSelectedTemplate(p.template);
         setAnswerType(p.answerType);
         setMcLabelStyle(p.mcLabelStyle);
-        setAnswers(p.answers.length ? p.answers : [
-          { id: '1', text: '', shortLabel: '', testVotes: 0 },
-          { id: '2', text: '', shortLabel: '', testVotes: 0 },
-        ]);
+        setAnswers(p.answers.length
+          ? p.answers.map((a) => ({ ...a, testVotes: a.testVotes ?? EQUAL_BASE }))
+          : equalShareAnswers(2));
         setShowLiveResults(p.showLiveResults);
         setShowThankYou(p.showThankYou);
         setShowFinalResults(p.showFinalResults);
@@ -703,10 +703,9 @@ export default function PollCreate() {
     setSelectedTemplate(p.template);
     setAnswerType(p.answerType);
     setMcLabelStyle(p.mcLabelStyle);
-    setAnswers(p.answers.length ? p.answers : [
-      { id: '1', text: '', shortLabel: '', testVotes: 0 },
-      { id: '2', text: '', shortLabel: '', testVotes: 0 },
-    ]);
+    setAnswers(p.answers.length
+      ? p.answers.map((a) => ({ ...a, testVotes: a.testVotes ?? EQUAL_BASE }))
+      : equalShareAnswers(2));
     setShowLiveResults(p.showLiveResults);
     setShowThankYou(p.showThankYou);
     setShowFinalResults(p.showFinalResults);
@@ -1427,10 +1426,12 @@ export default function PollCreate() {
 
   const handleAddAnswer = () => {
     if (answerType === 'yes-no' || answers.length >= 4) return;
-    setAnswers([
+    // Add the new bar and re-equalize so all bars share 100% evenly.
+    const next = [
       ...answers,
-      { id: String(Date.now()), text: '', shortLabel: '', testVotes: 0 },
-    ]);
+      { id: String(Date.now()), text: '', shortLabel: '', testVotes: EQUAL_BASE },
+    ].map((a) => ({ ...a, testVotes: EQUAL_BASE }));
+    setAnswers(next);
   };
 
   const handleTransformChange = (assetId: AssetId, field: TransformField, value: number) => {
@@ -1725,11 +1726,12 @@ export default function PollCreate() {
             onEndPoll={handleEndPoll}
             onOpenVoting={() => setVotingState('open')}
             onCloseVoting={() => setVotingState('closed')}
-            onDuplicatePoll={handleDuplicate}
             testVoteRunning={testVoteRunning}
             onStartTestVotes={handleStartTestVotes}
             onStopTestVotes={handleStopTestVotes}
             onResetTestVotes={handleResetTestVotes}
+            answers={answers}
+            onSetAnswers={setAnswers}
             onQrSizeChange={setQrSize}
             onQrPositionChange={(next) => setAssetState((current) => ({ ...current, qrPosition: next }))}
             onShowBrandingChange={setShowBranding}

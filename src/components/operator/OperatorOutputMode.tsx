@@ -10,7 +10,8 @@ import { useState } from 'react';
 import { BLOCK_LETTERS, BlockLetter, DEFAULT_BLOCK_LABELS, SavedPoll } from '@/lib/poll-persistence';
 import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { ChevronDown, ChevronRight, Copy, Eye, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Square, StopCircle, Vote, XCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Eye, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Square, StopCircle, Vote, XCircle } from 'lucide-react';
+import { percentsFromAnswers, rebalancePercents, answersFromPercents, AnswerLite } from '@/lib/answer-percents';
 
 export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
 
@@ -55,7 +56,6 @@ interface OperatorOutputModeProps {
   onEndPoll: () => void;
   onOpenVoting: () => void;
   onCloseVoting: () => void;
-  onDuplicatePoll: () => void;
   onRescanPolls?: () => void;
   onQrSizeChange: (size: number) => void;
   onQrPositionChange: (position: QRPosition) => void;
@@ -67,6 +67,14 @@ interface OperatorOutputModeProps {
   onStopTestVotes?: () => void;
   /** Reset live/test vote tallies on the current poll back to zero. */
   onResetTestVotes?: () => void;
+  /**
+   * Live answer-bar editing. Receives the canonical answers list (with
+   * testVotes already re-derived from the new percentages) and writes it
+   * back into the same Build state, so the inspector and output stay in
+   * lockstep without any extra plumbing.
+   */
+  answers?: AnswerLite[];
+  onSetAnswers?: (next: AnswerLite[]) => void;
 }
 
 export function OperatorOutputMode({
@@ -100,7 +108,6 @@ export function OperatorOutputMode({
   onEndPoll,
   onOpenVoting,
   onCloseVoting,
-  onDuplicatePoll,
   onRescanPolls,
   onQrSizeChange,
   onQrPositionChange,
@@ -110,6 +117,8 @@ export function OperatorOutputMode({
   onStartTestVotes,
   onStopTestVotes,
   onResetTestVotes,
+  answers,
+  onSetAnswers,
 }: OperatorOutputModeProps) {
   const navigate = useNavigate();
   // Suppress unused-prop warnings until those features come back. Kept in the
@@ -310,6 +319,47 @@ export function OperatorOutputMode({
             </PreviewWithOverlays>
           </MonitorContainer>
 
+          {/* Live answer-bar percentages. Edits write back into the same Build
+              state that the inspector reads from, so Build and Output stay in
+              perfect sync without any extra storage layer. */}
+          {answers && onSetAnswers && answers.length > 0 && (
+            <div className="mako-panel p-3 space-y-2">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-mono uppercase text-muted-foreground">Answer Bars · Live %</p>
+                <span className="text-[10px] font-mono text-muted-foreground">
+                  {percentsFromAnswers(answers).reduce((s, v) => s + v, 0).toFixed(0)}%
+                </span>
+              </div>
+              <div className="space-y-1.5">
+                {answers.map((a, i) => {
+                  const livePercents = percentsFromAnswers(answers);
+                  return (
+                    <div key={a.id} className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-sm bg-primary/70" />
+                      <span className="flex-1 truncate text-[11px] text-foreground">{a.text || `Answer ${i + 1}`}</span>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={livePercents[i] ?? 0}
+                        onChange={(e) => {
+                          const next = rebalancePercents(livePercents, i, Number(e.target.value));
+                          onSetAnswers(answersFromPercents(answers, next));
+                        }}
+                        className="h-7 w-16 text-right text-xs"
+                      />
+                      <span className="text-[10px] text-muted-foreground">%</span>
+                    </div>
+                  );
+                })}
+              </div>
+              <p className="text-[10px] text-muted-foreground">
+                Edits sync to Build's inspector instantly.
+              </p>
+            </div>
+          )}
+
           {/* Test-vote runner — inject N votes over T seconds and watch the
               bars + counters animate in the preview above. Useful for QA'ing
               the chart animation without opening a viewer browser. */}
@@ -439,9 +489,6 @@ export function OperatorOutputMode({
                   <XCircle className="h-3.5 w-3.5" /> Close Voting
                 </Button>
               )}
-              <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs" onClick={onDuplicatePoll}>
-                <Copy className="h-3.5 w-3.5" /> Duplicate Poll
-              </Button>
               {onRescanPolls ? (
                 <Button
                   variant="outline"
@@ -454,7 +501,7 @@ export function OperatorOutputMode({
                 </Button>
               ) : null}
               <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs">
-                <Eye className="h-3.5 w-3.5" /> Preview Slate
+                <Eye className="h-3.5 w-3.5" /> Preview Polling Slate
               </Button>
               <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs" onClick={() => navigate(`/polls/${currentPoll.id}?mode=build`)}>
                 <Eye className="h-3.5 w-3.5" /> Open Build Mode

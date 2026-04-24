@@ -508,10 +508,6 @@ export default function Dashboard() {
                       <PlusCircle className="w-3.5 h-3.5" /> New Poll
                     </TipButton>
                   </Link>
-                  <TipButton tip="Duplicate the active poll inside the current project" variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9" onClick={handleDuplicatePoll}>
-                    <Copy className="w-3.5 h-3.5" /> Duplicate Poll
-                  </TipButton>
-                  <div className="border-t border-border my-1" />
                   {activePoll.votingState !== 'open' ? (
                     <TipButton tip="Allow mobile users to submit responses" variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9 text-[hsl(var(--mako-success))]" onClick={handleOpenVoting}>
                       <Vote className="w-3.5 h-3.5" /> Open Voting
@@ -522,8 +518,8 @@ export default function Dashboard() {
                     </TipButton>
                   )}
                   <div className="border-t border-border my-1" />
-                  <TipButton tip="Preview mobile slate states before sending" variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9">
-                    <Eye className="w-3.5 h-3.5" /> Preview Slate
+                  <TipButton tip="Preview the polling slate (countdown / 'voting opens soon')" variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9">
+                    <Eye className="w-3.5 h-3.5" /> Preview Polling Slate
                   </TipButton>
                   <Link to={`/graphics/${activePoll.id}`}>
                     <TipButton tip="Open the visual design editor for this poll" variant="ghost" size="sm" className="w-full justify-start gap-2 text-xs h-9">

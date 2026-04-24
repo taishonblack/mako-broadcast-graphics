@@ -12,6 +12,12 @@ import { Trash2, PlusCircle, GripVertical } from 'lucide-react';
 import { BackgroundPicker } from '@/components/poll-create/BackgroundPicker';
 import { MediaPicker } from '@/components/poll-create/MediaPicker';
 import { Dispatch, SetStateAction, useState } from 'react';
+import {
+  answersFromPercents,
+  EQUAL_BASE,
+  percentsFromAnswers,
+  rebalancePercents,
+} from '@/lib/answer-percents';
 
 interface AssetInspectorProps {
   selectedAssetId: AssetId | null;
@@ -220,17 +226,23 @@ export function AssetInspector(p: AssetInspectorProps) {
                     disabled={p.answerType === 'yes-no'}
                     className="bg-background/50 h-7 text-[11px] flex-1"
                   />
-                  <Input
-                    type="number"
-                    min={0}
-                    value={a.testVotes ?? 0}
-                    onChange={(e) => {
-                      const next = [...p.answers];
-                      next[i] = { ...next[i], testVotes: Number(e.target.value) || 0 };
-                      p.setAnswers(next);
-                    }}
-                    className="bg-primary/5 border-primary/30 h-7 text-[10px] w-14 font-mono"
-                  />
+                  <div className="flex items-center gap-0.5">
+                    <Input
+                      type="number"
+                      min={0}
+                      max={100}
+                      step={1}
+                      value={(percentsFromAnswers(p.answers)[i] ?? 0)}
+                      onChange={(e) => {
+                        const currentPercents = percentsFromAnswers(p.answers);
+                        const nextPercents = rebalancePercents(currentPercents, i, Number(e.target.value));
+                        p.setAnswers(answersFromPercents(p.answers, nextPercents));
+                      }}
+                      title="Bar percentage of total votes. Editing one re-balances the others to keep the sum at 100%."
+                      className="bg-primary/5 border-primary/30 h-7 text-[10px] w-14 font-mono text-right"
+                    />
+                    <span className="text-[10px] text-muted-foreground">%</span>
+                  </div>
                   <button
                     onClick={() => {
                       if (p.answers.length > 2) p.setAnswers(p.answers.filter((x) => x.id !== a.id));
@@ -245,10 +257,13 @@ export function AssetInspector(p: AssetInspectorProps) {
               {p.answerType !== 'yes-no' && p.answers.length < 4 && (
                 <Button
                   variant="outline" size="sm"
-                  onClick={() => p.setAnswers([
-                    ...p.answers,
-                    { id: String(Date.now()), text: '', shortLabel: '', testVotes: 0 },
-                  ])}
+                  onClick={() => {
+                    const next = [
+                      ...p.answers,
+                      { id: String(Date.now()), text: '', shortLabel: '', testVotes: EQUAL_BASE },
+                    ].map((a) => ({ ...a, testVotes: EQUAL_BASE }));
+                    p.setAnswers(next);
+                  }}
                   className="w-full h-7 text-[10px] gap-1"
                 >
                   <PlusCircle className="w-3 h-3" /> Add Answer
