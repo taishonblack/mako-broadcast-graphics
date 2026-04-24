@@ -69,6 +69,21 @@ export interface AssetTransformConfig {
 export type AssetTransformMap = Record<AssetId, AssetTransformConfig>;
 export type AssetColorMap = Record<AssetId, AssetColorConfig>;
 
+/**
+ * Output viewports the operator can target with independent transforms.
+ * - `program`: broadcast composition (1920×1080) — this is the canonical set
+ *   that scenes render from.
+ * - `mobile`:  voter mobile viewport overrides
+ * - `desktop`: voter desktop viewport overrides
+ *
+ * Scenes should always read from `set.program` unless they explicitly opt
+ * into a different viewport. The inspector edits the active viewport's
+ * slice so a slider change on the Mobile tab only affects Mobile.
+ */
+export type TransformViewport = 'program' | 'mobile' | 'desktop';
+
+export type AssetTransformSet = Record<TransformViewport, AssetTransformMap>;
+
 const DEFAULT_TRANSFORM_LOCKS: Record<TransformField, boolean> = {
   x: false,
   y: false,
