@@ -60,6 +60,18 @@ type OperatorMode = 'build' | 'output';
 /* ---------- Workspace layout persistence ---------- */
 
 const WORKSPACE_LAYOUT_KEY = 'mako-draft-workspace-layout-v1';
+const ASSET_STATE_STORAGE_KEY = 'mako-asset-state-v1';
+
+function loadPersistedAssetState(): AssetState {
+  try {
+    const raw = localStorage.getItem(ASSET_STATE_STORAGE_KEY);
+    if (!raw) return DEFAULT_ASSET_STATE;
+    const parsed = JSON.parse(raw) as Partial<AssetState>;
+    return { ...DEFAULT_ASSET_STATE, ...parsed };
+  } catch {
+    return DEFAULT_ASSET_STATE;
+  }
+}
 
 const buildActiveFolderStorageKey = (projectId?: string) => `mako-active-folder:${projectId ?? 'draft'}`;
 
