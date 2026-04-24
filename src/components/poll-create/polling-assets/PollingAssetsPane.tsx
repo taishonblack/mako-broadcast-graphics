@@ -129,8 +129,11 @@ export function PollingAssetsPane({
       <div className="flex-1 overflow-y-auto p-3 space-y-3">
         {folders.map((folder) => {
           const folderAssets = folder.assetIds;
+          // 'image' stays available even after it's been added so operators can
+          // re-open the inspector / swap pictures without it disappearing from
+          // the menu like other singletons.
           const folderAvailableAssets = (Object.keys(ASSET_REGISTRY) as AssetId[])
-            .filter((assetId) => !folderAssets.includes(assetId));
+            .filter((assetId) => assetId === 'image' || !folderAssets.includes(assetId));
           const isActiveFolder = folder.id === activeFolderId;
           const isCollapsed = Boolean(folder.collapsed);
 
