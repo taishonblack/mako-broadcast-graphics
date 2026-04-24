@@ -272,6 +272,17 @@ export function OperatorOutputMode({
               <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs" onClick={onDuplicatePoll}>
                 <Copy className="h-3.5 w-3.5" /> Duplicate Poll
               </Button>
+              {onRescanPolls ? (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="w-full justify-start gap-2 text-xs"
+                  onClick={onRescanPolls}
+                  title="Reload polls from the database to clear phantom or stale entries"
+                >
+                  <RefreshCw className="h-3.5 w-3.5" /> Re-scan Polls
+                </Button>
+              ) : null}
               <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs">
                 <Eye className="h-3.5 w-3.5" /> Preview Slate
               </Button>
