@@ -1680,6 +1680,9 @@ export default function PollCreate() {
             onOpenVoting={() => setVotingState('open')}
             onCloseVoting={() => setVotingState('closed')}
             onDuplicatePoll={handleDuplicate}
+            testVoteRunning={testVoteRunning}
+            onStartTestVotes={handleStartTestVotes}
+            onStopTestVotes={handleStopTestVotes}
             onQrSizeChange={setQrSize}
             onQrPositionChange={(next) => setAssetState((current) => ({ ...current, qrPosition: next }))}
             onShowBrandingChange={setShowBranding}
