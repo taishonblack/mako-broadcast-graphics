@@ -13,7 +13,6 @@ import { AssetColorMap, AssetId, AssetState, DEFAULT_ASSET_COLORS, DEFAULT_ASSET
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -550,13 +549,6 @@ export default function PollCreate() {
     ];
   }, [projectPolls, currentWorkspacePoll, projectId, pollId, question, answerType, mcLabelStyle, answers, previewDataMode, bgColor, bgImage]);
 
-  const outputFolders = useMemo(
-    () => folderState.folders
-      .filter((folder) => folder.assetIds.length > 0)
-      .map((folder) => ({ id: folder.id, name: folder.name, blockLetter: folder.blockLetter })),
-    [folderState.folders],
-  );
-
   // In output mode, auto-select the first block that actually has polls (A → E priority),
   // unless the operator has pinned a specific block. Tracks WHY the block was selected.
   useEffect(() => {
@@ -854,7 +846,14 @@ export default function PollCreate() {
   const [foldersLoadedForProject, setFoldersLoadedForProject] = useState<string | null>(null);
   const [selectionHistory, setSelectionHistory] = useState<Record<string, SelectionHistory>>({});
   const [backgroundImageMissing, setBackgroundImageMissing] = useState(false);
-  const [lastDeletedFolderState, setLastDeletedFolderState] = useState<PollingAssetFolderState | null>(null);
+  const [_lastDeletedFolderState, setLastDeletedFolderState] = useState<PollingAssetFolderState | null>(null);
+
+  const outputFolders = useMemo(
+    () => folderState.folders
+      .filter((folder) => folder.assetIds.length > 0)
+      .map((folder) => ({ id: folder.id, name: folder.name, blockLetter: folder.blockLetter })),
+    [folderState.folders],
+  );
 
   // Signature of folders relevant to Output mode (id, name, blockLetter).
   // When this changes (rename / delete / new / re-block), trigger a rescan
