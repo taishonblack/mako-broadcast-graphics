@@ -1566,7 +1566,10 @@ export default function PollCreate() {
             showBranding={showBranding}
             brandingPosition={brandingPosition}
             previewNode={renderOutputScene()}
-            onSelectBlock={setOutputActiveBlock}
+            onSelectBlock={(letter) => {
+              setOutputActiveBlock(letter);
+              setOutputBlockSource(outputBlockPinned ? 'pinned' : 'manual');
+            }}
             onSelectPoll={(selectedId) => {
               if (selectedId === currentWorkspacePoll.id) return;
               navigate(`/polls/${selectedId}?mode=output`);
