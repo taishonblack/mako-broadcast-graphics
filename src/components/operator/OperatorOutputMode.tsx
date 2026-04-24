@@ -161,6 +161,94 @@ export function OperatorOutputMode({
   const [testVoteTotal, setTestVoteTotal] = useState(100);
   const [testVoteDuration, setTestVoteDuration] = useState(30);
   const [targetsOpen, setTargetsOpen] = useState(false);
+
+  // ─── Output Inspector state ────────────────────────────────────────────
+  // Polling Slate: text or image shown when no poll is on-air. Countdown
+  // (seconds) optional; when it hits zero we auto-switch to the live scene
+  // by invoking onGoLive (per Phase 2 product spec).
+  const [slateText, setSlateText] = useState('Polling will open soon');
+  const [slateImage, setSlateImage] = useState<string | undefined>(undefined);
+  const [slateActive, setSlateActive] = useState(false);
+  const [slateCountdown, setSlateCountdown] = useState<number>(60); // seconds
+  const [slateRemaining, setSlateRemaining] = useState<number | null>(null);
+  const slateTimerRef = useRef<number | null>(null);
+
+  // Open Vote scheduling. 'now' opens immediately. 'in' opens after N
+  // minutes. 'at' opens at a specific HH:MM (local time).
+  const [voteSchedule, setVoteSchedule] = useState<'now' | 'in' | 'at'>('now');
+  const [voteInMinutes, setVoteInMinutes] = useState(10);
+  const [voteAtTime, setVoteAtTime] = useState(''); // HH:MM
+  const [voteScheduledFor, setVoteScheduledFor] = useState<number | null>(null);
+  const voteTimerRef = useRef<number | null>(null);
+
+  // Tick the slate countdown. When it reaches 0 we hand off by calling
+  // onGoLive — operator can also cancel mid-countdown by clicking Stop.
+  useEffect(() => {
+    if (!slateActive || slateRemaining === null) return;
+    if (slateRemaining <= 0) {
+      setSlateActive(false);
+      setSlateRemaining(null);
+      onGoLive();
+      return;
+    }
+    slateTimerRef.current = window.setTimeout(() => {
+      setSlateRemaining((r) => (r === null ? null : r - 1));
+    }, 1000);
+    return () => {
+      if (slateTimerRef.current) window.clearTimeout(slateTimerRef.current);
+    };
+  }, [slateActive, slateRemaining, onGoLive]);
+
+  // Wait for the scheduled Open Vote moment, then trigger onOpenVoting once.
+  useEffect(() => {
+    if (voteScheduledFor === null) return;
+    const ms = Math.max(0, voteScheduledFor - Date.now());
+    voteTimerRef.current = window.setTimeout(() => {
+      onOpenVoting();
+      setVoteScheduledFor(null);
+    }, ms);
+    return () => {
+      if (voteTimerRef.current) window.clearTimeout(voteTimerRef.current);
+    };
+  }, [voteScheduledFor, onOpenVoting]);
+
+  const handleStartSlate = () => {
+    setSlateActive(true);
+    setSlateRemaining(slateCountdown > 0 ? slateCountdown : null);
+  };
+  const handleStopSlate = () => {
+    setSlateActive(false);
+    setSlateRemaining(null);
+  };
+  const handleScheduleVote = () => {
+    if (voteSchedule === 'now') {
+      onOpenVoting();
+      return;
+    }
+    let target = Date.now();
+    if (voteSchedule === 'in') {
+      target += Math.max(0, voteInMinutes) * 60_000;
+    } else if (voteSchedule === 'at' && voteAtTime) {
+      const [h, m] = voteAtTime.split(':').map(Number);
+      const d = new Date();
+      d.setHours(h, m, 0, 0);
+      if (d.getTime() < Date.now()) d.setDate(d.getDate() + 1); // tomorrow if past
+      target = d.getTime();
+    }
+    setVoteScheduledFor(target);
+  };
+  const handleCancelVoteSchedule = () => setVoteScheduledFor(null);
+
+  const slateActiveClass = slateActive
+    ? 'border-mako-success/60 bg-mako-success/15 text-mako-success hover:bg-mako-success/25'
+    : '';
+  const outputActiveClass = liveState !== 'not_live'
+    ? 'border-mako-success/60 bg-mako-success/15 text-mako-success hover:bg-mako-success/25'
+    : '';
+  const votingActiveClass = votingState === 'open'
+    ? 'border-mako-success/60 bg-mako-success/15 text-mako-success hover:bg-mako-success/25'
+    : '';
+
   // Per-answer target percentages for the test-vote runner. Initialized to
   // an even split across the active poll's answers; auto-rebalances so the
   // sum is always exactly 100. When the operator edits one bar, the other
