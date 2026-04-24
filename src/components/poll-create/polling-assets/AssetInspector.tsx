@@ -34,6 +34,13 @@ interface AssetInspectorProps {
   setAssetState: Dispatch<SetStateAction<AssetState>>;
   /** When set, the inspector pulses the matching control to draw operator attention */
   highlightField?: string | null;
+  /**
+   * Reset an asset's X/Y transform offset to 0. Called when the operator picks a
+   * Quick Placement preset so the new anchor (TL/TR/BL/BR) actually shows the
+   * asset at that corner instead of leaving a stale center/translate offset
+   * that traps it on one side of the 1920x1080 stage.
+   */
+  onResetAssetPosition?: (assetId: AssetId) => void;
 }
 
 export function AssetInspector(p: AssetInspectorProps) {
