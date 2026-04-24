@@ -21,7 +21,8 @@ import { useEffect, useRef, useState } from 'react';
 import { BLOCK_LETTERS, BlockLetter, DEFAULT_BLOCK_LABELS, SavedPoll } from '@/lib/poll-persistence';
 import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { ChevronDown, ChevronRight, Clock, Eye, Image as ImageIcon, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Square, StopCircle, Vote, XCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, Eye, Globe, Image as ImageIcon, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Smartphone, Square, StopCircle, Vote, XCircle } from 'lucide-react';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { percentsFromAnswers, rebalancePercents, answersFromPercents, AnswerLite } from '@/lib/answer-percents';
 
 export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
@@ -190,6 +191,11 @@ export function OperatorOutputMode({
   const [confirmOpenVoting, setConfirmOpenVoting] = useState(false);
   const [goLivePending, setGoLivePending] = useState(false);
   const [openVotingPending, setOpenVotingPending] = useState(false);
+
+  // Program / Mobile / Desktop preview toggle — mirrors Build's preview tabs
+  // so operators can sanity-check what mobile and desktop voters currently
+  // see (background + slate) without leaving the output workspace.
+  const [previewMode, setPreviewMode] = useState<'program' | 'mobile' | 'desktop'>('program');
 
   // Open Vote scheduling. 'now' opens immediately. 'in' opens after N
   // minutes. 'at' opens at a specific HH:MM (local time).
@@ -399,16 +405,59 @@ export function OperatorOutputMode({
         <div className="min-h-0 overflow-auto space-y-3">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-foreground">Program Preview</h2>
+              <h2 className="text-sm font-semibold text-foreground">
+                {previewMode === 'program' ? 'Program Preview' : 'Viewer Preview'}
+              </h2>
             </div>
-            <span className="mako-chip bg-muted text-muted-foreground">1920×1080</span>
+            <div className="flex items-center gap-2">
+              <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5">
+                {([
+                  { mode: 'program' as const, icon: Monitor, label: 'Program', tooltip: 'Broadcast Output — what goes to air' },
+                  { mode: 'mobile' as const, icon: Smartphone, label: 'Mobile', tooltip: 'Viewer Mobile — what voters see on phone' },
+                  { mode: 'desktop' as const, icon: Globe, label: 'Desktop', tooltip: 'Viewer Desktop — what voters see in browser' },
+                ]).map(({ mode, icon: Icon, label, tooltip }) => (
+                  <Tooltip key={mode}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setPreviewMode(mode)}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-all ${
+                          previewMode === mode
+                            ? 'bg-primary/15 text-primary'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <Icon className="w-3 h-3" />
+                        {label}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">{tooltip}</TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+              {previewMode === 'program' && (
+                <span className="mako-chip bg-muted text-muted-foreground">1920×1080</span>
+              )}
+            </div>
           </div>
 
-          <MonitorContainer variant="operator">
-            <PreviewWithOverlays showLabel label="1920×1080">
-              {previewNode}
-            </PreviewWithOverlays>
-          </MonitorContainer>
+          {previewMode === 'program' ? (
+            <MonitorContainer variant="operator">
+              <PreviewWithOverlays showLabel label="1920×1080">
+                {previewNode}
+              </PreviewWithOverlays>
+            </MonitorContainer>
+          ) : (
+            <div className="flex justify-center">
+              <ViewerSlatePreview
+                mode={previewMode}
+                bgImage={currentPoll.bgImage}
+                bgColor={currentPoll.bgColor}
+                slateActive={slateActive}
+                slateText={slateText}
+                slateImage={slateImage}
+              />
+            </div>
+          )}
 
           {/* Live answer-bar percentages. Edits write back into the same Build
               state that the inspector reads from, so Build and Output stay in
@@ -857,6 +906,69 @@ export function OperatorOutputMode({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+    </div>
+  );
+}
+
+/**
+ * Lightweight viewer mockup used in Output's Program Preview tabs. Shows the
+ * background + MakoVote wordmark — and, when the polling slate is active,
+ * overlays the slate image / message — so operators can confirm what mobile
+ * and desktop voters currently see while waiting for voting to open.
+ */
+function ViewerSlatePreview({
+  mode,
+  bgImage,
+  bgColor,
+  slateActive,
+  slateText,
+  slateImage,
+}: {
+  mode: 'mobile' | 'desktop';
+  bgImage?: string;
+  bgColor?: string;
+  slateActive: boolean;
+  slateText: string;
+  slateImage?: string;
+}) {
+  const sizeClass = mode === 'mobile' ? 'w-[280px] h-[500px]' : 'w-full max-w-lg h-[420px]';
+  const bgStyle: React.CSSProperties = bgImage
+    ? { backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : { background: `linear-gradient(135deg, ${bgColor || 'hsl(220 25% 6%)'}, hsl(220, 25%, 4%))` };
+
+  return (
+    <div className={`bg-background border border-border rounded-lg overflow-hidden shadow-xl ${sizeClass}`}>
+      <div className="h-6 bg-card/80 border-b border-border flex items-center px-2 gap-1">
+        <div className="w-1.5 h-1.5 rounded-full bg-destructive/60" />
+        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
+        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
+        <span className="text-[8px] text-muted-foreground ml-1 font-mono truncate">makovote.app/vote</span>
+      </div>
+      <div className="relative h-[calc(100%-1.5rem)] overflow-hidden" style={bgStyle}>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%)' }} />
+        <div className="relative h-full flex flex-col items-center justify-center gap-4 px-6 text-center">
+          <div className="flex items-baseline justify-center font-semibold leading-none select-none text-3xl">
+            <span className="text-foreground/90">Mako</span>
+            <span className="text-primary">Vote</span>
+          </div>
+          {slateActive ? (
+            <>
+              {slateImage && (
+                <img
+                  src={slateImage}
+                  alt="Polling slate"
+                  className="max-h-[40%] max-w-[80%] object-contain rounded-md border border-border/40"
+                />
+              )}
+              <p className="text-xs font-mono uppercase tracking-wider text-foreground/90">{slateText}</p>
+            </>
+          ) : (
+            <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/80">
+              Waiting for voting to open
+            </p>
+          )}
+        </div>
+      </div>
     </div>
   );
 }
