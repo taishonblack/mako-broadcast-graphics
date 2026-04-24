@@ -263,7 +263,11 @@ export default function PollCreate() {
   const [blockPosition, setBlockPosition] = useState<number>(1);
   const [mode, setMode] = useState<OperatorMode>(searchParams.get('mode') === 'output' ? 'output' : 'build');
   const [projectPolls, setProjectPolls] = useState<SavedPoll[]>([]);
-  const [outputActiveBlock, setOutputActiveBlock] = useState<BlockLetter>('A');
+  const [outputActiveBlock, setOutputActiveBlock] = useState<BlockLetter>(() => loadPersistedOutputBlock().block);
+  const [outputBlockPinned, setOutputBlockPinned] = useState<boolean>(() => loadPersistedOutputBlock().pinned);
+  const [outputBlockSource, setOutputBlockSource] = useState<OutputBlockSource>(() => (
+    loadPersistedOutputBlock().pinned ? 'pinned' : 'default'
+  ));
   const [votingState, setVotingState] = useState<VotingState>('not_open');
   const [liveState, setLiveState] = useState<LiveState>('not_live');
   const [previewScene, setPreviewScene] = useState<SceneType>('fullscreen');
