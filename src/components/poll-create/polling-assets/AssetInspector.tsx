@@ -299,7 +299,10 @@ export function AssetInspector(p: AssetInspectorProps) {
                 {(['top-left', 'top-right', 'bottom-left', 'bottom-right'] as const).map((pos) => (
                   <button
                     key={pos}
-                    onClick={() => p.setAssetState((current) => ({ ...current, qrPosition: pos }))}
+                    onClick={() => {
+                      p.setAssetState((current) => ({ ...current, qrPosition: pos }));
+                      p.onResetAssetPosition?.('qr');
+                    }}
                     className={`p-1.5 rounded-md text-[10px] font-medium border transition-all ${
                       p.assetState.qrPosition === pos
                         ? 'bg-primary/10 border-primary/30 text-primary'
