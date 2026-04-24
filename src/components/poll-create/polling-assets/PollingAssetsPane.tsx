@@ -6,6 +6,15 @@ import {
   DropdownMenuLabel, DropdownMenuRadioGroup, DropdownMenuRadioItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu';
 import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
+import {
   Type, ListChecks, AlignLeft, Image as ImageIcon, QrCode,
   Sparkles, Users, Plus, X, GripVertical, ChevronDown, MoreVertical, FolderOpen,
 } from 'lucide-react';
@@ -77,6 +86,19 @@ export function PollingAssetsPane({
   onAddAnswer,
 }: PollingAssetsPaneProps) {
   const [draggedId, setDraggedId] = useState<AssetId | null>(null);
+  const [pendingRemoval, setPendingRemoval] = useState<{ folderId: string; assetId: AssetId } | null>(null);
+
+  const confirmRemoval = () => {
+    if (!pendingRemoval) return;
+    const { folderId, assetId } = pendingRemoval;
+    const folder = folders.find((f) => f.id === folderId);
+    if (folder) {
+      onSelectFolder(folderId);
+      onEnabledAssetsChange(folder.assetIds.filter((id) => id !== assetId));
+      if (selectedAssetId === assetId) onSelectAsset(null);
+    }
+    setPendingRemoval(null);
+  };
 
   const reorder = (fromId: AssetId, toId: AssetId) => {
     if (fromId === toId) return;
@@ -261,7 +283,7 @@ export function PollingAssetsPane({
                     meta={ASSET_REGISTRY[id]}
                     isSelected={selectedAssetId === id}
                     onSelect={() => { onSelectFolder(folder.id); onSelectAsset(id); }}
-                    onRemove={() => { onSelectFolder(folder.id); onEnabledAssetsChange(folderAssets.filter((assetId) => assetId !== id)); if (selectedAssetId === id) onSelectAsset(null); }}
+                    onRemove={() => setPendingRemoval({ folderId: folder.id, assetId: id })}
                     onDragStart={() => setDraggedId(id)}
                     onDragOver={(e) => { e.preventDefault(); }}
                     onDrop={() => { onSelectFolder(folder.id); if (draggedId) reorder(draggedId, id); setDraggedId(null); }}
@@ -289,6 +311,27 @@ export function PollingAssetsPane({
           <Plus className="w-3.5 h-3.5" /> New Folder
         </Button>
       </div>
+      <AlertDialog
+        open={Boolean(pendingRemoval)}
+        onOpenChange={(open) => { if (!open) setPendingRemoval(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Remove asset?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingRemoval
+                ? `Remove "${ASSET_REGISTRY[pendingRemoval.assetId]?.label ?? 'this asset'}" from this folder? You can re-add it from the folder menu.`
+                : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button type="button" variant="destructive" onClick={confirmRemoval}>
+              Remove
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }

@@ -403,7 +403,6 @@ export default function PollCreate() {
   );
   const previewTotal = previewOptions.reduce((sum, o) => sum + o.votes, 0);
   const previewQuestion = question || 'Your question here?';
-  const hasContent = question.length > 0 || answers.some(a => a.text.length > 0);
 
   const slugForUrl = slug || 'your-poll-slug';
   const fullUrl = `https://makovote.app/vote/${slugForUrl}`;
@@ -703,6 +702,11 @@ export default function PollCreate() {
 
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
+  // Show MakoVote branding when the folder has no assets, or when no question
+  // text or answer bars have been authored yet.
+  const hasContent =
+    enabledAssets.length > 0 &&
+    (question.length > 0 || answers.some((a) => a.text.length > 0));
   const activeInspectorAssetIds = selectedAssetId ? [selectedAssetId] : enabledAssets;
   const activeHistoryKey = selectedAssetId ?? `folder:${folderState.activeFolderId ?? 'none'}`;
   const currentHistory = selectionHistory[activeHistoryKey] ?? { undo: [], redo: [] };
@@ -884,7 +888,12 @@ export default function PollCreate() {
         setAssetColors(DEFAULT_ASSET_COLORS);
         setFoldersLoadedForProject(projectId);
       });
-  }, [bgColor, projectId, question, user]);
+    // Intentionally only depend on projectId/user. Reloading on bgColor/question
+    // changes caused deleted folders to reappear because the active-folder sync
+    // effect mutates bgColor/question, retriggering this load before the save
+    // had committed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, user]);
 
   useEffect(() => {
     if (!folderState.activeFolderId) return;
@@ -1032,15 +1041,20 @@ export default function PollCreate() {
   const handleDeleteFolder = (folderId: string) => {
     updateFolderState((current) => {
       const targetFolder = current.folders.find((folder) => folder.id === folderId);
-      if (!targetFolder || current.folders.length === 1) return current;
+      if (!targetFolder) return current;
+
+      // If deleting the last folder, replace it with a fresh empty default
+      // folder so the workspace is never folder-less.
+      if (current.folders.length === 1) {
+        const replacement = createDefaultFolderState('', '#1a1a2e');
+        return replacement;
+      }
 
       const remainingFolders = current.folders.filter((folder) => folder.id !== targetFolder.id);
       const fallbackFolder = remainingFolders[0];
-      const mergedAssets = Array.from(new Set([...SEEDED_ASSETS, ...fallbackFolder.assetIds, ...targetFolder.assetIds.filter((assetId) => !SEEDED_ASSETS.includes(assetId))]));
-
       return {
         activeFolderId: fallbackFolder.id,
-        folders: remainingFolders.map((folder) => folder.id === fallbackFolder.id ? { ...folder, assetIds: mergedAssets } : folder),
+        folders: remainingFolders,
       };
     });
     setDeleteFolderTargetId(null);
