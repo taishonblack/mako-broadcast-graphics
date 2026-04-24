@@ -1565,6 +1565,7 @@ export default function PollCreate() {
             projectName={projectName}
             currentPoll={currentWorkspacePoll}
             projectPolls={outputPolls}
+            folders={folderState.folders.map((f) => ({ id: f.id, name: f.name, blockLetter: f.blockLetter }))}
             activeBlock={outputActiveBlock}
             blockSource={outputBlockSource}
             blockPinned={outputBlockPinned}
