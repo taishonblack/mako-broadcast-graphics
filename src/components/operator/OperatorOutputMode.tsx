@@ -61,6 +61,7 @@ export function OperatorOutputMode({
   projectName,
   currentPoll,
   projectPolls,
+  folders = [],
   activeBlock,
   blockSource = 'default',
   blockPinned = false,
@@ -97,6 +98,14 @@ export function OperatorOutputMode({
       .sort((a, b) => (a.blockPosition ?? 999) - (b.blockPosition ?? 999));
     return acc;
   }, { A: [], B: [], C: [], D: [], E: [] });
+
+  // Map a poll → its folder name (folders define what the operator sees as the
+  // organizational label for each block, e.g. "1st Com"). Folder names are looked
+  // up by blockLetter; if multiple folders share a block, the first one wins.
+  const folderNameByBlock = folders.reduce<Record<BlockLetter, string | undefined>>((acc, f) => {
+    if (!acc[f.blockLetter]) acc[f.blockLetter] = f.name;
+    return acc;
+  }, { A: undefined, B: undefined, C: undefined, D: undefined, E: undefined });
 
   return (
     <div className="h-full overflow-hidden">
