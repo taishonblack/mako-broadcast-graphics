@@ -1,4 +1,4 @@
-import { ChevronDown, ChevronRight, Lock, RotateCcw, Unlock } from 'lucide-react';
+import { ChevronDown, ChevronRight, Crosshair, Lock, RotateCcw, Unlock } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
@@ -18,6 +18,8 @@ interface AssetTransformControlsProps {
   onChange: (assetId: AssetId, field: TransformField, value: number) => void;
   onToggleLock: (assetId: AssetId, field: TransformField) => void;
   onColorsChange: (assetId: AssetId, next: AssetColorConfig) => void;
+  /** Optional handler — when provided, a "Center" quick-action button is shown for the asset. */
+  onCenterAsset?: (assetId: AssetId) => void;
 }
 
 const CONTROL_DEFS: Array<{
