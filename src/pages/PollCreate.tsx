@@ -1019,7 +1019,14 @@ export default function PollCreate() {
 
   const handleNewFolder = () => {
     updateFolderState((current) => {
-      const nextIndex = current.folders.length + 1;
+      const usedNumbers = new Set(
+        current.folders
+          .map((f) => /^Folder\s+(\d+)$/i.exec(f.name.trim())?.[1])
+          .filter((n): n is string => Boolean(n))
+          .map((n) => parseInt(n, 10)),
+      );
+      let nextIndex = 1;
+      while (usedNumbers.has(nextIndex)) nextIndex += 1;
       const nextFolder = {
         id: createFolderId(),
         name: createFolderName(nextIndex),
