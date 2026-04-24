@@ -7,11 +7,21 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { useEffect, useRef, useState } from 'react';
 import { BLOCK_LETTERS, BlockLetter, DEFAULT_BLOCK_LABELS, SavedPoll } from '@/lib/poll-persistence';
 import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { ChevronDown, ChevronRight, Clock, Eye, Image as ImageIcon, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Square, StopCircle, Timer, Vote, XCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, Eye, Image as ImageIcon, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Square, StopCircle, Vote, XCircle } from 'lucide-react';
 import { percentsFromAnswers, rebalancePercents, answersFromPercents, AnswerLite } from '@/lib/answer-percents';
 
 export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
@@ -163,15 +173,21 @@ export function OperatorOutputMode({
   const [targetsOpen, setTargetsOpen] = useState(false);
 
   // ─── Output Inspector state ────────────────────────────────────────────
-  // Polling Slate: text or image shown when no poll is on-air. Countdown
-  // (seconds) optional; when it hits zero we auto-switch to the live scene
-  // by invoking onGoLive (per Phase 2 product spec).
+  // Polling Slate: a still image / message shown to mobile voters (and on
+  // program output) until voting opens. Toggle-only — no countdown. Mobile
+  // QR landing renders the slate while `slateActive` is true.
   const [slateText, setSlateText] = useState('Polling will open soon');
   const [slateImage, setSlateImage] = useState<string | undefined>(undefined);
   const [slateActive, setSlateActive] = useState(false);
-  const [slateCountdown, setSlateCountdown] = useState<number>(60); // seconds
-  const [slateRemaining, setSlateRemaining] = useState<number | null>(null);
-  const slateTimerRef = useRef<number | null>(null);
+
+  // Tracks whether the operator has opened the fullscreen Output window.
+  // Drives the green "ACTIVE" state on the Open Output quick action so
+  // operators can see at a glance that a fullscreen surface is live.
+  const [outputOpen, setOutputOpen] = useState(false);
+
+  // Confirmation dialogs for destructive / on-air actions.
+  const [confirmGoLive, setConfirmGoLive] = useState(false);
+  const [confirmOpenVoting, setConfirmOpenVoting] = useState(false);
 
   // Open Vote scheduling. 'now' opens immediately. 'in' opens after N
   // minutes. 'at' opens at a specific HH:MM (local time).
@@ -180,24 +196,6 @@ export function OperatorOutputMode({
   const [voteAtTime, setVoteAtTime] = useState(''); // HH:MM
   const [voteScheduledFor, setVoteScheduledFor] = useState<number | null>(null);
   const voteTimerRef = useRef<number | null>(null);
-
-  // Tick the slate countdown. When it reaches 0 we hand off by calling
-  // onGoLive — operator can also cancel mid-countdown by clicking Stop.
-  useEffect(() => {
-    if (!slateActive || slateRemaining === null) return;
-    if (slateRemaining <= 0) {
-      setSlateActive(false);
-      setSlateRemaining(null);
-      onGoLive();
-      return;
-    }
-    slateTimerRef.current = window.setTimeout(() => {
-      setSlateRemaining((r) => (r === null ? null : r - 1));
-    }, 1000);
-    return () => {
-      if (slateTimerRef.current) window.clearTimeout(slateTimerRef.current);
-    };
-  }, [slateActive, slateRemaining, onGoLive]);
 
   // Wait for the scheduled Open Vote moment, then trigger onOpenVoting once.
   useEffect(() => {
@@ -212,17 +210,19 @@ export function OperatorOutputMode({
     };
   }, [voteScheduledFor, onOpenVoting]);
 
-  const handleStartSlate = () => {
-    setSlateActive(true);
-    setSlateRemaining(slateCountdown > 0 ? slateCountdown : null);
+  const handleToggleSlate = () => setSlateActive((v) => !v);
+
+  const handleOpenOutputClick = () => {
+    onOpenOutput();
+    setOutputOpen(true);
   };
-  const handleStopSlate = () => {
-    setSlateActive(false);
-    setSlateRemaining(null);
-  };
+
   const handleScheduleVote = () => {
     if (voteSchedule === 'now') {
-      onOpenVoting();
+      // Confirm before opening voting immediately — operator could change
+      // their mind. Scheduled votes skip this since there's a built-in
+      // delay during which the schedule can be cancelled.
+      setConfirmOpenVoting(true);
       return;
     }
     let target = Date.now();
@@ -242,7 +242,7 @@ export function OperatorOutputMode({
   const slateActiveClass = slateActive
     ? 'border-mako-success/60 bg-mako-success/15 text-mako-success hover:bg-mako-success/25'
     : '';
-  const outputActiveClass = liveState !== 'not_live'
+  const outputActiveClass = outputOpen || liveState !== 'not_live'
     ? 'border-mako-success/60 bg-mako-success/15 text-mako-success hover:bg-mako-success/25'
     : '';
   const votingActiveClass = votingState === 'open'
@@ -579,13 +579,13 @@ export function OperatorOutputMode({
                 variant="outline"
                 size="sm"
                 className={`w-full justify-start gap-2 text-xs ${outputActiveClass}`}
-                onClick={onOpenOutput}
+                onClick={handleOpenOutputClick}
               >
                 <Monitor className="h-3.5 w-3.5" /> Open Output
-                {liveState !== 'not_live' && <span className="ml-auto text-[9px] font-mono">ACTIVE</span>}
+                {(outputOpen || liveState !== 'not_live') && <span className="ml-auto text-[9px] font-mono">ACTIVE</span>}
               </Button>
               {liveState === 'not_live' ? (
-                <Button size="sm" className="w-full justify-start gap-2 text-xs" onClick={onGoLive}>
+                <Button size="sm" className="w-full justify-start gap-2 text-xs" onClick={() => setConfirmGoLive(true)}>
                   <Play className="h-3.5 w-3.5" /> Go Live
                 </Button>
               ) : (
@@ -629,14 +629,12 @@ export function OperatorOutputMode({
                 variant="outline"
                 size="sm"
                 className={`w-full justify-start gap-2 text-xs ${slateActiveClass}`}
-                onClick={slateActive ? handleStopSlate : handleStartSlate}
+                onClick={handleToggleSlate}
               >
                 <Eye className="h-3.5 w-3.5" />
                 {slateActive ? 'Stop Polling Slate' : 'Polling Slate'}
                 {slateActive && (
-                  <span className="ml-auto text-[9px] font-mono">
-                    {slateRemaining !== null ? `${slateRemaining}s` : 'ACTIVE'}
-                  </span>
+                  <span className="ml-auto text-[9px] font-mono">ACTIVE</span>
                 )}
               </Button>
               <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs" onClick={() => navigate(`/polls/${currentPoll.id}?mode=build`)}>
@@ -692,37 +690,25 @@ export function OperatorOutputMode({
                   </Button>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <Timer className="h-3 w-3 text-muted-foreground" />
-                <span className="text-[10px] uppercase text-muted-foreground">Countdown (s)</span>
-                <Input
-                  type="number"
-                  min={0}
-                  value={slateCountdown}
-                  onChange={(e) => setSlateCountdown(Math.max(0, Number(e.target.value) || 0))}
-                  disabled={slateActive}
-                  className="ml-auto h-7 w-16 text-right text-xs"
-                />
-              </div>
               <Button
                 size="sm"
                 variant={slateActive ? 'outline' : 'default'}
                 className={`w-full gap-1.5 text-xs ${slateActive ? slateActiveClass : ''}`}
-                onClick={slateActive ? handleStopSlate : handleStartSlate}
+                onClick={handleToggleSlate}
               >
                 {slateActive ? (
                   <>
                     <StopCircle className="h-3.5 w-3.5" /> Stop Slate
-                    {slateRemaining !== null && <span className="ml-auto font-mono">{slateRemaining}s</span>}
+                    <span className="ml-auto font-mono">ACTIVE</span>
                   </>
                 ) : (
                   <>
-                    <Play className="h-3.5 w-3.5" /> Start Slate
+                    <Play className="h-3.5 w-3.5" /> Start Slate Now
                   </>
                 )}
               </Button>
               <p className="text-[10px] text-muted-foreground">
-                When countdown ends, output auto-switches to the live poll.
+                Mobile voters who scan the QR see this slate until voting opens.
               </p>
             </div>
 
@@ -799,6 +785,44 @@ export function OperatorOutputMode({
           </div>
         </div>
       </div>
+
+      {/* Confirmation: Go Live ─────────────────────────────────────────── */}
+      <AlertDialog open={confirmGoLive} onOpenChange={setConfirmGoLive}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Go live with this poll?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will push the current poll to the program output. Make sure the
+              right block, folder, and assets are queued before continuing.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No, cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmGoLive(false); onGoLive(); }}>
+              Yes, go live
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmation: Open Voting Now ──────────────────────────────────── */}
+      <AlertDialog open={confirmOpenVoting} onOpenChange={setConfirmOpenVoting}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Open voting now?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Voters will immediately be able to submit responses. Scheduled
+              opens (in N minutes / at a time) skip this confirmation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No, wait</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmOpenVoting(false); onOpenVoting(); }}>
+              Yes, open voting
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
