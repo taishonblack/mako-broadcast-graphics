@@ -17,7 +17,7 @@ import {
 import {
   Type, ListChecks, AlignLeft, Image as ImageIcon, QrCode,
   Sparkles, Users, Plus, X, GripVertical, ChevronDown, MoreVertical, FolderOpen,
-  Trash2,
+  Trash2, Camera,
 } from 'lucide-react';
 import { AnswerType, MCLabelStyle } from '@/components/poll-create/ContentPanel';
 import { AssetId, AssetMeta } from './types';
@@ -31,6 +31,7 @@ export const ASSET_REGISTRY: Record<AssetId, AssetMeta> = {
   qr:          { id: 'qr',          label: 'QR Code',       icon: QrCode,      description: 'Scannable code linking viewers to the vote URL' },
   logo:        { id: 'logo',        label: 'Logo',          icon: Sparkles,    description: 'Show or network branding overlay' },
   voterTally:  { id: 'voterTally',  label: 'Voter Tally',   icon: Users,       description: 'Live count of received votes' },
+  image:       { id: 'image',       label: 'Image',         icon: Camera,      description: 'Custom photo (player headshot, sponsor mark, etc.)' },
 };
 
 export const SEEDED_ASSETS: AssetId[] = [];
