@@ -602,12 +602,20 @@ export default function PollCreate() {
       ...sharedAssets,
     };
 
+    const bgStyle: React.CSSProperties = bgImage
+      ? { backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+      : bgColor
+        ? { background: `linear-gradient(135deg, ${bgColor}, hsla(220, 20%, 8%, 0.95))` }
+        : {};
+
+    let scene: React.ReactNode;
     switch (previewScene) {
-      case 'lowerThird': return <LowerThirdScene {...props} />;
-      case 'qr': return <QRScene slug={slugForUrl} theme={theme} {...sharedAssets} />;
-      case 'results': return <ResultsScene {...props} />;
-      default: return <FullscreenScene {...props} layers={[]} />;
+      case 'lowerThird': scene = <LowerThirdScene {...props} />; break;
+      case 'qr': scene = <QRScene slug={slugForUrl} theme={theme} {...sharedAssets} />; break;
+      case 'results': scene = <ResultsScene {...props} />; break;
+      default: scene = <FullscreenScene {...props} layers={[]} />;
     }
+    return <div className="absolute inset-0" style={bgStyle}>{scene}</div>;
   };
 
   const setWorkspaceMode = (nextMode: OperatorMode) => {
