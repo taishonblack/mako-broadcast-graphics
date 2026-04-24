@@ -1642,6 +1642,19 @@ export default function PollCreate() {
                       assetState={assetState}
                       setAssetState={setAssetState}
                       highlightField={highlightField}
+                      onResetAssetPosition={(assetId) => {
+                        pushUndoSnapshot();
+                        setAssetTransforms((current) => {
+                          const t = current[assetId];
+                          if (!t) return current;
+                          // Reset translate (and any clamped lock) so the new
+                          // anchor corner is honored. Other transforms are kept.
+                          return {
+                            ...current,
+                            [assetId]: { ...t, x: 0, y: 0 },
+                          };
+                        });
+                      }}
                     />
                   </Pane>
                 </ResizablePanel>
