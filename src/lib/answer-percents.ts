@@ -73,3 +73,13 @@ export function rebalancePercents(prev: number[], index: number, value: number):
   }
   return next;
 }
+
+/** Build a fresh answer list of `count` bars, each holding EQUAL_BASE votes. */
+export function equalShareAnswers(count: number): AnswerLite[] {
+  return Array.from({ length: Math.max(0, count) }, (_, i) => ({
+    id: String(i + 1),
+    text: '',
+    shortLabel: '',
+    testVotes: EQUAL_BASE,
+  }));
+}
