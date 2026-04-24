@@ -1186,14 +1186,48 @@ export default function PollCreate() {
     setAssetTransforms((current) => {
       const currentTransform = current[assetId];
       if (currentTransform.locks[field]) return current;
+      // Snap-to-center: when the operator drags X or Y within a small
+      // tolerance of zero (the asset's own anchor center), snap exactly
+      // to 0 so centering is precise without pixel-hunting.
+      let snapped = value;
+      if ((field === 'x' || field === 'y') && Math.abs(value) <= 8) {
+        snapped = 0;
+      }
       return {
         ...current,
         [assetId]: {
           ...currentTransform,
-          [field]: value,
+          [field]: snapped,
         },
       };
     });
+  };
+
+  /**
+   * Center an asset dead-center on the 1920×1080 broadcast stage.
+   * The QR is anchored at one of four corners with a 48px broadcast-safe inset;
+   * we compute the translation needed from that anchor to true frame center.
+   */
+  const handleCenterAsset = (assetId: AssetId) => {
+    pushUndoSnapshot();
+    setAssetTransforms((current) => {
+      const currentTransform = current[assetId];
+      if (!currentTransform) return current;
+      const { x: dx, y: dy } = computeCenterOffset(assetId, {
+        qrPosition: assetState.qrPosition,
+        qrSize,
+        brandingPosition,
+      });
+      return {
+        ...current,
+        [assetId]: {
+          ...currentTransform,
+          x: currentTransform.locks.x ? currentTransform.x : dx,
+          y: currentTransform.locks.y ? currentTransform.y : dy,
+        },
+      };
+    });
+    toast.success('Asset centered in 1920×1080 frame');
   };
 
   const handleToggleTransformLock = (assetId: AssetId, field: TransformField) => {
