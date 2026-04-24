@@ -575,8 +575,14 @@ export function OperatorOutputMode({
           <div className="mako-panel p-4 space-y-3">
             <h2 className="text-xs font-semibold font-mono uppercase text-foreground">Quick Actions</h2>
             <div className="space-y-1.5">
-              <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs" onClick={onOpenOutput}>
+              <Button
+                variant="outline"
+                size="sm"
+                className={`w-full justify-start gap-2 text-xs ${outputActiveClass}`}
+                onClick={onOpenOutput}
+              >
                 <Monitor className="h-3.5 w-3.5" /> Open Output
+                {liveState !== 'not_live' && <span className="ml-auto text-[9px] font-mono">ACTIVE</span>}
               </Button>
               {liveState === 'not_live' ? (
                 <Button size="sm" className="w-full justify-start gap-2 text-xs" onClick={onGoLive}>
@@ -588,12 +594,24 @@ export function OperatorOutputMode({
                 </Button>
               )}
               {votingState !== 'open' ? (
-                <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs" onClick={onOpenVoting}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`w-full justify-start gap-2 text-xs ${votingActiveClass}`}
+                  onClick={onOpenVoting}
+                >
                   <Vote className="h-3.5 w-3.5" /> Open Voting
+                  {voteScheduledFor !== null && <span className="ml-auto text-[9px] font-mono text-muted-foreground">SCHEDULED</span>}
                 </Button>
               ) : (
-                <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs" onClick={onCloseVoting}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`w-full justify-start gap-2 text-xs ${votingActiveClass}`}
+                  onClick={onCloseVoting}
+                >
                   <XCircle className="h-3.5 w-3.5" /> Close Voting
+                  <span className="ml-auto text-[9px] font-mono">ACTIVE</span>
                 </Button>
               )}
               {onRescanPolls ? (
@@ -607,8 +625,19 @@ export function OperatorOutputMode({
                   <RefreshCw className="h-3.5 w-3.5" /> Re-scan Polls
                 </Button>
               ) : null}
-              <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs">
-                <Eye className="h-3.5 w-3.5" /> Preview Polling Slate
+              <Button
+                variant="outline"
+                size="sm"
+                className={`w-full justify-start gap-2 text-xs ${slateActiveClass}`}
+                onClick={slateActive ? handleStopSlate : handleStartSlate}
+              >
+                <Eye className="h-3.5 w-3.5" />
+                {slateActive ? 'Stop Polling Slate' : 'Polling Slate'}
+                {slateActive && (
+                  <span className="ml-auto text-[9px] font-mono">
+                    {slateRemaining !== null ? `${slateRemaining}s` : 'ACTIVE'}
+                  </span>
+                )}
               </Button>
               <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs" onClick={() => navigate(`/polls/${currentPoll.id}?mode=build`)}>
                 <Eye className="h-3.5 w-3.5" /> Open Build Mode
@@ -616,21 +645,156 @@ export function OperatorOutputMode({
             </div>
           </div>
 
+          {/* ─── Output Inspector ──────────────────────────────────────────
+              Polling Slate (image/text + countdown) and Open Vote scheduler.
+              Replaces the standalone Active Poll panel — that data now lives
+              at the top of Vote Runner, freeing this slot for live controls. */}
           <div className="mako-panel p-4 space-y-3">
-            <h2 className="text-xs font-semibold font-mono uppercase text-foreground">Active Poll</h2>
-            <div>
-              <p className="text-[10px] font-mono text-muted-foreground">{currentPoll.internalName}</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">{currentPoll.question || 'No on-air question yet'}</p>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-semibold font-mono uppercase text-foreground">Output Inspector</h2>
+              {slateActive && (
+                <span className="flex items-center gap-1 text-[10px] font-mono text-mako-success">
+                  <span className="h-1.5 w-1.5 rounded-full bg-mako-success animate-pulse" /> slate
+                </span>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-3 border-t border-border pt-2">
-              <div>
-                <p className="text-[10px] font-mono uppercase text-muted-foreground">Total Votes</p>
-                <p className="text-lg font-bold text-foreground">{currentPoll.totalVotes.toLocaleString()}</p>
+
+            {/* Polling Slate */}
+            <div className="space-y-2 rounded-md border border-border/60 p-2">
+              <p className="text-[10px] font-mono uppercase text-muted-foreground">Polling Slate</p>
+              <Textarea
+                value={slateText}
+                onChange={(e) => setSlateText(e.target.value)}
+                placeholder="Polling will open soon"
+                rows={2}
+                className="text-xs"
+              />
+              <div className="flex items-center gap-2">
+                <label className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-border/60 px-2 py-1.5 text-[10px] text-muted-foreground hover:bg-accent/20">
+                  <ImageIcon className="h-3 w-3" />
+                  {slateImage ? 'Replace image' : 'Upload image'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = () => setSlateImage(typeof reader.result === 'string' ? reader.result : undefined);
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                </label>
+                {slateImage && (
+                  <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px]" onClick={() => setSlateImage(undefined)}>
+                    Clear
+                  </Button>
+                )}
               </div>
-              <div>
-                <p className="text-[10px] font-mono uppercase text-muted-foreground">Votes/sec</p>
-                <p className="text-lg font-bold text-primary">{currentPoll.votesPerSecond}</p>
+              <div className="flex items-center gap-2">
+                <Timer className="h-3 w-3 text-muted-foreground" />
+                <span className="text-[10px] uppercase text-muted-foreground">Countdown (s)</span>
+                <Input
+                  type="number"
+                  min={0}
+                  value={slateCountdown}
+                  onChange={(e) => setSlateCountdown(Math.max(0, Number(e.target.value) || 0))}
+                  disabled={slateActive}
+                  className="ml-auto h-7 w-16 text-right text-xs"
+                />
               </div>
+              <Button
+                size="sm"
+                variant={slateActive ? 'outline' : 'default'}
+                className={`w-full gap-1.5 text-xs ${slateActive ? slateActiveClass : ''}`}
+                onClick={slateActive ? handleStopSlate : handleStartSlate}
+              >
+                {slateActive ? (
+                  <>
+                    <StopCircle className="h-3.5 w-3.5" /> Stop Slate
+                    {slateRemaining !== null && <span className="ml-auto font-mono">{slateRemaining}s</span>}
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-3.5 w-3.5" /> Start Slate
+                  </>
+                )}
+              </Button>
+              <p className="text-[10px] text-muted-foreground">
+                When countdown ends, output auto-switches to the live poll.
+              </p>
+            </div>
+
+            {/* Open Vote scheduler */}
+            <div className="space-y-2 rounded-md border border-border/60 p-2">
+              <p className="text-[10px] font-mono uppercase text-muted-foreground">Open Vote</p>
+              <div className="grid grid-cols-3 gap-1">
+                {(['now', 'in', 'at'] as const).map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => setVoteSchedule(opt)}
+                    disabled={voteScheduledFor !== null}
+                    className={`rounded-md border px-2 py-1 text-[10px] font-medium capitalize transition-colors ${
+                      voteSchedule === opt
+                        ? 'border-primary/40 bg-primary/15 text-primary'
+                        : 'border-border bg-transparent text-muted-foreground hover:bg-accent/30'
+                    } disabled:opacity-50`}
+                  >
+                    {opt === 'in' ? 'In…' : opt === 'at' ? 'At…' : 'Now'}
+                  </button>
+                ))}
+              </div>
+              {voteSchedule === 'in' && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase text-muted-foreground">Minutes</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={voteInMinutes}
+                    onChange={(e) => setVoteInMinutes(Math.max(1, Number(e.target.value) || 0))}
+                    disabled={voteScheduledFor !== null}
+                    className="ml-auto h-7 w-20 text-right text-xs"
+                  />
+                </div>
+              )}
+              {voteSchedule === 'at' && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase text-muted-foreground">Time</span>
+                  <Input
+                    type="time"
+                    value={voteAtTime}
+                    onChange={(e) => setVoteAtTime(e.target.value)}
+                    disabled={voteScheduledFor !== null}
+                    className="ml-auto h-7 w-28 text-xs"
+                  />
+                </div>
+              )}
+              {voteScheduledFor !== null ? (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 rounded-md border border-mako-success/40 bg-mako-success/10 px-2 py-1 text-[10px] text-mako-success">
+                    <Clock className="h-3 w-3" />
+                    Scheduled for {new Date(voteScheduledFor).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                  <Button size="sm" variant="outline" className="w-full gap-1.5 text-xs" onClick={handleCancelVoteSchedule}>
+                    <XCircle className="h-3.5 w-3.5" /> Cancel
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  className={`w-full gap-1.5 text-xs ${votingState === 'open' ? votingActiveClass : ''}`}
+                  variant={votingState === 'open' ? 'outline' : 'default'}
+                  onClick={handleScheduleVote}
+                >
+                  <Vote className="h-3.5 w-3.5" />
+                  {voteSchedule === 'now' ? 'Open Voting Now' : voteSchedule === 'in' ? `Open in ${voteInMinutes}m` : voteAtTime ? `Open at ${voteAtTime}` : 'Pick a time'}
+                </Button>
+              )}
+              <p className="text-[10px] text-muted-foreground">
+                Bars reset to 0% when voting opens.
+              </p>
             </div>
           </div>
         </div>
