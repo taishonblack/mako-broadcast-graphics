@@ -128,7 +128,7 @@ export default function ProjectLauncher() {
     }
 
     localStorage.setItem('mako-active-project', project.id);
-    navigate('/polls/new?mode=output');
+    navigate('/polls/new?mode=build');
   };
 
   const addTag = (value: string) => {
