@@ -5,11 +5,12 @@ import { LiveStatusIndicator } from '@/components/broadcast/LiveStatusIndicator'
 import { PollStatusChip } from '@/components/broadcast/PollStatusChip';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import { useState } from 'react';
 import { BLOCK_LETTERS, BlockLetter, DEFAULT_BLOCK_LABELS, SavedPoll } from '@/lib/poll-persistence';
 import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { Copy, Eye, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Square, StopCircle, Vote, XCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Copy, Eye, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Square, StopCircle, Vote, XCircle } from 'lucide-react';
 
 export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
 
@@ -41,6 +42,9 @@ interface OperatorOutputModeProps {
   showBranding: boolean;
   brandingPosition: QRPosition;
   previewNode: React.ReactNode;
+  /** Whether the active folder includes the Answer Bars asset. Controls
+      visibility of the per-bar target % editor in the Vote Runner. */
+  hasAnswerBars?: boolean;
   onSelectBlock: (block: BlockLetter) => void;
   onSelectPoll: (pollId: string) => void;
   onSceneChange: (scene: SceneType) => void;
@@ -85,6 +89,7 @@ export function OperatorOutputMode({
   showBranding,
   brandingPosition,
   previewNode,
+  hasAnswerBars = false,
   onSelectBlock,
   onSelectPoll,
   onSceneChange,
