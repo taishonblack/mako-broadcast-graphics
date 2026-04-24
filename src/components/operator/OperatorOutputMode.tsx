@@ -598,7 +598,7 @@ export function OperatorOutputMode({
                   variant="outline"
                   size="sm"
                   className={`w-full justify-start gap-2 text-xs ${votingActiveClass}`}
-                  onClick={onOpenVoting}
+                  onClick={() => setConfirmOpenVoting(true)}
                 >
                   <Vote className="h-3.5 w-3.5" /> Open Voting
                   {voteScheduledFor !== null && <span className="ml-auto text-[9px] font-mono text-muted-foreground">SCHEDULED</span>}
