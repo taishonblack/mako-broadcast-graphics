@@ -405,16 +405,59 @@ export function OperatorOutputMode({
         <div className="min-h-0 overflow-auto space-y-3">
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
-              <h2 className="text-sm font-semibold text-foreground">Program Preview</h2>
+              <h2 className="text-sm font-semibold text-foreground">
+                {previewMode === 'program' ? 'Program Preview' : 'Viewer Preview'}
+              </h2>
             </div>
-            <span className="mako-chip bg-muted text-muted-foreground">1920×1080</span>
+            <div className="flex items-center gap-2">
+              <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5">
+                {([
+                  { mode: 'program' as const, icon: Monitor, label: 'Program', tooltip: 'Broadcast Output — what goes to air' },
+                  { mode: 'mobile' as const, icon: Smartphone, label: 'Mobile', tooltip: 'Viewer Mobile — what voters see on phone' },
+                  { mode: 'desktop' as const, icon: Globe, label: 'Desktop', tooltip: 'Viewer Desktop — what voters see in browser' },
+                ]).map(({ mode, icon: Icon, label, tooltip }) => (
+                  <Tooltip key={mode}>
+                    <TooltipTrigger asChild>
+                      <button
+                        onClick={() => setPreviewMode(mode)}
+                        className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium transition-all ${
+                          previewMode === mode
+                            ? 'bg-primary/15 text-primary'
+                            : 'text-muted-foreground hover:text-foreground'
+                        }`}
+                      >
+                        <Icon className="w-3 h-3" />
+                        {label}
+                      </button>
+                    </TooltipTrigger>
+                    <TooltipContent side="bottom">{tooltip}</TooltipContent>
+                  </Tooltip>
+                ))}
+              </div>
+              {previewMode === 'program' && (
+                <span className="mako-chip bg-muted text-muted-foreground">1920×1080</span>
+              )}
+            </div>
           </div>
 
-          <MonitorContainer variant="operator">
-            <PreviewWithOverlays showLabel label="1920×1080">
-              {previewNode}
-            </PreviewWithOverlays>
-          </MonitorContainer>
+          {previewMode === 'program' ? (
+            <MonitorContainer variant="operator">
+              <PreviewWithOverlays showLabel label="1920×1080">
+                {previewNode}
+              </PreviewWithOverlays>
+            </MonitorContainer>
+          ) : (
+            <div className="flex justify-center">
+              <ViewerSlatePreview
+                mode={previewMode}
+                bgImage={currentPoll.bgImage}
+                bgColor={currentPoll.bgColor}
+                slateActive={slateActive}
+                slateText={slateText}
+                slateImage={slateImage}
+              />
+            </div>
+          )}
 
           {/* Live answer-bar percentages. Edits write back into the same Build
               state that the inspector reads from, so Build and Output stay in
