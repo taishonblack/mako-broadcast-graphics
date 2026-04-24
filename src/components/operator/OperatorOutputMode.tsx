@@ -345,35 +345,40 @@ export function OperatorOutputMode({
                   />
                 </label>
               </div>
-              {answerCount > 0 && (
-                <div className="space-y-1.5 border-t border-border/60 pt-2">
-                  <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase text-muted-foreground">Target % per bar</span>
+              {hasAnswerBars && answerCount > 0 && (
+                <Collapsible open={targetsOpen} onOpenChange={setTargetsOpen} className="border-t border-border/60 pt-2">
+                  <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 rounded-md px-1 py-1 text-left transition-colors hover:bg-accent/30">
+                    <span className="flex items-center gap-1.5 text-[10px] uppercase text-muted-foreground">
+                      {targetsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                      Target % per bar
+                    </span>
                     <span className="text-[10px] font-mono text-muted-foreground">
                       {targetPercents.reduce((s, v) => s + v, 0).toFixed(0)}%
                     </span>
-                  </div>
-                  {currentPoll.options.map((opt, i) => (
-                    <div key={opt.id} className="flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 shrink-0 rounded-sm bg-primary/70" />
-                      <span className="flex-1 truncate text-[11px] text-foreground">{opt.text || `Option ${i + 1}`}</span>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        step={1}
-                        value={targetPercents[i] ?? 0}
-                        onChange={(e) => handleTargetChange(i, Number(e.target.value))}
-                        disabled={testVoteRunning}
-                        className="h-7 w-16 text-right text-xs"
-                      />
-                      <span className="text-[10px] text-muted-foreground">%</span>
-                    </div>
-                  ))}
-                  <p className="text-[10px] text-muted-foreground">
-                    Editing one bar auto-rebalances the others so the total is always 100%.
-                  </p>
-                </div>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-1.5 pt-2">
+                    {currentPoll.options.map((opt, i) => (
+                      <div key={opt.id} className="flex items-center gap-2">
+                        <span className="h-2.5 w-2.5 shrink-0 rounded-sm bg-primary/70" />
+                        <span className="flex-1 truncate text-[11px] text-foreground">{opt.text || `Option ${i + 1}`}</span>
+                        <Input
+                          type="number"
+                          min={0}
+                          max={100}
+                          step={1}
+                          value={targetPercents[i] ?? 0}
+                          onChange={(e) => handleTargetChange(i, Number(e.target.value))}
+                          disabled={testVoteRunning}
+                          className="h-7 w-16 text-right text-xs"
+                        />
+                        <span className="text-[10px] text-muted-foreground">%</span>
+                      </div>
+                    ))}
+                    <p className="text-[10px] text-muted-foreground">
+                      Editing one bar auto-rebalances the others so the total is always 100%.
+                    </p>
+                  </CollapsibleContent>
+                </Collapsible>
               )}
               <div className="flex gap-2">
                 <Button
