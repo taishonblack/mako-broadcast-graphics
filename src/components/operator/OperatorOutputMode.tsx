@@ -125,7 +125,7 @@ export function OperatorOutputMode({
   // Suppress unused-prop warnings until those features come back. Kept in the
   // signature for parent compatibility.
   void previewScene; void programScene; void qrSize; void qrPosition;
-  void showBranding; void brandingPosition; void votingState;
+  void showBranding; void brandingPosition;
   void onSceneChange; void onTake; void onCut;
   void onQrSizeChange; void onQrPositionChange;
   void onShowBrandingChange; void onBrandingPositionChange;
