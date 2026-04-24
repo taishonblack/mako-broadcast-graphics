@@ -533,8 +533,8 @@ export default function PollCreate() {
     ];
   }, [projectPolls, currentWorkspacePoll, projectId, answerType, mcLabelStyle, answers, previewDataMode, bgColor, bgImage]);
 
-  // In output mode, auto-select the first block that actually has polls (A → E priority).
-  // Re-evaluates when polls change so a newly-added Block A poll takes precedence.
+  // In output mode, auto-select the first block that actually has polls (A → E priority),
+  // unless the operator has pinned a specific block. Tracks WHY the block was selected.
   useEffect(() => {
     if (mode !== 'output') return;
     const order: BlockLetter[] = ['A', 'B', 'C', 'D', 'E'];
@@ -542,15 +542,36 @@ export default function PollCreate() {
       acc[letter] = outputPolls.filter((p) => (p.blockLetter ?? 'A') === letter).length;
       return acc;
     }, { A: 0, B: 0, C: 0, D: 0, E: 0 });
+
+    // Pinned: respect the operator's choice as long as that block has polls.
+    if (outputBlockPinned && counts[outputActiveBlock] > 0) {
+      setOutputBlockSource('pinned');
+      return;
+    }
+
     const firstNonEmpty = order.find((letter) => counts[letter] > 0);
     if (!firstNonEmpty) return;
-    // If the current active block is empty, OR a higher-priority block just gained polls, switch.
+
     if (counts[outputActiveBlock] === 0) {
       setOutputActiveBlock(firstNonEmpty);
-    } else if (order.indexOf(firstNonEmpty) < order.indexOf(outputActiveBlock)) {
+      setOutputBlockSource('auto-first-populated');
+    } else if (!outputBlockPinned && order.indexOf(firstNonEmpty) < order.indexOf(outputActiveBlock)) {
       setOutputActiveBlock(firstNonEmpty);
+      setOutputBlockSource('auto-promoted');
     }
-  }, [mode, outputPolls, outputActiveBlock]);
+  }, [mode, outputPolls, outputActiveBlock, outputBlockPinned]);
+
+  // Persist last selected block + pin toggle so they survive reloads.
+  useEffect(() => {
+    try {
+      localStorage.setItem(OUTPUT_BLOCK_LAST_KEY, JSON.stringify({ block: outputActiveBlock }));
+    } catch { /* ignore */ }
+  }, [outputActiveBlock]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(OUTPUT_BLOCK_PIN_KEY, outputBlockPinned ? '1' : '0');
+    } catch { /* ignore */ }
+  }, [outputBlockPinned]);
 
   const renderOutputScene = () => {
     const sharedAssets = {
