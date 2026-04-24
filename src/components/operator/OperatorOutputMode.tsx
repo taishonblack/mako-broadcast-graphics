@@ -1,16 +1,15 @@
 import { useNavigate } from 'react-router-dom';
-import { AssetControls } from '@/components/broadcast/AssetControls';
 import { MonitorContainer } from '@/components/broadcast/BroadcastPreviewFrame';
 import { PreviewWithOverlays } from '@/components/broadcast/preview/PreviewWithOverlays';
-import { SceneSelector } from '@/components/broadcast/SceneSelector';
 import { LiveStatusIndicator } from '@/components/broadcast/LiveStatusIndicator';
 import { PollStatusChip } from '@/components/broadcast/PollStatusChip';
-import { VotingStatusChip } from '@/components/broadcast/VotingStatusChip';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
+import { useState } from 'react';
 import { BLOCK_LETTERS, BlockLetter, DEFAULT_BLOCK_LABELS, SavedPoll } from '@/lib/poll-persistence';
 import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { Copy, Eye, Monitor, Pin, PinOff, Play, RefreshCw, Square, Vote, XCircle } from 'lucide-react';
+import { Copy, Eye, Monitor, Pin, PinOff, Play, Play as PlayIcon, RefreshCw, Square, Vote, XCircle, Zap } from 'lucide-react';
 
 export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
 
