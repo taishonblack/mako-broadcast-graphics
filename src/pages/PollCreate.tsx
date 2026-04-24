@@ -1041,6 +1041,9 @@ export default function PollCreate() {
   };
 
   const handleDeleteFolder = (folderId: string) => {
+    if (deletionLock) return;
+    const snapshot = cloneSnapshotValue(folderState);
+    setDeletionLock(true);
     updateFolderState((current) => {
       const targetFolder = current.folders.find((folder) => folder.id === folderId);
       if (!targetFolder) return current;
@@ -1061,7 +1064,18 @@ export default function PollCreate() {
     });
     setDeleteFolderTargetId(null);
     setSelectedAssetId(null);
-    toast.success('Folder deleted');
+    setLastDeletedFolderState(snapshot);
+    toast.success('Folder deleted', {
+      action: {
+        label: 'Undo',
+        onClick: () => {
+          setFolderState(cloneSnapshotValue(snapshot));
+          setLastDeletedFolderState(null);
+        },
+      },
+    });
+    // Release the lock once the save effect has had a chance to commit.
+    window.setTimeout(() => setDeletionLock(false), 1200);
   };
 
   const confirmDeleteFolder = () => {
