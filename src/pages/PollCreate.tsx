@@ -1654,6 +1654,8 @@ export default function PollCreate() {
             currentPoll={currentWorkspacePoll}
             projectPolls={outputPolls}
             folders={folderState.folders.map((f) => ({ id: f.id, name: f.name, blockLetter: f.blockLetter }))}
+            activeFolderId={folderState.activeFolderId}
+            onSelectFolder={handleSelectFolder}
             activeBlock={outputActiveBlock}
             blockSource={outputBlockSource}
             blockPinned={outputBlockPinned}
@@ -1697,6 +1699,7 @@ export default function PollCreate() {
             testVoteRunning={testVoteRunning}
             onStartTestVotes={handleStartTestVotes}
             onStopTestVotes={handleStopTestVotes}
+            onResetTestVotes={handleResetTestVotes}
             onQrSizeChange={setQrSize}
             onQrPositionChange={(next) => setAssetState((current) => ({ ...current, qrPosition: next }))}
             onShowBrandingChange={setShowBranding}
