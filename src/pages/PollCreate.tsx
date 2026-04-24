@@ -905,6 +905,20 @@ export default function PollCreate() {
     setTestVoteRunning(false);
   }, []);
 
+  // Reset every answer's testVotes back to 0. This affects the build too —
+  // the operator can re-enter values manually in Build if they want to seed
+  // the chart with non-zero starting percentages.
+  const handleResetTestVotes = useCallback(() => {
+    const w = window as unknown as { __mvTimer?: number };
+    if (w.__mvTimer) {
+      window.clearInterval(w.__mvTimer);
+      w.__mvTimer = undefined;
+    }
+    setTestVoteRunning(false);
+    setAnswers((current) => current.map((a) => ({ ...a, testVotes: 0 })));
+    toast.success('Vote tallies reset to 0');
+  }, [setAnswers]);
+
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
 
   // Persist asset state (QR position, visibility, etc.) so it survives reloads
@@ -1640,6 +1654,8 @@ export default function PollCreate() {
             currentPoll={currentWorkspacePoll}
             projectPolls={outputPolls}
             folders={folderState.folders.map((f) => ({ id: f.id, name: f.name, blockLetter: f.blockLetter }))}
+            activeFolderId={folderState.activeFolderId}
+            onSelectFolder={handleSelectFolder}
             activeBlock={outputActiveBlock}
             blockSource={outputBlockSource}
             blockPinned={outputBlockPinned}
@@ -1683,6 +1699,7 @@ export default function PollCreate() {
             testVoteRunning={testVoteRunning}
             onStartTestVotes={handleStartTestVotes}
             onStopTestVotes={handleStopTestVotes}
+            onResetTestVotes={handleResetTestVotes}
             onQrSizeChange={setQrSize}
             onQrPositionChange={(next) => setAssetState((current) => ({ ...current, qrPosition: next }))}
             onShowBrandingChange={setShowBranding}

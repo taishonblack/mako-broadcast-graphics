@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { BLOCK_LETTERS, BlockLetter, DEFAULT_BLOCK_LABELS, SavedPoll } from '@/lib/poll-persistence';
 import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { Copy, Eye, Monitor, Pin, PinOff, Play, RefreshCw, Square, StopCircle, Vote, XCircle } from 'lucide-react';
+import { Copy, Eye, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Square, StopCircle, Vote, XCircle } from 'lucide-react';
 
 export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
 
@@ -26,6 +26,8 @@ interface OperatorOutputModeProps {
   currentPoll: Poll;
   projectPolls: SavedPoll[];
   folders?: Array<{ id: string; name: string; blockLetter: BlockLetter }>;
+  activeFolderId?: string | null;
+  onSelectFolder?: (folderId: string) => void;
   activeBlock: BlockLetter;
   blockSource?: OutputBlockSource;
   blockPinned?: boolean;
@@ -59,6 +61,8 @@ interface OperatorOutputModeProps {
   testVoteRunning?: boolean;
   onStartTestVotes?: (totalVotes: number, durationSeconds: number) => void;
   onStopTestVotes?: () => void;
+  /** Reset live/test vote tallies on the current poll back to zero. */
+  onResetTestVotes?: () => void;
 }
 
 export function OperatorOutputMode({
@@ -66,6 +70,8 @@ export function OperatorOutputMode({
   currentPoll,
   projectPolls,
   folders = [],
+  activeFolderId,
+  onSelectFolder,
   activeBlock,
   blockSource = 'default',
   blockPinned = false,
@@ -98,6 +104,7 @@ export function OperatorOutputMode({
   testVoteRunning = false,
   onStartTestVotes,
   onStopTestVotes,
+  onResetTestVotes,
 }: OperatorOutputModeProps) {
   const navigate = useNavigate();
   // Suppress unused-prop warnings until those features come back. Kept in the
@@ -213,18 +220,27 @@ export function OperatorOutputMode({
                       organizational labels the operator sees (e.g. "1st Com").
                       They appear here even when no poll has been saved yet. */}
                   {foldersByBlock[activeBlock].map((folder) => (
-                    <div
+                    <button
                       key={folder.id}
-                      className="w-full rounded-lg border border-dashed border-border/60 bg-accent/10 p-2.5 text-left"
+                      type="button"
+                      onClick={() => onSelectFolder?.(folder.id)}
+                      disabled={!onSelectFolder}
+                      className={`w-full rounded-lg border p-2.5 text-left transition-colors ${
+                        activeFolderId === folder.id
+                          ? 'border-primary/40 bg-primary/10'
+                          : 'border-dashed border-border/60 bg-accent/10 hover:bg-accent/25'
+                      } ${onSelectFolder ? '' : 'cursor-default'}`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="truncate text-xs font-medium text-foreground">{folder.name}</p>
-                          <p className="mt-0.5 truncate text-[10px] text-muted-foreground">Folder · Block {activeBlock}</p>
+                          <p className={`truncate text-xs font-medium ${activeFolderId === folder.id ? 'text-primary' : 'text-foreground'}`}>{folder.name}</p>
+                          <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                            {activeFolderId === folder.id ? 'On Air · Folder' : 'Folder · Block ' + activeBlock}
+                          </p>
                         </div>
                         <span className="mako-chip bg-muted text-[9px] text-muted-foreground">FOLDER</span>
                       </div>
-                    </div>
+                    </button>
                   ))}
                   {pollsByBlock[activeBlock].map((poll) => (
                   <button
@@ -321,6 +337,17 @@ export function OperatorOutputMode({
                   <StopCircle className="h-3.5 w-3.5" /> Stop
                 </Button>
               </div>
+              {onResetTestVotes && (
+                <Button
+                  size="sm"
+                  variant="ghost"
+                  className="w-full gap-1.5 text-xs text-muted-foreground hover:text-foreground"
+                  onClick={() => onResetTestVotes()}
+                  title="Zero out test/live vote tallies on this poll. The build will also reflect zero values."
+                >
+                  <RotateCcw className="h-3.5 w-3.5" /> Reset votes to 0%
+                </Button>
+              )}
             </div>
           )}
         </div>
