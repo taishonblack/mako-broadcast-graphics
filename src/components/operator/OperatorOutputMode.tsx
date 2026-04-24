@@ -26,6 +26,7 @@ interface OperatorOutputModeProps {
   projectName?: string;
   currentPoll: Poll;
   projectPolls: SavedPoll[];
+  folders?: Array<{ id: string; name: string; blockLetter: BlockLetter }>;
   activeBlock: BlockLetter;
   blockSource?: OutputBlockSource;
   blockPinned?: boolean;
