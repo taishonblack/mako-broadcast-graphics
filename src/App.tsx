@@ -37,7 +37,7 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/projects" element={<ProjectLauncher />} />
-          <Route path="/dashboard" element={<Navigate to="/polls/new?mode=output" replace />} />
+          <Route path="/dashboard" element={<Navigate to="/polls/new?mode=build" replace />} />
           <Route path="/blocks" element={<ProtectedRoute><Blocks /></ProtectedRoute>} />
           <Route path="/backgrounds" element={<ProtectedRoute><BackgroundGallery /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><OperatorSettings /></ProtectedRoute>} />
