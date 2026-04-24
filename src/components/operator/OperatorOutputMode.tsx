@@ -138,8 +138,9 @@ export function OperatorOutputMode({
     return acc;
   }, { A: [], B: [], C: [], D: [], E: [] });
 
-  const blockEntryCount = (letter: BlockLetter) =>
-    pollsByBlock[letter].length + foldersByBlock[letter].length;
+  // Counts shown in the Blocks list and Block pane reflect folders only,
+  // since polls live inside folders and are not surfaced as block entries.
+  const blockEntryCount = (letter: BlockLetter) => foldersByBlock[letter].length;
 
   // Local controlled inputs for the test-vote runner.
   const [testVoteTotal, setTestVoteTotal] = useState(100);
