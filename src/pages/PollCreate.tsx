@@ -1557,6 +1557,15 @@ export default function PollCreate() {
             currentPoll={currentWorkspacePoll}
             projectPolls={outputPolls}
             activeBlock={outputActiveBlock}
+            blockSource={outputBlockSource}
+            blockPinned={outputBlockPinned}
+            onTogglePinBlock={() => {
+              setOutputBlockPinned((prev) => {
+                const next = !prev;
+                setOutputBlockSource(next ? 'pinned' : 'manual');
+                return next;
+              });
+            }}
             liveState={liveState}
             votingState={votingState}
             previewScene={previewScene}
