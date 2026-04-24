@@ -1592,6 +1592,10 @@ export default function PollCreate() {
                 return next;
               });
             }}
+            onRescanPolls={async () => {
+              await rescanProjectPolls();
+              toast.success('Polls re-scanned');
+            }}
             liveState={liveState}
             votingState={votingState}
             previewScene={previewScene}
