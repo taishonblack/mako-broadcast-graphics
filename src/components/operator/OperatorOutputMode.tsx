@@ -220,18 +220,27 @@ export function OperatorOutputMode({
                       organizational labels the operator sees (e.g. "1st Com").
                       They appear here even when no poll has been saved yet. */}
                   {foldersByBlock[activeBlock].map((folder) => (
-                    <div
+                    <button
                       key={folder.id}
-                      className="w-full rounded-lg border border-dashed border-border/60 bg-accent/10 p-2.5 text-left"
+                      type="button"
+                      onClick={() => onSelectFolder?.(folder.id)}
+                      disabled={!onSelectFolder}
+                      className={`w-full rounded-lg border p-2.5 text-left transition-colors ${
+                        activeFolderId === folder.id
+                          ? 'border-primary/40 bg-primary/10'
+                          : 'border-dashed border-border/60 bg-accent/10 hover:bg-accent/25'
+                      } ${onSelectFolder ? '' : 'cursor-default'}`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className="truncate text-xs font-medium text-foreground">{folder.name}</p>
-                          <p className="mt-0.5 truncate text-[10px] text-muted-foreground">Folder · Block {activeBlock}</p>
+                          <p className={`truncate text-xs font-medium ${activeFolderId === folder.id ? 'text-primary' : 'text-foreground'}`}>{folder.name}</p>
+                          <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
+                            {activeFolderId === folder.id ? 'On Air · Folder' : 'Folder · Block ' + activeBlock}
+                          </p>
                         </div>
                         <span className="mako-chip bg-muted text-[9px] text-muted-foreground">FOLDER</span>
                       </div>
-                    </div>
+                    </button>
                   ))}
                   {pollsByBlock[activeBlock].map((poll) => (
                   <button
