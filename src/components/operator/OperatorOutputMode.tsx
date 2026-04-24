@@ -5,12 +5,13 @@ import { LiveStatusIndicator } from '@/components/broadcast/LiveStatusIndicator'
 import { PollStatusChip } from '@/components/broadcast/PollStatusChip';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
+import { Textarea } from '@/components/ui/textarea';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { BLOCK_LETTERS, BlockLetter, DEFAULT_BLOCK_LABELS, SavedPoll } from '@/lib/poll-persistence';
 import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { ChevronDown, ChevronRight, Eye, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Square, StopCircle, Vote, XCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, Eye, Image as ImageIcon, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Square, StopCircle, Timer, Vote, XCircle } from 'lucide-react';
 import { percentsFromAnswers, rebalancePercents, answersFromPercents, AnswerLite } from '@/lib/answer-percents';
 
 export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
@@ -124,7 +125,7 @@ export function OperatorOutputMode({
   // Suppress unused-prop warnings until those features come back. Kept in the
   // signature for parent compatibility.
   void previewScene; void programScene; void qrSize; void qrPosition;
-  void showBranding; void brandingPosition; void votingState;
+  void showBranding; void brandingPosition;
   void onSceneChange; void onTake; void onCut;
   void onQrSizeChange; void onQrPositionChange;
   void onShowBrandingChange; void onBrandingPositionChange;
@@ -160,6 +161,94 @@ export function OperatorOutputMode({
   const [testVoteTotal, setTestVoteTotal] = useState(100);
   const [testVoteDuration, setTestVoteDuration] = useState(30);
   const [targetsOpen, setTargetsOpen] = useState(false);
+
+  // ─── Output Inspector state ────────────────────────────────────────────
+  // Polling Slate: text or image shown when no poll is on-air. Countdown
+  // (seconds) optional; when it hits zero we auto-switch to the live scene
+  // by invoking onGoLive (per Phase 2 product spec).
+  const [slateText, setSlateText] = useState('Polling will open soon');
+  const [slateImage, setSlateImage] = useState<string | undefined>(undefined);
+  const [slateActive, setSlateActive] = useState(false);
+  const [slateCountdown, setSlateCountdown] = useState<number>(60); // seconds
+  const [slateRemaining, setSlateRemaining] = useState<number | null>(null);
+  const slateTimerRef = useRef<number | null>(null);
+
+  // Open Vote scheduling. 'now' opens immediately. 'in' opens after N
+  // minutes. 'at' opens at a specific HH:MM (local time).
+  const [voteSchedule, setVoteSchedule] = useState<'now' | 'in' | 'at'>('now');
+  const [voteInMinutes, setVoteInMinutes] = useState(10);
+  const [voteAtTime, setVoteAtTime] = useState(''); // HH:MM
+  const [voteScheduledFor, setVoteScheduledFor] = useState<number | null>(null);
+  const voteTimerRef = useRef<number | null>(null);
+
+  // Tick the slate countdown. When it reaches 0 we hand off by calling
+  // onGoLive — operator can also cancel mid-countdown by clicking Stop.
+  useEffect(() => {
+    if (!slateActive || slateRemaining === null) return;
+    if (slateRemaining <= 0) {
+      setSlateActive(false);
+      setSlateRemaining(null);
+      onGoLive();
+      return;
+    }
+    slateTimerRef.current = window.setTimeout(() => {
+      setSlateRemaining((r) => (r === null ? null : r - 1));
+    }, 1000);
+    return () => {
+      if (slateTimerRef.current) window.clearTimeout(slateTimerRef.current);
+    };
+  }, [slateActive, slateRemaining, onGoLive]);
+
+  // Wait for the scheduled Open Vote moment, then trigger onOpenVoting once.
+  useEffect(() => {
+    if (voteScheduledFor === null) return;
+    const ms = Math.max(0, voteScheduledFor - Date.now());
+    voteTimerRef.current = window.setTimeout(() => {
+      onOpenVoting();
+      setVoteScheduledFor(null);
+    }, ms);
+    return () => {
+      if (voteTimerRef.current) window.clearTimeout(voteTimerRef.current);
+    };
+  }, [voteScheduledFor, onOpenVoting]);
+
+  const handleStartSlate = () => {
+    setSlateActive(true);
+    setSlateRemaining(slateCountdown > 0 ? slateCountdown : null);
+  };
+  const handleStopSlate = () => {
+    setSlateActive(false);
+    setSlateRemaining(null);
+  };
+  const handleScheduleVote = () => {
+    if (voteSchedule === 'now') {
+      onOpenVoting();
+      return;
+    }
+    let target = Date.now();
+    if (voteSchedule === 'in') {
+      target += Math.max(0, voteInMinutes) * 60_000;
+    } else if (voteSchedule === 'at' && voteAtTime) {
+      const [h, m] = voteAtTime.split(':').map(Number);
+      const d = new Date();
+      d.setHours(h, m, 0, 0);
+      if (d.getTime() < Date.now()) d.setDate(d.getDate() + 1); // tomorrow if past
+      target = d.getTime();
+    }
+    setVoteScheduledFor(target);
+  };
+  const handleCancelVoteSchedule = () => setVoteScheduledFor(null);
+
+  const slateActiveClass = slateActive
+    ? 'border-mako-success/60 bg-mako-success/15 text-mako-success hover:bg-mako-success/25'
+    : '';
+  const outputActiveClass = liveState !== 'not_live'
+    ? 'border-mako-success/60 bg-mako-success/15 text-mako-success hover:bg-mako-success/25'
+    : '';
+  const votingActiveClass = votingState === 'open'
+    ? 'border-mako-success/60 bg-mako-success/15 text-mako-success hover:bg-mako-success/25'
+    : '';
+
   // Per-answer target percentages for the test-vote runner. Initialized to
   // an even split across the active poll's answers; auto-rebalances so the
   // sum is always exactly 100. When the operator edits one bar, the other
@@ -373,6 +462,24 @@ export function OperatorOutputMode({
                   </span>
                 )}
               </div>
+              {/* Active Poll summary — merged from the standalone Active Poll
+                  panel so the right column has room for the Output Inspector. */}
+              <div className="rounded-md border border-border/60 bg-accent/10 p-2 space-y-1.5">
+                <div>
+                  <p className="text-[10px] font-mono text-muted-foreground truncate">{currentPoll.internalName}</p>
+                  <p className="text-xs font-semibold text-foreground line-clamp-2">{currentPoll.question || 'No on-air question yet'}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 border-t border-border/60 pt-1.5">
+                  <div>
+                    <p className="text-[9px] font-mono uppercase text-muted-foreground">Total</p>
+                    <p className="text-sm font-bold text-foreground">{currentPoll.totalVotes.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-mono uppercase text-muted-foreground">Votes/sec</p>
+                    <p className="text-sm font-bold text-primary">{currentPoll.votesPerSecond}</p>
+                  </div>
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <label className="space-y-1">
                   <span className="text-[10px] uppercase text-muted-foreground">Total votes</span>
@@ -468,8 +575,14 @@ export function OperatorOutputMode({
           <div className="mako-panel p-4 space-y-3">
             <h2 className="text-xs font-semibold font-mono uppercase text-foreground">Quick Actions</h2>
             <div className="space-y-1.5">
-              <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs" onClick={onOpenOutput}>
+              <Button
+                variant="outline"
+                size="sm"
+                className={`w-full justify-start gap-2 text-xs ${outputActiveClass}`}
+                onClick={onOpenOutput}
+              >
                 <Monitor className="h-3.5 w-3.5" /> Open Output
+                {liveState !== 'not_live' && <span className="ml-auto text-[9px] font-mono">ACTIVE</span>}
               </Button>
               {liveState === 'not_live' ? (
                 <Button size="sm" className="w-full justify-start gap-2 text-xs" onClick={onGoLive}>
@@ -481,12 +594,24 @@ export function OperatorOutputMode({
                 </Button>
               )}
               {votingState !== 'open' ? (
-                <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs" onClick={onOpenVoting}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`w-full justify-start gap-2 text-xs ${votingActiveClass}`}
+                  onClick={onOpenVoting}
+                >
                   <Vote className="h-3.5 w-3.5" /> Open Voting
+                  {voteScheduledFor !== null && <span className="ml-auto text-[9px] font-mono text-muted-foreground">SCHEDULED</span>}
                 </Button>
               ) : (
-                <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs" onClick={onCloseVoting}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className={`w-full justify-start gap-2 text-xs ${votingActiveClass}`}
+                  onClick={onCloseVoting}
+                >
                   <XCircle className="h-3.5 w-3.5" /> Close Voting
+                  <span className="ml-auto text-[9px] font-mono">ACTIVE</span>
                 </Button>
               )}
               {onRescanPolls ? (
@@ -500,8 +625,19 @@ export function OperatorOutputMode({
                   <RefreshCw className="h-3.5 w-3.5" /> Re-scan Polls
                 </Button>
               ) : null}
-              <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs">
-                <Eye className="h-3.5 w-3.5" /> Preview Polling Slate
+              <Button
+                variant="outline"
+                size="sm"
+                className={`w-full justify-start gap-2 text-xs ${slateActiveClass}`}
+                onClick={slateActive ? handleStopSlate : handleStartSlate}
+              >
+                <Eye className="h-3.5 w-3.5" />
+                {slateActive ? 'Stop Polling Slate' : 'Polling Slate'}
+                {slateActive && (
+                  <span className="ml-auto text-[9px] font-mono">
+                    {slateRemaining !== null ? `${slateRemaining}s` : 'ACTIVE'}
+                  </span>
+                )}
               </Button>
               <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs" onClick={() => navigate(`/polls/${currentPoll.id}?mode=build`)}>
                 <Eye className="h-3.5 w-3.5" /> Open Build Mode
@@ -509,21 +645,156 @@ export function OperatorOutputMode({
             </div>
           </div>
 
+          {/* ─── Output Inspector ──────────────────────────────────────────
+              Polling Slate (image/text + countdown) and Open Vote scheduler.
+              Replaces the standalone Active Poll panel — that data now lives
+              at the top of Vote Runner, freeing this slot for live controls. */}
           <div className="mako-panel p-4 space-y-3">
-            <h2 className="text-xs font-semibold font-mono uppercase text-foreground">Active Poll</h2>
-            <div>
-              <p className="text-[10px] font-mono text-muted-foreground">{currentPoll.internalName}</p>
-              <p className="mt-1 text-sm font-semibold text-foreground">{currentPoll.question || 'No on-air question yet'}</p>
+            <div className="flex items-center justify-between">
+              <h2 className="text-xs font-semibold font-mono uppercase text-foreground">Output Inspector</h2>
+              {slateActive && (
+                <span className="flex items-center gap-1 text-[10px] font-mono text-mako-success">
+                  <span className="h-1.5 w-1.5 rounded-full bg-mako-success animate-pulse" /> slate
+                </span>
+              )}
             </div>
-            <div className="grid grid-cols-2 gap-3 border-t border-border pt-2">
-              <div>
-                <p className="text-[10px] font-mono uppercase text-muted-foreground">Total Votes</p>
-                <p className="text-lg font-bold text-foreground">{currentPoll.totalVotes.toLocaleString()}</p>
+
+            {/* Polling Slate */}
+            <div className="space-y-2 rounded-md border border-border/60 p-2">
+              <p className="text-[10px] font-mono uppercase text-muted-foreground">Polling Slate</p>
+              <Textarea
+                value={slateText}
+                onChange={(e) => setSlateText(e.target.value)}
+                placeholder="Polling will open soon"
+                rows={2}
+                className="text-xs"
+              />
+              <div className="flex items-center gap-2">
+                <label className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-border/60 px-2 py-1.5 text-[10px] text-muted-foreground hover:bg-accent/20">
+                  <ImageIcon className="h-3 w-3" />
+                  {slateImage ? 'Replace image' : 'Upload image'}
+                  <input
+                    type="file"
+                    accept="image/*"
+                    className="hidden"
+                    onChange={(e) => {
+                      const file = e.target.files?.[0];
+                      if (!file) return;
+                      const reader = new FileReader();
+                      reader.onload = () => setSlateImage(typeof reader.result === 'string' ? reader.result : undefined);
+                      reader.readAsDataURL(file);
+                    }}
+                  />
+                </label>
+                {slateImage && (
+                  <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px]" onClick={() => setSlateImage(undefined)}>
+                    Clear
+                  </Button>
+                )}
               </div>
-              <div>
-                <p className="text-[10px] font-mono uppercase text-muted-foreground">Votes/sec</p>
-                <p className="text-lg font-bold text-primary">{currentPoll.votesPerSecond}</p>
+              <div className="flex items-center gap-2">
+                <Timer className="h-3 w-3 text-muted-foreground" />
+                <span className="text-[10px] uppercase text-muted-foreground">Countdown (s)</span>
+                <Input
+                  type="number"
+                  min={0}
+                  value={slateCountdown}
+                  onChange={(e) => setSlateCountdown(Math.max(0, Number(e.target.value) || 0))}
+                  disabled={slateActive}
+                  className="ml-auto h-7 w-16 text-right text-xs"
+                />
               </div>
+              <Button
+                size="sm"
+                variant={slateActive ? 'outline' : 'default'}
+                className={`w-full gap-1.5 text-xs ${slateActive ? slateActiveClass : ''}`}
+                onClick={slateActive ? handleStopSlate : handleStartSlate}
+              >
+                {slateActive ? (
+                  <>
+                    <StopCircle className="h-3.5 w-3.5" /> Stop Slate
+                    {slateRemaining !== null && <span className="ml-auto font-mono">{slateRemaining}s</span>}
+                  </>
+                ) : (
+                  <>
+                    <Play className="h-3.5 w-3.5" /> Start Slate
+                  </>
+                )}
+              </Button>
+              <p className="text-[10px] text-muted-foreground">
+                When countdown ends, output auto-switches to the live poll.
+              </p>
+            </div>
+
+            {/* Open Vote scheduler */}
+            <div className="space-y-2 rounded-md border border-border/60 p-2">
+              <p className="text-[10px] font-mono uppercase text-muted-foreground">Open Vote</p>
+              <div className="grid grid-cols-3 gap-1">
+                {(['now', 'in', 'at'] as const).map((opt) => (
+                  <button
+                    key={opt}
+                    type="button"
+                    onClick={() => setVoteSchedule(opt)}
+                    disabled={voteScheduledFor !== null}
+                    className={`rounded-md border px-2 py-1 text-[10px] font-medium capitalize transition-colors ${
+                      voteSchedule === opt
+                        ? 'border-primary/40 bg-primary/15 text-primary'
+                        : 'border-border bg-transparent text-muted-foreground hover:bg-accent/30'
+                    } disabled:opacity-50`}
+                  >
+                    {opt === 'in' ? 'In…' : opt === 'at' ? 'At…' : 'Now'}
+                  </button>
+                ))}
+              </div>
+              {voteSchedule === 'in' && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase text-muted-foreground">Minutes</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={voteInMinutes}
+                    onChange={(e) => setVoteInMinutes(Math.max(1, Number(e.target.value) || 0))}
+                    disabled={voteScheduledFor !== null}
+                    className="ml-auto h-7 w-20 text-right text-xs"
+                  />
+                </div>
+              )}
+              {voteSchedule === 'at' && (
+                <div className="flex items-center gap-2">
+                  <span className="text-[10px] uppercase text-muted-foreground">Time</span>
+                  <Input
+                    type="time"
+                    value={voteAtTime}
+                    onChange={(e) => setVoteAtTime(e.target.value)}
+                    disabled={voteScheduledFor !== null}
+                    className="ml-auto h-7 w-28 text-xs"
+                  />
+                </div>
+              )}
+              {voteScheduledFor !== null ? (
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-1.5 rounded-md border border-mako-success/40 bg-mako-success/10 px-2 py-1 text-[10px] text-mako-success">
+                    <Clock className="h-3 w-3" />
+                    Scheduled for {new Date(voteScheduledFor).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                  </div>
+                  <Button size="sm" variant="outline" className="w-full gap-1.5 text-xs" onClick={handleCancelVoteSchedule}>
+                    <XCircle className="h-3.5 w-3.5" /> Cancel
+                  </Button>
+                </div>
+              ) : (
+                <Button
+                  size="sm"
+                  className={`w-full gap-1.5 text-xs ${votingState === 'open' ? votingActiveClass : ''}`}
+                  variant={votingState === 'open' ? 'outline' : 'default'}
+                  onClick={handleScheduleVote}
+                >
+                  <Vote className="h-3.5 w-3.5" />
+                  {voteSchedule === 'now' ? 'Open Voting Now' : voteSchedule === 'in' ? `Open in ${voteInMinutes}m` : voteAtTime ? `Open at ${voteAtTime}` : 'Pick a time'}
+                </Button>
+              )}
+              <p className="text-[10px] text-muted-foreground">
+                Bars reset to 0% when voting opens.
+              </p>
             </div>
           </div>
         </div>
