@@ -9,7 +9,7 @@ import { PollingAssetsPane, SEEDED_ASSETS } from '@/components/poll-create/polli
 import { AssetInspector } from '@/components/poll-create/polling-assets/AssetInspector';
 import { AssetTransformControls } from '@/components/poll-create/AssetTransformControls';
 import { ASSET_REGISTRY } from '@/components/poll-create/polling-assets/PollingAssetsPane';
-import { AssetColorMap, AssetId, AssetState, DEFAULT_ASSET_COLORS, DEFAULT_ASSET_STATE, DEFAULT_ASSET_TRANSFORMS, TransformField } from '@/components/poll-create/polling-assets/types';
+import { AssetColorMap, AssetId, AssetState, AssetTransformMap, AssetTransformSet, DEFAULT_ASSET_COLORS, DEFAULT_ASSET_STATE, DEFAULT_ASSET_TRANSFORMS, TransformField, TransformViewport, createDefaultTransformSet } from '@/components/poll-create/polling-assets/types';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -807,7 +807,27 @@ export default function PollCreate() {
   // Modular polling-assets state
   const [selectedAssetId, setSelectedAssetId] = useState<AssetId | null>(null);
   const [assetState, setAssetState] = useState<AssetState>(() => loadPersistedAssetState());
-  const [assetTransforms, setAssetTransforms] = useState(DEFAULT_ASSET_TRANSFORMS);
+  // Per-viewport transform sets. The inspector edits the slice for whichever
+  // viewport is currently active so Program / Mobile / Desktop tweaks stay
+  // independent. `assetTransforms` continues to be the live map every scene
+  // and the inspector reads from, while writes flow through `setAssetTransforms`
+  // and only mutate the active viewport's slice.
+  const [assetTransformSet, setAssetTransformSet] = useState<AssetTransformSet>(() => createDefaultTransformSet());
+  const [transformViewport, setTransformViewport] = useState<TransformViewport>('program');
+  const assetTransforms: AssetTransformMap = assetTransformSet[transformViewport];
+  const setAssetTransforms = useCallback(
+    (updater: AssetTransformMap | ((current: AssetTransformMap) => AssetTransformMap)) => {
+      setAssetTransformSet((current) => {
+        const slice = current[transformViewport];
+        const next = typeof updater === 'function'
+          ? (updater as (c: AssetTransformMap) => AssetTransformMap)(slice)
+          : updater;
+        if (next === slice) return current;
+        return { ...current, [transformViewport]: next };
+      });
+    },
+    [transformViewport],
+  );
   const [assetColors, setAssetColors] = useState<AssetColorMap>(DEFAULT_ASSET_COLORS);
   const [highlightField, setHighlightField] = useState<string | null>(null);
   const [folderState, setFolderState] = useState<PollingAssetFolderState>(() => createDefaultFolderState(question));
@@ -1114,7 +1134,7 @@ export default function PollCreate() {
         nextState.activeFolderId = savedActiveFolderId;
       }
       setFolderState(nextState);
-      setAssetTransforms(DEFAULT_ASSET_TRANSFORMS);
+      setAssetTransformSet(createDefaultTransformSet());
       setAssetColors(DEFAULT_ASSET_COLORS);
       return;
     }
@@ -1127,7 +1147,7 @@ export default function PollCreate() {
           nextState.activeFolderId = savedActiveFolderId;
         }
         setFolderState(nextState);
-        setAssetTransforms(DEFAULT_ASSET_TRANSFORMS);
+        setAssetTransformSet(createDefaultTransformSet());
         setAssetColors(DEFAULT_ASSET_COLORS);
         setFoldersLoadedForProject(projectId);
       })
@@ -1138,7 +1158,7 @@ export default function PollCreate() {
           nextState.activeFolderId = savedActiveFolderId;
         }
         setFolderState(nextState);
-        setAssetTransforms(DEFAULT_ASSET_TRANSFORMS);
+        setAssetTransformSet(createDefaultTransformSet());
         setAssetColors(DEFAULT_ASSET_COLORS);
         setFoldersLoadedForProject(projectId);
       });
@@ -1828,6 +1848,8 @@ export default function PollCreate() {
                     onToggleLock={handleToggleTransformLock}
                     onColorsChange={handleAssetColorsChange}
                     onCenterAsset={handleCenterAsset}
+                    viewport={transformViewport}
+                    onViewportChange={setTransformViewport}
                   />
                 </div>
               </Pane>

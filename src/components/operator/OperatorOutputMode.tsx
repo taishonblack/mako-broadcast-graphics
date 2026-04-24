@@ -6,6 +6,10 @@ import { PollStatusChip } from '@/components/broadcast/PollStatusChip';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { ViewerSlatePreview, SlateTextStyle, DEFAULT_SLATE_TEXT_STYLE } from '@/components/broadcast/preview/ViewerSlatePreview';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   AlertDialog,
@@ -21,7 +25,7 @@ import { useEffect, useRef, useState } from 'react';
 import { BLOCK_LETTERS, BlockLetter, DEFAULT_BLOCK_LABELS, SavedPoll } from '@/lib/poll-persistence';
 import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { ChevronDown, ChevronRight, Clock, Eye, Globe, Image as ImageIcon, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Smartphone, Square, StopCircle, Vote, XCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, Eye, EyeOff, Globe, Image as ImageIcon, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Smartphone, Square, StopCircle, Type as TypeIcon, Vote, XCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { percentsFromAnswers, rebalancePercents, answersFromPercents, AnswerLite } from '@/lib/answer-percents';
 
@@ -180,6 +184,15 @@ export function OperatorOutputMode({
   const [slateText, setSlateText] = useState('Polling will open soon');
   const [slateImage, setSlateImage] = useState<string | undefined>(undefined);
   const [slateActive, setSlateActive] = useState(false);
+  // Slate typography — color, weight, size, X/Y nudge. Used in both the
+  // operator's mobile/desktop previews and (when wired into ViewerVote) the
+  // real public viewer page.
+  const [slateTextStyle, setSlateTextStyle] = useState<SlateTextStyle>(DEFAULT_SLATE_TEXT_STYLE);
+  // "Test viewer view" — when ON the Program monitor renders the viewer
+  // (mobile or desktop) instead of the broadcast composition so the operator
+  // can sanity-check what voters will see before going on-air.
+  const [testViewerView, setTestViewerView] = useState(false);
+  const [testViewerMode, setTestViewerMode] = useState<'mobile' | 'desktop'>('mobile');
 
   // Tracks whether the operator has opened the fullscreen Output window.
   // Drives the green "ACTIVE" state on the Open Output quick action so
@@ -441,11 +454,44 @@ export function OperatorOutputMode({
           </div>
 
           {previewMode === 'program' ? (
-            <MonitorContainer variant="operator">
-              <PreviewWithOverlays showLabel label="1920×1080">
-                {previewNode}
-              </PreviewWithOverlays>
-            </MonitorContainer>
+            testViewerView ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-end gap-1 px-1">
+                  {(['mobile', 'desktop'] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setTestViewerMode(m)}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium border transition-all ${
+                        testViewerMode === m
+                          ? 'border-primary/40 bg-primary/15 text-primary'
+                          : 'border-border bg-transparent text-muted-foreground hover:bg-accent/30'
+                      }`}
+                    >
+                      {m === 'mobile' ? <Smartphone className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
+                      {m === 'mobile' ? 'Mobile' : 'Desktop'}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex justify-center">
+                  <ViewerSlatePreview
+                    mode={testViewerMode}
+                    bgImage={currentPoll.bgImage}
+                    bgColor={currentPoll.bgColor}
+                    slateActive={slateActive}
+                    slateText={slateText}
+                    slateImage={slateImage}
+                    textStyle={slateTextStyle}
+                  />
+                </div>
+              </div>
+            ) : (
+              <MonitorContainer variant="operator">
+                <PreviewWithOverlays showLabel label="1920×1080">
+                  {previewNode}
+                </PreviewWithOverlays>
+              </MonitorContainer>
+            )
           ) : (
             <div className="flex justify-center">
               <ViewerSlatePreview
@@ -455,6 +501,7 @@ export function OperatorOutputMode({
                 slateActive={slateActive}
                 slateText={slateText}
                 slateImage={slateImage}
+                textStyle={slateTextStyle}
               />
             </div>
           )}
@@ -708,6 +755,20 @@ export function OperatorOutputMode({
               )}
             </div>
 
+            {/* Test viewer view — swap the Program monitor between the
+                broadcast composition and a viewer-eye render so the operator
+                can QA exactly what mobile / desktop voters will see before
+                going on-air. */}
+            <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/40 px-2 py-1.5">
+              <div className="min-w-0">
+                <p className="text-[10px] font-mono uppercase text-muted-foreground">Test viewer view</p>
+                <p className="text-[10px] text-muted-foreground/70 leading-snug">
+                  {testViewerView ? `Program monitor → ${testViewerMode}` : 'Program monitor shows broadcast'}
+                </p>
+              </div>
+              <Switch checked={testViewerView} onCheckedChange={setTestViewerView} />
+            </div>
+
             {/* Polling Slate */}
             <div className="space-y-2 rounded-md border border-border/60 p-2">
               <p className="text-[10px] font-mono uppercase text-muted-foreground">Polling Slate</p>
@@ -718,6 +779,83 @@ export function OperatorOutputMode({
                 rows={2}
                 className="text-xs"
               />
+              {/* Slate typography controls — color, weight, size, X/Y nudge.
+                  Operators reach for these when their custom slate text is
+                  hard to read against a busy background. */}
+              <div className="space-y-1.5 rounded-md border border-border/40 bg-background/40 p-2">
+                <p className="text-[10px] font-mono uppercase text-muted-foreground">Slate Text Style</p>
+                <div className="flex items-center gap-2">
+                  <Label className="w-16 text-[10px] text-muted-foreground">Color</Label>
+                  <input
+                    type="color"
+                    value={slateTextStyle.color ?? '#ffffff'}
+                    onChange={(e) => setSlateTextStyle((s) => ({ ...s, color: e.target.value }))}
+                    className="h-7 w-10 cursor-pointer rounded border border-border bg-transparent p-0"
+                  />
+                  <Input
+                    value={slateTextStyle.color ?? '#ffffff'}
+                    onChange={(e) => setSlateTextStyle((s) => ({ ...s, color: e.target.value }))}
+                    className="h-7 flex-1 px-2 text-[10px] font-mono"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="w-16 text-[10px] text-muted-foreground">Weight</Label>
+                  <Slider
+                    value={[slateTextStyle.weight ?? 700]}
+                    min={300}
+                    max={900}
+                    step={100}
+                    onValueChange={([v]) => setSlateTextStyle((s) => ({ ...s, weight: v }))}
+                    className="flex-1"
+                  />
+                  <span className="w-10 text-right text-[10px] font-mono text-muted-foreground">{slateTextStyle.weight ?? 700}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="w-16 text-[10px] text-muted-foreground">Size</Label>
+                  <Slider
+                    value={[slateTextStyle.sizePx ?? 28]}
+                    min={14}
+                    max={72}
+                    step={1}
+                    onValueChange={([v]) => setSlateTextStyle((s) => ({ ...s, sizePx: v }))}
+                    className="flex-1"
+                  />
+                  <span className="w-10 text-right text-[10px] font-mono text-muted-foreground">{slateTextStyle.sizePx ?? 28}px</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="w-16 text-[10px] text-muted-foreground">X</Label>
+                  <Slider
+                    value={[slateTextStyle.offsetX ?? 0]}
+                    min={-160}
+                    max={160}
+                    step={1}
+                    onValueChange={([v]) => setSlateTextStyle((s) => ({ ...s, offsetX: v }))}
+                    className="flex-1"
+                  />
+                  <span className="w-10 text-right text-[10px] font-mono text-muted-foreground">{slateTextStyle.offsetX ?? 0}px</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="w-16 text-[10px] text-muted-foreground">Y</Label>
+                  <Slider
+                    value={[slateTextStyle.offsetY ?? 0]}
+                    min={-200}
+                    max={200}
+                    step={1}
+                    onValueChange={([v]) => setSlateTextStyle((s) => ({ ...s, offsetY: v }))}
+                    className="flex-1"
+                  />
+                  <span className="w-10 text-right text-[10px] font-mono text-muted-foreground">{slateTextStyle.offsetY ?? 0}px</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-full text-[10px] text-muted-foreground"
+                  onClick={() => setSlateTextStyle(DEFAULT_SLATE_TEXT_STYLE)}
+                >
+                  <RotateCcw className="mr-1 h-3 w-3" /> Reset slate text style
+                </Button>
+              </div>
               <div className="flex items-center gap-2">
                 <label className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-border/60 px-2 py-1.5 text-[10px] text-muted-foreground hover:bg-accent/20">
                   <ImageIcon className="h-3 w-3" />
@@ -906,116 +1044,6 @@ export function OperatorOutputMode({
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-    </div>
-  );
-}
-
-/**
- * Faithful preview of the real QR viewer's "polling slate" page. Renders the
- * actual ViewerVote slate layout (Clock icon, "Voting Will Begin Shortly",
- * subline, BrandBug) at native viewport resolution inside a scaled device
- * frame so safe-area, padding, and proportions match exactly what voters see.
- *
- * - Mobile: 375 × 667 (iPhone SE viewport)
- * - Desktop: 1280 × 800 (laptop viewport)
- *
- * The operator's background image / color is layered behind, and when the
- * slate is active any uploaded slate image + custom text overrides the
- * default "Voting Will Begin Shortly" copy.
- */
-function ViewerSlatePreview({
-  mode,
-  bgImage,
-  bgColor,
-  slateActive,
-  slateText,
-  slateImage,
-}: {
-  mode: 'mobile' | 'desktop';
-  bgImage?: string;
-  bgColor?: string;
-  slateActive: boolean;
-  slateText: string;
-  slateImage?: string;
-}) {
-  // Native viewport dimensions of the real viewer page. Scaling these into
-  // the operator's device frame preserves every spacing, font size, and
-  // safe-area value from ViewerVote.tsx 1:1.
-  const NATIVE_W = mode === 'mobile' ? 375 : 1280;
-  const NATIVE_H = mode === 'mobile' ? 667 : 800;
-
-  // Frame dimensions inside the Output workspace.
-  const FRAME_W = mode === 'mobile' ? 280 : 560;
-  const FRAME_H = mode === 'mobile' ? 498 : 350;
-  const scale = Math.min(FRAME_W / NATIVE_W, FRAME_H / NATIVE_H);
-
-  const bgStyle: React.CSSProperties = bgImage
-    ? { backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
-    : { background: bgColor || 'hsl(220, 20%, 7%)' };
-
-  return (
-    <div
-      className="bg-background border border-border rounded-lg overflow-hidden shadow-xl"
-      style={{ width: FRAME_W, height: FRAME_H + 24 }}
-    >
-      {/* Browser chrome */}
-      <div className="h-6 bg-card/80 border-b border-border flex items-center px-2 gap-1">
-        <div className="w-1.5 h-1.5 rounded-full bg-destructive/60" />
-        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
-        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
-        <span className="text-[8px] text-muted-foreground ml-1 font-mono truncate">makovote.app/vote</span>
-      </div>
-
-      {/* Scaled native viewport — content inside is rendered at real px sizes */}
-      <div className="relative overflow-hidden" style={{ width: FRAME_W, height: FRAME_H }}>
-        <div
-          className="absolute left-0 top-0 origin-top-left"
-          style={{
-            width: NATIVE_W,
-            height: NATIVE_H,
-            transform: `scale(${scale})`,
-          }}
-        >
-          {/* Background layer — matches real viewer's flat solid bg, with
-              optional operator-provided image/color overlaid. */}
-          <div className="absolute inset-0" style={bgStyle} />
-          {bgImage && (
-            <div
-              className="absolute inset-0 pointer-events-none"
-              style={{ background: 'radial-gradient(ellipse at center, transparent 35%, rgba(0,0,0,0.55) 100%)' }}
-            />
-          )}
-
-          {/* Slate content — mirrors ViewerVote's "not_open" branch exactly */}
-          <div className="absolute inset-0 flex items-center justify-center px-6">
-            <div className="text-center space-y-4 flex flex-col items-center">
-              {slateActive && slateImage ? (
-                <img
-                  src={slateImage}
-                  alt="Polling slate"
-                  className="max-h-[280px] max-w-[80%] object-contain rounded-lg border border-border/40"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto">
-                  <Clock className="w-8 h-8 text-muted-foreground" />
-                </div>
-              )}
-              <h1 className="text-xl font-bold text-foreground">
-                {slateActive ? slateText : 'Voting Will Begin Shortly'}
-              </h1>
-              <p className="text-sm text-muted-foreground">
-                Stay tuned — the poll will open soon.
-              </p>
-              <div className="flex items-center justify-center gap-2 pt-4 opacity-30">
-                <div className="w-4 h-4 rounded bg-primary flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-[8px]">M</span>
-                </div>
-                <span className="font-mono text-[10px] text-muted-foreground">MakoVote</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
     </div>
   );
 }

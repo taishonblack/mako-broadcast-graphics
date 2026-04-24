@@ -69,6 +69,21 @@ export interface AssetTransformConfig {
 export type AssetTransformMap = Record<AssetId, AssetTransformConfig>;
 export type AssetColorMap = Record<AssetId, AssetColorConfig>;
 
+/**
+ * Output viewports the operator can target with independent transforms.
+ * - `program`: broadcast composition (1920×1080) — this is the canonical set
+ *   that scenes render from.
+ * - `mobile`:  voter mobile viewport overrides
+ * - `desktop`: voter desktop viewport overrides
+ *
+ * Scenes should always read from `set.program` unless they explicitly opt
+ * into a different viewport. The inspector edits the active viewport's
+ * slice so a slider change on the Mobile tab only affects Mobile.
+ */
+export type TransformViewport = 'program' | 'mobile' | 'desktop';
+
+export type AssetTransformSet = Record<TransformViewport, AssetTransformMap>;
+
 const DEFAULT_TRANSFORM_LOCKS: Record<TransformField, boolean> = {
   x: false,
   y: false,
@@ -104,6 +119,15 @@ export const DEFAULT_ASSET_TRANSFORMS: AssetTransformMap = {
   voterTally: createDefaultTransform(),
   image: createDefaultTransform(),
 };
+
+/** Build a fresh per-viewport transform set seeded with the same defaults. */
+export const createDefaultTransformSet = (): AssetTransformSet => ({
+  program: { ...DEFAULT_ASSET_TRANSFORMS, question: createDefaultTransform(), answers: createDefaultTransform(), subheadline: createDefaultTransform(), background: createDefaultTransform(), qr: createDefaultTransform(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
+  mobile:  { ...DEFAULT_ASSET_TRANSFORMS, question: createDefaultTransform(), answers: createDefaultTransform(), subheadline: createDefaultTransform(), background: createDefaultTransform(), qr: createDefaultTransform(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
+  desktop: { ...DEFAULT_ASSET_TRANSFORMS, question: createDefaultTransform(), answers: createDefaultTransform(), subheadline: createDefaultTransform(), background: createDefaultTransform(), qr: createDefaultTransform(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
+});
+
+export const DEFAULT_ASSET_TRANSFORM_SET: AssetTransformSet = createDefaultTransformSet();
 
 export const DEFAULT_ASSET_COLORS: AssetColorMap = {
   question: { textPrimary: 'hsl(0 0% 100%)' },

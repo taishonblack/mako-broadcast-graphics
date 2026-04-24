@@ -1,10 +1,10 @@
-import { ChevronDown, ChevronRight, Crosshair, Lock, RotateCcw, Unlock } from 'lucide-react';
+import { ChevronDown, ChevronRight, Crosshair, Globe, Lock, Monitor, RotateCcw, Smartphone, Unlock } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
-import { AssetColorConfig, AssetColorMap, AssetId, AssetTransformMap, DEFAULT_ASSET_COLORS, TransformField } from '@/components/poll-create/polling-assets/types';
+import { AssetColorConfig, AssetColorMap, AssetId, AssetTransformMap, DEFAULT_ASSET_COLORS, TransformField, TransformViewport } from '@/components/poll-create/polling-assets/types';
 import { useState } from 'react';
 
 interface AssetTransformControlsProps {
@@ -20,6 +20,13 @@ interface AssetTransformControlsProps {
   onColorsChange: (assetId: AssetId, next: AssetColorConfig) => void;
   /** Optional handler — when provided, a "Center" quick-action button is shown for the asset. */
   onCenterAsset?: (assetId: AssetId) => void;
+  /**
+   * Active viewport whose transform slice this inspector edits. When provided
+   * along with `onViewportChange`, a Program/Mobile/Desktop selector is shown
+   * at the top of the panel so operators can independently tune each viewport.
+   */
+  viewport?: TransformViewport;
+  onViewportChange?: (next: TransformViewport) => void;
 }
 
 const CONTROL_DEFS: Array<{
@@ -60,7 +67,7 @@ interface ColorSection {
   fields: ColorFieldConfig[];
 }
 
-export function AssetTransformControls({ assetId, assetLabel, folderLabel, folderAssetIds, transforms, colors, answerCount, onChange, onToggleLock, onColorsChange, onCenterAsset }: AssetTransformControlsProps) {
+export function AssetTransformControls({ assetId, assetLabel, folderLabel, folderAssetIds, transforms, colors, answerCount, onChange, onToggleLock, onColorsChange, onCenterAsset, viewport, onViewportChange }: AssetTransformControlsProps) {
   const [transformOpen, setTransformOpen] = useState(true);
   const [colorsOpen, setColorsOpen] = useState(true);
 
@@ -89,6 +96,34 @@ export function AssetTransformControls({ assetId, assetLabel, folderLabel, folde
           <h3 className="text-xs font-medium text-foreground">{title}</h3>
         </div>
       </div>
+
+      {viewport && onViewportChange && (
+        <div className="flex items-center gap-2 rounded-md border border-border/50 bg-card/30 px-2 py-1.5">
+          <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Editing viewport</span>
+          <div className="ml-auto flex gap-0.5 rounded-md bg-muted/50 p-0.5">
+            {([
+              { v: 'program' as const, icon: Monitor, label: 'Program' },
+              { v: 'mobile'  as const, icon: Smartphone, label: 'Mobile' },
+              { v: 'desktop' as const, icon: Globe, label: 'Desktop' },
+            ]).map(({ v, icon: Icon, label }) => (
+              <button
+                key={v}
+                type="button"
+                onClick={() => onViewportChange(v)}
+                title={`Edit transforms for the ${label} viewport`}
+                className={`flex items-center gap-1 rounded px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                  viewport === v
+                    ? 'bg-primary/15 text-primary'
+                    : 'text-muted-foreground hover:text-foreground'
+                }`}
+              >
+                <Icon className="h-3 w-3" />
+                {label}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       <div className="rounded-md border border-border/50 bg-card/30">
         <button type="button" onClick={() => setTransformOpen((value) => !value)} className="flex w-full items-center justify-between px-3 py-2 text-left">
