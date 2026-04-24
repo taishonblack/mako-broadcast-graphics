@@ -61,6 +61,30 @@ type OperatorMode = 'build' | 'output';
 
 const WORKSPACE_LAYOUT_KEY = 'mako-draft-workspace-layout-v1';
 const ASSET_STATE_STORAGE_KEY = 'mako-asset-state-v1';
+const OUTPUT_BLOCK_PIN_KEY = 'mako-output-block-pin-v1';
+const OUTPUT_BLOCK_LAST_KEY = 'mako-output-block-last-v1';
+
+export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
+
+interface PersistedOutputBlock {
+  block: BlockLetter;
+  pinned: boolean;
+}
+
+function loadPersistedOutputBlock(): PersistedOutputBlock {
+  try {
+    const raw = localStorage.getItem(OUTPUT_BLOCK_LAST_KEY);
+    const pinned = localStorage.getItem(OUTPUT_BLOCK_PIN_KEY) === '1';
+    if (!raw) return { block: 'A', pinned };
+    const parsed = JSON.parse(raw) as { block?: BlockLetter };
+    const block = (['A', 'B', 'C', 'D', 'E'] as BlockLetter[]).includes(parsed.block as BlockLetter)
+      ? (parsed.block as BlockLetter)
+      : 'A';
+    return { block, pinned };
+  } catch {
+    return { block: 'A', pinned: false };
+  }
+}
 
 function loadPersistedAssetState(): AssetState {
   try {
@@ -239,7 +263,11 @@ export default function PollCreate() {
   const [blockPosition, setBlockPosition] = useState<number>(1);
   const [mode, setMode] = useState<OperatorMode>(searchParams.get('mode') === 'output' ? 'output' : 'build');
   const [projectPolls, setProjectPolls] = useState<SavedPoll[]>([]);
-  const [outputActiveBlock, setOutputActiveBlock] = useState<BlockLetter>('A');
+  const [outputActiveBlock, setOutputActiveBlock] = useState<BlockLetter>(() => loadPersistedOutputBlock().block);
+  const [outputBlockPinned, setOutputBlockPinned] = useState<boolean>(() => loadPersistedOutputBlock().pinned);
+  const [outputBlockSource, setOutputBlockSource] = useState<OutputBlockSource>(() => (
+    loadPersistedOutputBlock().pinned ? 'pinned' : 'default'
+  ));
   const [votingState, setVotingState] = useState<VotingState>('not_open');
   const [liveState, setLiveState] = useState<LiveState>('not_live');
   const [previewScene, setPreviewScene] = useState<SceneType>('fullscreen');
@@ -505,8 +533,8 @@ export default function PollCreate() {
     ];
   }, [projectPolls, currentWorkspacePoll, projectId, answerType, mcLabelStyle, answers, previewDataMode, bgColor, bgImage]);
 
-  // In output mode, auto-select the first block that actually has polls (A → E priority).
-  // Re-evaluates when polls change so a newly-added Block A poll takes precedence.
+  // In output mode, auto-select the first block that actually has polls (A → E priority),
+  // unless the operator has pinned a specific block. Tracks WHY the block was selected.
   useEffect(() => {
     if (mode !== 'output') return;
     const order: BlockLetter[] = ['A', 'B', 'C', 'D', 'E'];
@@ -514,15 +542,36 @@ export default function PollCreate() {
       acc[letter] = outputPolls.filter((p) => (p.blockLetter ?? 'A') === letter).length;
       return acc;
     }, { A: 0, B: 0, C: 0, D: 0, E: 0 });
+
+    // Pinned: respect the operator's choice as long as that block has polls.
+    if (outputBlockPinned && counts[outputActiveBlock] > 0) {
+      setOutputBlockSource('pinned');
+      return;
+    }
+
     const firstNonEmpty = order.find((letter) => counts[letter] > 0);
     if (!firstNonEmpty) return;
-    // If the current active block is empty, OR a higher-priority block just gained polls, switch.
+
     if (counts[outputActiveBlock] === 0) {
       setOutputActiveBlock(firstNonEmpty);
-    } else if (order.indexOf(firstNonEmpty) < order.indexOf(outputActiveBlock)) {
+      setOutputBlockSource('auto-first-populated');
+    } else if (!outputBlockPinned && order.indexOf(firstNonEmpty) < order.indexOf(outputActiveBlock)) {
       setOutputActiveBlock(firstNonEmpty);
+      setOutputBlockSource('auto-promoted');
     }
-  }, [mode, outputPolls, outputActiveBlock]);
+  }, [mode, outputPolls, outputActiveBlock, outputBlockPinned]);
+
+  // Persist last selected block + pin toggle so they survive reloads.
+  useEffect(() => {
+    try {
+      localStorage.setItem(OUTPUT_BLOCK_LAST_KEY, JSON.stringify({ block: outputActiveBlock }));
+    } catch { /* ignore */ }
+  }, [outputActiveBlock]);
+  useEffect(() => {
+    try {
+      localStorage.setItem(OUTPUT_BLOCK_PIN_KEY, outputBlockPinned ? '1' : '0');
+    } catch { /* ignore */ }
+  }, [outputBlockPinned]);
 
   const renderOutputScene = () => {
     const sharedAssets = {
@@ -1508,6 +1557,15 @@ export default function PollCreate() {
             currentPoll={currentWorkspacePoll}
             projectPolls={outputPolls}
             activeBlock={outputActiveBlock}
+            blockSource={outputBlockSource}
+            blockPinned={outputBlockPinned}
+            onTogglePinBlock={() => {
+              setOutputBlockPinned((prev) => {
+                const next = !prev;
+                setOutputBlockSource(next ? 'pinned' : 'manual');
+                return next;
+              });
+            }}
             liveState={liveState}
             votingState={votingState}
             previewScene={previewScene}
@@ -1517,7 +1575,10 @@ export default function PollCreate() {
             showBranding={showBranding}
             brandingPosition={brandingPosition}
             previewNode={renderOutputScene()}
-            onSelectBlock={setOutputActiveBlock}
+            onSelectBlock={(letter) => {
+              setOutputActiveBlock(letter);
+              setOutputBlockSource(outputBlockPinned ? 'pinned' : 'manual');
+            }}
             onSelectPoll={(selectedId) => {
               if (selectedId === currentWorkspacePoll.id) return;
               navigate(`/polls/${selectedId}?mode=output`);
