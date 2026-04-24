@@ -59,7 +59,7 @@ interface OperatorOutputModeProps {
   onBrandingPositionChange: (position: QRPosition) => void;
   /** Test-vote runner: inject N votes over T seconds across the active poll's answers. */
   testVoteRunning?: boolean;
-  onStartTestVotes?: (totalVotes: number, durationSeconds: number) => void;
+  onStartTestVotes?: (totalVotes: number, durationSeconds: number, targetPercents?: number[]) => void;
   onStopTestVotes?: () => void;
   /** Reset live/test vote tallies on the current poll back to zero. */
   onResetTestVotes?: () => void;
