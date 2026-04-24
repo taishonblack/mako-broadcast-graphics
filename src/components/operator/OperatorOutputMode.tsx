@@ -6,6 +6,10 @@ import { PollStatusChip } from '@/components/broadcast/PollStatusChip';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Slider } from '@/components/ui/slider';
+import { Switch } from '@/components/ui/switch';
+import { ViewerSlatePreview, SlateTextStyle, DEFAULT_SLATE_TEXT_STYLE } from '@/components/broadcast/preview/ViewerSlatePreview';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   AlertDialog,
@@ -21,7 +25,7 @@ import { useEffect, useRef, useState } from 'react';
 import { BLOCK_LETTERS, BlockLetter, DEFAULT_BLOCK_LABELS, SavedPoll } from '@/lib/poll-persistence';
 import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { ChevronDown, ChevronRight, Clock, Eye, Globe, Image as ImageIcon, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Smartphone, Square, StopCircle, Vote, XCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, Eye, EyeOff, Globe, Image as ImageIcon, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Smartphone, Square, StopCircle, Type as TypeIcon, Vote, XCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { percentsFromAnswers, rebalancePercents, answersFromPercents, AnswerLite } from '@/lib/answer-percents';
 
@@ -180,6 +184,15 @@ export function OperatorOutputMode({
   const [slateText, setSlateText] = useState('Polling will open soon');
   const [slateImage, setSlateImage] = useState<string | undefined>(undefined);
   const [slateActive, setSlateActive] = useState(false);
+  // Slate typography — color, weight, size, X/Y nudge. Used in both the
+  // operator's mobile/desktop previews and (when wired into ViewerVote) the
+  // real public viewer page.
+  const [slateTextStyle, setSlateTextStyle] = useState<SlateTextStyle>(DEFAULT_SLATE_TEXT_STYLE);
+  // "Test viewer view" — when ON the Program monitor renders the viewer
+  // (mobile or desktop) instead of the broadcast composition so the operator
+  // can sanity-check what voters will see before going on-air.
+  const [testViewerView, setTestViewerView] = useState(false);
+  const [testViewerMode, setTestViewerMode] = useState<'mobile' | 'desktop'>('mobile');
 
   // Tracks whether the operator has opened the fullscreen Output window.
   // Drives the green "ACTIVE" state on the Open Output quick action so
