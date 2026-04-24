@@ -579,13 +579,13 @@ export function OperatorOutputMode({
                 variant="outline"
                 size="sm"
                 className={`w-full justify-start gap-2 text-xs ${outputActiveClass}`}
-                onClick={onOpenOutput}
+                onClick={handleOpenOutputClick}
               >
                 <Monitor className="h-3.5 w-3.5" /> Open Output
-                {liveState !== 'not_live' && <span className="ml-auto text-[9px] font-mono">ACTIVE</span>}
+                {(outputOpen || liveState !== 'not_live') && <span className="ml-auto text-[9px] font-mono">ACTIVE</span>}
               </Button>
               {liveState === 'not_live' ? (
-                <Button size="sm" className="w-full justify-start gap-2 text-xs" onClick={onGoLive}>
+                <Button size="sm" className="w-full justify-start gap-2 text-xs" onClick={() => setConfirmGoLive(true)}>
                   <Play className="h-3.5 w-3.5" /> Go Live
                 </Button>
               ) : (
@@ -629,14 +629,12 @@ export function OperatorOutputMode({
                 variant="outline"
                 size="sm"
                 className={`w-full justify-start gap-2 text-xs ${slateActiveClass}`}
-                onClick={slateActive ? handleStopSlate : handleStartSlate}
+                onClick={handleToggleSlate}
               >
                 <Eye className="h-3.5 w-3.5" />
                 {slateActive ? 'Stop Polling Slate' : 'Polling Slate'}
                 {slateActive && (
-                  <span className="ml-auto text-[9px] font-mono">
-                    {slateRemaining !== null ? `${slateRemaining}s` : 'ACTIVE'}
-                  </span>
+                  <span className="ml-auto text-[9px] font-mono">ACTIVE</span>
                 )}
               </Button>
               <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs" onClick={() => navigate(`/polls/${currentPoll.id}?mode=build`)}>
