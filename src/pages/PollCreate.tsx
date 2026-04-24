@@ -847,6 +847,64 @@ export default function PollCreate() {
   const [backgroundImageMissing, setBackgroundImageMissing] = useState(false);
   const [lastDeletedFolderState, setLastDeletedFolderState] = useState<PollingAssetFolderState | null>(null);
 
+  // Signature of folders relevant to Output mode (id, name, blockLetter).
+  // When this changes (rename / delete / new / re-block), trigger a rescan
+  // so the operator's Output block lists reflect the change immediately.
+  const folderSignature = useMemo(
+    () => folderState.folders.map((f) => `${f.id}:${f.name}:${f.blockLetter}`).join('|'),
+    [folderState.folders],
+  );
+  useEffect(() => {
+    void rescanProjectPolls();
+  }, [folderSignature, rescanProjectPolls]);
+
+  // Test-vote runner: bumps answers[i].testVotes incrementally so the
+  // preview chart and counters animate as if real votes were arriving.
+  const [testVoteRunning, setTestVoteRunning] = useState(false);
+  const testVoteTimerRef = (window as unknown as { __mvTimer?: number }).__mvTimer;
+  void testVoteTimerRef;
+  const handleStartTestVotes = useCallback((total: number, durationSeconds: number) => {
+    if (testVoteRunning) return;
+    if (!answers.length || total <= 0 || durationSeconds <= 0) return;
+    setPreviewDataMode('test');
+    setTestVoteRunning(true);
+    const tickMs = 200;
+    const ticks = Math.max(1, Math.round((durationSeconds * 1000) / tickMs));
+    let tick = 0;
+    let distributed = 0;
+    const interval = window.setInterval(() => {
+      tick += 1;
+      const targetTotal = Math.round((tick / ticks) * total);
+      const delta = targetTotal - distributed;
+      if (delta > 0) {
+        setAnswers((current) => {
+          if (!current.length) return current;
+          const next = current.map((a) => ({ ...a }));
+          for (let i = 0; i < delta; i += 1) {
+            // Weighted-random distribution biased to keep some lead variation.
+            const idx = Math.floor(Math.random() * next.length);
+            next[idx].testVotes = (next[idx].testVotes ?? 0) + 1;
+          }
+          return next;
+        });
+        distributed = targetTotal;
+      }
+      if (tick >= ticks) {
+        window.clearInterval(interval);
+        setTestVoteRunning(false);
+      }
+    }, tickMs);
+    (window as unknown as { __mvTimer?: number }).__mvTimer = interval;
+  }, [answers.length, testVoteRunning]);
+  const handleStopTestVotes = useCallback(() => {
+    const w = window as unknown as { __mvTimer?: number };
+    if (w.__mvTimer) {
+      window.clearInterval(w.__mvTimer);
+      w.__mvTimer = undefined;
+    }
+    setTestVoteRunning(false);
+  }, []);
+
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
 
   // Persist asset state (QR position, visibility, etc.) so it survives reloads
