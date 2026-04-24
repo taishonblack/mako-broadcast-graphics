@@ -517,6 +517,15 @@ export default function PollCreate() {
 
   const outputPolls = useMemo(() => {
     const existing = projectPolls.filter((poll) => poll.id !== currentWorkspacePoll.id);
+    // Only include the in-progress workspace poll in the operator output list when it's
+    // actually been saved (has a real pollId) OR has meaningful content. Otherwise it
+    // shows up as a phantom "Untitled Poll" entry under whichever block is selected in
+    // the build editor.
+    const hasRealId = Boolean(pollId);
+    const hasContent = Boolean((internalName && internalName.trim()) || (question && question.trim()));
+    if (!hasRealId && !hasContent) {
+      return existing;
+    }
     return [
       {
         ...currentWorkspacePoll,
@@ -531,7 +540,7 @@ export default function PollCreate() {
       } as SavedPoll,
       ...existing,
     ];
-  }, [projectPolls, currentWorkspacePoll, projectId, answerType, mcLabelStyle, answers, previewDataMode, bgColor, bgImage]);
+  }, [projectPolls, currentWorkspacePoll, projectId, pollId, internalName, question, answerType, mcLabelStyle, answers, previewDataMode, bgColor, bgImage]);
 
   // In output mode, auto-select the first block that actually has polls (A → E priority),
   // unless the operator has pinned a specific block. Tracks WHY the block was selected.
