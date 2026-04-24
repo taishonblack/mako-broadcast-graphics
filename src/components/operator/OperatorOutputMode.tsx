@@ -109,6 +109,32 @@ export function OperatorOutputMode({
               </div>
               <LiveStatusIndicator state={liveState} />
             </div>
+            <div className="rounded-lg border border-primary/30 bg-primary/5 p-2 space-y-1">
+              <div className="flex items-center justify-between gap-2">
+                <div className="flex items-center gap-1.5">
+                  <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" />
+                  <span className="text-[10px] font-mono uppercase text-muted-foreground">On Output</span>
+                  <span className="text-xs font-bold text-primary">Block {activeBlock}</span>
+                  <span className="mako-chip bg-muted text-[9px] text-muted-foreground">{BLOCK_SOURCE_COPY[blockSource].label}</span>
+                </div>
+                {onTogglePinBlock ? (
+                  <button
+                    type="button"
+                    onClick={onTogglePinBlock}
+                    title={blockPinned ? 'Unpin — allow auto-promotion' : 'Pin this block across reloads'}
+                    className={`flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium transition-colors ${
+                      blockPinned
+                        ? 'border-primary/40 bg-primary/15 text-primary'
+                        : 'border-border bg-transparent text-muted-foreground hover:bg-accent/30'
+                    }`}
+                  >
+                    {blockPinned ? <Pin className="h-3 w-3" /> : <PinOff className="h-3 w-3" />}
+                    {blockPinned ? 'Pinned' : 'Pin'}
+                  </button>
+                ) : null}
+              </div>
+              <p className="text-[10px] leading-snug text-muted-foreground">{BLOCK_SOURCE_COPY[blockSource].reason}</p>
+            </div>
             <div className="space-y-1">
               {BLOCK_LETTERS.map((letter) => (
                 <button
