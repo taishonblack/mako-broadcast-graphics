@@ -755,6 +755,13 @@ export default function PollCreate() {
   const [lastDeletedFolderState, setLastDeletedFolderState] = useState<PollingAssetFolderState | null>(null);
 
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
+
+  // Persist asset state (QR position, visibility, etc.) so it survives reloads
+  useEffect(() => {
+    try {
+      localStorage.setItem(ASSET_STATE_STORAGE_KEY, JSON.stringify(assetState));
+    } catch { /* ignore */ }
+  }, [assetState]);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
   // Show MakoVote branding when the folder has no assets, or when no question
   // text or answer bars have been authored yet.
