@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { PreviewWithOverlays } from '@/components/broadcast/preview/PreviewWithOverlays';
 import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
 import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
+import { ViewerSlatePreview } from '@/components/broadcast/preview/ViewerSlatePreview';
 import { PollOption, TemplateName, ThemePreset } from '@/lib/types';
 import { Monitor, Smartphone, Globe, Copy, Link2, Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -312,19 +313,34 @@ export function DraftPreviewMonitor({
             {renderProgramContent()}
           </PreviewWithOverlays>
         ) : (
-          <div className={`bg-background border border-border rounded-lg overflow-hidden shadow-xl ${
-            previewMode === 'mobile' ? 'w-[280px] h-[500px]' : 'w-full max-w-lg h-[420px]'
-          }`}>
-            <div className="h-6 bg-card/80 border-b border-border flex items-center px-2 gap-1">
-              <div className="w-1.5 h-1.5 rounded-full bg-destructive/60" />
-              <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
-              <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
-              <span className="text-[8px] text-muted-foreground ml-1 font-mono truncate">{shortUrl}</span>
+          // When the poll has no content yet, show the same Polling Slate
+          // mock that Output renders so operators see the background + logo
+          // exactly as a real voter would. Once question/answers exist, fall
+          // back to the interactive voter buttons (Y/N, MC, custom) inside a
+          // browser frame so the operator can verify tap targets too.
+          hasContent ? (
+            <div className={`bg-background border border-border rounded-lg overflow-hidden shadow-xl ${
+              previewMode === 'mobile' ? 'w-[280px] h-[500px]' : 'w-full max-w-lg h-[420px]'
+            }`} style={bgImage ? { backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: bgColor || undefined }}>
+              <div className="h-6 bg-card/80 border-b border-border flex items-center px-2 gap-1">
+                <div className="w-1.5 h-1.5 rounded-full bg-destructive/60" />
+                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
+                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
+                <span className="text-[8px] text-muted-foreground ml-1 font-mono truncate">{shortUrl}</span>
+              </div>
+              <div className="h-[calc(100%-1.5rem)] overflow-auto p-5">
+                {renderViewerButtons()}
+              </div>
             </div>
-            <div className="h-[calc(100%-1.5rem)] overflow-auto p-5">
-              {renderViewerButtons()}
-            </div>
-          </div>
+          ) : (
+            <ViewerSlatePreview
+              mode={previewMode}
+              bgImage={bgImage}
+              bgColor={bgColor}
+              slateActive={false}
+              slateText=""
+            />
+          )
         )}
 
         {/* URL display beneath preview */}
