@@ -884,7 +884,12 @@ export default function PollCreate() {
         setAssetColors(DEFAULT_ASSET_COLORS);
         setFoldersLoadedForProject(projectId);
       });
-  }, [bgColor, projectId, question, user]);
+    // Intentionally only depend on projectId/user. Reloading on bgColor/question
+    // changes caused deleted folders to reappear because the active-folder sync
+    // effect mutates bgColor/question, retriggering this load before the save
+    // had committed.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [projectId, user]);
 
   useEffect(() => {
     if (!folderState.activeFolderId) return;
