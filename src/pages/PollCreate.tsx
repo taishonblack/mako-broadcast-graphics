@@ -702,6 +702,11 @@ export default function PollCreate() {
 
   const activeFolder = getFolderById(folderState, folderState.activeFolderId);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
+  // Show MakoVote branding when the folder has no assets, or when no question
+  // text or answer bars have been authored yet.
+  const hasContent =
+    enabledAssets.length > 0 &&
+    (question.length > 0 || answers.some((a) => a.text.length > 0));
   const activeInspectorAssetIds = selectedAssetId ? [selectedAssetId] : enabledAssets;
   const activeHistoryKey = selectedAssetId ?? `folder:${folderState.activeFolderId ?? 'none'}`;
   const currentHistory = selectionHistory[activeHistoryKey] ?? { undo: [], redo: [] };
