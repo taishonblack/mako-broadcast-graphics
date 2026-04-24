@@ -188,6 +188,8 @@ export function OperatorOutputMode({
   // Confirmation dialogs for destructive / on-air actions.
   const [confirmGoLive, setConfirmGoLive] = useState(false);
   const [confirmOpenVoting, setConfirmOpenVoting] = useState(false);
+  const [goLivePending, setGoLivePending] = useState(false);
+  const [openVotingPending, setOpenVotingPending] = useState(false);
 
   // Open Vote scheduling. 'now' opens immediately. 'in' opens after N
   // minutes. 'at' opens at a specific HH:MM (local time).
@@ -787,7 +789,10 @@ export function OperatorOutputMode({
       </div>
 
       {/* Confirmation: Go Live ─────────────────────────────────────────── */}
-      <AlertDialog open={confirmGoLive} onOpenChange={setConfirmGoLive}>
+      <AlertDialog
+        open={confirmGoLive}
+        onOpenChange={(open) => { if (!goLivePending) setConfirmGoLive(open); }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Go live with this poll?</AlertDialogTitle>
@@ -797,16 +802,32 @@ export function OperatorOutputMode({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>No, cancel</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { setConfirmGoLive(false); onGoLive(); }}>
-              Yes, go live
+            <AlertDialogCancel disabled={goLivePending}>No, cancel</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={goLivePending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (goLivePending) return;
+                setGoLivePending(true);
+                try { onGoLive(); } finally {
+                  setTimeout(() => {
+                    setGoLivePending(false);
+                    setConfirmGoLive(false);
+                  }, 600);
+                }
+              }}
+            >
+              {goLivePending ? 'Going live…' : 'Yes, go live'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
 
       {/* Confirmation: Open Voting Now ──────────────────────────────────── */}
-      <AlertDialog open={confirmOpenVoting} onOpenChange={setConfirmOpenVoting}>
+      <AlertDialog
+        open={confirmOpenVoting}
+        onOpenChange={(open) => { if (!openVotingPending) setConfirmOpenVoting(open); }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Open voting now?</AlertDialogTitle>
@@ -816,9 +837,22 @@ export function OperatorOutputMode({
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>No, wait</AlertDialogCancel>
-            <AlertDialogAction onClick={() => { setConfirmOpenVoting(false); onOpenVoting(); }}>
-              Yes, open voting
+            <AlertDialogCancel disabled={openVotingPending}>No, wait</AlertDialogCancel>
+            <AlertDialogAction
+              disabled={openVotingPending}
+              onClick={(e) => {
+                e.preventDefault();
+                if (openVotingPending) return;
+                setOpenVotingPending(true);
+                try { onOpenVoting(); } finally {
+                  setTimeout(() => {
+                    setOpenVotingPending(false);
+                    setConfirmOpenVoting(false);
+                  }, 600);
+                }
+              }}
+            >
+              {openVotingPending ? 'Opening…' : 'Yes, open voting'}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
