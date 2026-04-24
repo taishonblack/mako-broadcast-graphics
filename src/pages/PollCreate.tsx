@@ -1848,6 +1848,8 @@ export default function PollCreate() {
                     onToggleLock={handleToggleTransformLock}
                     onColorsChange={handleAssetColorsChange}
                     onCenterAsset={handleCenterAsset}
+                    viewport={transformViewport}
+                    onViewportChange={setTransformViewport}
                   />
                 </div>
               </Pane>
