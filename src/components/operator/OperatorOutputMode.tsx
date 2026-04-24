@@ -190,9 +190,11 @@ export function OperatorOutputMode({
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span className="font-medium">Block {letter}</span>
-                    <span className="font-mono text-[10px]">{pollsByBlock[letter].length}</span>
+                    <span className="font-mono text-[10px]">{blockEntryCount(letter)}</span>
                   </div>
-                  <p className="mt-0.5 text-[10px] text-muted-foreground">{DEFAULT_BLOCK_LABELS[letter]}</p>
+                  <p className="mt-0.5 text-[10px] text-muted-foreground">
+                    {foldersByBlock[letter][0]?.name ?? DEFAULT_BLOCK_LABELS[letter]}
+                  </p>
                 </button>
               ))}
             </div>
@@ -201,13 +203,31 @@ export function OperatorOutputMode({
           <div className="mako-panel p-3 space-y-2">
             <div className="flex items-center justify-between">
               <h2 className="text-xs font-semibold font-mono uppercase text-foreground">Block {activeBlock}</h2>
-              <span className="text-[10px] font-mono text-muted-foreground">{pollsByBlock[activeBlock].length} polls</span>
+              <span className="text-[10px] font-mono text-muted-foreground">{blockEntryCount(activeBlock)} entries</span>
             </div>
             <div className="space-y-1.5">
-              {pollsByBlock[activeBlock].length === 0 ? (
-                <p className="text-[11px] italic text-muted-foreground">No polls assigned to this block.</p>
+              {blockEntryCount(activeBlock) === 0 ? (
+                <p className="text-[11px] italic text-muted-foreground">No folders or polls assigned to this block.</p>
               ) : (
-                pollsByBlock[activeBlock].map((poll) => (
+                <>
+                  {/* Folders defined in Build for this block — these are the
+                      organizational labels the operator sees (e.g. "1st Com").
+                      They appear here even when no poll has been saved yet. */}
+                  {foldersByBlock[activeBlock].map((folder) => (
+                    <div
+                      key={folder.id}
+                      className="w-full rounded-lg border border-dashed border-border/60 bg-accent/10 p-2.5 text-left"
+                    >
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="truncate text-xs font-medium text-foreground">{folder.name}</p>
+                          <p className="mt-0.5 truncate text-[10px] text-muted-foreground">Folder · Block {activeBlock}</p>
+                        </div>
+                        <span className="mako-chip bg-muted text-[9px] text-muted-foreground">FOLDER</span>
+                      </div>
+                    </div>
+                  ))}
+                  {pollsByBlock[activeBlock].map((poll) => (
                   <button
                     key={poll.id}
                     onClick={() => onSelectPoll(poll.id)}
@@ -220,14 +240,15 @@ export function OperatorOutputMode({
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
                         <p className="truncate text-xs font-medium text-foreground">
-                          {folderNameByBlock[activeBlock] || poll.internalName || poll.question || 'Untitled poll'}
+                          {poll.internalName || poll.question || folderNameByBlock[activeBlock] || 'Untitled poll'}
                         </p>
                         <p className="mt-0.5 truncate text-[10px] text-muted-foreground">Pos {String(poll.blockPosition ?? 1).padStart(2, '0')} · {poll.question || 'No on-air question yet'}</p>
                       </div>
                       <PollStatusChip state={poll.status === 'saved' ? 'ready' : poll.status} />
                     </div>
                   </button>
-                ))
+                  ))}
+                </>
               )}
             </div>
           </div>
@@ -237,8 +258,6 @@ export function OperatorOutputMode({
           <div className="flex items-center justify-between px-1">
             <div className="flex items-center gap-2">
               <h2 className="text-sm font-semibold text-foreground">Program Preview</h2>
-              <VotingStatusChip state={votingState} />
-              <PollStatusChip state={currentPoll.state} />
             </div>
             <span className="mako-chip bg-muted text-muted-foreground">1920×1080</span>
           </div>
@@ -249,29 +268,62 @@ export function OperatorOutputMode({
             </PreviewWithOverlays>
           </MonitorContainer>
 
-          <div className="mako-panel p-3">
-            <SceneSelector
-              previewScene={previewScene}
-              programScene={programScene}
-              onSceneChange={onSceneChange}
-              onTake={onTake}
-              onCut={onCut}
-            />
-          </div>
-
-          <div className="mako-panel p-3">
-            <p className="mb-2 text-[10px] font-mono uppercase text-muted-foreground">Output Assets</p>
-            <AssetControls
-              qrSize={qrSize}
-              qrPosition={qrPosition}
-              showBranding={showBranding}
-              brandingPosition={brandingPosition}
-              onQrSizeChange={onQrSizeChange}
-              onQrPositionChange={onQrPositionChange}
-              onShowBrandingChange={onShowBrandingChange}
-              onBrandingPositionChange={onBrandingPositionChange}
-            />
-          </div>
+          {/* Test-vote runner — inject N votes over T seconds and watch the
+              bars + counters animate in the preview above. Useful for QA'ing
+              the chart animation without opening a viewer browser. */}
+          {(onStartTestVotes || onStopTestVotes) && (
+            <div className="mako-panel p-3 space-y-3">
+              <div className="flex items-center justify-between">
+                <p className="text-[10px] font-mono uppercase text-muted-foreground">Test Vote Runner</p>
+                {testVoteRunning && (
+                  <span className="flex items-center gap-1 text-[10px] font-mono text-primary">
+                    <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" /> running
+                  </span>
+                )}
+              </div>
+              <div className="grid grid-cols-2 gap-2">
+                <label className="space-y-1">
+                  <span className="text-[10px] uppercase text-muted-foreground">Total votes</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={testVoteTotal}
+                    onChange={(e) => setTestVoteTotal(Math.max(1, Number(e.target.value) || 0))}
+                    className="h-7 text-xs"
+                  />
+                </label>
+                <label className="space-y-1">
+                  <span className="text-[10px] uppercase text-muted-foreground">Duration (s)</span>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={testVoteDuration}
+                    onChange={(e) => setTestVoteDuration(Math.max(1, Number(e.target.value) || 0))}
+                    className="h-7 text-xs"
+                  />
+                </label>
+              </div>
+              <div className="flex gap-2">
+                <Button
+                  size="sm"
+                  className="flex-1 gap-1.5 text-xs"
+                  disabled={testVoteRunning}
+                  onClick={() => onStartTestVotes?.(testVoteTotal, testVoteDuration)}
+                >
+                  <Play className="h-3.5 w-3.5" /> Run
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="flex-1 gap-1.5 text-xs"
+                  disabled={!testVoteRunning}
+                  onClick={() => onStopTestVotes?.()}
+                >
+                  <StopCircle className="h-3.5 w-3.5" /> Stop
+                </Button>
+              </div>
+            </div>
+          )}
         </div>
 
         <div className="min-h-0 overflow-auto space-y-3">
