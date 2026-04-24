@@ -316,7 +316,7 @@ export function OperatorOutputMode({
           {(onStartTestVotes || onStopTestVotes) && (
             <div className="mako-panel p-3 space-y-3">
               <div className="flex items-center justify-between">
-                <p className="text-[10px] font-mono uppercase text-muted-foreground">Test Vote Runner</p>
+                <p className="text-[10px] font-mono uppercase text-muted-foreground">Vote Runner</p>
                 {testVoteRunning && (
                   <span className="flex items-center gap-1 text-[10px] font-mono text-primary">
                     <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" /> running
