@@ -505,6 +505,25 @@ export default function PollCreate() {
     ];
   }, [projectPolls, currentWorkspacePoll, projectId, answerType, mcLabelStyle, answers, previewDataMode, bgColor, bgImage]);
 
+  // In output mode, auto-select the first block that actually has polls (A → E priority).
+  // Re-evaluates when polls change so a newly-added Block A poll takes precedence.
+  useEffect(() => {
+    if (mode !== 'output') return;
+    const order: BlockLetter[] = ['A', 'B', 'C', 'D', 'E'];
+    const counts = order.reduce<Record<BlockLetter, number>>((acc, letter) => {
+      acc[letter] = outputPolls.filter((p) => (p.blockLetter ?? 'A') === letter).length;
+      return acc;
+    }, { A: 0, B: 0, C: 0, D: 0, E: 0 });
+    const firstNonEmpty = order.find((letter) => counts[letter] > 0);
+    if (!firstNonEmpty) return;
+    // If the current active block is empty, OR a higher-priority block just gained polls, switch.
+    if (counts[outputActiveBlock] === 0) {
+      setOutputActiveBlock(firstNonEmpty);
+    } else if (order.indexOf(firstNonEmpty) < order.indexOf(outputActiveBlock)) {
+      setOutputActiveBlock(firstNonEmpty);
+    }
+  }, [mode, outputPolls, outputActiveBlock]);
+
   const renderOutputScene = () => {
     const sharedAssets = {
       slug: slugForUrl,
