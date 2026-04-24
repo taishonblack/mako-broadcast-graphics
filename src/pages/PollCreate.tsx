@@ -848,10 +848,11 @@ export default function PollCreate() {
     if (counts[outputActiveBlock] === 0) {
       setOutputActiveBlock(firstNonEmpty);
       setOutputBlockSource('auto-first-populated');
-    } else if (!outputBlockPinned && order.indexOf(firstNonEmpty) < order.indexOf(outputActiveBlock)) {
-      setOutputActiveBlock(firstNonEmpty);
-      setOutputBlockSource('auto-promoted');
     }
+    // Note: we intentionally do NOT auto-promote to an earlier populated
+    // block. Doing so would override the operator's manual selection
+    // (e.g. clicking Block C would snap back to Block B if B has a folder).
+    // Auto-selection only kicks in when the current block is empty.
   }, [mode, outputFolders, outputPolls, outputActiveBlock, outputBlockPinned]);
 
   // Signature of folders relevant to Output mode (id, name, blockLetter).
