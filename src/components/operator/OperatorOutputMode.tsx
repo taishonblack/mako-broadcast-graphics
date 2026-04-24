@@ -785,6 +785,44 @@ export function OperatorOutputMode({
           </div>
         </div>
       </div>
+
+      {/* Confirmation: Go Live ─────────────────────────────────────────── */}
+      <AlertDialog open={confirmGoLive} onOpenChange={setConfirmGoLive}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Go live with this poll?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This will push the current poll to the program output. Make sure the
+              right block, folder, and assets are queued before continuing.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No, cancel</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmGoLive(false); onGoLive(); }}>
+              Yes, go live
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
+      {/* Confirmation: Open Voting Now ──────────────────────────────────── */}
+      <AlertDialog open={confirmOpenVoting} onOpenChange={setConfirmOpenVoting}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Open voting now?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Voters will immediately be able to submit responses. Scheduled
+              opens (in N minutes / at a time) skip this confirmation.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>No, wait</AlertDialogCancel>
+            <AlertDialogAction onClick={() => { setConfirmOpenVoting(false); onOpenVoting(); }}>
+              Yes, open voting
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
