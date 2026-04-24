@@ -96,8 +96,19 @@ export function OperatorOutputMode({
   onQrPositionChange,
   onShowBrandingChange,
   onBrandingPositionChange,
+  testVoteRunning = false,
+  onStartTestVotes,
+  onStopTestVotes,
 }: OperatorOutputModeProps) {
   const navigate = useNavigate();
+  // Suppress unused-prop warnings until those features come back. Kept in the
+  // signature for parent compatibility.
+  void previewScene; void programScene; void qrSize; void qrPosition;
+  void showBranding; void brandingPosition; void votingState;
+  void onSceneChange; void onTake; void onCut;
+  void onQrSizeChange; void onQrPositionChange;
+  void onShowBrandingChange; void onBrandingPositionChange;
+
   const pollsByBlock = BLOCK_LETTERS.reduce<Record<BlockLetter, SavedPoll[]>>((acc, letter) => {
     acc[letter] = projectPolls
       .filter((poll) => (poll.blockLetter ?? 'A') === letter)
@@ -112,6 +123,21 @@ export function OperatorOutputMode({
     if (!acc[f.blockLetter]) acc[f.blockLetter] = f.name;
     return acc;
   }, { A: undefined, B: undefined, C: undefined, D: undefined, E: undefined });
+
+  // Group folders by block so they appear in the output even when no polls
+  // have been created yet. This is what the operator sees as the "block
+  // contents" — folder-first, then any polls saved into that block.
+  const foldersByBlock = BLOCK_LETTERS.reduce<Record<BlockLetter, Array<{ id: string; name: string }>>>((acc, letter) => {
+    acc[letter] = folders.filter((f) => f.blockLetter === letter).map((f) => ({ id: f.id, name: f.name }));
+    return acc;
+  }, { A: [], B: [], C: [], D: [], E: [] });
+
+  const blockEntryCount = (letter: BlockLetter) =>
+    pollsByBlock[letter].length + foldersByBlock[letter].length;
+
+  // Local controlled inputs for the test-vote runner.
+  const [testVoteTotal, setTestVoteTotal] = useState(100);
+  const [testVoteDuration, setTestVoteDuration] = useState(30);
 
   return (
     <div className="h-full overflow-hidden">
