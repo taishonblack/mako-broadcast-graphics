@@ -102,6 +102,45 @@ function cloneSnapshotValue<T>(value: T): T {
   return JSON.parse(JSON.stringify(value)) as T;
 }
 
+/**
+ * Broadcast canvas geometry — kept here so centering math reflects the
+ * fixed 1920×1080 stage and the 48px broadcast-safe inset used by the
+ * AssetOverlay to anchor QR + branding.
+ */
+const STAGE_WIDTH = 1920;
+const STAGE_HEIGHT = 1080;
+const STAGE_INSET = 48;
+const QR_FRAME_PADDING = 24; // p-3 on each side ≈ 12px → 24px box padding
+
+/**
+ * Compute the (x, y) translation in canvas pixels that moves an asset from
+ * its anchored corner to dead center on the 1920×1080 stage.
+ */
+function computeCenterOffset(
+  assetId: AssetId,
+  ctx: { qrPosition: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'; qrSize: number; brandingPosition: 'top-left' | 'top-right' | 'bottom-left' | 'bottom-right' }
+): { x: number; y: number } {
+  if (assetId === 'qr') {
+    const frameW = ctx.qrSize + QR_FRAME_PADDING;
+    const frameH = ctx.qrSize + QR_FRAME_PADDING;
+    const anchorLeft = ctx.qrPosition.endsWith('left') ? STAGE_INSET : STAGE_WIDTH - STAGE_INSET - frameW;
+    const anchorTop = ctx.qrPosition.startsWith('top') ? STAGE_INSET : STAGE_HEIGHT - STAGE_INSET - frameH;
+    const targetLeft = (STAGE_WIDTH - frameW) / 2;
+    const targetTop = (STAGE_HEIGHT - frameH) / 2;
+    return { x: Math.round(targetLeft - anchorLeft), y: Math.round(targetTop - anchorTop) };
+  }
+  if (assetId === 'logo') {
+    // Branding bug uses an estimated 160x32 footprint at the corner anchor.
+    const frameW = 160;
+    const frameH = 32;
+    const anchorLeft = ctx.brandingPosition.endsWith('left') ? STAGE_INSET : STAGE_WIDTH - STAGE_INSET - frameW;
+    const anchorTop = ctx.brandingPosition.startsWith('top') ? STAGE_INSET : STAGE_HEIGHT - STAGE_INSET - frameH;
+    return { x: Math.round((STAGE_WIDTH - frameW) / 2 - anchorLeft), y: Math.round((STAGE_HEIGHT - frameH) / 2 - anchorTop) };
+  }
+  // Other assets are scene-positioned (often already near center) → 0/0 is the natural anchor.
+  return { x: 0, y: 0 };
+}
+
 const DEFAULT_WORKSPACE_LAYOUT: WorkspaceLayout = {
   hSizes: [22, 56, 22],
   rightVSizes: [55, 45],
@@ -1549,6 +1588,7 @@ export default function PollCreate() {
                     onChange={handleTransformChange}
                     onToggleLock={handleToggleTransformLock}
                     onColorsChange={handleAssetColorsChange}
+                    onCenterAsset={handleCenterAsset}
                   />
                 </div>
               </Pane>
