@@ -343,16 +343,22 @@ export default function PollCreate() {
     }
   }, [mode, searchParams, setSearchParams]);
 
-  useEffect(() => {
+  const rescanProjectPolls = useCallback(async () => {
     if (!user || !projectId) {
       setProjectPolls([]);
       return;
     }
+    try {
+      const items = await listPolls();
+      setProjectPolls(items.filter((poll) => poll.projectId === projectId));
+    } catch {
+      setProjectPolls([]);
+    }
+  }, [user, projectId]);
 
-    listPolls()
-      .then((items) => setProjectPolls(items.filter((poll) => poll.projectId === projectId)))
-      .catch(() => setProjectPolls([]));
-  }, [user, projectId, pollId, draftStatus]);
+  useEffect(() => {
+    void rescanProjectPolls();
+  }, [rescanProjectPolls, pollId, draftStatus]);
 
   useEffect(() => {
     if (projectId) {
