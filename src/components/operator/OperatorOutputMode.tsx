@@ -909,3 +909,66 @@ export function OperatorOutputMode({
     </div>
   );
 }
+
+/**
+ * Lightweight viewer mockup used in Output's Program Preview tabs. Shows the
+ * background + MakoVote wordmark — and, when the polling slate is active,
+ * overlays the slate image / message — so operators can confirm what mobile
+ * and desktop voters currently see while waiting for voting to open.
+ */
+function ViewerSlatePreview({
+  mode,
+  bgImage,
+  bgColor,
+  slateActive,
+  slateText,
+  slateImage,
+}: {
+  mode: 'mobile' | 'desktop';
+  bgImage?: string;
+  bgColor?: string;
+  slateActive: boolean;
+  slateText: string;
+  slateImage?: string;
+}) {
+  const sizeClass = mode === 'mobile' ? 'w-[280px] h-[500px]' : 'w-full max-w-lg h-[420px]';
+  const bgStyle: React.CSSProperties = bgImage
+    ? { backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+    : { background: `linear-gradient(135deg, ${bgColor || 'hsl(220 25% 6%)'}, hsl(220, 25%, 4%))` };
+
+  return (
+    <div className={`bg-background border border-border rounded-lg overflow-hidden shadow-xl ${sizeClass}`}>
+      <div className="h-6 bg-card/80 border-b border-border flex items-center px-2 gap-1">
+        <div className="w-1.5 h-1.5 rounded-full bg-destructive/60" />
+        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
+        <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
+        <span className="text-[8px] text-muted-foreground ml-1 font-mono truncate">makovote.app/vote</span>
+      </div>
+      <div className="relative h-[calc(100%-1.5rem)] overflow-hidden" style={bgStyle}>
+        <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(ellipse at center, transparent 40%, rgba(0,0,0,0.55) 100%)' }} />
+        <div className="relative h-full flex flex-col items-center justify-center gap-4 px-6 text-center">
+          <div className="flex items-baseline justify-center font-semibold leading-none select-none text-3xl">
+            <span className="text-foreground/90">Mako</span>
+            <span className="text-primary">Vote</span>
+          </div>
+          {slateActive ? (
+            <>
+              {slateImage && (
+                <img
+                  src={slateImage}
+                  alt="Polling slate"
+                  className="max-h-[40%] max-w-[80%] object-contain rounded-md border border-border/40"
+                />
+              )}
+              <p className="text-xs font-mono uppercase tracking-wider text-foreground/90">{slateText}</p>
+            </>
+          ) : (
+            <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/80">
+              Waiting for voting to open
+            </p>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
