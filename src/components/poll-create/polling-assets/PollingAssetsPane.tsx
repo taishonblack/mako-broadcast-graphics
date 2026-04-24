@@ -17,6 +17,7 @@ import {
 import {
   Type, ListChecks, AlignLeft, Image as ImageIcon, QrCode,
   Sparkles, Users, Plus, X, GripVertical, ChevronDown, MoreVertical, FolderOpen,
+  Trash2,
 } from 'lucide-react';
 import { AnswerType, MCLabelStyle } from '@/components/poll-create/ContentPanel';
 import { AssetId, AssetMeta } from './types';
@@ -450,17 +451,31 @@ function AssetEditor(props: {
     return (
       <div className="space-y-1.5">
         {props.answers.map((a, i) => (
-          <Input
-            key={a.id}
-            value={a.text}
-            onChange={(e) => {
-              const next = [...props.answers];
-              next[i] = { ...next[i], text: e.target.value };
-              props.setAnswers(next);
-            }}
-            placeholder={`Answer ${i + 1}`}
-            className="bg-background/50 h-7 text-[11px]"
-          />
+          <div key={a.id} className="flex items-center gap-1">
+            <Input
+              value={a.text}
+              onChange={(e) => {
+                const next = [...props.answers];
+                next[i] = { ...next[i], text: e.target.value };
+                props.setAnswers(next);
+              }}
+              placeholder={`Answer ${i + 1}`}
+              className="bg-background/50 h-7 text-[11px] flex-1"
+            />
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                props.setAnswers(props.answers.filter((_, idx) => idx !== i));
+              }}
+              disabled={props.answerType === 'yes-no' || props.answers.length <= 2}
+              className="h-7 w-7 flex items-center justify-center text-muted-foreground/60 hover:text-destructive transition-colors disabled:opacity-30 disabled:hover:text-muted-foreground/60 disabled:cursor-not-allowed"
+              title="Remove answer bar"
+              aria-label={`Remove answer ${i + 1}`}
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
         ))}
         <Button
           type="button"
