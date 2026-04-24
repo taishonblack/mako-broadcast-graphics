@@ -512,8 +512,10 @@ export default function PollCreate() {
     showFinalResults,
     blockLetter,
     blockPosition,
+    bgColor,
+    bgImage,
     createdAt: new Date().toISOString(),
-  }), [pollId, projectId, internalName, question, subheadline, slugForUrl, votingState, previewOptions, previewTotal, selectedTemplate, theme.id, showLiveResults, autoClose, showThankYou, showFinalResults, blockLetter, blockPosition]);
+  }), [pollId, projectId, internalName, question, subheadline, slugForUrl, votingState, previewOptions, previewTotal, selectedTemplate, theme.id, showLiveResults, autoClose, showThankYou, showFinalResults, blockLetter, blockPosition, bgColor, bgImage]);
 
   const outputPolls = useMemo(() => {
     const existing = projectPolls.filter((poll) => poll.id !== currentWorkspacePoll.id);
