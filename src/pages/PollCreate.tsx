@@ -1037,15 +1037,20 @@ export default function PollCreate() {
   const handleDeleteFolder = (folderId: string) => {
     updateFolderState((current) => {
       const targetFolder = current.folders.find((folder) => folder.id === folderId);
-      if (!targetFolder || current.folders.length === 1) return current;
+      if (!targetFolder) return current;
+
+      // If deleting the last folder, replace it with a fresh empty default
+      // folder so the workspace is never folder-less.
+      if (current.folders.length === 1) {
+        const replacement = createDefaultFolderState('', '#1a1a2e');
+        return replacement;
+      }
 
       const remainingFolders = current.folders.filter((folder) => folder.id !== targetFolder.id);
       const fallbackFolder = remainingFolders[0];
-      const mergedAssets = Array.from(new Set([...SEEDED_ASSETS, ...fallbackFolder.assetIds, ...targetFolder.assetIds.filter((assetId) => !SEEDED_ASSETS.includes(assetId))]));
-
       return {
         activeFolderId: fallbackFolder.id,
-        folders: remainingFolders.map((folder) => folder.id === fallbackFolder.id ? { ...folder, assetIds: mergedAssets } : folder),
+        folders: remainingFolders,
       };
     });
     setDeleteFolderTargetId(null);
