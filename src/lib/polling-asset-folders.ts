@@ -18,7 +18,7 @@ export interface PollingAssetFolderState {
   activeFolderId: string;
 }
 
-const VALID_ASSETS: AssetId[] = ['question', 'answers', 'subheadline', 'background', 'qr', 'logo', 'voterTally'];
+const VALID_ASSETS: AssetId[] = ['question', 'answers', 'subheadline', 'background', 'qr', 'logo', 'voterTally', 'image'];
 const DEFAULT_BLOCK: BlockLetter = 'A';
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);

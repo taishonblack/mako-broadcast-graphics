@@ -20,7 +20,7 @@ interface LowerThirdSceneProps {
   debugVoteUrl?: string;
   showBranding?: boolean;
   brandingPosition?: QRPosition;
-  enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally'>;
+  enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally' | 'image'>;
   transforms?: AssetTransformMap;
   assetColors?: AssetColorMap;
 }
