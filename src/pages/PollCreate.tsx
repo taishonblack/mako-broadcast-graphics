@@ -1708,6 +1708,7 @@ export default function PollCreate() {
             showBranding={showBranding}
             brandingPosition={brandingPosition}
             previewNode={renderOutputScene()}
+            hasAnswerBars={enabledAssets.includes('answers')}
             onSelectBlock={(letter) => {
               setOutputActiveBlock(letter);
               setOutputBlockSource(outputBlockPinned ? 'pinned' : 'manual');
