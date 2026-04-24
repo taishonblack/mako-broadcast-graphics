@@ -150,7 +150,7 @@ export function OperatorOutputMode({
   // sum is always exactly 100. When the operator edits one bar, the other
   // bars share the remaining percentage proportionally to their current
   // values (or evenly if they are all zero).
-  const answerCount = currentPoll.answers.length;
+  const answerCount = currentPoll.options.length;
   const [targetPercents, setTargetPercents] = useState<number[]>(() =>
     answerCount > 0 ? Array.from({ length: answerCount }, () => +(100 / answerCount).toFixed(1)) : [],
   );
