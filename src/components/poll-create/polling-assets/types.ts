@@ -7,7 +7,8 @@ export type AssetId =
   | 'background'
   | 'qr'
   | 'logo'
-  | 'voterTally';
+  | 'voterTally'
+  | 'image';
 
 export interface AssetMeta {
   id: AssetId;
@@ -31,6 +32,8 @@ export interface AssetState {
   wordmarkTracking: number;
   wordmarkScale: number;
   wordmarkShowGuides: boolean;
+  imageUrl?: string;
+  imagePosition: 'bottom-right' | 'bottom-left' | 'top-right' | 'top-left' | 'center';
 }
 
 export interface AssetColorConfig {
@@ -99,6 +102,7 @@ export const DEFAULT_ASSET_TRANSFORMS: AssetTransformMap = {
   qr: createDefaultTransform(),
   logo: createDefaultTransform(),
   voterTally: createDefaultTransform(),
+  image: createDefaultTransform(),
 };
 
 export const DEFAULT_ASSET_COLORS: AssetColorMap = {
@@ -113,6 +117,7 @@ export const DEFAULT_ASSET_COLORS: AssetColorMap = {
   qr: { textSecondary: 'hsl(215 15% 65%)' },
   logo: { textSecondary: 'hsl(215 15% 65%)' },
   voterTally: { textPrimary: 'hsl(0 0% 100%)', textSecondary: 'hsl(215 15% 65%)' },
+  image: {},
 };
 
 export const DEFAULT_ASSET_STATE: AssetState = {
@@ -128,4 +133,6 @@ export const DEFAULT_ASSET_STATE: AssetState = {
   wordmarkTracking: 0,
   wordmarkScale: 1,
   wordmarkShowGuides: false,
+  imageUrl: undefined,
+  imagePosition: 'center',
 };
