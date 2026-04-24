@@ -10,6 +10,7 @@ import { ASSET_REGISTRY } from './PollingAssetsPane';
 import { AssetId, AssetState } from './types';
 import { Trash2, PlusCircle, GripVertical } from 'lucide-react';
 import { BackgroundPicker } from '@/components/poll-create/BackgroundPicker';
+import { MediaPicker } from '@/components/poll-create/MediaPicker';
 import { Dispatch, SetStateAction, useState } from 'react';
 
 interface AssetInspectorProps {
@@ -327,6 +328,11 @@ export function AssetInspector(p: AssetInspectorProps) {
 
         {id === 'logo' && (
           <div className="space-y-3">
+            <MediaPicker
+              kind="logo"
+              value={p.assetState.logoUrl}
+              onChange={(url) => p.setAssetState((s) => ({ ...s, logoUrl: url }))}
+            />
             <p className="text-[10px] text-muted-foreground/80">
               Use Theme &amp; Graphics to tune the split Mako Vote wordmark and verify center alignment guides.
             </p>
@@ -377,6 +383,40 @@ export function AssetInspector(p: AssetInspectorProps) {
                 </button>
               ))}
             </div>
+          </div>
+        )}
+
+        {id === 'image' && (
+          <div className="space-y-3">
+            <MediaPicker
+              kind="image"
+              value={p.assetState.imageUrl}
+              onChange={(url) => p.setAssetState((s) => ({ ...s, imageUrl: url }))}
+              emptyHint="No image selected"
+            />
+            <Label className="text-[10px] text-muted-foreground pt-1">Position</Label>
+            <div className="grid grid-cols-3 gap-1">
+              {(['top-left', 'top-right', 'center', 'bottom-left', 'bottom-right'] as const).map((pos) => (
+                <button
+                  key={pos}
+                  onClick={() => {
+                    p.setAssetState({ ...p.assetState, imagePosition: pos });
+                    p.onResetAssetPosition?.('image');
+                  }}
+                  className={`p-1.5 rounded-md text-[10px] font-medium border transition-all ${
+                    p.assetState.imagePosition === pos
+                      ? 'bg-primary/10 border-primary/30 text-primary'
+                      : 'bg-accent/30 border-border/50 text-muted-foreground hover:bg-accent/50'
+                  }`}
+                >
+                  {pos.replace('-', ' ')}
+                </button>
+              ))}
+            </div>
+            <p className="text-[10px] text-muted-foreground/70">
+              Drop in a player headshot, sponsor mark, or any custom photo. Re-open the
+              "Add asset → Image" menu any time to swap or update.
+            </p>
           </div>
         )}
       </div>
