@@ -743,7 +743,7 @@ export default function PollCreate() {
 
   // Modular polling-assets state
   const [selectedAssetId, setSelectedAssetId] = useState<AssetId | null>(null);
-  const [assetState, setAssetState] = useState<AssetState>(DEFAULT_ASSET_STATE);
+  const [assetState, setAssetState] = useState<AssetState>(() => loadPersistedAssetState());
   const [assetTransforms, setAssetTransforms] = useState(DEFAULT_ASSET_TRANSFORMS);
   const [assetColors, setAssetColors] = useState<AssetColorMap>(DEFAULT_ASSET_COLORS);
   const [highlightField, setHighlightField] = useState<string | null>(null);
