@@ -59,7 +59,7 @@ interface OperatorOutputModeProps {
   onBrandingPositionChange: (position: QRPosition) => void;
   /** Test-vote runner: inject N votes over T seconds across the active poll's answers. */
   testVoteRunning?: boolean;
-  onStartTestVotes?: (totalVotes: number, durationSeconds: number) => void;
+  onStartTestVotes?: (totalVotes: number, durationSeconds: number, targetPercents?: number[]) => void;
   onStopTestVotes?: () => void;
   /** Reset live/test vote tallies on the current poll back to zero. */
   onResetTestVotes?: () => void;
@@ -145,6 +145,48 @@ export function OperatorOutputMode({
   // Local controlled inputs for the test-vote runner.
   const [testVoteTotal, setTestVoteTotal] = useState(100);
   const [testVoteDuration, setTestVoteDuration] = useState(30);
+  // Per-answer target percentages for the test-vote runner. Initialized to
+  // an even split across the active poll's answers; auto-rebalances so the
+  // sum is always exactly 100. When the operator edits one bar, the other
+  // bars share the remaining percentage proportionally to their current
+  // values (or evenly if they are all zero).
+  const answerCount = currentPoll.options.length;
+  const [targetPercents, setTargetPercents] = useState<number[]>(() =>
+    answerCount > 0 ? Array.from({ length: answerCount }, () => +(100 / answerCount).toFixed(1)) : [],
+  );
+  // Keep the array length in sync if the operator switches polls.
+  if (targetPercents.length !== answerCount) {
+    const next = answerCount > 0
+      ? Array.from({ length: answerCount }, () => +(100 / answerCount).toFixed(1))
+      : [];
+    // Defer to the next render to avoid setting state during render.
+    queueMicrotask(() => setTargetPercents(next));
+  }
+
+  const handleTargetChange = (index: number, raw: number) => {
+    const clamped = Math.max(0, Math.min(100, Number.isFinite(raw) ? raw : 0));
+    setTargetPercents((prev) => {
+      if (prev.length <= 1) return [100];
+      const next = [...prev];
+      next[index] = clamped;
+      const remainder = Math.max(0, 100 - clamped);
+      const others = prev.map((v, i) => (i === index ? 0 : v));
+      const otherSum = others.reduce((s, v) => s + v, 0);
+      for (let i = 0; i < next.length; i += 1) {
+        if (i === index) continue;
+        next[i] = otherSum > 0
+          ? +((others[i] / otherSum) * remainder).toFixed(1)
+          : +(remainder / (next.length - 1)).toFixed(1);
+      }
+      // Fix any rounding drift on the last non-edited slot.
+      const drift = +(100 - next.reduce((s, v) => s + v, 0)).toFixed(1);
+      if (drift !== 0) {
+        const lastOther = next.findIndex((_, i) => i !== index);
+        if (lastOther >= 0) next[lastOther] = +(next[lastOther] + drift).toFixed(1);
+      }
+      return next;
+    });
+  };
 
   return (
     <div className="h-full overflow-hidden">
@@ -297,12 +339,42 @@ export function OperatorOutputMode({
                   />
                 </label>
               </div>
+              {answerCount > 0 && (
+                <div className="space-y-1.5 border-t border-border/60 pt-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase text-muted-foreground">Target % per bar</span>
+                    <span className="text-[10px] font-mono text-muted-foreground">
+                      {targetPercents.reduce((s, v) => s + v, 0).toFixed(0)}%
+                    </span>
+                  </div>
+                  {currentPoll.options.map((opt, i) => (
+                    <div key={opt.id} className="flex items-center gap-2">
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-sm bg-primary/70" />
+                      <span className="flex-1 truncate text-[11px] text-foreground">{opt.text || `Option ${i + 1}`}</span>
+                      <Input
+                        type="number"
+                        min={0}
+                        max={100}
+                        step={1}
+                        value={targetPercents[i] ?? 0}
+                        onChange={(e) => handleTargetChange(i, Number(e.target.value))}
+                        disabled={testVoteRunning}
+                        className="h-7 w-16 text-right text-xs"
+                      />
+                      <span className="text-[10px] text-muted-foreground">%</span>
+                    </div>
+                  ))}
+                  <p className="text-[10px] text-muted-foreground">
+                    Editing one bar auto-rebalances the others so the total is always 100%.
+                  </p>
+                </div>
+              )}
               <div className="flex gap-2">
                 <Button
                   size="sm"
                   className="flex-1 gap-1.5 text-xs"
                   disabled={testVoteRunning}
-                  onClick={() => onStartTestVotes?.(testVoteTotal, testVoteDuration)}
+                  onClick={() => onStartTestVotes?.(testVoteTotal, testVoteDuration, targetPercents)}
                 >
                   <Play className="h-3.5 w-3.5" /> Run
                 </Button>

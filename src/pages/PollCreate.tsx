@@ -871,31 +871,52 @@ export default function PollCreate() {
   const [testVoteRunning, setTestVoteRunning] = useState(false);
   const testVoteTimerRef = (window as unknown as { __mvTimer?: number }).__mvTimer;
   void testVoteTimerRef;
-  const handleStartTestVotes = useCallback((total: number, durationSeconds: number) => {
+  const handleStartTestVotes = useCallback((total: number, durationSeconds: number, targetPercents?: number[]) => {
     if (testVoteRunning) return;
     if (!answers.length || total <= 0 || durationSeconds <= 0) return;
     setPreviewDataMode('test');
     setTestVoteRunning(true);
     const tickMs = 200;
     const ticks = Math.max(1, Math.round((durationSeconds * 1000) / tickMs));
+    // Resolve final per-answer vote targets. If percentages are provided,
+    // honor them exactly (rounded; remainder padded to the largest share).
+    // Otherwise fall back to even distribution.
+    const n = answers.length;
+    const pcts = targetPercents && targetPercents.length === n
+      ? targetPercents.map((p) => Math.max(0, Number.isFinite(p) ? p : 0))
+      : Array.from({ length: n }, () => 100 / n);
+    const sumPct = pcts.reduce((s, p) => s + p, 0) || 1;
+    const normalized = pcts.map((p) => p / sumPct);
+    const finalTargets = normalized.map((p) => Math.round(p * total));
+    // Adjust rounding drift so totals match exactly.
+    let drift = total - finalTargets.reduce((s, v) => s + v, 0);
+    while (drift !== 0) {
+      const i = drift > 0
+        ? normalized.indexOf(Math.max(...normalized))
+        : finalTargets.indexOf(Math.max(...finalTargets));
+      finalTargets[i] += drift > 0 ? 1 : -1;
+      drift += drift > 0 ? -1 : 1;
+    }
     let tick = 0;
-    let distributed = 0;
+    const distributed = new Array<number>(n).fill(0);
     const interval = window.setInterval(() => {
       tick += 1;
-      const targetTotal = Math.round((tick / ticks) * total);
-      const delta = targetTotal - distributed;
-      if (delta > 0) {
+      // Per-answer ramp toward each finalTarget, so percentages converge
+      // to the operator's chosen split as the run completes.
+      const deltas = finalTargets.map((tgt, i) => {
+        const want = Math.round((tick / ticks) * tgt);
+        const d = want - distributed[i];
+        distributed[i] = want;
+        return d;
+      });
+      if (deltas.some((d) => d !== 0)) {
         setAnswers((current) => {
           if (!current.length) return current;
-          const next = current.map((a) => ({ ...a }));
-          for (let i = 0; i < delta; i += 1) {
-            // Weighted-random distribution biased to keep some lead variation.
-            const idx = Math.floor(Math.random() * next.length);
-            next[idx].testVotes = (next[idx].testVotes ?? 0) + 1;
-          }
-          return next;
+          return current.map((a, i) => ({
+            ...a,
+            testVotes: Math.max(0, (a.testVotes ?? 0) + (deltas[i] ?? 0)),
+          }));
         });
-        distributed = targetTotal;
       }
       if (tick >= ticks) {
         window.clearInterval(interval);
