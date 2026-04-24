@@ -212,13 +212,12 @@ export function OperatorOutputMode({
               <span className="text-[10px] font-mono text-muted-foreground">{blockEntryCount(activeBlock)} entries</span>
             </div>
             <div className="space-y-1.5">
-              {blockEntryCount(activeBlock) === 0 ? (
-                <p className="text-[11px] italic text-muted-foreground">No folders or polls assigned to this block.</p>
+              {foldersByBlock[activeBlock].length === 0 ? (
+                <p className="text-[11px] italic text-muted-foreground">No folders assigned to this block.</p>
               ) : (
                 <>
-                  {/* Folders defined in Build for this block — these are the
-                      organizational labels the operator sees (e.g. "1st Com").
-                      They appear here even when no poll has been saved yet. */}
+                  {/* Block pane only lists folders assigned to this block.
+                      Polls live inside folders and are not surfaced here. */}
                   {foldersByBlock[activeBlock].map((folder) => (
                     <button
                       key={folder.id}
@@ -241,27 +240,6 @@ export function OperatorOutputMode({
                         <span className="mako-chip bg-muted text-[9px] text-muted-foreground">FOLDER</span>
                       </div>
                     </button>
-                  ))}
-                  {pollsByBlock[activeBlock].map((poll) => (
-                  <button
-                    key={poll.id}
-                    onClick={() => onSelectPoll(poll.id)}
-                    className={`w-full rounded-lg border p-2.5 text-left transition-colors ${
-                      currentPoll.id === poll.id
-                        ? 'border-primary/30 bg-primary/10'
-                        : 'border-border/50 bg-accent/20 hover:bg-accent/35'
-                    }`}
-                  >
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0">
-                        <p className="truncate text-xs font-medium text-foreground">
-                          {poll.internalName || poll.question || folderNameByBlock[activeBlock] || 'Untitled poll'}
-                        </p>
-                        <p className="mt-0.5 truncate text-[10px] text-muted-foreground">Pos {String(poll.blockPosition ?? 1).padStart(2, '0')} · {poll.question || 'No on-air question yet'}</p>
-                      </div>
-                      <PollStatusChip state={poll.status === 'saved' ? 'ready' : poll.status} />
-                    </div>
-                  </button>
                   ))}
                 </>
               )}
