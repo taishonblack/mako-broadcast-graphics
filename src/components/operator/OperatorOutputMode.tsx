@@ -462,6 +462,24 @@ export function OperatorOutputMode({
                   </span>
                 )}
               </div>
+              {/* Active Poll summary — merged from the standalone Active Poll
+                  panel so the right column has room for the Output Inspector. */}
+              <div className="rounded-md border border-border/60 bg-accent/10 p-2 space-y-1.5">
+                <div>
+                  <p className="text-[10px] font-mono text-muted-foreground truncate">{currentPoll.internalName}</p>
+                  <p className="text-xs font-semibold text-foreground line-clamp-2">{currentPoll.question || 'No on-air question yet'}</p>
+                </div>
+                <div className="grid grid-cols-2 gap-2 border-t border-border/60 pt-1.5">
+                  <div>
+                    <p className="text-[9px] font-mono uppercase text-muted-foreground">Total</p>
+                    <p className="text-sm font-bold text-foreground">{currentPoll.totalVotes.toLocaleString()}</p>
+                  </div>
+                  <div>
+                    <p className="text-[9px] font-mono uppercase text-muted-foreground">Votes/sec</p>
+                    <p className="text-sm font-bold text-primary">{currentPoll.votesPerSecond}</p>
+                  </div>
+                </div>
+              </div>
               <div className="grid grid-cols-2 gap-2">
                 <label className="space-y-1">
                   <span className="text-[10px] uppercase text-muted-foreground">Total votes</span>
