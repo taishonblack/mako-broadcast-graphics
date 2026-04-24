@@ -120,6 +120,15 @@ export const DEFAULT_ASSET_TRANSFORMS: AssetTransformMap = {
   image: createDefaultTransform(),
 };
 
+/** Build a fresh per-viewport transform set seeded with the same defaults. */
+export const createDefaultTransformSet = (): AssetTransformSet => ({
+  program: { ...DEFAULT_ASSET_TRANSFORMS, question: createDefaultTransform(), answers: createDefaultTransform(), subheadline: createDefaultTransform(), background: createDefaultTransform(), qr: createDefaultTransform(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
+  mobile:  { ...DEFAULT_ASSET_TRANSFORMS, question: createDefaultTransform(), answers: createDefaultTransform(), subheadline: createDefaultTransform(), background: createDefaultTransform(), qr: createDefaultTransform(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
+  desktop: { ...DEFAULT_ASSET_TRANSFORMS, question: createDefaultTransform(), answers: createDefaultTransform(), subheadline: createDefaultTransform(), background: createDefaultTransform(), qr: createDefaultTransform(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
+});
+
+export const DEFAULT_ASSET_TRANSFORM_SET: AssetTransformSet = createDefaultTransformSet();
+
 export const DEFAULT_ASSET_COLORS: AssetColorMap = {
   question: { textPrimary: 'hsl(0 0% 100%)' },
   answers: {
