@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { QRCodeSVG } from 'qrcode.react';
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { BroadcastPreviewFrame } from '@/components/broadcast/BroadcastPreviewFrame';
 import { OutputStatusChip } from '@/components/broadcast/OutputStatusChip';
@@ -14,7 +15,7 @@ import { mockPolls, templateLabels } from '@/lib/mock-data';
 import { themePresets } from '@/lib/themes';
 import { TemplateName } from '@/lib/types';
 import {
-  Monitor, RefreshCw, ChevronDown, Upload, Image as ImageIcon
+  Monitor, RefreshCw, ChevronDown, Upload, Image as ImageIcon, QrCode
 } from 'lucide-react';
 
 const templateIcons: TemplateName[] = [
@@ -32,6 +33,18 @@ export default function GraphicsEditor() {
   const [blurAmount, setBlurAmount] = useState([0]);
   const [smoothing, setSmoothing] = useState(true);
   const [countUp, setCountUp] = useState(true);
+  // QR placement preview controls — let the operator verify QR visibility,
+  // URL-label visibility, and corner placement before going live.
+  const [showQR, setShowQR] = useState(true);
+  const [showQRUrl, setShowQRUrl] = useState(false);
+  const [qrCorner, setQrCorner] = useState<'top-left' | 'top-right' | 'bottom-left' | 'bottom-right'>('bottom-right');
+  const qrUrl = `https://makovote.app/vote/${poll.slug}`;
+  const cornerClass = {
+    'top-left': 'top-3 left-3',
+    'top-right': 'top-3 right-3',
+    'bottom-left': 'bottom-3 left-3',
+    'bottom-right': 'bottom-3 right-3',
+  }[qrCorner];
 
   const renderChart = () => {
     const colors = [selectedTheme.chartColorA, selectedTheme.chartColorB, selectedTheme.chartColorC, selectedTheme.chartColorD];
