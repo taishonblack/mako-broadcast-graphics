@@ -349,10 +349,7 @@ export function OperatorOutputMode({
                   </div>
                   {currentPoll.options.map((opt, i) => (
                     <div key={opt.id} className="flex items-center gap-2">
-                      <span
-                        className="h-2.5 w-2.5 shrink-0 rounded-sm"
-                        style={{ background: opt.color || 'hsl(var(--primary))' }}
-                      />
+                      <span className="h-2.5 w-2.5 shrink-0 rounded-sm bg-primary/70" />
                       <span className="flex-1 truncate text-[11px] text-foreground">{opt.text || `Option ${i + 1}`}</span>
                       <Input
                         type="number"
