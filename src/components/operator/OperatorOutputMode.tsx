@@ -10,7 +10,8 @@ import { useState } from 'react';
 import { BLOCK_LETTERS, BlockLetter, DEFAULT_BLOCK_LABELS, SavedPoll } from '@/lib/poll-persistence';
 import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { ChevronDown, ChevronRight, Copy, Eye, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Square, StopCircle, Vote, XCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Eye, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Sliders, Square, StopCircle, Vote, XCircle } from 'lucide-react';
+import { percentsFromAnswers, rebalancePercents, answersFromPercents, AnswerLite } from '@/lib/answer-percents';
 
 export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
 
@@ -55,7 +56,6 @@ interface OperatorOutputModeProps {
   onEndPoll: () => void;
   onOpenVoting: () => void;
   onCloseVoting: () => void;
-  onDuplicatePoll: () => void;
   onRescanPolls?: () => void;
   onQrSizeChange: (size: number) => void;
   onQrPositionChange: (position: QRPosition) => void;
@@ -67,6 +67,14 @@ interface OperatorOutputModeProps {
   onStopTestVotes?: () => void;
   /** Reset live/test vote tallies on the current poll back to zero. */
   onResetTestVotes?: () => void;
+  /**
+   * Live answer-bar editing. Receives the canonical answers list (with
+   * testVotes already re-derived from the new percentages) and writes it
+   * back into the same Build state, so the inspector and output stay in
+   * lockstep without any extra plumbing.
+   */
+  answers?: AnswerLite[];
+  onSetAnswers?: (next: AnswerLite[]) => void;
 }
 
 export function OperatorOutputMode({
@@ -100,7 +108,6 @@ export function OperatorOutputMode({
   onEndPoll,
   onOpenVoting,
   onCloseVoting,
-  onDuplicatePoll,
   onRescanPolls,
   onQrSizeChange,
   onQrPositionChange,
@@ -110,6 +117,8 @@ export function OperatorOutputMode({
   onStartTestVotes,
   onStopTestVotes,
   onResetTestVotes,
+  answers,
+  onSetAnswers,
 }: OperatorOutputModeProps) {
   const navigate = useNavigate();
   // Suppress unused-prop warnings until those features come back. Kept in the
@@ -439,9 +448,6 @@ export function OperatorOutputMode({
                   <XCircle className="h-3.5 w-3.5" /> Close Voting
                 </Button>
               )}
-              <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs" onClick={onDuplicatePoll}>
-                <Copy className="h-3.5 w-3.5" /> Duplicate Poll
-              </Button>
               {onRescanPolls ? (
                 <Button
                   variant="outline"
@@ -454,7 +460,7 @@ export function OperatorOutputMode({
                 </Button>
               ) : null}
               <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs">
-                <Eye className="h-3.5 w-3.5" /> Preview Slate
+                <Eye className="h-3.5 w-3.5" /> Preview Polling Slate
               </Button>
               <Button variant="outline" size="sm" className="w-full justify-start gap-2 text-xs" onClick={() => navigate(`/polls/${currentPoll.id}?mode=build`)}>
                 <Eye className="h-3.5 w-3.5" /> Open Build Mode
