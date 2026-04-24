@@ -17,6 +17,7 @@ import {
 import {
   Type, ListChecks, AlignLeft, Image as ImageIcon, QrCode,
   Sparkles, Users, Plus, X, GripVertical, ChevronDown, MoreVertical, FolderOpen,
+  Trash2,
 } from 'lucide-react';
 import { AnswerType, MCLabelStyle } from '@/components/poll-create/ContentPanel';
 import { AssetId, AssetMeta } from './types';
