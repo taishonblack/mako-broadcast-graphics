@@ -9,7 +9,7 @@ import { useState } from 'react';
 import { BLOCK_LETTERS, BlockLetter, DEFAULT_BLOCK_LABELS, SavedPoll } from '@/lib/poll-persistence';
 import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { Copy, Eye, Monitor, Pin, PinOff, Play, RefreshCw, Square, StopCircle, Vote, XCircle } from 'lucide-react';
+import { Copy, Eye, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Square, StopCircle, Vote, XCircle } from 'lucide-react';
 
 export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
 
@@ -26,6 +26,8 @@ interface OperatorOutputModeProps {
   currentPoll: Poll;
   projectPolls: SavedPoll[];
   folders?: Array<{ id: string; name: string; blockLetter: BlockLetter }>;
+  activeFolderId?: string | null;
+  onSelectFolder?: (folderId: string) => void;
   activeBlock: BlockLetter;
   blockSource?: OutputBlockSource;
   blockPinned?: boolean;
@@ -59,6 +61,8 @@ interface OperatorOutputModeProps {
   testVoteRunning?: boolean;
   onStartTestVotes?: (totalVotes: number, durationSeconds: number) => void;
   onStopTestVotes?: () => void;
+  /** Reset live/test vote tallies on the current poll back to zero. */
+  onResetTestVotes?: () => void;
 }
 
 export function OperatorOutputMode({
