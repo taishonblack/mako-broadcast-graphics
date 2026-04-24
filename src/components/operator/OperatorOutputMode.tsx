@@ -957,34 +957,6 @@ export function OperatorOutputMode({
   );
 }
 
-/**
- * Faithful preview of the real QR viewer's "polling slate" page. Renders the
- * actual ViewerVote slate layout (Clock icon, "Voting Will Begin Shortly",
- * subline, BrandBug) at native viewport resolution inside a scaled device
- * frame so safe-area, padding, and proportions match exactly what voters see.
- *
- * - Mobile: 375 × 667 (iPhone SE viewport)
- * - Desktop: 1280 × 800 (laptop viewport)
- *
- * The operator's background image / color is layered behind, and when the
- * slate is active any uploaded slate image + custom text overrides the
- * default "Voting Will Begin Shortly" copy.
- */
-function ViewerSlatePreview({
-  mode,
-  bgImage,
-  bgColor,
-  slateActive,
-  slateText,
-  slateImage,
-}: {
-  mode: 'mobile' | 'desktop';
-  bgImage?: string;
-  bgColor?: string;
-  slateActive: boolean;
-  slateText: string;
-  slateImage?: string;
-}) {
   // Native viewport dimensions of the real viewer page. Scaling these into
   // the operator's device frame preserves every spacing, font size, and
   // safe-area value from ViewerVote.tsx 1:1.
