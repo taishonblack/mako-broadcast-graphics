@@ -454,11 +454,44 @@ export function OperatorOutputMode({
           </div>
 
           {previewMode === 'program' ? (
-            <MonitorContainer variant="operator">
-              <PreviewWithOverlays showLabel label="1920×1080">
-                {previewNode}
-              </PreviewWithOverlays>
-            </MonitorContainer>
+            testViewerView ? (
+              <div className="space-y-2">
+                <div className="flex items-center justify-end gap-1 px-1">
+                  {(['mobile', 'desktop'] as const).map((m) => (
+                    <button
+                      key={m}
+                      type="button"
+                      onClick={() => setTestViewerMode(m)}
+                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium border transition-all ${
+                        testViewerMode === m
+                          ? 'border-primary/40 bg-primary/15 text-primary'
+                          : 'border-border bg-transparent text-muted-foreground hover:bg-accent/30'
+                      }`}
+                    >
+                      {m === 'mobile' ? <Smartphone className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
+                      {m === 'mobile' ? 'Mobile' : 'Desktop'}
+                    </button>
+                  ))}
+                </div>
+                <div className="flex justify-center">
+                  <ViewerSlatePreview
+                    mode={testViewerMode}
+                    bgImage={currentPoll.bgImage}
+                    bgColor={currentPoll.bgColor}
+                    slateActive={slateActive}
+                    slateText={slateText}
+                    slateImage={slateImage}
+                    textStyle={slateTextStyle}
+                  />
+                </div>
+              </div>
+            ) : (
+              <MonitorContainer variant="operator">
+                <PreviewWithOverlays showLabel label="1920×1080">
+                  {previewNode}
+                </PreviewWithOverlays>
+              </MonitorContainer>
+            )
           ) : (
             <div className="flex justify-center">
               <ViewerSlatePreview
@@ -468,6 +501,7 @@ export function OperatorOutputMode({
                 slateActive={slateActive}
                 slateText={slateText}
                 slateImage={slateImage}
+                textStyle={slateTextStyle}
               />
             </div>
           )}
