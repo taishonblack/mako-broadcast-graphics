@@ -6,7 +6,7 @@ import { getAssetTransformStyle } from '@/lib/asset-transforms';
 interface QRSceneProps {
   slug: string;
   theme: ThemePreset;
-  enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally'>;
+  enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally' | 'image'>;
   transforms?: AssetTransformMap;
   assetColors?: AssetColorMap;
   qrVisible?: boolean;
