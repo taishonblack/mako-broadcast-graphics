@@ -26,6 +26,7 @@ interface OperatorOutputModeProps {
   projectName?: string;
   currentPoll: Poll;
   projectPolls: SavedPoll[];
+  folders?: Array<{ id: string; name: string; blockLetter: BlockLetter }>;
   activeBlock: BlockLetter;
   blockSource?: OutputBlockSource;
   blockPinned?: boolean;
@@ -60,6 +61,7 @@ export function OperatorOutputMode({
   projectName,
   currentPoll,
   projectPolls,
+  folders = [],
   activeBlock,
   blockSource = 'default',
   blockPinned = false,
@@ -96,6 +98,14 @@ export function OperatorOutputMode({
       .sort((a, b) => (a.blockPosition ?? 999) - (b.blockPosition ?? 999));
     return acc;
   }, { A: [], B: [], C: [], D: [], E: [] });
+
+  // Map a poll → its folder name (folders define what the operator sees as the
+  // organizational label for each block, e.g. "1st Com"). Folder names are looked
+  // up by blockLetter; if multiple folders share a block, the first one wins.
+  const folderNameByBlock = folders.reduce<Record<BlockLetter, string | undefined>>((acc, f) => {
+    if (!acc[f.blockLetter]) acc[f.blockLetter] = f.name;
+    return acc;
+  }, { A: undefined, B: undefined, C: undefined, D: undefined, E: undefined });
 
   return (
     <div className="h-full overflow-hidden">
@@ -177,7 +187,9 @@ export function OperatorOutputMode({
                   >
                     <div className="flex items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <p className="truncate text-xs font-medium text-foreground">{poll.internalName || poll.question || 'Untitled poll'}</p>
+                        <p className="truncate text-xs font-medium text-foreground">
+                          {folderNameByBlock[activeBlock] || poll.internalName || poll.question || 'Untitled poll'}
+                        </p>
                         <p className="mt-0.5 truncate text-[10px] text-muted-foreground">Pos {String(poll.blockPosition ?? 1).padStart(2, '0')} · {poll.question || 'No on-air question yet'}</p>
                       </div>
                       <PollStatusChip state={poll.status === 'saved' ? 'ready' : poll.status} />
