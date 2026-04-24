@@ -690,37 +690,25 @@ export function OperatorOutputMode({
                   </Button>
                 )}
               </div>
-              <div className="flex items-center gap-2">
-                <Timer className="h-3 w-3 text-muted-foreground" />
-                <span className="text-[10px] uppercase text-muted-foreground">Countdown (s)</span>
-                <Input
-                  type="number"
-                  min={0}
-                  value={slateCountdown}
-                  onChange={(e) => setSlateCountdown(Math.max(0, Number(e.target.value) || 0))}
-                  disabled={slateActive}
-                  className="ml-auto h-7 w-16 text-right text-xs"
-                />
-              </div>
               <Button
                 size="sm"
                 variant={slateActive ? 'outline' : 'default'}
                 className={`w-full gap-1.5 text-xs ${slateActive ? slateActiveClass : ''}`}
-                onClick={slateActive ? handleStopSlate : handleStartSlate}
+                onClick={handleToggleSlate}
               >
                 {slateActive ? (
                   <>
                     <StopCircle className="h-3.5 w-3.5" /> Stop Slate
-                    {slateRemaining !== null && <span className="ml-auto font-mono">{slateRemaining}s</span>}
+                    <span className="ml-auto font-mono">ACTIVE</span>
                   </>
                 ) : (
                   <>
-                    <Play className="h-3.5 w-3.5" /> Start Slate
+                    <Play className="h-3.5 w-3.5" /> Start Slate Now
                   </>
                 )}
               </Button>
               <p className="text-[10px] text-muted-foreground">
-                When countdown ends, output auto-switches to the live poll.
+                Mobile voters who scan the QR see this slate until voting opens.
               </p>
             </div>
 
