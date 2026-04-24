@@ -10,13 +10,26 @@ import { Button } from '@/components/ui/button';
 import { BLOCK_LETTERS, BlockLetter, DEFAULT_BLOCK_LABELS, SavedPoll } from '@/lib/poll-persistence';
 import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { Copy, Eye, Monitor, Play, Square, Vote, XCircle } from 'lucide-react';
+import { Copy, Eye, Monitor, Pin, PinOff, Play, Square, Vote, XCircle } from 'lucide-react';
+
+export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
+
+const BLOCK_SOURCE_COPY: Record<OutputBlockSource, { label: string; reason: string }> = {
+  pinned:                  { label: 'PINNED',     reason: 'Operator pinned this block — auto-promotion disabled.' },
+  manual:                  { label: 'MANUAL',     reason: 'Selected manually by operator.' },
+  'auto-first-populated':  { label: 'AUTO',       reason: 'Previous block was empty — jumped to first populated block.' },
+  'auto-promoted':         { label: 'AUTO',       reason: 'A higher-priority block (A→E) gained polls and was promoted.' },
+  default:                 { label: 'DEFAULT',    reason: 'Default starting block.' },
+};
 
 interface OperatorOutputModeProps {
   projectName?: string;
   currentPoll: Poll;
   projectPolls: SavedPoll[];
   activeBlock: BlockLetter;
+  blockSource?: OutputBlockSource;
+  blockPinned?: boolean;
+  onTogglePinBlock?: () => void;
   liveState: LiveState;
   votingState: VotingState;
   previewScene: SceneType;
