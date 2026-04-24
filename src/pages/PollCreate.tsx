@@ -61,6 +61,30 @@ type OperatorMode = 'build' | 'output';
 
 const WORKSPACE_LAYOUT_KEY = 'mako-draft-workspace-layout-v1';
 const ASSET_STATE_STORAGE_KEY = 'mako-asset-state-v1';
+const OUTPUT_BLOCK_PIN_KEY = 'mako-output-block-pin-v1';
+const OUTPUT_BLOCK_LAST_KEY = 'mako-output-block-last-v1';
+
+export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
+
+interface PersistedOutputBlock {
+  block: BlockLetter;
+  pinned: boolean;
+}
+
+function loadPersistedOutputBlock(): PersistedOutputBlock {
+  try {
+    const raw = localStorage.getItem(OUTPUT_BLOCK_LAST_KEY);
+    const pinned = localStorage.getItem(OUTPUT_BLOCK_PIN_KEY) === '1';
+    if (!raw) return { block: 'A', pinned };
+    const parsed = JSON.parse(raw) as { block?: BlockLetter };
+    const block = (['A', 'B', 'C', 'D', 'E'] as BlockLetter[]).includes(parsed.block as BlockLetter)
+      ? (parsed.block as BlockLetter)
+      : 'A';
+    return { block, pinned };
+  } catch {
+    return { block: 'A', pinned: false };
+  }
+}
 
 function loadPersistedAssetState(): AssetState {
   try {
