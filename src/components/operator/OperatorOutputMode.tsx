@@ -192,6 +192,11 @@ export function OperatorOutputMode({
   const [goLivePending, setGoLivePending] = useState(false);
   const [openVotingPending, setOpenVotingPending] = useState(false);
 
+  // Program / Mobile / Desktop preview toggle — mirrors Build's preview tabs
+  // so operators can sanity-check what mobile and desktop voters currently
+  // see (background + slate) without leaving the output workspace.
+  const [previewMode, setPreviewMode] = useState<'program' | 'mobile' | 'desktop'>('program');
+
   // Open Vote scheduling. 'now' opens immediately. 'in' opens after N
   // minutes. 'at' opens at a specific HH:MM (local time).
   const [voteSchedule, setVoteSchedule] = useState<'now' | 'in' | 'at'>('now');
