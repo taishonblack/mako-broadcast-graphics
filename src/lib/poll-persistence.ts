@@ -127,8 +127,10 @@ export async function savePoll(opts: {
 }): Promise<SavedPoll> {
   const row = toRow(opts.payload, opts.userId, opts.status, opts.projectId);
   if (opts.id) {
+    // On update, omit viewer_slug so we don't churn it on every autosave.
+    const { viewer_slug: _vs, ...updateRow } = row;
     const { data, error } = await supabase
-      .from('polls').update(row).eq('id', opts.id).select().single();
+      .from('polls').update(updateRow).eq('id', opts.id).select().single();
     if (error) throw error;
     return fromRow(data);
   }
