@@ -9,7 +9,15 @@ import { QRScene } from '@/components/broadcast/scenes/QRScene';
 import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
 import { BroadcastCanvas } from '@/components/broadcast/BroadcastCanvas';
 import { DEFAULT_LAYERS, GraphicLayer, cloneLayers } from '@/lib/layers';
-import { OUTPUT_STATE_CHANNEL, OUTPUT_STATE_STORAGE_KEY, OutputAssets, OutputStatePayload, readOutputState } from '@/lib/output-state';
+import {
+  OUTPUT_HEARTBEAT_CHANNEL,
+  OUTPUT_HEARTBEAT_STORAGE_KEY,
+  OUTPUT_STATE_CHANNEL,
+  OUTPUT_STATE_STORAGE_KEY,
+  OutputAssets,
+  OutputStatePayload,
+  readOutputState,
+} from '@/lib/output-state';
 import { Poll } from '@/lib/types';
 import { DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/types';
 import { Maximize, Minimize } from 'lucide-react';
@@ -67,10 +75,50 @@ export default function ProgramOutput() {
     } catch { /* user denied or unsupported */ }
   };
 
+  // Mirror status indicator — tracks the most recent heartbeat or state
+  // message from the operator. If nothing arrives for >2s we flip to
+  // STALLED (red); >5s degrades to LOST. Any incoming message restores LIVE.
+  const [lastBeat, setLastBeat] = useState<number>(() => {
+    const raw = typeof localStorage !== 'undefined'
+      ? localStorage.getItem(OUTPUT_HEARTBEAT_STORAGE_KEY)
+      : null;
+    const parsed = raw ? Number(raw) : 0;
+    return Number.isFinite(parsed) ? parsed : 0;
+  });
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    const id = window.setInterval(() => setNow(Date.now()), 500);
+    return () => window.clearInterval(id);
+  }, []);
+  useEffect(() => {
+    const markBeat = () => setLastBeat(Date.now());
+    const onStorage = (e: StorageEvent) => {
+      if (e.key === OUTPUT_HEARTBEAT_STORAGE_KEY || e.key === OUTPUT_STATE_STORAGE_KEY) {
+        markBeat();
+      }
+    };
+    window.addEventListener('storage', onStorage);
+    let beatChannel: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        beatChannel = new BroadcastChannel(OUTPUT_HEARTBEAT_CHANNEL);
+        beatChannel.onmessage = () => markBeat();
+      }
+    } catch { /* ignore */ }
+    return () => {
+      window.removeEventListener('storage', onStorage);
+      try { beatChannel?.close(); } catch { /* ignore */ }
+    };
+  }, []);
+  const sinceBeat = lastBeat ? now - lastBeat : Infinity;
+  const mirrorStatus: 'live' | 'stalled' | 'lost' =
+    sinceBeat <= 2000 ? 'live' : sinceBeat <= 5000 ? 'stalled' : 'lost';
+
   // Listen for scene/state changes from dashboard
   useEffect(() => {
     const handler = (e: StorageEvent) => {
       if (e.key === OUTPUT_STATE_STORAGE_KEY && e.newValue) {
+        setLastBeat(Date.now());
         try {
           const next = JSON.parse(e.newValue) as Partial<{
             poll: Poll; scene: SceneType; layers: GraphicLayer[]; assets: OutputAssets;
@@ -97,6 +145,7 @@ export default function ProgramOutput() {
       if (typeof BroadcastChannel !== 'undefined') {
         channel = new BroadcastChannel(OUTPUT_STATE_CHANNEL);
         channel.onmessage = (ev) => {
+          setLastBeat(Date.now());
           const next = ev.data as OutputStatePayload | undefined;
           if (!next) return;
           if (next.poll) setPoll(next.poll);
@@ -194,6 +243,44 @@ export default function ProgramOutput() {
         {isFullscreen ? <Minimize className="h-3 w-3" /> : <Maximize className="h-3 w-3" />}
         {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
       </button>
+      {/* Output mirroring status — auto-hides when LIVE, but stays visible
+       *  whenever the mirror stalls or drops so the operator sees red. */}
+      {(() => {
+        const isLive = mirrorStatus === 'live';
+        const label =
+          mirrorStatus === 'live'
+            ? 'Mirroring: Live'
+            : mirrorStatus === 'stalled'
+              ? 'Mirroring: Stalled'
+              : 'Mirroring: Lost';
+        const dotColor =
+          mirrorStatus === 'live'
+            ? 'hsl(var(--mako-success))'
+            : 'hsl(var(--destructive))';
+        const showChip = !isLive || controlsVisible;
+        return (
+          <div
+            role="status"
+            aria-live="polite"
+            title={
+              isLive
+                ? 'Receiving live updates from Program Preview'
+                : 'No updates received from Program Preview — check the operator window'
+            }
+            className={`fixed top-3 left-[calc(0.75rem+10rem)] z-[100] inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-widest text-white backdrop-blur-sm transition-opacity duration-300 ${
+              isLive
+                ? 'border-white/15 bg-black/60'
+                : 'border-destructive/60 bg-destructive/30'
+            } ${showChip ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+          >
+            <span
+              className={`h-2 w-2 rounded-full ${isLive ? 'animate-live-pulse' : ''}`}
+              style={{ backgroundColor: dotColor }}
+            />
+            {label}
+          </div>
+        );
+      })()}
       <div style={{ width: 'min(100vw, calc(100vh * 16 / 9))', maxWidth: '1920px' }} className="w-full">
         <BroadcastCanvas className="bg-background">
           <div className="absolute top-4 right-4 z-50 flex items-center gap-2">

@@ -5,6 +5,28 @@ import { AssetColorMap, AssetState, DEFAULT_ASSET_COLORS, DEFAULT_ASSET_STATE, A
 
 export const OUTPUT_STATE_STORAGE_KEY = 'mako-output-state';
 export const OUTPUT_STATE_CHANNEL = 'mako-output-channel';
+/** Heartbeat channel — Program Preview pings this on a 1s interval so the
+ *  Output page can render a "Live"/"Stalled" mirror status indicator even
+ *  when no state change has occurred recently. */
+export const OUTPUT_HEARTBEAT_CHANNEL = 'mako-output-heartbeat';
+export const OUTPUT_HEARTBEAT_STORAGE_KEY = 'mako-output-heartbeat-ts';
+
+/** Send a lightweight presence ping from the operator to any open Output
+ *  windows. Safe to call frequently (cheap string write + postMessage). */
+export function broadcastOutputHeartbeat() {
+  if (typeof window === 'undefined') return;
+  const now = Date.now();
+  try {
+    localStorage.setItem(OUTPUT_HEARTBEAT_STORAGE_KEY, String(now));
+  } catch { /* ignore quota */ }
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      const ch = new BroadcastChannel(OUTPUT_HEARTBEAT_CHANNEL);
+      ch.postMessage({ ts: now });
+      ch.close();
+    }
+  } catch { /* ignore */ }
+}
 
 export interface OutputAssets {
   qrSize: number;

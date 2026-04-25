@@ -36,7 +36,7 @@ import { pollImportSchema, formatZodIssues, ImportIssue, ImportSection } from '@
 import { themePresets } from '@/lib/themes';
 import { TemplateName, Poll, PollOption, QRPosition, VotingState, LiveState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { broadcastOutputState } from '@/lib/output-state';
+import { broadcastOutputHeartbeat, broadcastOutputState } from '@/lib/output-state';
 import { EQUAL_BASE, equalShareAnswers } from '@/lib/answer-percents';
 import { FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Monitor, Radio, Undo2, Redo2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -1023,6 +1023,14 @@ export default function PollCreate() {
     assetTransforms,
     assetColors,
   ]);
+  // Presence heartbeat — pings open Output windows once per second so the
+  // Output page can show "Mirroring: Live" and detect stalls even when
+  // there are no state changes to broadcast.
+  useEffect(() => {
+    broadcastOutputHeartbeat();
+    const id = window.setInterval(broadcastOutputHeartbeat, 1000);
+    return () => window.clearInterval(id);
+  }, []);
   // Show MakoVote branding when the folder has no assets, or when no question
   // text or answer bars have been authored yet.
   const hasContent =
