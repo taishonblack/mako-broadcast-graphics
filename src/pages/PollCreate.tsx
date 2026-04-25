@@ -1741,7 +1741,7 @@ export default function PollCreate() {
             onSceneChange={setPreviewScene}
             onTake={handleTake}
             onCut={handleCut}
-            onOpenOutput={() => window.open(`/output/${currentWorkspacePoll.id}`, 'mako-output', 'width=1920,height=1080')}
+            onOpenOutput={() => window.open(`/output/${currentWorkspacePoll.id}`, 'mako-output', 'width=1920,height=1080') ?? null}
             onGoLive={handleGoLive}
             onEndPoll={handleEndPoll}
             onOpenVoting={() => setVotingState('open')}
