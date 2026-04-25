@@ -1837,6 +1837,7 @@ export default function PollCreate() {
                     assetColors={assetColors}
                     previewMode={transformViewport}
                     onPreviewModeChange={setTransformViewport}
+                    folderLabel={activeFolder?.name}
                   />
                   <AssetTransformControls
                     assetId={selectedAssetId}
