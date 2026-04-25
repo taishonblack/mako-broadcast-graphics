@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle, Clock, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import QRCode from 'react-qr-code';
+import { QRCodeSVG } from 'qrcode.react';
 
 type ViewerStatus = 'loading' | 'not_found' | 'not_open' | 'open' | 'closed';
 
@@ -266,7 +266,7 @@ export default function ViewerVote() {
             <p className="text-sm" style={{ color: subColor || 'hsl(var(--muted-foreground))' }}>{poll.subheadline}</p>
           )}
           <div className="bg-white p-4 rounded-xl inline-block">
-            <QRCode value={voteUrl} size={180} />
+            <QRCodeSVG value={voteUrl} size={180} level="M" />
           </div>
           <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
             Scan to follow along
