@@ -675,44 +675,6 @@ export default function PollCreate() {
     setVotingState('closed');
   };
 
-  // Mirror the Program Preview to any open Output window in real time.
-  // Whenever the operator's program-preview state (poll content, scene,
-  // assets, transforms, colors, wordmark) changes, push it to the Output
-  // fullscreen surface so it stays in lockstep without requiring a manual
-  // Take/Cut for purely cosmetic edits.
-  useEffect(() => {
-    broadcastOutputState({
-      poll: currentWorkspacePoll,
-      scene: programScene,
-      layers: [],
-      assets: {
-        qrSize,
-        qrPosition: assetState.qrPosition,
-        qrVisible: assetState.qrVisible,
-        qrUrlVisible: assetState.qrUrlVisible,
-        showBranding,
-        brandingPosition,
-        enabledAssetIds: enabledAssets,
-        transforms: assetTransforms,
-        assetColors,
-        wordmarkWeight: assetState.wordmarkWeight,
-        wordmarkTracking: assetState.wordmarkTracking,
-        wordmarkScale: assetState.wordmarkScale,
-        wordmarkShowGuides: assetState.wordmarkShowGuides,
-      },
-    });
-  }, [
-    currentWorkspacePoll,
-    programScene,
-    qrSize,
-    assetState,
-    showBranding,
-    brandingPosition,
-    enabledAssets,
-    assetTransforms,
-    assetColors,
-  ]);
-
   const [layout, setLayout] = useState<WorkspaceLayout>(loadWorkspaceLayout);
   const [layoutKey, setLayoutKey] = useState(0);
   const resetLayout = () => {
