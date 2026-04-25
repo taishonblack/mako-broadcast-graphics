@@ -398,7 +398,14 @@ export function DraftPreviewMonitor({
           // no content yet, render the slate; otherwise render the interactive
           // voter buttons inside the same scaled device frame so tap targets
           // can be sanity-checked too.
-          slateActive || !hasContent ? (
+          // Mirror Mode: folder excludes the answers asset but still has
+          // question/qr/etc. We render question + QR (matching Program)
+          // instead of the voter buttons, so Mobile/Desktop look identical
+          // to the on-air composition.
+          (() => {
+            const isMirrorMode = !enabledAssetIds.includes('answers') && hasContent;
+            return slateActive || !hasContent || isMirrorMode;
+          })() ? (
             <ViewerSlatePreview
               mode={previewMode}
               bgImage={bgImage}
@@ -409,6 +416,12 @@ export function DraftPreviewMonitor({
               textStyle={slateTextStyle}
               sublineText={slateSublineText}
               sublineStyle={slateSublineStyle}
+              votingOpen={hasContent && !enabledAssetIds.includes('answers')}
+              question={question}
+              subheadline={subheadline}
+              options={labelledOptions}
+              enabledAssetIds={enabledAssetIds}
+              slug={slug}
             />
           ) : (
             <div className={`bg-background border border-border rounded-lg overflow-hidden shadow-xl ${
