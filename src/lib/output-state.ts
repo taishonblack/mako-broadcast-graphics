@@ -4,6 +4,7 @@ import { Poll, QRPosition } from './types';
 import { AssetColorMap, AssetState, DEFAULT_ASSET_COLORS, DEFAULT_ASSET_STATE, AssetTransformMap, DEFAULT_ASSET_TRANSFORMS } from '@/components/poll-create/polling-assets/types';
 
 export const OUTPUT_STATE_STORAGE_KEY = 'mako-output-state';
+export const OUTPUT_STATE_CHANNEL = 'mako-output-channel';
 
 export interface OutputAssets {
   qrSize: number;
@@ -42,6 +43,17 @@ export function broadcastOutputState(payload: OutputStatePayload) {
   const serialized = JSON.stringify(normalizedPayload);
   localStorage.setItem(OUTPUT_STATE_STORAGE_KEY, serialized);
   window.dispatchEvent(new StorageEvent('storage', { key: OUTPUT_STATE_STORAGE_KEY, newValue: serialized }));
+  // Realtime mirror: BroadcastChannel reaches other tabs/windows of the
+  // same origin reliably (StorageEvent doesn't fire in the writer's tab,
+  // and some browsers throttle storage events). The Output page listens
+  // on both transports.
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      const ch = new BroadcastChannel(OUTPUT_STATE_CHANNEL);
+      ch.postMessage(normalizedPayload);
+      ch.close();
+    }
+  } catch { /* unsupported — storage path still works */ }
 }
 
 export function readOutputState(): OutputStatePayload | null {

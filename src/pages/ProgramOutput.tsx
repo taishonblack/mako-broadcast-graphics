@@ -9,7 +9,7 @@ import { QRScene } from '@/components/broadcast/scenes/QRScene';
 import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
 import { BroadcastCanvas } from '@/components/broadcast/BroadcastCanvas';
 import { DEFAULT_LAYERS, GraphicLayer, cloneLayers } from '@/lib/layers';
-import { OUTPUT_STATE_STORAGE_KEY, OutputAssets, readOutputState } from '@/lib/output-state';
+import { OUTPUT_STATE_CHANNEL, OUTPUT_STATE_STORAGE_KEY, OutputAssets, OutputStatePayload, readOutputState } from '@/lib/output-state';
 import { Poll } from '@/lib/types';
 import { DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/types';
 import { Maximize, Minimize } from 'lucide-react';
@@ -90,7 +90,27 @@ export default function ProgramOutput() {
       }
     };
     window.addEventListener('storage', handler);
-    return () => window.removeEventListener('storage', handler);
+
+    // Realtime mirror via BroadcastChannel for instant sync across windows.
+    let channel: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        channel = new BroadcastChannel(OUTPUT_STATE_CHANNEL);
+        channel.onmessage = (ev) => {
+          const next = ev.data as OutputStatePayload | undefined;
+          if (!next) return;
+          if (next.poll) setPoll(next.poll);
+          if (next.scene) setScene(next.scene);
+          setLayers(Array.isArray(next.layers) ? cloneLayers(next.layers) : cloneLayers(DEFAULT_LAYERS));
+          if (next.assets) setAssets(next.assets);
+        };
+      }
+    } catch { /* ignore */ }
+
+    return () => {
+      window.removeEventListener('storage', handler);
+      try { channel?.close(); } catch { /* ignore */ }
+    };
   }, []);
 
   useEffect(() => {
