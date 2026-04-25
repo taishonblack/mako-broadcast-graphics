@@ -899,6 +899,10 @@ export default function PollCreate() {
   const handleStartTestVotes = useCallback((total: number, durationSeconds: number, targetPercents?: number[]) => {
     if (testVoteRunning) return;
     if (!answers.length || total <= 0 || durationSeconds <= 0) return;
+    // Run = reset + start. Zero out any prior tallies before ramping up so
+    // each Run produces a clean 0% → final-target animation. This replaces
+    // the previous separate "Reset votes to 0%" button.
+    setAnswers((current) => current.map((a) => ({ ...a, testVotes: 0 })));
     setPreviewDataMode('test');
     setTestVoteRunning(true);
     const tickMs = 200;

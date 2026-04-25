@@ -9,9 +9,10 @@ import { QRScene } from '@/components/broadcast/scenes/QRScene';
 import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
 import { BroadcastCanvas } from '@/components/broadcast/BroadcastCanvas';
 import { DEFAULT_LAYERS, GraphicLayer, cloneLayers } from '@/lib/layers';
-import { OUTPUT_STATE_STORAGE_KEY, OutputAssets, readOutputState } from '@/lib/output-state';
+import { OUTPUT_STATE_CHANNEL, OUTPUT_STATE_STORAGE_KEY, OutputAssets, OutputStatePayload, readOutputState } from '@/lib/output-state';
 import { Poll } from '@/lib/types';
 import { DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/types';
+import { Maximize, Minimize } from 'lucide-react';
 
 const DEFAULT_ASSETS: OutputAssets = {
   qrSize: 120,
@@ -40,6 +41,32 @@ export default function ProgramOutput() {
   const [assets, setAssets] = useState<OutputAssets>(initialOutputState?.assets ?? DEFAULT_ASSETS);
   const theme = themePresets.find((preset) => preset.id === poll.themeId) || themePresets[0];
 
+  // Fullscreen controls — browsers won't strip the URL bar without an
+  // explicit user gesture calling the Fullscreen API. We expose a small
+  // control that briefly reveals on mouse-move and hides automatically
+  // so the Output stays clean once engaged.
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [controlsVisible, setControlsVisible] = useState(true);
+  useEffect(() => {
+    const onChange = () => setIsFullscreen(Boolean(document.fullscreenElement));
+    document.addEventListener('fullscreenchange', onChange);
+    return () => document.removeEventListener('fullscreenchange', onChange);
+  }, []);
+  useEffect(() => {
+    if (!controlsVisible) return;
+    const t = window.setTimeout(() => setControlsVisible(false), 2500);
+    return () => window.clearTimeout(t);
+  }, [controlsVisible]);
+  const toggleFullscreen = async () => {
+    try {
+      if (document.fullscreenElement) {
+        await document.exitFullscreen();
+      } else {
+        await document.documentElement.requestFullscreen();
+      }
+    } catch { /* user denied or unsupported */ }
+  };
+
   // Listen for scene/state changes from dashboard
   useEffect(() => {
     const handler = (e: StorageEvent) => {
@@ -63,7 +90,27 @@ export default function ProgramOutput() {
       }
     };
     window.addEventListener('storage', handler);
-    return () => window.removeEventListener('storage', handler);
+
+    // Realtime mirror via BroadcastChannel for instant sync across windows.
+    let channel: BroadcastChannel | null = null;
+    try {
+      if (typeof BroadcastChannel !== 'undefined') {
+        channel = new BroadcastChannel(OUTPUT_STATE_CHANNEL);
+        channel.onmessage = (ev) => {
+          const next = ev.data as OutputStatePayload | undefined;
+          if (!next) return;
+          if (next.poll) setPoll(next.poll);
+          if (next.scene) setScene(next.scene);
+          setLayers(Array.isArray(next.layers) ? cloneLayers(next.layers) : cloneLayers(DEFAULT_LAYERS));
+          if (next.assets) setAssets(next.assets);
+        };
+      }
+    } catch { /* ignore */ }
+
+    return () => {
+      window.removeEventListener('storage', handler);
+      try { channel?.close(); } catch { /* ignore */ }
+    };
   }, []);
 
   useEffect(() => {
@@ -134,8 +181,19 @@ export default function ProgramOutput() {
   return (
     <div
       className="w-screen h-screen overflow-hidden relative bg-background flex items-center justify-center"
-      style={{ cursor: 'none' }}
+      style={{ cursor: controlsVisible ? 'default' : 'none' }}
+      onMouseMove={() => setControlsVisible(true)}
     >
+      {/* Fullscreen toggle — reveals on mouse-move, auto-hides after 2.5s */}
+      <button
+        type="button"
+        onClick={toggleFullscreen}
+        aria-label={isFullscreen ? 'Exit fullscreen' : 'Enter fullscreen'}
+        className={`fixed top-3 left-3 z-[100] inline-flex items-center gap-1.5 rounded-md border border-white/15 bg-black/60 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-widest text-white backdrop-blur-sm transition-opacity duration-300 hover:bg-black/80 ${controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      >
+        {isFullscreen ? <Minimize className="h-3 w-3" /> : <Maximize className="h-3 w-3" />}
+        {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+      </button>
       <div style={{ width: 'min(100vw, calc(100vh * 16 / 9))', maxWidth: '1920px' }} className="w-full">
         <BroadcastCanvas className="bg-background">
           <div className="absolute top-4 right-4 z-50 flex items-center gap-2">

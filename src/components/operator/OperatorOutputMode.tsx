@@ -762,17 +762,9 @@ export function OperatorOutputMode({
                   <StopCircle className="h-3.5 w-3.5" /> Stop
                 </Button>
               </div>
-              {onResetTestVotes && (
-                <Button
-                  size="sm"
-                  variant="ghost"
-                  className="w-full gap-1.5 text-xs text-muted-foreground hover:text-foreground"
-                  onClick={() => onResetTestVotes()}
-                  title="Zero out test/live vote tallies on this poll. The build will also reflect zero values."
-                >
-                  <RotateCcw className="h-3.5 w-3.5" /> Reset votes to 0%
-                </Button>
-              )}
+              <p className="text-[10px] text-muted-foreground text-center">
+                Pressing Run resets the tally to 0% and ramps to your targets.
+              </p>
             </div>
           )}
         </div>
