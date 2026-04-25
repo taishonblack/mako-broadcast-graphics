@@ -2,6 +2,13 @@ import { supabase } from '@/integrations/supabase/client';
 import { AssetId } from '@/components/poll-create/polling-assets/types';
 import { BlockLetter } from '@/lib/poll-persistence';
 
+export type TallyMode = 'live' | 'stopMotion';
+export const DEFAULT_TALLY_MODE: TallyMode = 'live';
+/** Stop Motion: how often (seconds) the bars/percentages snap-update. */
+export const DEFAULT_TALLY_INTERVAL_SECONDS = 5;
+export const TALLY_INTERVAL_MIN = 1;
+export const TALLY_INTERVAL_MAX = 30;
+
 export interface PollingAssetFolder {
   id: string;
   name: string;
@@ -18,6 +25,15 @@ export interface PollingAssetFolder {
    * Program output resolves live for viewers.
    */
   slug?: string;
+  /**
+   * Tally pacing for the answer-bar display. `live` updates continuously as
+   * votes arrive; `stopMotion` batches the displayed totals and only snaps
+   * the bars / percentages forward every `tallyIntervalSeconds` seconds —
+   * useful for dramatic broadcast reveals or when raw votes are too sparse
+   * to look animated.
+   */
+  tallyMode?: TallyMode;
+  tallyIntervalSeconds?: number;
   assetIds: AssetId[];
 }
 
@@ -43,7 +59,18 @@ export function createDefaultFolderState(initialQuestionText = '', initialBgColo
   const id = createFolderId();
   return {
     activeFolderId: id,
-    folders: [{ id, name: createFolderName(1), blockLetter: DEFAULT_BLOCK, collapsed: false, questionText: initialQuestionText, bgColor: initialBgColor, slug: '', assetIds: [] }],
+    folders: [{
+      id,
+      name: createFolderName(1),
+      blockLetter: DEFAULT_BLOCK,
+      collapsed: false,
+      questionText: initialQuestionText,
+      bgColor: initialBgColor,
+      slug: '',
+      tallyMode: DEFAULT_TALLY_MODE,
+      tallyIntervalSeconds: DEFAULT_TALLY_INTERVAL_SECONDS,
+      assetIds: [],
+    }],
   };
 }
 
@@ -84,6 +111,10 @@ export function normalizeFolderState(input: unknown): PollingAssetFolderState {
         bgColor: typeof folder.bgColor === 'string' ? folder.bgColor : undefined,
         bgImage: typeof folder.bgImage === 'string' ? folder.bgImage : undefined,
         slug: typeof folder.slug === 'string' ? folder.slug : '',
+        tallyMode: folder.tallyMode === 'stopMotion' ? 'stopMotion' : DEFAULT_TALLY_MODE,
+        tallyIntervalSeconds: typeof folder.tallyIntervalSeconds === 'number' && Number.isFinite(folder.tallyIntervalSeconds)
+          ? Math.min(TALLY_INTERVAL_MAX, Math.max(TALLY_INTERVAL_MIN, Math.round(folder.tallyIntervalSeconds)))
+          : DEFAULT_TALLY_INTERVAL_SECONDS,
         assetIds: Array.from(new Set(assetIds)),
       };
     })
