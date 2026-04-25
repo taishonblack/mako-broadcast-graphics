@@ -69,6 +69,9 @@ interface OperatorOutputModeProps {
   /** Whether the active folder includes the Answer Bars asset. Controls
       visibility of the per-bar target % editor in the Vote Runner. */
   hasAnswerBars?: boolean;
+  /** Active folder's enabled asset list — passed through to viewer
+   *  previews so Mirror Mode (no-answers folders) renders correctly. */
+  enabledAssetIds?: string[];
   onSelectBlock: (block: BlockLetter) => void;
   onSelectPoll: (pollId: string) => void;
   onSceneChange: (scene: SceneType) => void;
@@ -131,6 +134,7 @@ export function OperatorOutputMode({
   brandingPosition,
   previewNode,
   hasAnswerBars = false,
+  enabledAssetIds,
   onSelectBlock,
   onSelectPoll,
   onSceneChange,
