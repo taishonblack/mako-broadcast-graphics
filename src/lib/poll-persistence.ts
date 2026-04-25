@@ -133,11 +133,11 @@ export async function savePoll(opts: {
     // On update, omit viewer_slug so we don't churn it on every autosave.
     const { viewer_slug: _vs, ...updateRow } = row;
     const { data, error } = await supabase
-      .from('polls').update(updateRow).eq('id', opts.id).select().single();
+      .from('polls').update(updateRow as never).eq('id', opts.id).select().single();
     if (error) throw error;
     return fromRow(data);
   }
-  const { data, error } = await supabase.from('polls').insert([row]).select().single();
+  const { data, error } = await supabase.from('polls').insert([row as never]).select().single();
   if (error) throw error;
   return fromRow(data);
 }
