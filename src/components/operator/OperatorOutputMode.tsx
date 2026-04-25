@@ -898,6 +898,93 @@ export function OperatorOutputMode({
                   <RotateCcw className="mr-1 h-3 w-3" /> Reset slate text style
                 </Button>
               </div>
+              {/* Subline ("Stay tuned…") — fully editable so operators can
+                  rewrite the copy and adjust typography to read against any
+                  background. */}
+              <div className="space-y-1.5 rounded-md border border-border/40 bg-background/40 p-2">
+                <p className="text-[10px] font-mono uppercase text-muted-foreground">Subline</p>
+                <Textarea
+                  value={slateSublineText}
+                  onChange={(e) => setSlateSublineText(e.target.value)}
+                  placeholder={DEFAULT_SLATE_SUBLINE_TEXT}
+                  rows={2}
+                  className="text-xs"
+                />
+                <div className="flex items-center gap-2">
+                  <Label className="w-16 text-[10px] text-muted-foreground">Color</Label>
+                  <input
+                    type="color"
+                    value={slateSublineStyle.color ?? DEFAULT_SLATE_SUBLINE_STYLE.color}
+                    onChange={(e) => setSlateSublineStyle((s) => ({ ...s, color: e.target.value }))}
+                    className="h-7 w-10 cursor-pointer rounded border border-border bg-transparent p-0"
+                  />
+                  <Input
+                    value={slateSublineStyle.color ?? DEFAULT_SLATE_SUBLINE_STYLE.color}
+                    onChange={(e) => setSlateSublineStyle((s) => ({ ...s, color: e.target.value }))}
+                    className="h-7 flex-1 px-2 text-[10px] font-mono"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="w-16 text-[10px] text-muted-foreground">Weight</Label>
+                  <Slider
+                    value={[slateSublineStyle.weight ?? DEFAULT_SLATE_SUBLINE_STYLE.weight]}
+                    min={300}
+                    max={900}
+                    step={100}
+                    onValueChange={([v]) => setSlateSublineStyle((s) => ({ ...s, weight: v }))}
+                    className="flex-1"
+                  />
+                  <span className="w-10 text-right text-[10px] font-mono text-muted-foreground">{slateSublineStyle.weight ?? DEFAULT_SLATE_SUBLINE_STYLE.weight}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="w-16 text-[10px] text-muted-foreground">Size</Label>
+                  <Slider
+                    value={[slateSublineStyle.sizePx ?? DEFAULT_SLATE_SUBLINE_STYLE.sizePx]}
+                    min={10}
+                    max={48}
+                    step={1}
+                    onValueChange={([v]) => setSlateSublineStyle((s) => ({ ...s, sizePx: v }))}
+                    className="flex-1"
+                  />
+                  <span className="w-10 text-right text-[10px] font-mono text-muted-foreground">{slateSublineStyle.sizePx ?? DEFAULT_SLATE_SUBLINE_STYLE.sizePx}px</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="w-16 text-[10px] text-muted-foreground">X</Label>
+                  <Slider
+                    value={[slateSublineStyle.offsetX ?? 0]}
+                    min={-160}
+                    max={160}
+                    step={1}
+                    onValueChange={([v]) => setSlateSublineStyle((s) => ({ ...s, offsetX: v }))}
+                    className="flex-1"
+                  />
+                  <span className="w-10 text-right text-[10px] font-mono text-muted-foreground">{slateSublineStyle.offsetX ?? 0}px</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="w-16 text-[10px] text-muted-foreground">Y</Label>
+                  <Slider
+                    value={[slateSublineStyle.offsetY ?? 0]}
+                    min={-200}
+                    max={200}
+                    step={1}
+                    onValueChange={([v]) => setSlateSublineStyle((s) => ({ ...s, offsetY: v }))}
+                    className="flex-1"
+                  />
+                  <span className="w-10 text-right text-[10px] font-mono text-muted-foreground">{slateSublineStyle.offsetY ?? 0}px</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-full text-[10px] text-muted-foreground"
+                  onClick={() => {
+                    setSlateSublineText(DEFAULT_SLATE_SUBLINE_TEXT);
+                    setSlateSublineStyle(DEFAULT_SLATE_SUBLINE_STYLE);
+                  }}
+                >
+                  <RotateCcw className="mr-1 h-3 w-3" /> Reset subline
+                </Button>
+              </div>
               <div className="flex items-center gap-2">
                 <label className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-border/60 px-2 py-1.5 text-[10px] text-muted-foreground hover:bg-accent/20">
                   <ImageIcon className="h-3 w-3" />
