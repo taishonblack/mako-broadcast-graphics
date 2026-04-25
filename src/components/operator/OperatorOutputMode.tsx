@@ -254,9 +254,9 @@ export function OperatorOutputMode({
         .update({
           slate_text: slateText,
           slate_image: slateImage ?? null,
-          slate_text_style: slateTextStyle as unknown as Record<string, unknown>,
+          slate_text_style: slateTextStyle as never,
           slate_subline_text: slateSublineText,
-          slate_subline_style: slateSublineStyle as unknown as Record<string, unknown>,
+          slate_subline_style: slateSublineStyle as never,
         })
         .eq('id', currentPoll.id);
     }, 500);
