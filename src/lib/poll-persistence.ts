@@ -51,6 +51,14 @@ export const DEFAULT_BLOCK_LABELS: Record<BlockLetter, string> = {
 };
 
 function toRow(p: DraftPollPayload, userId: string, status: 'draft' | 'saved', projectId?: string) {
+  // Each poll within a project must have a unique viewer_slug (DB unique
+  // index on (project_id, viewer_slug)). The draft payload doesn't carry a
+  // viewer slug yet, so derive a stable token from the poll's slug — or
+  // fall back to a short random id — to avoid duplicate-key autosave
+  // failures when a project has more than one draft.
+  const viewerSlug = (p.slug && p.slug.trim().length > 0)
+    ? p.slug.trim().toLowerCase()
+    : `draft-${Math.random().toString(36).slice(2, 10)}`;
   return {
     user_id: userId,
     project_id: projectId ?? null,
@@ -59,6 +67,7 @@ function toRow(p: DraftPollPayload, userId: string, status: 'draft' | 'saved', p
     question: p.question,
     subheadline: p.subheadline,
     slug: p.slug,
+    viewer_slug: viewerSlug,
     template: p.template,
     answer_type: p.answerType,
     mc_label_style: p.mcLabelStyle,
