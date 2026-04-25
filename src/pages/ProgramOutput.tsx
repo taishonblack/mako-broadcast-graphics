@@ -27,7 +27,7 @@ const DEFAULT_ASSETS: OutputAssets = {
   qrPosition: 'bottom-right',
   qrVisible: DEFAULT_ASSET_STATE.qrVisible,
   qrUrlVisible: DEFAULT_ASSET_STATE.qrUrlVisible,
-  showBranding: true,
+  showBranding: false,
   brandingPosition: 'bottom-left',
   wordmarkWeight: DEFAULT_ASSET_STATE.wordmarkWeight,
   wordmarkTracking: DEFAULT_ASSET_STATE.wordmarkTracking,
