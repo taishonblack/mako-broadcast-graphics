@@ -704,6 +704,58 @@ export function OperatorOutputMode({
             </Collapsible>
           )}
 
+          {/* Tally pacing — kept OUT of the Vote Runner collapsible because
+              the operator may need to flip Live ↔ Stop Motion (and tweak
+              the interval) while Go Live is engaged, without expanding the
+              full Vote Runner. Always visible, compact. */}
+          {(onTallyModeChange || onTallyIntervalChange) && (
+            <div className="mako-panel p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase text-muted-foreground">
+                  Tally Pacing
+                </span>
+                <span className="text-[10px] font-mono text-muted-foreground uppercase">
+                  {tallyMode === 'stopMotion' ? `Stop · ${tallyIntervalSeconds}s` : 'Live'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10px] font-mono uppercase text-muted-foreground">Mode</p>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant={tallyMode === 'live' ? 'default' : 'outline'}
+                    className="h-6 px-2 text-[10px]"
+                    onClick={() => onTallyModeChange?.('live')}
+                  >Live</Button>
+                  <Button
+                    size="sm"
+                    variant={tallyMode === 'stopMotion' ? 'default' : 'outline'}
+                    className="h-6 px-2 text-[10px]"
+                    onClick={() => onTallyModeChange?.('stopMotion')}
+                  >Stop Motion</Button>
+                </div>
+              </div>
+              {tallyMode === 'stopMotion' && (
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between">
+                    <span className="text-[10px] uppercase text-muted-foreground">Interval</span>
+                    <span className="text-[10px] font-mono text-foreground">{tallyIntervalSeconds}s</span>
+                  </div>
+                  <Slider
+                    min={1}
+                    max={30}
+                    step={1}
+                    value={[tallyIntervalSeconds]}
+                    onValueChange={(v) => onTallyIntervalChange?.(v[0] ?? tallyIntervalSeconds)}
+                  />
+                </div>
+              )}
+              <p className="text-[10px] text-muted-foreground">
+                Stays accessible while Go Live is engaged.
+              </p>
+            </div>
+          )}
+
           {/* Test-vote runner — inject N votes over T seconds and watch the
               bars + counters animate in the preview above. Useful for QA'ing
               the chart animation without opening a viewer browser. */}
@@ -712,7 +764,7 @@ export function OperatorOutputMode({
               <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-accent/30">
                 <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase text-muted-foreground">
                   {voteRunnerOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                  Vote Runner & Tally
+                  Vote Runner
                 </span>
                 <span className="flex items-center gap-2">
                   {testVoteRunning && (
@@ -720,49 +772,9 @@ export function OperatorOutputMode({
                       <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" /> running
                     </span>
                   )}
-                  <span className="text-[10px] font-mono text-muted-foreground uppercase">
-                    {tallyMode === 'stopMotion' ? `Stop · ${tallyIntervalSeconds}s` : 'Live'}
-                  </span>
                 </span>
               </CollapsibleTrigger>
               <CollapsibleContent className="space-y-3 pt-2">
-              {/* Tally pacing controls — Live vs Stop Motion + interval. */}
-              {(onTallyModeChange || onTallyIntervalChange) && (
-                <div className="rounded-md border border-border/60 bg-accent/10 p-2 space-y-2">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-[10px] font-mono uppercase text-muted-foreground">Tally Mode</p>
-                    <div className="flex gap-1">
-                      <Button
-                        size="sm"
-                        variant={tallyMode === 'live' ? 'default' : 'outline'}
-                        className="h-6 px-2 text-[10px]"
-                        onClick={() => onTallyModeChange?.('live')}
-                      >Live</Button>
-                      <Button
-                        size="sm"
-                        variant={tallyMode === 'stopMotion' ? 'default' : 'outline'}
-                        className="h-6 px-2 text-[10px]"
-                        onClick={() => onTallyModeChange?.('stopMotion')}
-                      >Stop Motion</Button>
-                    </div>
-                  </div>
-                  {tallyMode === 'stopMotion' && (
-                    <div className="space-y-1">
-                      <div className="flex items-center justify-between">
-                        <span className="text-[10px] uppercase text-muted-foreground">Interval</span>
-                        <span className="text-[10px] font-mono text-foreground">{tallyIntervalSeconds}s</span>
-                      </div>
-                      <Slider
-                        min={1}
-                        max={30}
-                        step={1}
-                        value={[tallyIntervalSeconds]}
-                        onValueChange={(v) => onTallyIntervalChange?.(v[0] ?? tallyIntervalSeconds)}
-                      />
-                    </div>
-                  )}
-                </div>
-              )}
               {/* Active Poll summary — merged from the standalone Active Poll
                   panel so the right column has room for the Output Inspector. */}
               <div className="rounded-md border border-border/60 bg-accent/10 p-2 space-y-1.5">
