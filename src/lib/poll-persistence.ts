@@ -105,6 +105,7 @@ export function fromRow(row: Record<string, unknown>): SavedPoll {
     showThankYou: row.show_thank_you as boolean,
     showFinalResults: row.show_final_results as boolean,
     autoCloseSeconds: (row.auto_close_seconds as number | null) ?? undefined,
+    postVoteDelayMs: (row.post_vote_delay_ms as number | null) ?? 1500,
     bgColor: row.bg_color as string,
     bgImage: (row.bg_image as string | null) ?? undefined,
     previewDataMode: row.preview_data_mode as PreviewDataMode,
