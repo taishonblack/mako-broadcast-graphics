@@ -1014,6 +1014,7 @@ export default function PollCreate() {
     // switching the in-app preview tab to Mobile/Desktop must NOT alter what
     // is being broadcast to the on-air output window.
     const programTransforms = assetTransformSet.program;
+    const programAssetColors = assetColorSet.program;
     broadcastOutputState({
       poll: currentWorkspacePoll,
       // Mirror Program Preview directly: the Full Screen Output is meant to
@@ -1029,7 +1030,7 @@ export default function PollCreate() {
         brandingPosition,
         enabledAssetIds: enabledAssets,
         transforms: programTransforms,
-        assetColors,
+        assetColors: programAssetColors,
         wordmarkWeight: assetState.wordmarkWeight,
         wordmarkTracking: assetState.wordmarkTracking,
         wordmarkScale: assetState.wordmarkScale,
@@ -1045,7 +1046,7 @@ export default function PollCreate() {
     brandingPosition,
     enabledAssets,
     assetTransformSet,
-    assetColors,
+    assetColorSet,
   ]);
   // Presence heartbeat — pings open Output windows once per second so the
   // Output page can show "Mirroring: Live" and detect stalls even when
