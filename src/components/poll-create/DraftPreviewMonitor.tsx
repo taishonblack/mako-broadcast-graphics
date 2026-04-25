@@ -64,6 +64,11 @@ interface DraftPreviewMonitorProps {
   slateTextStyle?: SlateTextStyle;
   slateSublineText?: string;
   slateSublineStyle?: SlateTextStyle;
+  /** Optional title label for the preview header. When set, replaces the
+   *  default "Test Data"/"Real Data" copy — operators expect the header to
+   *  read as the active folder name (e.g. "1st Com") so it's obvious which
+   *  folder is being previewed. */
+  folderLabel?: string;
 }
 
 /**
@@ -97,6 +102,7 @@ export function DraftPreviewMonitor({
   slateTextStyle,
   slateSublineText,
   slateSublineStyle,
+  folderLabel,
 }: DraftPreviewMonitorProps) {
   const [previewModeUncontrolled, setPreviewModeUncontrolled] = useState<PreviewMode>('program');
   const previewMode = previewModeProp ?? previewModeUncontrolled;
@@ -299,10 +305,10 @@ export function DraftPreviewMonitor({
     { mode: 'desktop', icon: Globe, label: 'Desktop', tooltip: 'Viewer Desktop — what audiences see in browser' },
   ];
 
-  // Title reflects the data lens, not the surface — the mode tabs already
-  // communicate Program vs. Mobile vs. Desktop, so we use the title slot to
-  // call out whether the preview is showing test or real data.
-  const previewLabel = previewDataMode === 'test' ? 'Test Data' : 'Real Data';
+  // Title reflects the active folder so the operator knows which set of
+  // assets is being previewed. Falls back to the data lens (Test / Real)
+  // when no folder context is available.
+  const previewLabel = folderLabel ?? (previewDataMode === 'test' ? 'Test Data' : 'Real Data');
 
   return (
     <div className="flex flex-col">

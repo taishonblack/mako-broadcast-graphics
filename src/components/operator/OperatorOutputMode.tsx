@@ -34,6 +34,7 @@ import { SceneType } from '@/lib/scenes';
 import { ChevronDown, ChevronRight, Clock, Eye, EyeOff, Globe, Image as ImageIcon, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Smartphone, Square, StopCircle, Type as TypeIcon, Vote, XCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { percentsFromAnswers, rebalancePercents, answersFromPercents, AnswerLite } from '@/lib/answer-percents';
+import { supabase } from '@/integrations/supabase/client';
 
 export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
 
@@ -190,60 +191,77 @@ export function OperatorOutputMode({
   // Polling Slate: a still image / message shown to mobile voters (and on
   // program output) until voting opens. Toggle-only — no countdown. Mobile
   // QR landing renders the slate while `slateActive` is true.
-  // Slate text + typography is persisted per-poll in localStorage keyed by
-  // `mako.slate.<pollId>` so operators don't lose custom styling between
-  // sessions. Persistence lives client-side because slate copy is operator
-  // workflow state, not part of the published poll record.
-  const slateStorageKey = `mako.slate.${currentPoll.id}`;
-  type PersistedSlate = {
-    text?: string;
-    image?: string;
-    textStyle?: SlateTextStyle;
-    sublineText?: string;
-    sublineStyle?: SlateTextStyle;
-  };
-  const loadPersistedSlate = (): PersistedSlate => {
-    if (typeof window === 'undefined') return {};
-    try {
-      const raw = window.localStorage.getItem(slateStorageKey);
-      return raw ? (JSON.parse(raw) as PersistedSlate) : {};
-    } catch {
-      return {};
-    }
-  };
-  const initialSlate = loadPersistedSlate();
-  const [slateText, setSlateText] = useState(initialSlate.text ?? 'Polling will open soon');
-  const [slateImage, setSlateImage] = useState<string | undefined>(initialSlate.image);
+  //
+  // Slate text + typography is persisted SERVER-SIDE on the poll record
+  // (slate_text / slate_image / slate_text_style / slate_subline_text /
+  // slate_subline_style) so operators keep custom styling when they switch
+  // browsers or devices. The active toggle stays client-only — it's a
+  // moment-to-moment broadcast decision, not a saved property of the poll.
+  const [slateText, setSlateText] = useState('Polling will open soon');
+  const [slateImage, setSlateImage] = useState<string | undefined>(undefined);
   const [slateActive, setSlateActive] = useState(false);
-  const [slateTextStyle, setSlateTextStyle] = useState<SlateTextStyle>(initialSlate.textStyle ?? DEFAULT_SLATE_TEXT_STYLE);
-  const [slateSublineText, setSlateSublineText] = useState<string>(initialSlate.sublineText ?? DEFAULT_SLATE_SUBLINE_TEXT);
-  const [slateSublineStyle, setSlateSublineStyle] = useState<SlateTextStyle>(initialSlate.sublineStyle ?? DEFAULT_SLATE_SUBLINE_STYLE);
-  // Re-hydrate when the operator switches polls (component is reused).
+  const [slateTextStyle, setSlateTextStyle] = useState<SlateTextStyle>(DEFAULT_SLATE_TEXT_STYLE);
+  const [slateSublineText, setSlateSublineText] = useState<string>(DEFAULT_SLATE_SUBLINE_TEXT);
+  const [slateSublineStyle, setSlateSublineStyle] = useState<SlateTextStyle>(DEFAULT_SLATE_SUBLINE_STYLE);
+  // Hydrated marks the moment the server values land so we can begin
+  // auto-saving — without this a fresh mount would overwrite the saved row
+  // with the in-memory defaults before the fetch resolves.
+  const [slateHydrated, setSlateHydrated] = useState(false);
+
+  // Collapsible state for the slate text/subline style sections. Operators
+  // typically set these once per poll, so default them collapsed to keep the
+  // inspector compact during a live show.
+  const [textStyleOpen, setTextStyleOpen] = useState(false);
+  const [sublineOpen, setSublineOpen] = useState(false);
+
+  // Load slate styling from the poll record whenever the active poll
+  // changes. We re-read on every poll switch because OperatorOutputMode is
+  // reused across polls in the same project.
   useEffect(() => {
-    const next = loadPersistedSlate();
-    setSlateText(next.text ?? 'Polling will open soon');
-    setSlateImage(next.image);
-    setSlateTextStyle(next.textStyle ?? DEFAULT_SLATE_TEXT_STYLE);
-    setSlateSublineText(next.sublineText ?? DEFAULT_SLATE_SUBLINE_TEXT);
-    setSlateSublineStyle(next.sublineStyle ?? DEFAULT_SLATE_SUBLINE_STYLE);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    let cancelled = false;
+    setSlateHydrated(false);
+    (async () => {
+      const { data, error } = await supabase
+        .from('polls')
+        .select('slate_text, slate_image, slate_text_style, slate_subline_text, slate_subline_style')
+        .eq('id', currentPoll.id)
+        .maybeSingle();
+      if (cancelled) return;
+      if (error || !data) {
+        setSlateHydrated(true);
+        return;
+      }
+      setSlateText(data.slate_text || 'Polling will open soon');
+      setSlateImage(data.slate_image ?? undefined);
+      const ts = (data.slate_text_style ?? {}) as Partial<SlateTextStyle>;
+      const ss = (data.slate_subline_style ?? {}) as Partial<SlateTextStyle>;
+      setSlateTextStyle({ ...DEFAULT_SLATE_TEXT_STYLE, ...ts });
+      setSlateSublineText(data.slate_subline_text || DEFAULT_SLATE_SUBLINE_TEXT);
+      setSlateSublineStyle({ ...DEFAULT_SLATE_SUBLINE_STYLE, ...ss });
+      setSlateHydrated(true);
+    })();
+    return () => { cancelled = true; };
   }, [currentPoll.id]);
-  // Persist whenever any slate styling field changes.
+
+  // Debounced server save whenever any slate styling field changes. Skip
+  // until the row has been hydrated so the initial defaults don't clobber
+  // the saved values.
   useEffect(() => {
-    if (typeof window === 'undefined') return;
-    const payload: PersistedSlate = {
-      text: slateText,
-      image: slateImage,
-      textStyle: slateTextStyle,
-      sublineText: slateSublineText,
-      sublineStyle: slateSublineStyle,
-    };
-    try {
-      window.localStorage.setItem(slateStorageKey, JSON.stringify(payload));
-    } catch {
-      /* quota or private mode — silent */
-    }
-  }, [slateStorageKey, slateText, slateImage, slateTextStyle, slateSublineText, slateSublineStyle]);
+    if (!slateHydrated) return;
+    const handle = window.setTimeout(() => {
+      void supabase
+        .from('polls')
+        .update({
+          slate_text: slateText,
+          slate_image: slateImage ?? null,
+          slate_text_style: slateTextStyle as never,
+          slate_subline_text: slateSublineText,
+          slate_subline_style: slateSublineStyle as never,
+        })
+        .eq('id', currentPoll.id);
+    }, 500);
+    return () => window.clearTimeout(handle);
+  }, [slateHydrated, currentPoll.id, slateText, slateImage, slateTextStyle, slateSublineText, slateSublineStyle]);
   // "Test viewer view" — when ON the Program monitor renders the viewer
   // (mobile or desktop) instead of the broadcast composition so the operator
   // can sanity-check what voters will see before going on-air.
@@ -866,9 +884,15 @@ export function OperatorOutputMode({
               />
               {/* Slate typography controls — color, weight, size, X/Y nudge.
                   Operators reach for these when their custom slate text is
-                  hard to read against a busy background. */}
-              <div className="space-y-1.5 rounded-md border border-border/40 bg-background/40 p-2">
-                <p className="text-[10px] font-mono uppercase text-muted-foreground">Slate Text Style</p>
+                  hard to read against a busy background. Collapsed by default
+                  so the inspector stays compact during a live show. */}
+              <Collapsible open={textStyleOpen} onOpenChange={setTextStyleOpen}>
+                <div className="rounded-md border border-border/40 bg-background/40">
+                  <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 text-[10px] font-mono uppercase text-muted-foreground hover:text-foreground">
+                    <span>Slate Text Style</span>
+                    {textStyleOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-1.5 px-2 pb-2">
                 <div className="flex items-center gap-2">
                   <Label className="w-16 text-[10px] text-muted-foreground">Color</Label>
                   <input
@@ -940,12 +964,19 @@ export function OperatorOutputMode({
                 >
                   <RotateCcw className="mr-1 h-3 w-3" /> Reset slate text style
                 </Button>
-              </div>
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
               {/* Subline ("Stay tuned…") — fully editable so operators can
                   rewrite the copy and adjust typography to read against any
                   background. */}
-              <div className="space-y-1.5 rounded-md border border-border/40 bg-background/40 p-2">
-                <p className="text-[10px] font-mono uppercase text-muted-foreground">Subline</p>
+              <Collapsible open={sublineOpen} onOpenChange={setSublineOpen}>
+                <div className="rounded-md border border-border/40 bg-background/40">
+                  <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 text-[10px] font-mono uppercase text-muted-foreground hover:text-foreground">
+                    <span>Subline</span>
+                    {sublineOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-1.5 px-2 pb-2">
                 <Textarea
                   value={slateSublineText}
                   onChange={(e) => setSlateSublineText(e.target.value)}
@@ -1027,7 +1058,9 @@ export function OperatorOutputMode({
                 >
                   <RotateCcw className="mr-1 h-3 w-3" /> Reset subline
                 </Button>
-              </div>
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
               <div className="flex items-center gap-2">
                 <label className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-border/60 px-2 py-1.5 text-[10px] text-muted-foreground hover:bg-accent/20">
                   <ImageIcon className="h-3 w-3" />
