@@ -1324,7 +1324,8 @@ export function OperatorOutputMode({
                 </Button>
               )}
               <p className="text-[10px] text-muted-foreground">
-                Bars reset to 0% when voting opens.
+                Bars reset to 0% when voting opens. For folders without answer
+                bars, viewers see the question + QR (Scan only).
               </p>
             </div>
           </div>
