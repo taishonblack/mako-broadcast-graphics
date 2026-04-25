@@ -662,6 +662,12 @@ export default function PollCreate() {
   const handleGoLive = () => {
     setLiveState('live');
     handleTake();
+    // Open Output fullscreen window if not already open, and open voting so
+    // the slate/voting flow begins simultaneously with the on-air push.
+    try {
+      window.open(`/output/${currentWorkspacePoll.id}`, 'mako-output', 'width=1920,height=1080');
+    } catch {}
+    setVotingState('open');
   };
 
   const handleEndPoll = () => {
