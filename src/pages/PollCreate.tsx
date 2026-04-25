@@ -255,6 +255,7 @@ export default function PollCreate() {
   const [showLiveResults, setShowLiveResults] = useState(true);
   const [showThankYou, setShowThankYou] = useState(true);
   const [showFinalResults, setShowFinalResults] = useState(true);
+  const [postVoteDelayMs, setPostVoteDelayMs] = useState<number>(1500);
   const [autoClose, setAutoClose] = useState('');
   const [bgColor, setBgColor] = useState('#1a1a2e');
   const [bgImage, setBgImage] = useState<string | undefined>(undefined);
