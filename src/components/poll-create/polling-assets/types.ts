@@ -109,11 +109,21 @@ const createDefaultTransform = (): AssetTransformConfig => ({
   locks: { ...DEFAULT_TRANSFORM_LOCKS },
 });
 
+/**
+ * Background defaults: lock X / Y / Scale so the operator can't accidentally
+ * nudge the backplate while editing other assets. They can unlock from the
+ * inspector when intentional repositioning is needed.
+ */
+const createDefaultBackgroundTransform = (): AssetTransformConfig => ({
+  ...createDefaultTransform(),
+  locks: { ...DEFAULT_TRANSFORM_LOCKS, x: true, y: true, scale: true },
+});
+
 export const DEFAULT_ASSET_TRANSFORMS: AssetTransformMap = {
   question: createDefaultTransform(),
   answers: createDefaultTransform(),
   subheadline: createDefaultTransform(),
-  background: createDefaultTransform(),
+  background: createDefaultBackgroundTransform(),
   qr: createDefaultTransform(),
   logo: createDefaultTransform(),
   voterTally: createDefaultTransform(),
@@ -122,9 +132,9 @@ export const DEFAULT_ASSET_TRANSFORMS: AssetTransformMap = {
 
 /** Build a fresh per-viewport transform set seeded with the same defaults. */
 export const createDefaultTransformSet = (): AssetTransformSet => ({
-  program: { ...DEFAULT_ASSET_TRANSFORMS, question: createDefaultTransform(), answers: createDefaultTransform(), subheadline: createDefaultTransform(), background: createDefaultTransform(), qr: createDefaultTransform(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
-  mobile:  { ...DEFAULT_ASSET_TRANSFORMS, question: createDefaultTransform(), answers: createDefaultTransform(), subheadline: createDefaultTransform(), background: createDefaultTransform(), qr: createDefaultTransform(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
-  desktop: { ...DEFAULT_ASSET_TRANSFORMS, question: createDefaultTransform(), answers: createDefaultTransform(), subheadline: createDefaultTransform(), background: createDefaultTransform(), qr: createDefaultTransform(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
+  program: { question: createDefaultTransform(), answers: createDefaultTransform(), subheadline: createDefaultTransform(), background: createDefaultBackgroundTransform(), qr: createDefaultTransform(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
+  mobile:  { question: createDefaultTransform(), answers: createDefaultTransform(), subheadline: createDefaultTransform(), background: createDefaultBackgroundTransform(), qr: createDefaultTransform(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
+  desktop: { question: createDefaultTransform(), answers: createDefaultTransform(), subheadline: createDefaultTransform(), background: createDefaultBackgroundTransform(), qr: createDefaultTransform(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
 });
 
 export const DEFAULT_ASSET_TRANSFORM_SET: AssetTransformSet = createDefaultTransformSet();
