@@ -1,0 +1,1 @@
+ALTER TABLE public.polls ADD COLUMN IF NOT EXISTS post_vote_delay_ms integer NOT NULL DEFAULT 1500;
