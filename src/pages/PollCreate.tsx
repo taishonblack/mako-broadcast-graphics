@@ -638,6 +638,8 @@ export default function PollCreate() {
         wordmarkTracking: assetState.wordmarkTracking,
         wordmarkScale: assetState.wordmarkScale,
         wordmarkShowGuides: assetState.wordmarkShowGuides,
+        tallyMode: activeFolder?.tallyMode ?? DEFAULT_TALLY_MODE,
+        tallyIntervalSeconds: activeFolder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
       },
     });
   };
@@ -662,6 +664,8 @@ export default function PollCreate() {
         wordmarkTracking: assetState.wordmarkTracking,
         wordmarkScale: assetState.wordmarkScale,
         wordmarkShowGuides: assetState.wordmarkShowGuides,
+        tallyMode: activeFolder?.tallyMode ?? DEFAULT_TALLY_MODE,
+        tallyIntervalSeconds: activeFolder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
       },
     });
   };
