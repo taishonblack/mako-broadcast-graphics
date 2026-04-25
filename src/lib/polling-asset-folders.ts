@@ -10,6 +10,14 @@ export interface PollingAssetFolder {
   questionText?: string;
   bgColor?: string;
   bgImage?: string;
+  /**
+   * Per-folder viewer slug — the URL fragment used by the QR code that lives
+   * inside this folder. Each folder is its own QR destination so a project
+   * can run multiple polls during a broadcast (e.g. "asl", "beyond",
+   * "datacast"). Two folders may share a slug; only the folder currently on
+   * Program output resolves live for viewers.
+   */
+  slug?: string;
   assetIds: AssetId[];
 }
 
@@ -35,7 +43,7 @@ export function createDefaultFolderState(initialQuestionText = '', initialBgColo
   const id = createFolderId();
   return {
     activeFolderId: id,
-    folders: [{ id, name: createFolderName(1), blockLetter: DEFAULT_BLOCK, collapsed: false, questionText: initialQuestionText, bgColor: initialBgColor, assetIds: [] }],
+    folders: [{ id, name: createFolderName(1), blockLetter: DEFAULT_BLOCK, collapsed: false, questionText: initialQuestionText, bgColor: initialBgColor, slug: '', assetIds: [] }],
   };
 }
 
@@ -75,6 +83,7 @@ export function normalizeFolderState(input: unknown): PollingAssetFolderState {
         questionText: typeof folder.questionText === 'string' ? folder.questionText : undefined,
         bgColor: typeof folder.bgColor === 'string' ? folder.bgColor : undefined,
         bgImage: typeof folder.bgImage === 'string' ? folder.bgImage : undefined,
+        slug: typeof folder.slug === 'string' ? folder.slug : '',
         assetIds: Array.from(new Set(assetIds)),
       };
     })
