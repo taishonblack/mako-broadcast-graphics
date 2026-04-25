@@ -13,6 +13,16 @@ import {
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from '@/components/ui/alert-dialog';
 import { Input } from '@/components/ui/input';
 import { Sheet, SheetContent, SheetDescription, SheetHeader, SheetTitle } from '@/components/ui/sheet';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -59,6 +69,23 @@ export default function ProjectLauncher() {
   const [nameError, setNameError] = useState<string | null>(null);
   const [tagError, setTagError] = useState<string | null>(null);
   const [guidedDialogShown, setGuidedDialogShown] = useState(false);
+  // Pending "switch project" intent — when an operator already has a project
+  // open and clicks New Project / Open Existing, we surface a confirm dialog
+  // so they don't accidentally close their current workspace.
+  const [pendingSwitch, setPendingSwitch] = useState<
+    | { kind: 'new' }
+    | { kind: 'openExisting' }
+    | { kind: 'open'; project: Pick<ProjectRecord, 'id' | 'name'> }
+    | null
+  >(null);
+
+  const activeProjectId = typeof window !== 'undefined'
+    ? localStorage.getItem('mako-active-project')
+    : null;
+  const activeProject = useMemo(
+    () => projects.find((p) => p.id === activeProjectId) ?? null,
+    [projects, activeProjectId],
+  );
 
   const loadProjects = async () => {
     if (!user) return;
@@ -129,6 +156,37 @@ export default function ProjectLauncher() {
 
     localStorage.setItem('mako-active-project', project.id);
     navigate('/polls/new?mode=build');
+  };
+
+  /** Wraps an action with a "close current project?" confirmation when there
+   *  is already an active project distinct from the target. Used by both the
+   *  New Project trigger and the Open Existing buttons. */
+  const guardProjectSwitch = (
+    action: () => void,
+    target?: Pick<ProjectRecord, 'id'>,
+  ) => {
+    if (!activeProject || (target && target.id === activeProject.id)) {
+      action();
+      return;
+    }
+    if (target) {
+      setPendingSwitch({ kind: 'open', project: target as ProjectRecord });
+    } else {
+      setPendingSwitch({ kind: 'new' });
+    }
+  };
+
+  const confirmPendingSwitch = () => {
+    const intent = pendingSwitch;
+    setPendingSwitch(null);
+    if (!intent) return;
+    if (intent.kind === 'new') {
+      setNewProjectOpen(true);
+    } else if (intent.kind === 'openExisting') {
+      setOpenPreviousOpen(true);
+    } else if (intent.kind === 'open') {
+      void openProject(intent.project);
+    }
   };
 
   const addTag = (value: string) => {
