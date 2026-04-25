@@ -820,7 +820,7 @@ export function OperatorOutputMode({
                 className={`w-full justify-start gap-2 text-xs ${outputActiveClass}`}
                 onClick={handleOpenOutputClick}
               >
-                <Monitor className="h-3.5 w-3.5" /> Open Output
+                <Monitor className="h-3.5 w-3.5" /> Full Screen Output
                 {outputOpen && <span className="ml-auto text-[9px] font-mono">ACTIVE</span>}
               </Button>
               {liveState === 'not_live' ? (
