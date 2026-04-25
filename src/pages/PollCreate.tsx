@@ -1023,6 +1023,14 @@ export default function PollCreate() {
     assetTransforms,
     assetColors,
   ]);
+  // Presence heartbeat — pings open Output windows once per second so the
+  // Output page can show "Mirroring: Live" and detect stalls even when
+  // there are no state changes to broadcast.
+  useEffect(() => {
+    broadcastOutputHeartbeat();
+    const id = window.setInterval(broadcastOutputHeartbeat, 1000);
+    return () => window.clearInterval(id);
+  }, []);
   // Show MakoVote branding when the folder has no assets, or when no question
   // text or answer bars have been authored yet.
   const hasContent =
