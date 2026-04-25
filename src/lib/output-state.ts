@@ -5,6 +5,12 @@ import { AssetColorMap, AssetState, DEFAULT_ASSET_COLORS, DEFAULT_ASSET_STATE, A
 
 export const OUTPUT_STATE_STORAGE_KEY = 'mako-output-state';
 export const OUTPUT_STATE_CHANNEL = 'mako-output-channel';
+/** Snapshot pushed to Output the moment the operator hits Go Live. While the
+ *  lock is engaged Output ignores all subsequent OutputStatePayload messages
+ *  and renders this frozen payload instead — letting the operator freely
+ *  edit / navigate the workspace without leaking changes to broadcast. */
+export const OUTPUT_LOCK_STORAGE_KEY = 'mako-output-lock';
+export const OUTPUT_LOCK_CHANNEL = 'mako-output-lock-channel';
 /** Heartbeat channel — Program Preview pings this on a 1s interval so the
  *  Output page can render a "Live"/"Stalled" mirror status indicator even
  *  when no state change has occurred recently. */
@@ -51,6 +57,55 @@ export interface OutputStatePayload {
   scene: SceneType;
   layers: GraphicLayer[];
   assets?: OutputAssets;
+}
+
+/** Explicit lock messages broadcast separately from regular state updates so
+ *  Output can switch between "follow workspace" and "render frozen snapshot"
+ *  modes without race conditions. */
+export interface OutputLockMessage {
+  /** When `true`, Output should render `snapshot` and ignore all subsequent
+   *  OutputStatePayload pushes until a `{ locked: false }` message arrives. */
+  locked: boolean;
+  /** The frozen payload to render while locked. Required when locked=true. */
+  snapshot?: OutputStatePayload;
+  /** Wall-clock ms when the lock engaged — used as a tiebreaker in Output. */
+  lockedAt?: number;
+}
+
+export function broadcastOutputLock(message: OutputLockMessage) {
+  if (typeof window === 'undefined') return;
+  const serialized = JSON.stringify(message);
+  try {
+    if (message.locked) localStorage.setItem(OUTPUT_LOCK_STORAGE_KEY, serialized);
+    else localStorage.removeItem(OUTPUT_LOCK_STORAGE_KEY);
+  } catch { /* ignore quota */ }
+  // Always emit a storage event so other tabs hear about unlocks too.
+  try {
+    window.dispatchEvent(new StorageEvent('storage', {
+      key: OUTPUT_LOCK_STORAGE_KEY,
+      newValue: message.locked ? serialized : null,
+    }));
+  } catch { /* ignore */ }
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      const ch = new BroadcastChannel(OUTPUT_LOCK_CHANNEL);
+      ch.postMessage(message);
+      ch.close();
+    }
+  } catch { /* ignore */ }
+}
+
+export function readOutputLock(): OutputLockMessage | null {
+  if (typeof window === 'undefined') return null;
+  const raw = localStorage.getItem(OUTPUT_LOCK_STORAGE_KEY);
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw) as OutputLockMessage;
+    if (!parsed || typeof parsed !== 'object' || !parsed.locked) return null;
+    return parsed;
+  } catch {
+    return null;
+  }
 }
 
 export function broadcastOutputState(payload: OutputStatePayload) {
