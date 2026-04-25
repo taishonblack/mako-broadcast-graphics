@@ -117,6 +117,7 @@ interface EditorSnapshot {
   showLiveResults: boolean;
   showThankYou: boolean;
   showFinalResults: boolean;
+  postVoteDelayMs: number;
   autoClose: string;
   bgColor: string;
   bgImage?: string;
