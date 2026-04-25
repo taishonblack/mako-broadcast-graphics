@@ -1889,6 +1889,24 @@ export default function PollCreate() {
             onQrPositionChange={(next) => setAssetState((current) => ({ ...current, qrPosition: next }))}
             onShowBrandingChange={setShowBranding}
             onBrandingPositionChange={setBrandingPosition}
+            tallyMode={getFolderById(folderState, folderState.activeFolderId)?.tallyMode ?? DEFAULT_TALLY_MODE}
+            tallyIntervalSeconds={getFolderById(folderState, folderState.activeFolderId)?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS}
+            onTallyModeChange={(mode: TallyMode) => {
+              setFolderState((current) => ({
+                ...current,
+                folders: current.folders.map((f) =>
+                  f.id === current.activeFolderId ? { ...f, tallyMode: mode } : f
+                ),
+              }));
+            }}
+            onTallyIntervalChange={(seconds: number) => {
+              setFolderState((current) => ({
+                ...current,
+                folders: current.folders.map((f) =>
+                  f.id === current.activeFolderId ? { ...f, tallyIntervalSeconds: seconds } : f
+                ),
+              }));
+            }}
           />
         </div>
       ) : (
