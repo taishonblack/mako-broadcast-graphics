@@ -1,5 +1,6 @@
 import { PollOption } from '@/lib/types';
 import { QRCodeSVG } from 'qrcode.react';
+import { AssetColorMap } from '@/components/poll-create/polling-assets/types';
 
 /**
  * Operator-controlled typography for the polling slate. Drives the headline
@@ -73,6 +74,10 @@ export interface ViewerSlatePreviewProps {
   subheadline?: string;
   /** Slug used to render the Mirror Mode QR (defaults to the current page). */
   slug?: string;
+  /** Per-asset color overrides authored in Build. Drives question /
+   *  subheadline / answer text colors so Mobile + Desktop previews match
+   *  the operator's color picks (instead of always-white). */
+  assetColors?: AssetColorMap;
 }
 
 /**
@@ -105,6 +110,7 @@ export function ViewerSlatePreview({
   enabledAssetIds,
   subheadline,
   slug,
+  assetColors,
 }: ViewerSlatePreviewProps) {
   const NATIVE_W = mode === 'mobile' ? 375 : 1280;
   const NATIVE_H = mode === 'mobile' ? 667 : 800;
@@ -137,6 +143,14 @@ export function ViewerSlatePreview({
     ? `${window.location.origin}/vote/${slug}`
     : slug ? `/vote/${slug}` : '';
 
+  // Resolve colors from the active viewport's asset color map. Falls back to
+  // the previous hard-coded white / light-gray values so existing previews
+  // keep working when no overrides are set.
+  const questionColor = assetColors?.question?.textPrimary ?? '#ffffff';
+  const subheadlineColor = assetColors?.subheadline?.textPrimary ?? '#e5e7eb';
+  const answerColor = assetColors?.answers?.textPrimary ?? '#ffffff';
+  const answerBarColors = assetColors?.answers?.barColors ?? [];
+
   return (
     <div
       className="bg-background border border-border rounded-lg overflow-hidden shadow-xl"
@@ -167,7 +181,7 @@ export function ViewerSlatePreview({
               {question && (
                 <h1
                   className="text-center leading-tight"
-                  style={{ color: '#ffffff', fontWeight: 700, fontSize: mode === 'mobile' ? 28 : 40, maxWidth: '90%' }}
+                  style={{ color: questionColor, fontWeight: 700, fontSize: mode === 'mobile' ? 28 : 40, maxWidth: '90%' }}
                 >
                   {question}
                 </h1>
@@ -175,7 +189,7 @@ export function ViewerSlatePreview({
               {subheadline && (
                 <p
                   className="text-center"
-                  style={{ color: '#e5e7eb', fontSize: mode === 'mobile' ? 14 : 18, maxWidth: '85%' }}
+                  style={{ color: subheadlineColor, fontSize: mode === 'mobile' ? 14 : 18, maxWidth: '85%' }}
                 >
                   {subheadline}
                 </p>
@@ -187,7 +201,7 @@ export function ViewerSlatePreview({
               )}
               <p
                 className="font-mono uppercase tracking-wider opacity-80"
-                style={{ color: '#e5e7eb', fontSize: mode === 'mobile' ? 10 : 12 }}
+                style={{ color: subheadlineColor, fontSize: mode === 'mobile' ? 10 : 12 }}
               >
                 Scan to follow along
               </p>
@@ -197,19 +211,19 @@ export function ViewerSlatePreview({
               {question && (
                 <h1
                   className="text-center leading-tight"
-                  style={{ color: '#ffffff', fontWeight: 700, fontSize: mode === 'mobile' ? 28 : 40, maxWidth: '90%' }}
+                  style={{ color: questionColor, fontWeight: 700, fontSize: mode === 'mobile' ? 28 : 40, maxWidth: '90%' }}
                 >
                   {question}
                 </h1>
               )}
               <div className="w-full max-w-[420px] space-y-3">
-                {options!.map((opt) => (
+                {options!.map((opt, i) => (
                   <div
                     key={opt.id}
                     className="w-full p-4 rounded-2xl text-center font-medium border border-white/15"
-                    style={{ background: 'hsla(220, 18%, 13%, 0.85)', backdropFilter: 'blur(8px)', color: '#ffffff' }}
+                    style={{ background: answerBarColors[i] ?? 'hsla(220, 18%, 13%, 0.85)', backdropFilter: 'blur(8px)', color: answerColor }}
                   >
-                    <span style={{ fontSize: mode === 'mobile' ? 16 : 20 }}>{opt.text || 'Answer'}</span>
+                    <span style={{ fontSize: mode === 'mobile' ? 16 : 20, color: answerColor }}>{opt.text || 'Answer'}</span>
                   </div>
                 ))}
               </div>
