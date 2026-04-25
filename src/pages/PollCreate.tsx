@@ -1835,6 +1835,8 @@ export default function PollCreate() {
                   enabledAssetIds={enabledAssets}
                   transforms={assetTransforms}
                     assetColors={assetColors}
+                    previewMode={transformViewport}
+                    onPreviewModeChange={setTransformViewport}
                   />
                   <AssetTransformControls
                     assetId={selectedAssetId}
