@@ -6,14 +6,21 @@ import { Input } from '@/components/ui/input';
 import {
   Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription,
 } from '@/components/ui/dialog';
-import { Badge } from '@/components/ui/badge';
+import {
+  DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
+} from '@/components/ui/dropdown-menu';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import {
   BLOCK_LETTERS, DEFAULT_BLOCK_LABELS, BlockLetter,
-  fromRow, SavedPoll,
 } from '@/lib/poll-persistence';
-import { Search, FolderOpen, Plus, ArrowRight, Grid3x3 } from 'lucide-react';
+import {
+  PollingAssetFolder,
+  PollingAssetFolderState,
+  loadProjectPollingAssetFolders,
+  saveProjectPollingAssetFolders,
+} from '@/lib/polling-asset-folders';
+import { Search, FolderOpen, MoreHorizontal, Grid3x3, Pencil } from 'lucide-react';
 
 interface ProjectLite {
   id: string;
@@ -24,15 +31,35 @@ interface ProjectLite {
 
 const RECENT_LIMIT = 10;
 
+const blockLabelStorageKey = (projectId: string) => `mako-block-labels:${projectId}`;
+
+function loadBlockLabels(projectId: string): Record<BlockLetter, string> {
+  try {
+    const raw = localStorage.getItem(blockLabelStorageKey(projectId));
+    if (!raw) return { ...DEFAULT_BLOCK_LABELS };
+    const parsed = JSON.parse(raw) as Partial<Record<BlockLetter, string>>;
+    const out = { ...DEFAULT_BLOCK_LABELS };
+    BLOCK_LETTERS.forEach((l) => { if (typeof parsed[l] === 'string' && parsed[l]!.trim()) out[l] = parsed[l]!; });
+    return out;
+  } catch { return { ...DEFAULT_BLOCK_LABELS }; }
+}
+
+function saveBlockLabels(projectId: string, labels: Record<BlockLetter, string>) {
+  try { localStorage.setItem(blockLabelStorageKey(projectId), JSON.stringify(labels)); } catch { /* ignore */ }
+}
+
 export default function Blocks() {
   const { user, loading: authLoading } = useAuth();
   const [projects, setProjects] = useState<ProjectLite[]>([]);
   const [activeProjectId, setActiveProjectId] = useState<string | null>(null);
-  const [polls, setPolls] = useState<SavedPoll[]>([]);
-  const [draggedPollId, setDraggedPollId] = useState<string | null>(null);
+  const [folderState, setFolderState] = useState<PollingAssetFolderState | null>(null);
+  const [labels, setLabels] = useState<Record<BlockLetter, string>>({ ...DEFAULT_BLOCK_LABELS });
+  const [draggedFolderId, setDraggedFolderId] = useState<string | null>(null);
   const [allProjectsOpen, setAllProjectsOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
+  const [renameTarget, setRenameTarget] = useState<BlockLetter | null>(null);
+  const [renameValue, setRenameValue] = useState('');
 
   useEffect(() => {
     if (!user) return;
@@ -50,14 +77,11 @@ export default function Blocks() {
   }, [user]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
-    if (!user || !activeProjectId) { setPolls([]); return; }
-    void (async () => {
-      const { data } = await supabase
-        .from('polls').select('*')
-        .eq('project_id', activeProjectId)
-        .order('updated_at', { ascending: false });
-      setPolls((data ?? []).map((r) => fromRow(r as Record<string, unknown>)));
-    })();
+    if (!user || !activeProjectId) { setFolderState(null); return; }
+    setLabels(loadBlockLabels(activeProjectId));
+    void loadProjectPollingAssetFolders(activeProjectId, user.id)
+      .then((state) => setFolderState(state ?? { folders: [], activeFolderId: '' }))
+      .catch(() => setFolderState({ folders: [], activeFolderId: '' }));
   }, [user, activeProjectId]);
 
   const recentProjects = useMemo(() => projects.slice(0, RECENT_LIMIT), [projects]);
@@ -66,28 +90,38 @@ export default function Blocks() {
     [projects, search],
   );
 
-  const pollsByBlock = useMemo(() => {
-    const map: Record<string, SavedPoll[]> = { A: [], B: [], C: [], D: [], E: [], unassigned: [] };
-    polls.forEach((p) => {
-      const key = p.blockLetter && BLOCK_LETTERS.includes(p.blockLetter) ? p.blockLetter : 'unassigned';
-      map[key].push(p);
+  const foldersByBlock = useMemo(() => {
+    const map: Record<BlockLetter, PollingAssetFolder[]> = { A: [], B: [], C: [], D: [], E: [] };
+    (folderState?.folders ?? []).forEach((f) => {
+      const letter = BLOCK_LETTERS.includes(f.blockLetter) ? f.blockLetter : 'A';
+      map[letter].push(f);
     });
     return map;
-  }, [polls]);
+  }, [folderState]);
 
-  const reassignPollBlock = async (pollId: string, letter: BlockLetter | null) => {
-    await supabase.from('polls').update({
-      block_letter: letter,
-      block_label: letter ? DEFAULT_BLOCK_LABELS[letter] : null,
-    }).eq('id', pollId);
-    setPolls((prev) => prev.map((p) => p.id === pollId
-      ? { ...p, blockLetter: letter ?? undefined, blockLabel: letter ? DEFAULT_BLOCK_LABELS[letter] : undefined }
-      : p));
+  const moveFolder = async (folderId: string, letter: BlockLetter) => {
+    if (!user || !activeProjectId || !folderState) return;
+    const next: PollingAssetFolderState = {
+      ...folderState,
+      folders: folderState.folders.map((f) => (f.id === folderId ? { ...f, blockLetter: letter } : f)),
+    };
+    setFolderState(next);
+    try { await saveProjectPollingAssetFolders(activeProjectId, user.id, next); } catch { /* swallow */ }
+  };
+
+  const renameBlock = (letter: BlockLetter, name: string) => {
+    if (!activeProjectId) return;
+    const trimmed = name.trim() || DEFAULT_BLOCK_LABELS[letter];
+    const next = { ...labels, [letter]: trimmed };
+    setLabels(next);
+    saveBlockLabels(activeProjectId, next);
   };
 
   if (authLoading) {
     return <OperatorLayout><div className="p-8 text-muted-foreground">Loading…</div></OperatorLayout>;
   }
+
+  const totalFolders = folderState?.folders.length ?? 0;
 
   return (
     <OperatorLayout>
@@ -97,17 +131,15 @@ export default function Blocks() {
           <h1 className="text-sm font-semibold">Blocks</h1>
           <span className="text-xs text-muted-foreground">·</span>
           <span className="text-xs text-muted-foreground">
-            Current project polls grouped by block assignment A–E
+            Workspace folders grouped by block assignment A–E
           </span>
         </div>
-        <div className="flex items-center gap-2">
-          <ProjectSwitcher
-            projects={recentProjects}
-            activeProjectId={activeProjectId}
-            onSelect={setActiveProjectId}
-            onOpenAll={() => setAllProjectsOpen(true)}
-          />
-        </div>
+        <ProjectSwitcher
+          projects={recentProjects}
+          activeProjectId={activeProjectId}
+          onSelect={setActiveProjectId}
+          onOpenAll={() => setAllProjectsOpen(true)}
+        />
       </header>
 
       <div className="flex-1 overflow-auto p-6">
@@ -118,7 +150,7 @@ export default function Blocks() {
             <Grid3x3 className="w-10 h-10 text-muted-foreground/40 mx-auto" />
             <h2 className="text-base font-semibold">No projects yet</h2>
             <p className="text-sm text-muted-foreground">
-              Create a project first, then this page will group that project’s polls by Blocks A–E.
+              Create a project first, then this page will group its workspace folders by Blocks A–E.
             </p>
             <Link to="/projects"><Button size="sm" className="gap-2"><FolderOpen className="w-3.5 h-3.5" /> Open Projects</Button></Link>
           </div>
@@ -127,14 +159,14 @@ export default function Blocks() {
             <div className="flex items-center justify-between gap-3">
               <div>
                 <h2 className="text-sm font-semibold text-foreground">
-                  {projects.find((project) => project.id === activeProjectId)?.name ?? 'Current Project'}
+                  {projects.find((p) => p.id === activeProjectId)?.name ?? 'Current Project'}
                 </h2>
                 <p className="text-xs text-muted-foreground">
-                  Polls are grouped here by block assignment. Blocks are labels inside the project, not parent containers.
+                  Folders are created in the Workspace and pinned here by their block. Drag a folder onto another block to reassign it.
                 </p>
               </div>
               <span className="text-[10px] font-mono uppercase text-muted-foreground">
-                {polls.length} polls
+                {totalFolders} folders
               </span>
             </div>
 
@@ -143,32 +175,13 @@ export default function Blocks() {
                 <BlockColumn
                   key={letter}
                   letter={letter}
-                  label={DEFAULT_BLOCK_LABELS[letter]}
-                  polls={pollsByBlock[letter]}
-                  unassigned={pollsByBlock.unassigned}
-                draggedPollId={draggedPollId}
-                onDragStart={setDraggedPollId}
-                onDragEnd={() => setDraggedPollId(null)}
-                  onAssign={reassignPollBlock}
-                />
-              ))}
-            </div>
-          </div>
-        )}
-
-        {pollsByBlock.unassigned.length > 0 && (
-          <div className="mt-8">
-            <h3 className="text-xs font-semibold text-muted-foreground font-mono uppercase mb-2">
-              Unassigned · {pollsByBlock.unassigned.length}
-            </h3>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {pollsByBlock.unassigned.map((poll) => (
-                <UnassignedPollCard
-                  key={poll.id}
-                  poll={poll}
-                  onAssign={reassignPollBlock}
-                  onDragStart={setDraggedPollId}
-                  onDragEnd={() => setDraggedPollId(null)}
+                  label={labels[letter]}
+                  folders={foldersByBlock[letter]}
+                  draggedFolderId={draggedFolderId}
+                  onDragStart={setDraggedFolderId}
+                  onDragEnd={() => setDraggedFolderId(null)}
+                  onDropFolder={moveFolder}
+                  onRequestRename={() => { setRenameTarget(letter); setRenameValue(labels[letter]); }}
                 />
               ))}
             </div>
@@ -221,6 +234,40 @@ export default function Blocks() {
           </div>
         </DialogContent>
       </Dialog>
+
+      <Dialog open={renameTarget !== null} onOpenChange={(open) => { if (!open) setRenameTarget(null); }}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Rename Block {renameTarget}</DialogTitle>
+            <DialogDescription>Set a custom subheader for this block in the current project.</DialogDescription>
+          </DialogHeader>
+          <Input
+            value={renameValue}
+            onChange={(e) => setRenameValue(e.target.value)}
+            placeholder={renameTarget ? DEFAULT_BLOCK_LABELS[renameTarget] : ''}
+            className="h-9 text-sm"
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' && renameTarget) {
+                renameBlock(renameTarget, renameValue);
+                setRenameTarget(null);
+              }
+            }}
+          />
+          <div className="flex justify-end gap-2">
+            <Button size="sm" variant="ghost" onClick={() => setRenameTarget(null)}>Cancel</Button>
+            <Button
+              size="sm"
+              onClick={() => {
+                if (renameTarget) renameBlock(renameTarget, renameValue);
+                setRenameTarget(null);
+              }}
+            >
+              Save
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </OperatorLayout>
   );
 }
@@ -255,26 +302,18 @@ function ProjectSwitcher({
 }
 
 function BlockColumn({
-  letter, label, polls, unassigned, draggedPollId, onDragStart, onDragEnd, onAssign,
+  letter, label, folders, draggedFolderId, onDragStart, onDragEnd, onDropFolder, onRequestRename,
 }: {
   letter: BlockLetter;
   label: string;
-  polls: SavedPoll[];
-  unassigned: SavedPoll[];
-  draggedPollId: string | null;
-  onDragStart: (pollId: string | null) => void;
+  folders: PollingAssetFolder[];
+  draggedFolderId: string | null;
+  onDragStart: (folderId: string | null) => void;
   onDragEnd: () => void;
-  onAssign: (pollId: string, letter: BlockLetter | null) => void;
+  onDropFolder: (folderId: string, letter: BlockLetter) => void;
+  onRequestRename: () => void;
 }) {
-  const [pickerOpen, setPickerOpen] = useState(false);
   const [isDropTarget, setIsDropTarget] = useState(false);
-
-  const handleDrop = () => {
-    if (!draggedPollId) return;
-    void onAssign(draggedPollId, letter);
-    setIsDropTarget(false);
-    onDragEnd();
-  };
 
   return (
     <div
@@ -282,61 +321,53 @@ function BlockColumn({
         isDropTarget ? 'ring-1 ring-primary bg-primary/5' : ''
       }`}
       onDragOver={(event) => {
-        if (!draggedPollId) return;
+        if (!draggedFolderId) return;
         event.preventDefault();
         if (!isDropTarget) setIsDropTarget(true);
       }}
       onDragLeave={() => setIsDropTarget(false)}
       onDrop={(event) => {
         event.preventDefault();
-        handleDrop();
+        setIsDropTarget(false);
+        if (draggedFolderId) {
+          void onDropFolder(draggedFolderId, letter);
+          onDragEnd();
+        }
       }}
     >
-      <div className="flex items-start justify-between">
-        <div>
+      <div className="flex items-start justify-between gap-2">
+        <div className="min-w-0">
           <div className="flex items-baseline gap-2">
             <span className="text-2xl font-bold font-mono text-primary leading-none">{letter}</span>
-            <span className="text-[10px] font-mono uppercase text-muted-foreground">{polls.length}</span>
+            <span className="text-[10px] font-mono uppercase text-muted-foreground">{folders.length}</span>
           </div>
-          <p className="text-[10px] text-muted-foreground mt-1">{label}</p>
+          <p className="text-[10px] text-muted-foreground mt-1 truncate" title={label}>{label}</p>
         </div>
-        <button
-          onClick={() => setPickerOpen((v) => !v)}
-          title="Add poll to this block"
-          className="text-muted-foreground hover:text-primary transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-        </button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <button
+              title="Block options"
+              className="text-muted-foreground hover:text-foreground transition-colors p-0.5 rounded"
+            >
+              <MoreHorizontal className="w-4 h-4" />
+            </button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={onRequestRename} className="gap-2 text-xs">
+              <Pencil className="w-3.5 h-3.5" /> Rename block
+            </DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
 
-      {pickerOpen && (
-        <div className="border border-border rounded-md bg-background/60 p-2 space-y-1 max-h-48 overflow-auto">
-          <p className="text-[10px] font-mono uppercase text-muted-foreground px-1">Assign poll</p>
-          {unassigned.length === 0 ? (
-            <p className="text-[11px] text-muted-foreground px-1 py-1">No unassigned polls.</p>
-          ) : (
-            unassigned.map((p) => (
-              <button
-                key={p.id}
-                onClick={() => { onAssign(p.id, letter); setPickerOpen(false); }}
-                className="w-full text-left text-xs p-1.5 rounded hover:bg-accent/50 truncate"
-              >
-                {p.internalName || p.question || 'Untitled poll'}
-              </button>
-            ))
-          )}
-        </div>
-      )}
-
       <div className="space-y-1.5">
-        {polls.length === 0 ? (
-          <p className="text-[11px] text-muted-foreground/60 italic">No polls in this block.</p>
+        {folders.length === 0 ? (
+          <p className="text-[11px] text-muted-foreground/60 italic">No folders in this block.</p>
         ) : (
-          polls.map((poll) => (
-            <PollChip
-              key={poll.id}
-              poll={poll}
-              onAssign={onAssign}
+          folders.map((folder) => (
+            <FolderChip
+              key={folder.id}
+              folder={folder}
               onDragStart={onDragStart}
               onDragEnd={onDragEnd}
             />
@@ -347,12 +378,11 @@ function BlockColumn({
   );
 }
 
-function PollChip({
-  poll, onAssign, onDragStart, onDragEnd,
+function FolderChip({
+  folder, onDragStart, onDragEnd,
 }: {
-  poll: SavedPoll;
-  onAssign: (pollId: string, letter: BlockLetter | null) => void;
-  onDragStart: (pollId: string | null) => void;
+  folder: PollingAssetFolder;
+  onDragStart: (folderId: string | null) => void;
   onDragEnd: () => void;
 }) {
   return (
@@ -360,75 +390,27 @@ function PollChip({
       draggable
       onDragStart={(event) => {
         event.dataTransfer.effectAllowed = 'move';
-        onDragStart(poll.id);
+        onDragStart(folder.id);
       }}
       onDragEnd={onDragEnd}
       className="group bg-accent/30 border border-border/50 rounded-md p-2 hover:bg-accent/50 transition-colors cursor-grab active:cursor-grabbing"
     >
       <div className="flex items-center justify-between gap-2">
         <Link
-          to={`/polls/${poll.id}`}
+          to="/workspace"
           className="text-xs font-medium text-foreground truncate flex-1 hover:text-primary"
+          title={folder.name}
         >
-          {poll.internalName || poll.question || 'Untitled'}
+          <FolderOpen className="w-3 h-3 inline mr-1 -mt-0.5 text-muted-foreground" />
+          {folder.name}
         </Link>
-        <Badge variant="outline" className="text-[9px] font-mono px-1 py-0">{poll.status}</Badge>
+        <span className="text-[9px] font-mono text-muted-foreground">{folder.assetIds.length}</span>
       </div>
-      {poll.question && poll.internalName && (
-        <p className="text-[10px] text-muted-foreground mt-0.5 truncate">{poll.question}</p>
+      {folder.questionText && (
+        <p className="text-[10px] text-muted-foreground mt-0.5 truncate" title={folder.questionText}>
+          {folder.questionText}
+        </p>
       )}
-      <div className="flex items-center justify-between mt-1.5 opacity-0 group-hover:opacity-100 transition-opacity">
-        <select
-          defaultValue={poll.blockLetter ?? ''}
-          onChange={(e) => onAssign(poll.id, (e.target.value || null) as BlockLetter | null)}
-          className="h-6 rounded border border-input bg-background px-1 text-[10px]"
-        >
-          <option value="">Unassigned</option>
-          {BLOCK_LETTERS.map((l) => <option key={l} value={l}>Block {l}</option>)}
-        </select>
-        <Link to={`/polls/${poll.id}`} className="text-[10px] text-primary inline-flex items-center gap-0.5">
-          Edit <ArrowRight className="w-2.5 h-2.5" />
-        </Link>
-      </div>
-    </div>
-  );
-}
-
-function UnassignedPollCard({
-  poll, onAssign, onDragStart, onDragEnd,
-}: {
-  poll: SavedPoll;
-  onAssign: (pollId: string, letter: BlockLetter | null) => void;
-  onDragStart: (pollId: string | null) => void;
-  onDragEnd: () => void;
-}) {
-  return (
-    <div
-      draggable
-      onDragStart={(event) => {
-        event.dataTransfer.effectAllowed = 'move';
-        onDragStart(poll.id);
-      }}
-      onDragEnd={onDragEnd}
-      className="mako-panel p-2.5 space-y-1.5 cursor-grab active:cursor-grabbing"
-    >
-      <Link
-        to={`/polls/${poll.id}`}
-        className="text-xs font-medium text-foreground truncate block hover:text-primary"
-      >
-        {poll.internalName || poll.question || 'Untitled'}
-      </Link>
-      <div className="flex gap-1 flex-wrap">
-        {BLOCK_LETTERS.map((l) => (
-          <button
-            key={l}
-            onClick={() => onAssign(poll.id, l)}
-            className="text-[10px] font-mono w-6 h-6 rounded border border-border hover:bg-primary/20 hover:text-primary hover:border-primary/30 transition-colors"
-          >
-            {l}
-          </button>
-        ))}
-      </div>
     </div>
   );
 }
