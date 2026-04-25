@@ -503,6 +503,7 @@ export type Database = {
       }
       project_live_state: {
         Row: {
+          active_folder_id: string | null
           active_poll_id: string | null
           output_state: string
           preview_poll_id: string | null
@@ -513,6 +514,7 @@ export type Database = {
           voting_state: string
         }
         Insert: {
+          active_folder_id?: string | null
           active_poll_id?: string | null
           output_state?: string
           preview_poll_id?: string | null
@@ -523,6 +525,7 @@ export type Database = {
           voting_state?: string
         }
         Update: {
+          active_folder_id?: string | null
           active_poll_id?: string | null
           output_state?: string
           preview_poll_id?: string | null
