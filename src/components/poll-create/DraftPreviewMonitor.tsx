@@ -257,6 +257,8 @@ export function DraftPreviewMonitor({
     // operators can independently theme the Mobile / Desktop voter buttons.
     const barColors = assetColors.answers?.barColors ?? [];
     const answerTextColor = assetColors.answers?.textPrimary ?? 'hsl(var(--foreground))';
+    const questionTextColor = assetColors.question?.textPrimary ?? 'hsl(var(--foreground))';
+    const subheadlineTextColor = assetColors.subheadline?.textPrimary ?? 'hsl(var(--muted-foreground))';
 
     if (answerType === 'yes-no') {
       const yesBg = barColors[0];
@@ -264,8 +266,8 @@ export function DraftPreviewMonitor({
       return (
         <div className="space-y-4">
           <div className="text-center space-y-1.5">
-            <h2 className="text-base font-bold text-foreground">{question}</h2>
-            {subheadline && <p className="text-xs text-muted-foreground">{subheadline}</p>}
+            <h2 className="text-base font-bold" style={{ color: questionTextColor }}>{question}</h2>
+            {subheadline && <p className="text-xs" style={{ color: subheadlineTextColor }}>{subheadline}</p>}
           </div>
           <div className="grid grid-cols-2 gap-3 pt-2">
             <button
@@ -288,8 +290,8 @@ export function DraftPreviewMonitor({
     return (
       <div className="space-y-4">
         <div className="text-center space-y-1.5">
-          <h2 className="text-base font-bold text-foreground">{question}</h2>
-          {subheadline && <p className="text-xs text-muted-foreground">{subheadline}</p>}
+          <h2 className="text-base font-bold" style={{ color: questionTextColor }}>{question}</h2>
+          {subheadline && <p className="text-xs" style={{ color: subheadlineTextColor }}>{subheadline}</p>}
         </div>
         <div className="space-y-2">
           {labelledOptions.map((opt, i) => {
