@@ -1347,6 +1347,18 @@ export default function PollCreate() {
     }));
   };
 
+  const handleSlugChange = (nextSlug: string) => {
+    setSlug(nextSlug);
+    updateFolderState((current) => ({
+      ...current,
+      folders: current.folders.map((folder) => (
+        folder.id === current.activeFolderId
+          ? { ...folder, slug: nextSlug }
+          : folder
+      )),
+    }));
+  };
+
   const syncActiveFolderBackground = (nextBackground: { bgColor?: string; bgImage?: string }) => {
     updateFolderState((current) => ({
       ...current,
