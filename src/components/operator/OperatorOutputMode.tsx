@@ -190,17 +190,60 @@ export function OperatorOutputMode({
   // Polling Slate: a still image / message shown to mobile voters (and on
   // program output) until voting opens. Toggle-only — no countdown. Mobile
   // QR landing renders the slate while `slateActive` is true.
-  const [slateText, setSlateText] = useState('Polling will open soon');
-  const [slateImage, setSlateImage] = useState<string | undefined>(undefined);
+  // Slate text + typography is persisted per-poll in localStorage keyed by
+  // `mako.slate.<pollId>` so operators don't lose custom styling between
+  // sessions. Persistence lives client-side because slate copy is operator
+  // workflow state, not part of the published poll record.
+  const slateStorageKey = `mako.slate.${currentPoll.id}`;
+  type PersistedSlate = {
+    text?: string;
+    image?: string;
+    textStyle?: SlateTextStyle;
+    sublineText?: string;
+    sublineStyle?: SlateTextStyle;
+  };
+  const loadPersistedSlate = (): PersistedSlate => {
+    if (typeof window === 'undefined') return {};
+    try {
+      const raw = window.localStorage.getItem(slateStorageKey);
+      return raw ? (JSON.parse(raw) as PersistedSlate) : {};
+    } catch {
+      return {};
+    }
+  };
+  const initialSlate = loadPersistedSlate();
+  const [slateText, setSlateText] = useState(initialSlate.text ?? 'Polling will open soon');
+  const [slateImage, setSlateImage] = useState<string | undefined>(initialSlate.image);
   const [slateActive, setSlateActive] = useState(false);
-  // Slate typography — color, weight, size, X/Y nudge. Used in both the
-  // operator's mobile/desktop previews and (when wired into ViewerVote) the
-  // real public viewer page.
-  const [slateTextStyle, setSlateTextStyle] = useState<SlateTextStyle>(DEFAULT_SLATE_TEXT_STYLE);
-  // Subline ("Stay tuned…") is editable too — operators reach for this when
-  // the default copy is hard to read against a busy background.
-  const [slateSublineText, setSlateSublineText] = useState<string>(DEFAULT_SLATE_SUBLINE_TEXT);
-  const [slateSublineStyle, setSlateSublineStyle] = useState<SlateTextStyle>(DEFAULT_SLATE_SUBLINE_STYLE);
+  const [slateTextStyle, setSlateTextStyle] = useState<SlateTextStyle>(initialSlate.textStyle ?? DEFAULT_SLATE_TEXT_STYLE);
+  const [slateSublineText, setSlateSublineText] = useState<string>(initialSlate.sublineText ?? DEFAULT_SLATE_SUBLINE_TEXT);
+  const [slateSublineStyle, setSlateSublineStyle] = useState<SlateTextStyle>(initialSlate.sublineStyle ?? DEFAULT_SLATE_SUBLINE_STYLE);
+  // Re-hydrate when the operator switches polls (component is reused).
+  useEffect(() => {
+    const next = loadPersistedSlate();
+    setSlateText(next.text ?? 'Polling will open soon');
+    setSlateImage(next.image);
+    setSlateTextStyle(next.textStyle ?? DEFAULT_SLATE_TEXT_STYLE);
+    setSlateSublineText(next.sublineText ?? DEFAULT_SLATE_SUBLINE_TEXT);
+    setSlateSublineStyle(next.sublineStyle ?? DEFAULT_SLATE_SUBLINE_STYLE);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentPoll.id]);
+  // Persist whenever any slate styling field changes.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const payload: PersistedSlate = {
+      text: slateText,
+      image: slateImage,
+      textStyle: slateTextStyle,
+      sublineText: slateSublineText,
+      sublineStyle: slateSublineStyle,
+    };
+    try {
+      window.localStorage.setItem(slateStorageKey, JSON.stringify(payload));
+    } catch {
+      /* quota or private mode — silent */
+    }
+  }, [slateStorageKey, slateText, slateImage, slateTextStyle, slateSublineText, slateSublineStyle]);
   // "Test viewer view" — when ON the Program monitor renders the viewer
   // (mobile or desktop) instead of the broadcast composition so the operator
   // can sanity-check what voters will see before going on-air.

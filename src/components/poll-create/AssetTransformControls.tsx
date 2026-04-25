@@ -98,8 +98,33 @@ export function AssetTransformControls({ assetId, assetLabel, folderLabel, folde
       </div>
 
       {viewport && onViewportChange && (
+        <div className="space-y-1.5">
+          {/* Prominent active-viewport badge so it is always obvious which
+              transform slice (Program / Mobile / Desktop) the sliders below
+              are mutating. Color-coded per viewport to match operator muscle
+              memory across the rest of the app. */}
+          <div
+            className={`flex items-center gap-2 rounded-md border px-2.5 py-1.5 ${
+              viewport === 'program'
+                ? 'border-primary/40 bg-primary/10 text-primary'
+                : viewport === 'mobile'
+                  ? 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400'
+                  : 'border-sky-500/40 bg-sky-500/10 text-sky-400'
+            }`}
+          >
+            {viewport === 'program' ? (
+              <Monitor className="h-3.5 w-3.5" />
+            ) : viewport === 'mobile' ? (
+              <Smartphone className="h-3.5 w-3.5" />
+            ) : (
+              <Globe className="h-3.5 w-3.5" />
+            )}
+            <span className="text-[10px] font-mono uppercase tracking-wider opacity-80">Editing</span>
+            <span className="text-xs font-semibold uppercase tracking-wide">{viewport}</span>
+            <span className="ml-auto text-[9px] font-mono uppercase tracking-wider opacity-70">transforms</span>
+          </div>
         <div className="flex items-center gap-2 rounded-md border border-border/50 bg-card/30 px-2 py-1.5">
-          <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Editing viewport</span>
+          <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Switch viewport</span>
           <div className="ml-auto flex gap-0.5 rounded-md bg-muted/50 p-0.5">
             {([
               { v: 'program' as const, icon: Monitor, label: 'Program' },
@@ -122,6 +147,7 @@ export function AssetTransformControls({ assetId, assetLabel, folderLabel, folde
               </button>
             ))}
           </div>
+        </div>
         </div>
       )}
 
