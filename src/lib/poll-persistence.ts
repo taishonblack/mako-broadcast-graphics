@@ -23,6 +23,7 @@ export interface DraftPollPayload {
   showThankYou: boolean;
   showFinalResults: boolean;
   autoCloseSeconds?: number;
+  postVoteDelayMs?: number;
   bgColor: string;
   bgImage?: string;
   previewDataMode: PreviewDataMode;
