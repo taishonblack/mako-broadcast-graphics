@@ -10,6 +10,7 @@ import { PollOption, TemplateName, ThemePreset } from '@/lib/types';
 import { Monitor, Smartphone, Globe, Copy, Link2, Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
+import { QRCodeSVG } from 'qrcode.react';
 import { AnswerType, MCLabelStyle, PreviewDataMode, getMCLabel } from './ContentPanel';
 import { AssetColorMap, AssetId, AssetState, AssetTransformMap } from './polling-assets/types';
 import { QRPosition } from '@/lib/types';
@@ -428,21 +429,27 @@ export function DraftPreviewMonitor({
 
         {/* URL display beneath preview */}
         <div className="w-full max-w-[880px] space-y-1.5">
-          <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-card/50 border border-border">
-            <Link2 className="w-3 h-3 text-muted-foreground shrink-0" />
-            <span className="text-[10px] font-mono text-foreground truncate flex-1">{fullUrl}</span>
-            <Tooltip>
-              <TooltipTrigger asChild>
-                <Button
-                  variant="ghost" size="sm"
-                  onClick={() => copyUrl(fullUrl, 'full')}
-                  className="h-6 px-1.5 text-[10px]"
-                >
-                  {copied === 'full' ? <Check className="w-3 h-3 text-mako-success" /> : <Copy className="w-3 h-3" />}
-                </Button>
-              </TooltipTrigger>
-              <TooltipContent>Copy full poll URL</TooltipContent>
-            </Tooltip>
+          <div className="flex items-stretch gap-2">
+            <div className="shrink-0 flex flex-col items-center gap-1 p-1.5 rounded-md bg-white border border-border">
+              <QRCodeSVG value={fullUrl} size={56} level="M" />
+              <span className="text-[8px] font-mono uppercase tracking-wider text-muted-foreground leading-none">Live</span>
+            </div>
+            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-card/50 border border-border flex-1 min-w-0">
+              <Link2 className="w-3 h-3 text-muted-foreground shrink-0" />
+              <span className="text-[10px] font-mono text-foreground truncate flex-1" title={fullUrl}>{fullUrl}</span>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="ghost" size="sm"
+                    onClick={() => copyUrl(fullUrl, 'full')}
+                    className="h-6 px-1.5 text-[10px]"
+                  >
+                    {copied === 'full' ? <Check className="w-3 h-3 text-mako-success" /> : <Copy className="w-3 h-3" />}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Copy full poll URL</TooltipContent>
+              </Tooltip>
+            </div>
           </div>
           <div className="flex items-center gap-2 px-2.5 py-1 rounded-md bg-muted/30 border border-border/50">
             <span className="text-[9px] uppercase tracking-wider text-muted-foreground/70 font-mono">Short</span>

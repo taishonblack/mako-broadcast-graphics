@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle, Clock, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -10,6 +10,7 @@ interface ViewerAnswer {
   label: string;
   short_label: string;
   sort_order: number;
+  live_votes: number;
 }
 
 interface ViewerPoll {
@@ -50,7 +51,7 @@ export default function ViewerVote() {
       const [{ data: answerRows }, liveStateRes] = await Promise.all([
         supabase
           .from('poll_answers')
-          .select('id, label, short_label, sort_order')
+          .select('id, label, short_label, sort_order, live_votes')
           .eq('poll_id', pollRow.id)
           .order('sort_order', { ascending: true }),
         pollRow.project_id
@@ -77,10 +78,38 @@ export default function ViewerVote() {
     return () => { cancelled = true; };
   }, [slug]);
 
+  // Realtime: stream live vote totals + voting state changes so the viewer
+  // reflects open/close transitions and tally updates without refresh.
+  useEffect(() => {
+    if (!poll?.id) return;
+    const channel = supabase
+      .channel(`viewer-poll-${poll.id}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_answers', filter: `poll_id=eq.${poll.id}` }, (payload) => {
+        const row = payload.new as Partial<ViewerAnswer> | undefined;
+        if (!row?.id) return;
+        setAnswers((current) => current.map((a) => a.id === row.id ? { ...a, live_votes: row.live_votes ?? a.live_votes } : a));
+      })
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_live_state', filter: poll.project_id ? `project_id=eq.${poll.project_id}` : undefined }, (payload) => {
+        const row = payload.new as { voting_state?: string; active_poll_id?: string | null } | undefined;
+        if (!row) return;
+        const isThisPollLive = !row.active_poll_id || row.active_poll_id === poll.id;
+        if (row.voting_state === 'open' && isThisPollLive) setStatus('open');
+        else if (row.voting_state === 'closed' && isThisPollLive) setStatus('closed');
+        else setStatus('not_open');
+      })
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [poll?.id, poll?.project_id]);
+
   const handleVote = (optionId: string) => {
     setSelectedOption(optionId);
     setTimeout(() => setHasVoted(true), 300);
   };
+
+  const totalVotes = useMemo(() => answers.reduce((sum, a) => sum + (a.live_votes ?? 0), 0), [answers]);
+  const showLiveResults = Boolean(poll?.show_live_results);
+  const showThankYou = poll?.show_thank_you !== false; // default on
+  const showFinalResults = Boolean(poll?.show_final_results);
 
   const bgStyle: React.CSSProperties = poll?.bg_image
     ? { backgroundImage: `url(${poll.bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
@@ -114,32 +143,42 @@ export default function ViewerVote() {
     );
   }
 
-  // ---- Closed ----
+  // ---- Closed: optionally show final results ----
   if (status === 'closed') {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
-        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10">
+        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10 w-full max-w-sm">
           <div className="w-16 h-16 rounded-full bg-mako-warning/20 flex items-center justify-center mx-auto">
             <XCircle className="w-8 h-8 text-mako-warning" />
           </div>
           <h1 className="text-xl font-bold text-foreground">Polling is Closed</h1>
           <p className="text-sm text-muted-foreground">Thanks for participating!</p>
+          {showFinalResults && answers.length > 0 && (
+            <ResultsList answers={answers} totalVotes={totalVotes} />
+          )}
           <BrandBug />
         </div>
       </div>
     );
   }
 
-  // ---- Vote received ----
+  // ---- Vote received: thank-you screen + optional live results ----
   if (hasVoted) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
-        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10">
-          <div className="w-16 h-16 rounded-full bg-mako-success/20 flex items-center justify-center mx-auto">
-            <CheckCircle className="w-8 h-8 text-mako-success" />
-          </div>
-          <h1 className="text-xl font-bold text-foreground">Vote Received</h1>
-          <p className="text-sm text-muted-foreground">Your vote has been counted</p>
+        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10 w-full max-w-sm">
+          {showThankYou && (
+            <>
+              <div className="w-16 h-16 rounded-full bg-mako-success/20 flex items-center justify-center mx-auto">
+                <CheckCircle className="w-8 h-8 text-mako-success" />
+              </div>
+              <h1 className="text-xl font-bold text-foreground">Vote Received</h1>
+              <p className="text-sm text-muted-foreground">Your vote has been counted</p>
+            </>
+          )}
+          {showLiveResults && answers.length > 0 && (
+            <ResultsList answers={answers} totalVotes={totalVotes} />
+          )}
           <BrandBug />
         </div>
       </div>
@@ -166,8 +205,36 @@ export default function ViewerVote() {
             </button>
           ))}
         </div>
+        {showLiveResults && totalVotes > 0 && (
+          <ResultsList answers={answers} totalVotes={totalVotes} />
+        )}
         <BrandBug />
       </div>
+    </div>
+  );
+}
+
+function ResultsList({ answers, totalVotes }: { answers: ViewerAnswer[]; totalVotes: number }) {
+  return (
+    <div className="space-y-2 text-left">
+      <div className="flex items-baseline justify-between">
+        <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Live Results</span>
+        <span className="text-[10px] font-mono text-muted-foreground">{totalVotes} vote{totalVotes === 1 ? '' : 's'}</span>
+      </div>
+      {answers.map((a) => {
+        const pct = totalVotes > 0 ? Math.round(((a.live_votes ?? 0) / totalVotes) * 100) : 0;
+        return (
+          <div key={a.id} className="space-y-1">
+            <div className="flex items-baseline justify-between text-xs">
+              <span className="text-foreground truncate pr-2">{a.label}</span>
+              <span className="font-mono text-muted-foreground">{pct}%</span>
+            </div>
+            <div className="h-2 rounded-full bg-muted/40 overflow-hidden">
+              <div className="h-full bg-primary transition-all duration-500" style={{ width: `${pct}%` }} />
+            </div>
+          </div>
+        );
+      })}
     </div>
   );
 }

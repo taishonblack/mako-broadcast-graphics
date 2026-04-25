@@ -307,7 +307,7 @@ export function PollingAssetsPane({
                   <AssetCard
                     key={id}
                     meta={ASSET_REGISTRY[id]}
-                    isSelected={selectedAssetId === id}
+                    isSelected={isActiveFolder && selectedAssetId === id}
                     onSelect={() => { onSelectFolder(folder.id); onSelectAsset(id); }}
                     onRemove={() => setPendingRemoval({ folderId: folder.id, assetId: id })}
                     onDragStart={() => setDraggedId(id)}
