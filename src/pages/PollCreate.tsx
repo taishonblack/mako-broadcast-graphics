@@ -37,6 +37,7 @@ import { themePresets } from '@/lib/themes';
 import { TemplateName, Poll, PollOption, QRPosition, VotingState, LiveState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
 import { broadcastOutputHeartbeat, broadcastOutputLock, broadcastOutputState } from '@/lib/output-state';
+import { supabase } from '@/integrations/supabase/client';
 import { EQUAL_BASE, equalShareAnswers } from '@/lib/answer-percents';
 import { FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Monitor, Radio, Undo2, Redo2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
