@@ -176,6 +176,24 @@ export default function ViewerVote() {
 
   // ---- Vote received: thank-you screen + optional live results ----
   if (hasVoted) {
+    // Stage 1: brief "Vote Received" confirmation before the configured delay
+    // elapses, regardless of which post-vote screen is configured.
+    if (postVoteStage === 'received') {
+      return (
+        <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
+          <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10 w-full max-w-sm">
+            <div className="w-16 h-16 rounded-full bg-mako-success/20 flex items-center justify-center mx-auto">
+              <CheckCircle className="w-8 h-8 text-mako-success" />
+            </div>
+            <h1 className="text-xl font-bold text-foreground">Vote Received</h1>
+            <p className="text-sm text-muted-foreground">Your vote has been counted</p>
+            <BrandBug />
+          </div>
+        </div>
+      );
+    }
+
+    // Stage 2: after the configured delay — show thank-you and/or live results.
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
         <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10 w-full max-w-sm">
@@ -184,7 +202,7 @@ export default function ViewerVote() {
               <div className="w-16 h-16 rounded-full bg-mako-success/20 flex items-center justify-center mx-auto">
                 <CheckCircle className="w-8 h-8 text-mako-success" />
               </div>
-              <h1 className="text-xl font-bold text-foreground">Vote Received</h1>
+              <h1 className="text-xl font-bold text-foreground">Thank You</h1>
               <p className="text-sm text-muted-foreground">Your vote has been counted</p>
             </>
           )}
