@@ -298,7 +298,10 @@ export function OperatorOutputMode({
   const slateActiveClass = slateActive
     ? 'border-mako-success/60 bg-mako-success/15 text-mako-success hover:bg-mako-success/25'
     : '';
-  const outputActiveClass = outputOpen || liveState !== 'not_live'
+  // ACTIVE = the fullscreen Output window is currently open. Closing the
+  // popup window flips this off (poll on `window.closed` above), regardless
+  // of liveState — operators want the indicator to mirror the surface only.
+  const outputActiveClass = outputOpen
     ? 'border-mako-success/60 bg-mako-success/15 text-mako-success hover:bg-mako-success/25'
     : '';
   const votingActiveClass = votingState === 'open'
@@ -715,7 +718,7 @@ export function OperatorOutputMode({
                 onClick={handleOpenOutputClick}
               >
                 <Monitor className="h-3.5 w-3.5" /> Open Output
-                {(outputOpen || liveState !== 'not_live') && <span className="ml-auto text-[9px] font-mono">ACTIVE</span>}
+                {outputOpen && <span className="ml-auto text-[9px] font-mono">ACTIVE</span>}
               </Button>
               {liveState === 'not_live' ? (
                 <Button size="sm" className="w-full justify-start gap-2 text-xs" onClick={() => setConfirmGoLive(true)}>
