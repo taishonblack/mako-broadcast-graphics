@@ -625,6 +625,9 @@ export function OperatorOutputMode({
                     votingOpen={votingState === 'open'}
                     question={currentPoll.question}
                     options={currentPoll.options}
+                    enabledAssetIds={enabledAssetIds}
+                    subheadline={currentPoll.subheadline}
+                    slug={currentPoll.slug}
                   />
                 </div>
               </div>
@@ -650,6 +653,9 @@ export function OperatorOutputMode({
                 votingOpen={votingState === 'open'}
                 question={currentPoll.question}
                 options={currentPoll.options}
+                enabledAssetIds={enabledAssetIds}
+                subheadline={currentPoll.subheadline}
+                slug={currentPoll.slug}
               />
             </div>
           )}
