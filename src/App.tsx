@@ -42,6 +42,7 @@ const App = () => (
           <Route path="/backgrounds" element={<ProtectedRoute><BackgroundGallery /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><OperatorSettings /></ProtectedRoute>} />
           <Route path="/polls/new" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
+          <Route path="/workspace" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
           <Route path="/polls/:id" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
           <Route path="/polls/:id/edit" element={<ProtectedRoute><LegacyPollEditRedirect /></ProtectedRoute>} />
           <Route path="/graphics/:id" element={<LegacyGraphicsRedirect />} />
