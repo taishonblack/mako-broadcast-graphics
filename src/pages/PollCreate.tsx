@@ -36,7 +36,7 @@ import { pollImportSchema, formatZodIssues, ImportIssue, ImportSection } from '@
 import { themePresets } from '@/lib/themes';
 import { TemplateName, Poll, PollOption, QRPosition, VotingState, LiveState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { broadcastOutputHeartbeat, broadcastOutputState } from '@/lib/output-state';
+import { broadcastOutputHeartbeat, broadcastOutputLock, broadcastOutputState } from '@/lib/output-state';
 import { EQUAL_BASE, equalShareAnswers } from '@/lib/answer-percents';
 import { FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Monitor, Radio, Undo2, Redo2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -665,7 +665,31 @@ export default function PollCreate() {
 
   const handleGoLive = () => {
     setLiveState('live');
+    // Build the canonical Program payload for the lock snapshot. We push it
+    // through handleTake() (so existing listeners + DB sync stay in sync) AND
+    // emit a lock message that freezes Output until End Live.
     handleTake();
+    const snapshot = {
+      poll: currentWorkspacePoll,
+      scene: previewScene,
+      layers: [],
+      assets: {
+        qrSize,
+        qrPosition: assetState.qrPosition,
+        qrVisible: assetState.qrVisible,
+        qrUrlVisible: assetState.qrUrlVisible,
+        showBranding,
+        brandingPosition,
+        enabledAssetIds: enabledAssets,
+        transforms: assetTransforms,
+        assetColors,
+        wordmarkWeight: assetState.wordmarkWeight,
+        wordmarkTracking: assetState.wordmarkTracking,
+        wordmarkScale: assetState.wordmarkScale,
+        wordmarkShowGuides: assetState.wordmarkShowGuides,
+      },
+    };
+    broadcastOutputLock({ locked: true, snapshot, lockedAt: Date.now() });
     // Open Output fullscreen window if not already open, and open voting so
     // the slate/voting flow begins simultaneously with the on-air push.
     try {
@@ -677,6 +701,8 @@ export default function PollCreate() {
   const handleEndPoll = () => {
     setLiveState('not_live');
     setVotingState('closed');
+    // Release the Program lock so the workspace once again drives Output.
+    broadcastOutputLock({ locked: false });
   };
 
   const [layout, setLayout] = useState<WorkspaceLayout>(loadWorkspaceLayout);
