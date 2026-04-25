@@ -417,12 +417,13 @@ export default function PollCreate() {
     showThankYou,
     showFinalResults,
     autoCloseSeconds: autoClose ? Number(autoClose) : undefined,
+    postVoteDelayMs,
     bgColor,
     bgImage,
     previewDataMode,
     blockLetter,
     blockPosition,
-  }), [internalName, question, subheadline, slug, selectedTemplate, answerType, mcLabelStyle, answers, showLiveResults, showThankYou, showFinalResults, autoClose, bgColor, bgImage, previewDataMode, blockLetter, blockPosition]);
+  }), [internalName, question, subheadline, slug, selectedTemplate, answerType, mcLabelStyle, answers, showLiveResults, showThankYou, showFinalResults, postVoteDelayMs, autoClose, bgColor, bgImage, previewDataMode, blockLetter, blockPosition]);
 
   const persistProjectSave = useCallback(async (selectedProjectId: string, selectedProjectName?: string, source: 'manual' | 'autosave' = 'manual') => {
     if (!user) { toast.error('Please sign in first'); return false; }
