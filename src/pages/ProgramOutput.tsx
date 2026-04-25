@@ -23,6 +23,7 @@ import {
 import { Poll } from '@/lib/types';
 import { DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/types';
 import { Maximize, Minimize } from 'lucide-react';
+import { useTallyDisplay } from '@/hooks/useTallyDisplay';
 
 const DEFAULT_ASSETS: OutputAssets = {
   qrSize: 120,
@@ -55,6 +56,16 @@ export default function ProgramOutput() {
    *  snapshot above is the canonical broadcast frame until End Live fires. */
   const [locked, setLocked] = useState<boolean>(Boolean(initialLock?.locked));
   const theme = themePresets.find((preset) => preset.id === poll.themeId) || themePresets[0];
+
+  // Apply Stop Motion / Live tally pacing on the display votes that scenes
+  // render. The "true" liveVotes / total still tick in the background; this
+  // hook only affects what's shown.
+  const { displayVotes, displayTotal } = useTallyDisplay(
+    liveVotes,
+    total,
+    assets.tallyMode ?? 'live',
+    assets.tallyIntervalSeconds ?? 5,
+  );
 
   // Fullscreen controls — browsers won't strip the URL bar without an
   // explicit user gesture calling the Fullscreen API. We expose a small
@@ -176,7 +187,7 @@ export default function ProgramOutput() {
     return () => clearInterval(interval);
   }, [poll.question]);
 
-  const liveOptions = poll.options.map((o, i) => ({ ...o, votes: liveVotes[i] }));
+  const liveOptions = poll.options.map((o, i) => ({ ...o, votes: displayVotes[i] ?? 0 }));
   const colors = [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
 
   const renderScene = () => {
@@ -195,7 +206,7 @@ export default function ProgramOutput() {
       wordmarkScale: assets.wordmarkScale,
     };
     const baseProps = {
-      question: poll.question, options: liveOptions, totalVotes: total,
+      question: poll.question, options: liveOptions, totalVotes: displayTotal,
       colors, theme, template: poll.template, ...sharedAssets,
     };
 
