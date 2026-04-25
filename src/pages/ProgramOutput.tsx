@@ -118,6 +118,7 @@ export default function ProgramOutput() {
   useEffect(() => {
     const handler = (e: StorageEvent) => {
       if (e.key === OUTPUT_STATE_STORAGE_KEY && e.newValue) {
+        setLastBeat(Date.now());
         try {
           const next = JSON.parse(e.newValue) as Partial<{
             poll: Poll; scene: SceneType; layers: GraphicLayer[]; assets: OutputAssets;
@@ -144,6 +145,7 @@ export default function ProgramOutput() {
       if (typeof BroadcastChannel !== 'undefined') {
         channel = new BroadcastChannel(OUTPUT_STATE_CHANNEL);
         channel.onmessage = (ev) => {
+          setLastBeat(Date.now());
           const next = ev.data as OutputStatePayload | undefined;
           if (!next) return;
           if (next.poll) setPoll(next.poll);
