@@ -1,19 +1,12 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import {
-  PlusCircle,
-  Monitor,
-  Settings,
-} from 'lucide-react';
-
-import { FolderOpen, Grid3x3, Image as ImageIcon } from 'lucide-react';
+import { PlusCircle, Settings, FolderOpen, Grid3x3, Image as ImageIcon } from 'lucide-react';
 
 const navItems = [
   { icon: FolderOpen, label: 'Projects', path: '/projects' },
-  { icon: PlusCircle, label: 'Operator Workspace', path: '/polls/new' },
+  { icon: PlusCircle, label: 'Workspace', path: '/workspace' },
   { icon: Grid3x3, label: 'Blocks', path: '/blocks' },
   { icon: ImageIcon, label: 'Background Gallery', path: '/backgrounds' },
-  { icon: Monitor, label: 'Output', path: '/output/poll-1' },
 ];
 
 export function OperatorLayout({ children }: { children: ReactNode }) {
