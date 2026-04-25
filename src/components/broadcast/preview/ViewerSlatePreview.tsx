@@ -1,4 +1,4 @@
-import { Clock } from 'lucide-react';
+import { PollOption } from '@/lib/types';
 
 /**
  * Operator-controlled typography for the polling slate. Drives the headline
@@ -39,7 +39,7 @@ export const DEFAULT_SLATE_SUBLINE_STYLE: Required<SlateTextStyle> = {
   offsetY: 0,
 };
 
-export const DEFAULT_SLATE_SUBLINE_TEXT = 'Stay tuned — the poll will open soon.';
+export const DEFAULT_SLATE_SUBLINE_TEXT = '';
 
 export interface ViewerSlatePreviewProps {
   mode: 'mobile' | 'desktop';
@@ -57,6 +57,11 @@ export interface ViewerSlatePreviewProps {
   /** Optional explicit frame size — defaults are tuned for the operator workspace. */
   frameWidth?: number;
   frameHeight?: number;
+  /** When 'open', render the actual voting UI (question + answer buttons) instead of the slate. */
+  votingOpen?: boolean;
+  /** Poll question + options, used when voting is open. */
+  question?: string;
+  options?: PollOption[];
 }
 
 /**
@@ -83,6 +88,9 @@ export function ViewerSlatePreview({
   sublineStyle,
   frameWidth,
   frameHeight,
+  votingOpen = false,
+  question,
+  options,
 }: ViewerSlatePreviewProps) {
   const NATIVE_W = mode === 'mobile' ? 375 : 1280;
   const NATIVE_H = mode === 'mobile' ? 667 : 800;
@@ -98,6 +106,13 @@ export function ViewerSlatePreview({
   const style = { ...DEFAULT_SLATE_TEXT_STYLE, ...textStyle };
   const sub = { ...DEFAULT_SLATE_SUBLINE_STYLE, ...sublineStyle };
   const subText = sublineText ?? DEFAULT_SLATE_SUBLINE_TEXT;
+
+  // What's on screen?
+  // 1. Voting open → actual answer buttons
+  // 2. Slate active with custom text → show that text only (no extra copy)
+  // 3. Otherwise → MakoVote wordmark over background
+  const hasSlateText = slateActive && (slateText.trim().length > 0 || Boolean(slateImage));
+  const showVoting = votingOpen && options && options.length > 0;
 
   return (
     <div
@@ -124,51 +139,73 @@ export function ViewerSlatePreview({
             />
           )}
 
-          <div
-            className="absolute inset-0 flex items-center justify-center px-6"
-            style={{ transform: `translate(${style.offsetX}px, ${style.offsetY}px)` }}
-          >
-            <div className="text-center space-y-4 flex flex-col items-center">
-              {slateActive && slateImage ? (
-                <img
-                  src={slateImage}
-                  alt="Polling slate"
-                  className="max-h-[280px] max-w-[80%] object-contain rounded-lg border border-border/40"
-                />
-              ) : (
-                <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto">
-                  <Clock className="w-8 h-8 text-muted-foreground" />
-                </div>
+          {showVoting ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center px-8 gap-6">
+              {question && (
+                <h1
+                  className="text-center leading-tight"
+                  style={{ color: '#ffffff', fontWeight: 700, fontSize: mode === 'mobile' ? 28 : 40, maxWidth: '90%' }}
+                >
+                  {question}
+                </h1>
               )}
-              <h1
-                className="leading-tight"
-                style={{
-                  color: style.color,
-                  fontWeight: style.weight,
-                  fontSize: `${style.sizePx}px`,
-                }}
-              >
-                {slateActive ? slateText : 'Voting Will Begin Shortly'}
-              </h1>
-              <p
-                className="leading-snug"
-                style={{
-                  color: sub.color,
-                  fontWeight: sub.weight,
-                  fontSize: `${sub.sizePx}px`,
-                  transform: `translate(${sub.offsetX}px, ${sub.offsetY}px)`,
-                }}
-              >
-                {subText}
-              </p>
-              <div className="flex items-center justify-center gap-2 pt-4 opacity-30">
-                <div className="w-4 h-4 rounded bg-primary flex items-center justify-center">
-                  <span className="text-primary-foreground font-bold text-[8px]">M</span>
-                </div>
-                <span className="font-mono text-[10px] text-muted-foreground">MakoVote</span>
+              <div className="w-full max-w-[420px] space-y-3">
+                {options!.map((opt) => (
+                  <div
+                    key={opt.id}
+                    className="w-full p-4 rounded-2xl text-center font-medium border border-white/15"
+                    style={{ background: 'hsla(220, 18%, 13%, 0.85)', backdropFilter: 'blur(8px)', color: '#ffffff' }}
+                  >
+                    <span style={{ fontSize: mode === 'mobile' ? 16 : 20 }}>{opt.text || 'Answer'}</span>
+                  </div>
+                ))}
               </div>
             </div>
-          </div>
+          ) : hasSlateText ? (
+            <div
+              className="absolute inset-0 flex items-center justify-center px-6"
+              style={{ transform: `translate(${style.offsetX}px, ${style.offsetY}px)` }}
+            >
+              <div className="text-center space-y-4 flex flex-col items-center">
+                {slateImage && (
+                  <img
+                    src={slateImage}
+                    alt="Polling slate"
+                    className="max-h-[280px] max-w-[80%] object-contain rounded-lg border border-border/40"
+                  />
+                )}
+                {slateText.trim().length > 0 && (
+                  <h1
+                    className="leading-tight"
+                    style={{ color: style.color, fontWeight: style.weight, fontSize: `${style.sizePx}px` }}
+                  >
+                    {slateText}
+                  </h1>
+                )}
+                {subText.trim().length > 0 && (
+                  <p
+                    className="leading-snug"
+                    style={{
+                      color: sub.color,
+                      fontWeight: sub.weight,
+                      fontSize: `${sub.sizePx}px`,
+                      transform: `translate(${sub.offsetX}px, ${sub.offsetY}px)`,
+                    }}
+                  >
+                    {subText}
+                  </p>
+                )}
+              </div>
+            </div>
+          ) : (
+            // Default holding screen: MakoVote wordmark over the background.
+            <div className="absolute inset-0 flex items-center justify-center select-none">
+              <div className="flex items-baseline leading-none" style={{ fontWeight: 700, letterSpacing: '0.02em' }}>
+                <span style={{ color: '#ffffff', fontSize: mode === 'mobile' ? 56 : 96, opacity: 0.92, textShadow: '0 8px 32px rgba(0,0,0,0.45)' }}>Mako</span>
+                <span style={{ color: 'hsl(24, 95%, 53%)', fontSize: mode === 'mobile' ? 56 : 96, textShadow: '0 8px 32px rgba(0,0,0,0.45)' }}>Vote</span>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>

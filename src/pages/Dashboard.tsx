@@ -336,7 +336,7 @@ export default function Dashboard() {
             </>
           )}
           <TipButton tip="Launch dedicated program output window for secondary display" variant="outline" size="sm" className="gap-1.5 text-xs" onClick={handleOpenOutput}>
-            <Monitor className="w-3.5 h-3.5" /> Open Output
+            <Monitor className="w-3.5 h-3.5" /> Full Screen Output
           </TipButton>
           {liveState === 'not_live' ? (
             <TipButton tip="Send current preview to the output window" size="sm" className="gap-1.5 text-xs" onClick={handleGoLive}>

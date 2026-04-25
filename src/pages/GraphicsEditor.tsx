@@ -75,7 +75,7 @@ export default function GraphicsEditor() {
         </div>
         <div className="flex items-center gap-2">
           <Button variant="outline" size="sm" className="gap-1.5 text-xs">
-            <Monitor className="w-3.5 h-3.5" /> Open Output
+            <Monitor className="w-3.5 h-3.5" /> Full Screen Output
           </Button>
           <Button variant="outline" size="sm" className="gap-1.5 text-xs">
             <RefreshCw className="w-3.5 h-3.5" /> Refresh

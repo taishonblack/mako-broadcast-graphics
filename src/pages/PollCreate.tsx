@@ -994,7 +994,9 @@ export default function PollCreate() {
   useEffect(() => {
     broadcastOutputState({
       poll: currentWorkspacePoll,
-      scene: programScene,
+      // Mirror Program Preview directly: the Full Screen Output is meant to
+      // be a live reflection of what the operator is composing in Preview.
+      scene: previewScene,
       layers: [],
       assets: {
         qrSize,
