@@ -1214,7 +1214,7 @@ export default function PollCreate() {
       }
       setFolderState(nextState);
       setAssetTransformSet(createDefaultTransformSet());
-      setAssetColors(DEFAULT_ASSET_COLORS);
+      setAssetColorSet(createDefaultColorSet());
       return;
     }
 
@@ -1227,7 +1227,7 @@ export default function PollCreate() {
         }
         setFolderState(nextState);
         setAssetTransformSet(createDefaultTransformSet());
-        setAssetColors(DEFAULT_ASSET_COLORS);
+        setAssetColorSet(createDefaultColorSet());
         setFoldersLoadedForProject(projectId);
       })
       .catch(() => {
@@ -1238,7 +1238,7 @@ export default function PollCreate() {
         }
         setFolderState(nextState);
         setAssetTransformSet(createDefaultTransformSet());
-        setAssetColors(DEFAULT_ASSET_COLORS);
+        setAssetColorSet(createDefaultColorSet());
         setFoldersLoadedForProject(projectId);
       });
     // Intentionally only depend on projectId/user. Reloading on bgColor/question
