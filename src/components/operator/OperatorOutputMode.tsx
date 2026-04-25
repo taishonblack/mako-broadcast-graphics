@@ -274,6 +274,10 @@ export function OperatorOutputMode({
   const [outputOpen, setOutputOpen] = useState(false);
   // Track the popup so we can detect close and flip the ACTIVE indicator off.
   const outputWindowRef = useRef<Window | null>(null);
+  // Has the operator ever opened the Output window in this session? Used
+  // to distinguish "never connected" (neutral) from "was connected, dropped"
+  // (red) on the Program → Output sync indicator.
+  const [outputEverOpened, setOutputEverOpened] = useState(false);
 
   // Confirmation dialogs for destructive / on-air actions.
   const [confirmGoLive, setConfirmGoLive] = useState(false);
@@ -318,6 +322,7 @@ export function OperatorOutputMode({
       outputWindowRef.current = win as Window;
     }
     setOutputOpen(true);
+    setOutputEverOpened(true);
   };
 
   // Poll the popup's `closed` flag so the ACTIVE indicator on Open Output
