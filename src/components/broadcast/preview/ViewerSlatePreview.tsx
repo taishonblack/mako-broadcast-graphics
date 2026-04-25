@@ -1,4 +1,5 @@
 import { PollOption } from '@/lib/types';
+import { QRCodeSVG } from 'qrcode.react';
 
 /**
  * Operator-controlled typography for the polling slate. Drives the headline
@@ -62,6 +63,16 @@ export interface ViewerSlatePreviewProps {
   /** Poll question + options, used when voting is open. */
   question?: string;
   options?: PollOption[];
+  /** Folder asset toggles. Drives Mirror Mode: when `answers` is not in the
+   *  enabled list but `question` or `qr` is, the mobile/desktop preview
+   *  renders the question + QR (matching Program) instead of the answer
+   *  buttons. Mirrors the real viewer's `isMirrorMode` branch so the three
+   *  surfaces (Build, Output, real Viewer) stay visually identical. */
+  enabledAssetIds?: string[];
+  /** Subheadline text mirrored from Program. */
+  subheadline?: string;
+  /** Slug used to render the Mirror Mode QR (defaults to the current page). */
+  slug?: string;
 }
 
 /**
