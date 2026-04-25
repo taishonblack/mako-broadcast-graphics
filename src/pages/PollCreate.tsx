@@ -311,6 +311,7 @@ export default function PollCreate() {
         setShowLiveResults(p.showLiveResults);
         setShowThankYou(p.showThankYou);
         setShowFinalResults(p.showFinalResults);
+        setPostVoteDelayMs(p.postVoteDelayMs ?? 1500);
         setAutoClose(p.autoCloseSeconds ? String(p.autoCloseSeconds) : '');
         setBgColor(p.bgColor);
         setBgImage(p.bgImage);
