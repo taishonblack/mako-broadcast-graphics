@@ -1090,6 +1090,7 @@ export default function PollCreate() {
     showLiveResults,
     showThankYou,
     showFinalResults,
+    postVoteDelayMs,
     autoClose,
     bgColor,
     bgImage,
@@ -1100,7 +1101,7 @@ export default function PollCreate() {
     assetTransforms: cloneSnapshotValue(assetTransforms),
     assetColors: cloneSnapshotValue(assetColors),
     folderState: cloneSnapshotValue(folderState),
-  }), [answerType, answers, assetColors, assetState, assetTransforms, autoClose, bgColor, bgImage, blockLetter, blockPosition, folderState, internalName, mcLabelStyle, previewDataMode, question, selectedAssetId, selectedTemplate, showFinalResults, showLiveResults, showThankYou, slug, subheadline]);
+  }), [answerType, answers, assetColors, assetState, assetTransforms, autoClose, bgColor, bgImage, blockLetter, blockPosition, folderState, internalName, mcLabelStyle, postVoteDelayMs, previewDataMode, question, selectedAssetId, selectedTemplate, showFinalResults, showLiveResults, showThankYou, slug, subheadline]);
 
   const restoreSnapshot = useCallback((snapshot: EditorSnapshot) => {
     setQuestion(snapshot.question);
@@ -1115,6 +1116,7 @@ export default function PollCreate() {
     setShowLiveResults(snapshot.showLiveResults);
     setShowThankYou(snapshot.showThankYou);
     setShowFinalResults(snapshot.showFinalResults);
+    setPostVoteDelayMs(snapshot.postVoteDelayMs);
     setAutoClose(snapshot.autoClose);
     setBgColor(snapshot.bgColor);
     setBgImage(snapshot.bgImage);
