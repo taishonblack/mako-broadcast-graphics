@@ -368,7 +368,7 @@ export default function ProjectLauncher() {
                   Create a project first, then open it in Operator Workspace. Tags like morning show, asl, and animated help you find it faster later.
                 </p>
               </div>
-              <Button onClick={() => setNewProjectOpen(true)} className="gap-2">
+              <Button onClick={() => guardProjectSwitch(() => setNewProjectOpen(true))} className="gap-2">
                 <Plus className="w-4 h-4" /> New Project
               </Button>
             </div>
@@ -381,7 +381,7 @@ export default function ProjectLauncher() {
               <Tooltip>
                 <TooltipTrigger asChild>
                   <button
-                    onClick={() => openProject(currentProject)}
+                    onClick={() => guardProjectSwitch(() => openProject(currentProject), currentProject)}
                     className="w-full text-left p-4 rounded-xl bg-primary/5 border border-primary/20 hover:bg-primary/10 transition-colors"
                   >
                     <div className="flex items-center justify-between">
@@ -435,7 +435,7 @@ export default function ProjectLauncher() {
                 <Tooltip key={project.id}>
                   <TooltipTrigger asChild>
                     <button
-                      onClick={() => openProject(project)}
+                      onClick={() => guardProjectSwitch(() => openProject(project), project)}
                       className="w-full text-left p-3 rounded-xl border border-border/50 hover:bg-accent/30 transition-colors"
                     >
                       <div className="flex items-center justify-between">
@@ -471,7 +471,7 @@ export default function ProjectLauncher() {
           <div className="grid grid-cols-2 gap-3">
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" className="w-full gap-2 h-12" onClick={() => setNewProjectOpen(true)}>
+                <Button variant="outline" className="w-full gap-2 h-12" onClick={() => guardProjectSwitch(() => setNewProjectOpen(true))}>
                   <Plus className="w-4 h-4" /> New Project
                 </Button>
               </TooltipTrigger>
@@ -479,7 +479,7 @@ export default function ProjectLauncher() {
             </Tooltip>
             <Tooltip>
               <TooltipTrigger asChild>
-                <Button variant="outline" className="w-full gap-2 h-12" onClick={() => setOpenPreviousOpen(true)}>
+                <Button variant="outline" className="w-full gap-2 h-12" onClick={() => activeProject ? setPendingSwitch({ kind: 'openExisting' }) : setOpenPreviousOpen(true)}>
                   <FolderOpen className="w-4 h-4" /> Open Previous Project
                 </Button>
               </TooltipTrigger>
