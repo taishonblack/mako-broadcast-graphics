@@ -620,6 +620,7 @@ export default function PollCreate() {
 
   const handleTake = () => {
     setProgramScene(previewScene);
+    const folder = getFolderById(folderState, folderState.activeFolderId);
     broadcastOutputState({
       poll: currentWorkspacePoll,
       scene: previewScene,
@@ -638,14 +639,15 @@ export default function PollCreate() {
         wordmarkTracking: assetState.wordmarkTracking,
         wordmarkScale: assetState.wordmarkScale,
         wordmarkShowGuides: assetState.wordmarkShowGuides,
-        tallyMode: activeFolder?.tallyMode ?? DEFAULT_TALLY_MODE,
-        tallyIntervalSeconds: activeFolder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
+        tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
+        tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
       },
     });
   };
 
   const handleCut = () => {
     setProgramScene(previewScene);
+    const folder = getFolderById(folderState, folderState.activeFolderId);
     broadcastOutputState({
       poll: currentWorkspacePoll,
       scene: previewScene,
@@ -664,8 +666,8 @@ export default function PollCreate() {
         wordmarkTracking: assetState.wordmarkTracking,
         wordmarkScale: assetState.wordmarkScale,
         wordmarkShowGuides: assetState.wordmarkShowGuides,
-        tallyMode: activeFolder?.tallyMode ?? DEFAULT_TALLY_MODE,
-        tallyIntervalSeconds: activeFolder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
+        tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
+        tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
       },
     });
   };
