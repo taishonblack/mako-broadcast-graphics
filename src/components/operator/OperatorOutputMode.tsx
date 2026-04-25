@@ -1320,7 +1320,7 @@ export function OperatorOutputMode({
                   onClick={handleScheduleVote}
                 >
                   <Vote className="h-3.5 w-3.5" />
-                  {voteSchedule === 'now' ? 'Open Voting Now' : voteSchedule === 'in' ? `Open in ${voteInMinutes}m` : voteAtTime ? `Open at ${voteAtTime}` : 'Pick a time'}
+                  {voteSchedule === 'now' ? 'Open Voting Now or Scan' : voteSchedule === 'in' ? `Open in ${voteInMinutes}m` : voteAtTime ? `Open at ${voteAtTime}` : 'Pick a time'}
                 </Button>
               )}
               <p className="text-[10px] text-muted-foreground">
@@ -1381,10 +1381,11 @@ export function OperatorOutputMode({
       >
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Open voting now?</AlertDialogTitle>
+            <AlertDialogTitle>Open voting now or scan?</AlertDialogTitle>
             <AlertDialogDescription>
-              Voters will immediately be able to submit responses. Scheduled
-              opens (in N minutes / at a time) skip this confirmation.
+              Voters will immediately be able to submit responses (or scan the
+              QR-only mirror, for folders without answer bars). Scheduled opens
+              (in N minutes / at a time) skip this confirmation.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
