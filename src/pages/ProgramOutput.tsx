@@ -200,53 +200,8 @@ export default function ProgramOutput() {
         {isFullscreen ? <Minimize className="h-3 w-3" /> : <Maximize className="h-3 w-3" />}
         {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
       </button>
-      {/* Output mirroring status — auto-hides when LIVE, but stays visible
-       *  whenever the mirror stalls or drops so the operator sees red. */}
-      {(() => {
-        const isLive = mirrorStatus === 'live';
-        const label =
-          mirrorStatus === 'live'
-            ? 'Mirroring: Live'
-            : mirrorStatus === 'stalled'
-              ? 'Mirroring: Stalled'
-              : 'Mirroring: Lost';
-        const dotColor =
-          mirrorStatus === 'live'
-            ? 'hsl(var(--mako-success))'
-            : 'hsl(var(--destructive))';
-        const showChip = !isLive || controlsVisible;
-        return (
-          <div
-            role="status"
-            aria-live="polite"
-            title={
-              isLive
-                ? 'Receiving live updates from Program Preview'
-                : 'No updates received from Program Preview — check the operator window'
-            }
-            className={`fixed top-3 left-[calc(0.75rem+10rem)] z-[100] inline-flex items-center gap-1.5 rounded-md border px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-widest text-white backdrop-blur-sm transition-opacity duration-300 ${
-              isLive
-                ? 'border-white/15 bg-black/60'
-                : 'border-destructive/60 bg-destructive/30'
-            } ${showChip ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
-          >
-            <span
-              className={`h-2 w-2 rounded-full ${isLive ? 'animate-live-pulse' : ''}`}
-              style={{ backgroundColor: dotColor }}
-            />
-            {label}
-          </div>
-        );
-      })()}
       <div style={{ width: 'min(100vw, calc(100vh * 16 / 9))', maxWidth: '1920px' }} className="w-full">
         <BroadcastCanvas className="bg-background">
-          <div className="absolute top-4 right-4 z-50 flex items-center gap-2">
-            <span className="w-2 h-2 rounded-full animate-live-pulse" style={{ backgroundColor: 'hsl(var(--mako-live))' }} />
-            <span className="font-mono text-[10px] font-bold tracking-widest animate-live-pulse" style={{ color: 'hsl(var(--mako-live))' }}>
-              ON AIR
-            </span>
-          </div>
-
           <div
             key={sceneKey}
             className={`absolute inset-0 ${animClass}`}
