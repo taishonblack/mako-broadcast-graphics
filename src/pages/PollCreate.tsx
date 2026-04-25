@@ -702,6 +702,18 @@ export default function PollCreate() {
       },
     };
     broadcastOutputLock({ locked: true, snapshot, lockedAt: Date.now() });
+    // Persist the snapshot to project_live_state so cross-network viewers
+    // (mobile/desktop on /vote/:slug) can read the operator's color
+    // assignments and enabled-asset list and render in parity with Program.
+    if (projectId) {
+      void supabase.from('project_live_state').upsert({
+        project_id: projectId,
+        active_poll_id: currentWorkspacePoll.id,
+        active_folder_id: folderState.activeFolderId ?? null,
+        live_folder_id: folderState.activeFolderId ?? null,
+        live_poll_snapshot: snapshot as never,
+      } as never);
+    }
     // Open Output fullscreen window if not already open, and open voting so
     // the slate/voting flow begins simultaneously with the on-air push.
     try {
@@ -715,6 +727,13 @@ export default function PollCreate() {
     setVotingState('closed');
     // Release the Program lock so the workspace once again drives Output.
     broadcastOutputLock({ locked: false });
+    if (projectId) {
+      void supabase.from('project_live_state').upsert({
+        project_id: projectId,
+        live_poll_snapshot: null,
+        live_folder_id: null,
+      } as never);
+    }
   };
 
   const [layout, setLayout] = useState<WorkspaceLayout>(loadWorkspaceLayout);
