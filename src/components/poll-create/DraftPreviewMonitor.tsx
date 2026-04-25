@@ -235,7 +235,11 @@ export function DraftPreviewMonitor({
 
   // ---- VIEWER (mobile/desktop) CONTENT — reflects answerType ----
   const renderViewerButtons = () => {
-    if (!hasContent) {
+    // If the active folder doesn't include the answers asset, the voter
+    // surface has nothing to render — fall back to the default holding
+    // screen (MakoVote wordmark) so Mobile/Desktop match what the audience
+    // actually sees in that folder.
+    if (!hasContent || !enabledAssetIds.includes('answers')) {
       return (
         <div className="flex flex-col items-center justify-center h-full gap-4 px-6 text-center">
           <div className="flex items-baseline justify-center font-semibold leading-none select-none text-3xl">
@@ -249,7 +253,14 @@ export function DraftPreviewMonitor({
       );
     }
 
+    // Resolve answer chip colors from the active viewport's color slice so
+    // operators can independently theme the Mobile / Desktop voter buttons.
+    const barColors = assetColors.answers?.barColors ?? [];
+    const answerTextColor = assetColors.answers?.textPrimary ?? 'hsl(var(--foreground))';
+
     if (answerType === 'yes-no') {
+      const yesBg = barColors[0];
+      const noBg = barColors[1];
       return (
         <div className="space-y-4">
           <div className="text-center space-y-1.5">
@@ -257,10 +268,16 @@ export function DraftPreviewMonitor({
             {subheadline && <p className="text-xs text-muted-foreground">{subheadline}</p>}
           </div>
           <div className="grid grid-cols-2 gap-3 pt-2">
-            <button className="py-6 rounded-2xl bg-primary/10 border border-primary/40 hover:bg-primary/20 transition-colors text-base font-bold text-foreground">
+            <button
+              className="py-6 rounded-2xl border border-white/15 transition-colors text-base font-bold"
+              style={{ background: yesBg ?? 'hsl(var(--primary) / 0.15)', color: answerTextColor }}
+            >
               YES
             </button>
-            <button className="py-6 rounded-2xl bg-muted/40 border border-border hover:bg-muted/60 transition-colors text-base font-bold text-foreground">
+            <button
+              className="py-6 rounded-2xl border border-white/15 transition-colors text-base font-bold"
+              style={{ background: noBg ?? 'hsl(var(--muted) / 0.4)', color: answerTextColor }}
+            >
               NO
             </button>
           </div>
@@ -280,13 +297,21 @@ export function DraftPreviewMonitor({
             const buttonText = answerType === 'custom'
               ? (opt.text || `Answer ${i + 1}`)
               : (opt.text || `Answer ${i + 1}`);
+            const chipBg = barColors[i];
             return (
               <button
                 key={opt.id}
-                className="w-full flex items-center gap-3 p-3 rounded-xl border border-border hover:border-primary/50 hover:bg-primary/5 transition-colors text-left text-sm text-foreground bg-card/50"
+                className="w-full flex items-center gap-3 p-3 rounded-xl border border-white/10 transition-colors text-left text-sm bg-card/50"
+                style={{ color: answerTextColor }}
               >
                 {showLabelChip && (
-                  <span className="w-7 h-7 rounded-md bg-primary/15 text-primary font-mono text-xs font-bold flex items-center justify-center shrink-0">
+                  <span
+                    className="w-7 h-7 rounded-md font-mono text-xs font-bold flex items-center justify-center shrink-0"
+                    style={{
+                      background: chipBg ?? 'hsl(var(--primary) / 0.15)',
+                      color: answerTextColor,
+                    }}
+                  >
                     {opt.shortLabel}
                   </span>
                 )}

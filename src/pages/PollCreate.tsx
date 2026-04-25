@@ -9,7 +9,7 @@ import { PollingAssetsPane, SEEDED_ASSETS } from '@/components/poll-create/polli
 import { AssetInspector } from '@/components/poll-create/polling-assets/AssetInspector';
 import { AssetTransformControls } from '@/components/poll-create/AssetTransformControls';
 import { ASSET_REGISTRY } from '@/components/poll-create/polling-assets/PollingAssetsPane';
-import { AssetColorMap, AssetId, AssetState, AssetTransformMap, AssetTransformSet, DEFAULT_ASSET_COLORS, DEFAULT_ASSET_STATE, DEFAULT_ASSET_TRANSFORMS, TransformField, TransformViewport, createDefaultTransformSet } from '@/components/poll-create/polling-assets/types';
+import { AssetColorMap, AssetColorSet, AssetId, AssetState, AssetTransformMap, AssetTransformSet, DEFAULT_ASSET_COLORS, DEFAULT_ASSET_STATE, DEFAULT_ASSET_TRANSFORMS, TransformField, TransformViewport, createDefaultColorSet, createDefaultTransformSet } from '@/components/poll-create/polling-assets/types';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -834,7 +834,25 @@ export default function PollCreate() {
     },
     [transformViewport],
   );
-  const [assetColors, setAssetColors] = useState<AssetColorMap>(DEFAULT_ASSET_COLORS);
+  // Per-viewport answer / text colors. The active slice is exposed as
+  // `assetColors`; `setAssetColors` writes only into the active viewport's
+  // slice, so changing colors on the Mobile tab does not affect Program or
+  // Desktop. Full Screen Output always mirrors the `program` slice.
+  const [assetColorSet, setAssetColorSet] = useState<AssetColorSet>(() => createDefaultColorSet());
+  const assetColors: AssetColorMap = assetColorSet[transformViewport];
+  const setAssetColors = useCallback(
+    (updater: AssetColorMap | ((current: AssetColorMap) => AssetColorMap)) => {
+      setAssetColorSet((current) => {
+        const slice = current[transformViewport];
+        const next = typeof updater === 'function'
+          ? (updater as (c: AssetColorMap) => AssetColorMap)(slice)
+          : updater;
+        if (next === slice) return current;
+        return { ...current, [transformViewport]: next };
+      });
+    },
+    [transformViewport],
+  );
   const [highlightField, setHighlightField] = useState<string | null>(null);
   const [folderState, setFolderState] = useState<PollingAssetFolderState>(() => createDefaultFolderState(question));
   const [deleteFolderTargetId, setDeleteFolderTargetId] = useState<string | null>(null);
@@ -996,6 +1014,7 @@ export default function PollCreate() {
     // switching the in-app preview tab to Mobile/Desktop must NOT alter what
     // is being broadcast to the on-air output window.
     const programTransforms = assetTransformSet.program;
+    const programAssetColors = assetColorSet.program;
     broadcastOutputState({
       poll: currentWorkspacePoll,
       // Mirror Program Preview directly: the Full Screen Output is meant to
@@ -1011,7 +1030,7 @@ export default function PollCreate() {
         brandingPosition,
         enabledAssetIds: enabledAssets,
         transforms: programTransforms,
-        assetColors,
+        assetColors: programAssetColors,
         wordmarkWeight: assetState.wordmarkWeight,
         wordmarkTracking: assetState.wordmarkTracking,
         wordmarkScale: assetState.wordmarkScale,
@@ -1027,7 +1046,7 @@ export default function PollCreate() {
     brandingPosition,
     enabledAssets,
     assetTransformSet,
-    assetColors,
+    assetColorSet,
   ]);
   // Presence heartbeat — pings open Output windows once per second so the
   // Output page can show "Mirroring: Live" and detect stalls even when
@@ -1196,7 +1215,7 @@ export default function PollCreate() {
       }
       setFolderState(nextState);
       setAssetTransformSet(createDefaultTransformSet());
-      setAssetColors(DEFAULT_ASSET_COLORS);
+      setAssetColorSet(createDefaultColorSet());
       return;
     }
 
@@ -1209,7 +1228,7 @@ export default function PollCreate() {
         }
         setFolderState(nextState);
         setAssetTransformSet(createDefaultTransformSet());
-        setAssetColors(DEFAULT_ASSET_COLORS);
+        setAssetColorSet(createDefaultColorSet());
         setFoldersLoadedForProject(projectId);
       })
       .catch(() => {
@@ -1220,7 +1239,7 @@ export default function PollCreate() {
         }
         setFolderState(nextState);
         setAssetTransformSet(createDefaultTransformSet());
-        setAssetColors(DEFAULT_ASSET_COLORS);
+        setAssetColorSet(createDefaultColorSet());
         setFoldersLoadedForProject(projectId);
       });
     // Intentionally only depend on projectId/user. Reloading on bgColor/question
