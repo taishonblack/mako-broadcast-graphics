@@ -77,6 +77,7 @@ function toRow(p: DraftPollPayload, userId: string, status: 'draft' | 'saved', p
     show_thank_you: p.showThankYou,
     show_final_results: p.showFinalResults,
     auto_close_seconds: p.autoCloseSeconds ?? null,
+    post_vote_delay_ms: p.postVoteDelayMs ?? 1500,
     bg_color: p.bgColor,
     bg_image: p.bgImage ?? null,
     preview_data_mode: p.previewDataMode,
