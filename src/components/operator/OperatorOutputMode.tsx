@@ -111,6 +111,11 @@ interface OperatorOutputModeProps {
   tallyIntervalSeconds?: number;
   onTallyModeChange?: (mode: 'live' | 'stopMotion') => void;
   onTallyIntervalChange?: (seconds: number) => void;
+  /** Per-asset color overrides authored in Build (active viewport). Passed
+   *  into the mobile/desktop ViewerSlatePreview so question / subheadline /
+   *  answer text colors match what the operator picked, instead of always
+   *  rendering white. */
+  assetColors?: import('@/components/poll-create/polling-assets/types').AssetColorMap;
 }
 
 export function OperatorOutputMode({
