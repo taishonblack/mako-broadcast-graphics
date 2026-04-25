@@ -274,6 +274,10 @@ export function OperatorOutputMode({
   const [outputOpen, setOutputOpen] = useState(false);
   // Track the popup so we can detect close and flip the ACTIVE indicator off.
   const outputWindowRef = useRef<Window | null>(null);
+  // Has the operator ever opened the Output window in this session? Used
+  // to distinguish "never connected" (neutral) from "was connected, dropped"
+  // (red) on the Program → Output sync indicator.
+  const [outputEverOpened, setOutputEverOpened] = useState(false);
 
   // Confirmation dialogs for destructive / on-air actions.
   const [confirmGoLive, setConfirmGoLive] = useState(false);
@@ -318,6 +322,7 @@ export function OperatorOutputMode({
       outputWindowRef.current = win as Window;
     }
     setOutputOpen(true);
+    setOutputEverOpened(true);
   };
 
   // Poll the popup's `closed` flag so the ACTIVE indicator on Open Output
@@ -774,7 +779,48 @@ export function OperatorOutputMode({
 
         <div className="min-h-0 overflow-auto space-y-3">
           <div className="mako-panel p-4 space-y-3">
-            <h2 className="text-xs font-semibold font-mono uppercase text-foreground">Quick Actions</h2>
+            <div className="flex items-center justify-between gap-2">
+              <h2 className="text-xs font-semibold font-mono uppercase text-foreground">Quick Actions</h2>
+              {(() => {
+                const synced = outputOpen;
+                const dropped = !outputOpen && outputEverOpened;
+                const cls = synced
+                  ? 'border-mako-success/50 bg-mako-success/15 text-mako-success'
+                  : dropped
+                    ? 'border-destructive/60 bg-destructive/15 text-destructive'
+                    : 'border-border bg-muted/30 text-muted-foreground';
+                const label = synced ? 'SYNCED' : dropped ? 'DROPPED' : 'IDLE';
+                const tip = synced
+                  ? 'Program Preview is mirroring to the Output window.'
+                  : dropped
+                    ? 'Output window closed — sync lost. Click Open Output to reconnect.'
+                    : 'No Output window open yet. Click Open Output to start mirroring.';
+                return (
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <div
+                        role="status"
+                        aria-label={`Program Preview to Output: ${label}`}
+                        className={`flex items-center gap-1.5 rounded-full border px-2 py-0.5 text-[9px] font-mono uppercase tracking-wider ${cls}`}
+                      >
+                        <span
+                          className={`h-1.5 w-1.5 rounded-full ${synced ? 'animate-live-pulse' : ''}`}
+                          style={{
+                            backgroundColor: synced
+                              ? 'hsl(var(--mako-success))'
+                              : dropped
+                                ? 'hsl(var(--destructive))'
+                                : 'hsl(var(--muted-foreground))',
+                          }}
+                        />
+                        Preview → Output: {label}
+                      </div>
+                    </TooltipTrigger>
+                    <TooltipContent side="left">{tip}</TooltipContent>
+                  </Tooltip>
+                );
+              })()}
+            </div>
             <div className="space-y-1.5">
               <Button
                 variant="outline"
