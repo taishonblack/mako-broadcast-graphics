@@ -1201,7 +1201,15 @@ export function OperatorOutputMode({
                 e.preventDefault();
                 if (goLivePending) return;
                 setGoLivePending(true);
-                try { onGoLive(); } finally {
+                try {
+                  // Going live also raises the polling slate so voters see
+                  // the holding screen the instant the show goes on-air.
+                  setSlateActive(true);
+                  // Reflect the current Program Preview onto the fullscreen
+                  // Output surface (opens the popup if not already open).
+                  handleOpenOutputClick();
+                  onGoLive();
+                } finally {
                   setTimeout(() => {
                     setGoLivePending(false);
                     setConfirmGoLive(false);
