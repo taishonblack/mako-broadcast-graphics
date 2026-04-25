@@ -982,6 +982,43 @@ export default function PollCreate() {
     } catch { /* ignore */ }
   }, [assetState]);
   const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
+  // Mirror the Program Preview to any open Output window in real time.
+  // Whenever the operator's program-preview state (poll content, scene,
+  // assets, transforms, colors, wordmark) changes, push it to the Output
+  // fullscreen surface so it stays in lockstep without requiring a manual
+  // Take/Cut for purely cosmetic edits.
+  useEffect(() => {
+    broadcastOutputState({
+      poll: currentWorkspacePoll,
+      scene: programScene,
+      layers: [],
+      assets: {
+        qrSize,
+        qrPosition: assetState.qrPosition,
+        qrVisible: assetState.qrVisible,
+        qrUrlVisible: assetState.qrUrlVisible,
+        showBranding,
+        brandingPosition,
+        enabledAssetIds: enabledAssets,
+        transforms: assetTransforms,
+        assetColors,
+        wordmarkWeight: assetState.wordmarkWeight,
+        wordmarkTracking: assetState.wordmarkTracking,
+        wordmarkScale: assetState.wordmarkScale,
+        wordmarkShowGuides: assetState.wordmarkShowGuides,
+      },
+    });
+  }, [
+    currentWorkspacePoll,
+    programScene,
+    qrSize,
+    assetState,
+    showBranding,
+    brandingPosition,
+    enabledAssets,
+    assetTransforms,
+    assetColors,
+  ]);
   // Show MakoVote branding when the folder has no assets, or when no question
   // text or answer bars have been authored yet.
   const hasContent =
