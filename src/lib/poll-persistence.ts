@@ -23,6 +23,7 @@ export interface DraftPollPayload {
   showThankYou: boolean;
   showFinalResults: boolean;
   autoCloseSeconds?: number;
+  postVoteDelayMs?: number;
   bgColor: string;
   bgImage?: string;
   previewDataMode: PreviewDataMode;
@@ -76,6 +77,7 @@ function toRow(p: DraftPollPayload, userId: string, status: 'draft' | 'saved', p
     show_thank_you: p.showThankYou,
     show_final_results: p.showFinalResults,
     auto_close_seconds: p.autoCloseSeconds ?? null,
+    post_vote_delay_ms: p.postVoteDelayMs ?? 1500,
     bg_color: p.bgColor,
     bg_image: p.bgImage ?? null,
     preview_data_mode: p.previewDataMode,
@@ -103,6 +105,7 @@ export function fromRow(row: Record<string, unknown>): SavedPoll {
     showThankYou: row.show_thank_you as boolean,
     showFinalResults: row.show_final_results as boolean,
     autoCloseSeconds: (row.auto_close_seconds as number | null) ?? undefined,
+    postVoteDelayMs: (row.post_vote_delay_ms as number | null) ?? 1500,
     bgColor: row.bg_color as string,
     bgImage: (row.bg_image as string | null) ?? undefined,
     previewDataMode: row.preview_data_mode as PreviewDataMode,
@@ -130,11 +133,11 @@ export async function savePoll(opts: {
     // On update, omit viewer_slug so we don't churn it on every autosave.
     const { viewer_slug: _vs, ...updateRow } = row;
     const { data, error } = await supabase
-      .from('polls').update(updateRow).eq('id', opts.id).select().single();
+      .from('polls').update(updateRow as never).eq('id', opts.id).select().single();
     if (error) throw error;
     return fromRow(data);
   }
-  const { data, error } = await supabase.from('polls').insert([row]).select().single();
+  const { data, error } = await supabase.from('polls').insert([row as never]).select().single();
   if (error) throw error;
   return fromRow(data);
 }

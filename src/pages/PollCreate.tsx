@@ -117,6 +117,7 @@ interface EditorSnapshot {
   showLiveResults: boolean;
   showThankYou: boolean;
   showFinalResults: boolean;
+  postVoteDelayMs: number;
   autoClose: string;
   bgColor: string;
   bgImage?: string;
@@ -255,6 +256,7 @@ export default function PollCreate() {
   const [showLiveResults, setShowLiveResults] = useState(true);
   const [showThankYou, setShowThankYou] = useState(true);
   const [showFinalResults, setShowFinalResults] = useState(true);
+  const [postVoteDelayMs, setPostVoteDelayMs] = useState<number>(1500);
   const [autoClose, setAutoClose] = useState('');
   const [bgColor, setBgColor] = useState('#1a1a2e');
   const [bgImage, setBgImage] = useState<string | undefined>(undefined);
@@ -310,6 +312,7 @@ export default function PollCreate() {
         setShowLiveResults(p.showLiveResults);
         setShowThankYou(p.showThankYou);
         setShowFinalResults(p.showFinalResults);
+        setPostVoteDelayMs(p.postVoteDelayMs ?? 1500);
         setAutoClose(p.autoCloseSeconds ? String(p.autoCloseSeconds) : '');
         setBgColor(p.bgColor);
         setBgImage(p.bgImage);
@@ -415,12 +418,13 @@ export default function PollCreate() {
     showThankYou,
     showFinalResults,
     autoCloseSeconds: autoClose ? Number(autoClose) : undefined,
+    postVoteDelayMs,
     bgColor,
     bgImage,
     previewDataMode,
     blockLetter,
     blockPosition,
-  }), [internalName, question, subheadline, slug, selectedTemplate, answerType, mcLabelStyle, answers, showLiveResults, showThankYou, showFinalResults, autoClose, bgColor, bgImage, previewDataMode, blockLetter, blockPosition]);
+  }), [internalName, question, subheadline, slug, selectedTemplate, answerType, mcLabelStyle, answers, showLiveResults, showThankYou, showFinalResults, postVoteDelayMs, autoClose, bgColor, bgImage, previewDataMode, blockLetter, blockPosition]);
 
   const persistProjectSave = useCallback(async (selectedProjectId: string, selectedProjectName?: string, source: 'manual' | 'autosave' = 'manual') => {
     if (!user) { toast.error('Please sign in first'); return false; }
@@ -1086,6 +1090,7 @@ export default function PollCreate() {
     showLiveResults,
     showThankYou,
     showFinalResults,
+    postVoteDelayMs,
     autoClose,
     bgColor,
     bgImage,
@@ -1096,7 +1101,7 @@ export default function PollCreate() {
     assetTransforms: cloneSnapshotValue(assetTransforms),
     assetColors: cloneSnapshotValue(assetColors),
     folderState: cloneSnapshotValue(folderState),
-  }), [answerType, answers, assetColors, assetState, assetTransforms, autoClose, bgColor, bgImage, blockLetter, blockPosition, folderState, internalName, mcLabelStyle, previewDataMode, question, selectedAssetId, selectedTemplate, showFinalResults, showLiveResults, showThankYou, slug, subheadline]);
+  }), [answerType, answers, assetColors, assetState, assetTransforms, autoClose, bgColor, bgImage, blockLetter, blockPosition, folderState, internalName, mcLabelStyle, postVoteDelayMs, previewDataMode, question, selectedAssetId, selectedTemplate, showFinalResults, showLiveResults, showThankYou, slug, subheadline]);
 
   const restoreSnapshot = useCallback((snapshot: EditorSnapshot) => {
     setQuestion(snapshot.question);
@@ -1111,6 +1116,7 @@ export default function PollCreate() {
     setShowLiveResults(snapshot.showLiveResults);
     setShowThankYou(snapshot.showThankYou);
     setShowFinalResults(snapshot.showFinalResults);
+    setPostVoteDelayMs(snapshot.postVoteDelayMs);
     setAutoClose(snapshot.autoClose);
     setBgColor(snapshot.bgColor);
     setBgImage(snapshot.bgImage);

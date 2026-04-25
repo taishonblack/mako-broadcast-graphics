@@ -39,6 +39,8 @@ interface ContentPanelProps {
   setShowThankYou: (v: boolean) => void;
   showFinalResults: boolean;
   setShowFinalResults: (v: boolean) => void;
+  postVoteDelayMs: number;
+  setPostVoteDelayMs: (v: number) => void;
   previewDataMode: PreviewDataMode;
   setPreviewDataMode: (v: PreviewDataMode) => void;
 }
@@ -73,6 +75,7 @@ export function ContentPanel({
   autoClose, setAutoClose,
   showThankYou, setShowThankYou,
   showFinalResults, setShowFinalResults,
+  postVoteDelayMs, setPostVoteDelayMs,
   previewDataMode, setPreviewDataMode,
 }: ContentPanelProps) {
 
@@ -302,6 +305,21 @@ export function ContentPanel({
           <div className="flex items-center justify-between">
             <Label className="text-[10px] text-muted-foreground">Final results after close</Label>
             <Switch checked={showFinalResults} onCheckedChange={setShowFinalResults} />
+          </div>
+          <div className="space-y-1">
+            <Label className="text-[10px] text-muted-foreground">Post-vote delay (ms)</Label>
+            <Input
+              type="number"
+              min={0}
+              step={100}
+              value={postVoteDelayMs}
+              onChange={(e) => setPostVoteDelayMs(Math.max(0, Number(e.target.value) || 0))}
+              placeholder="1500"
+              className="bg-background/50 h-8 text-xs w-24"
+            />
+            <p className="text-[9px] text-muted-foreground leading-relaxed">
+              How long the "Vote Received" confirmation shows before switching to the thank-you or results screen.
+            </p>
           </div>
           <div className="space-y-1">
             <Label className="text-[10px] text-muted-foreground">Auto-close (seconds)</Label>

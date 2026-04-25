@@ -354,6 +354,7 @@ export type Database = {
           label_style: string
           mc_label_style: string
           on_air_question: string
+          post_vote_delay_ms: number
           preview_data_mode: string
           project_id: string | null
           question: string
@@ -391,6 +392,7 @@ export type Database = {
           label_style?: string
           mc_label_style?: string
           on_air_question?: string
+          post_vote_delay_ms?: number
           preview_data_mode?: string
           project_id?: string | null
           question?: string
@@ -428,6 +430,7 @@ export type Database = {
           label_style?: string
           mc_label_style?: string
           on_air_question?: string
+          post_vote_delay_ms?: number
           preview_data_mode?: string
           project_id?: string | null
           question?: string
