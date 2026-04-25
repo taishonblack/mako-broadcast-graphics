@@ -419,6 +419,21 @@ export function OperatorOutputMode({
 
   return (
     <div className="h-full overflow-hidden">
+      {liveState === 'live' && (
+        <div
+          role="status"
+          aria-label="Program output is locked while live"
+          className="flex items-center justify-center gap-2 border-b border-destructive/40 bg-destructive/15 px-3 py-1.5"
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inset-0 animate-ping rounded-full bg-destructive opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
+          </span>
+          <span className="text-[10px] font-mono uppercase tracking-widest text-destructive">
+            LIVE — Program Locked · workspace edits won't affect on-air output until you End Poll
+          </span>
+        </div>
+      )}
       <div className="grid h-full grid-cols-[280px_minmax(0,1fr)_320px] gap-3 p-3">
         <div className="min-h-0 overflow-auto space-y-3">
           <div className="mako-panel p-3 space-y-2">
