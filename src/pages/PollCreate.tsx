@@ -1274,7 +1274,13 @@ export default function PollCreate() {
     if (bgImage !== activeFolder.bgImage) {
       setBgImage(activeFolder.bgImage);
     }
-  }, [activeFolder, bgColor, bgImage, question]);
+    // Slug is per-folder. When switching folders, the URL/QR destination
+    // updates to that folder's slug so each folder has its own /vote/* URL.
+    const nextSlug = activeFolder.slug ?? '';
+    if (slug !== nextSlug) {
+      setSlug(nextSlug);
+    }
+  }, [activeFolder, bgColor, bgImage, question, slug]);
 
   useEffect(() => {
     setAssetColors((current) => {
