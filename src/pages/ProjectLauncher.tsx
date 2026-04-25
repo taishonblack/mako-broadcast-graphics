@@ -736,6 +736,31 @@ export default function ProjectLauncher() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!pendingSwitch} onOpenChange={(open) => !open && setPendingSwitch(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Close current project?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {activeProject
+                ? `“${activeProject.name}” is currently open. ${
+                    pendingSwitch?.kind === 'open'
+                      ? `Open “${pendingSwitch.project.name}” instead?`
+                      : pendingSwitch?.kind === 'new'
+                        ? 'Start a new project and close this one?'
+                        : 'Open another project and close this one?'
+                  }`
+                : 'Switch projects?'}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel onClick={() => setPendingSwitch(null)}>Keep current</AlertDialogCancel>
+            <AlertDialogAction onClick={confirmPendingSwitch}>
+              {pendingSwitch?.kind === 'new' ? 'Start new project' : 'Switch'}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 }
