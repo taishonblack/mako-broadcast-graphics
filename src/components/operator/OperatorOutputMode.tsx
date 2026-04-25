@@ -884,9 +884,15 @@ export function OperatorOutputMode({
               />
               {/* Slate typography controls — color, weight, size, X/Y nudge.
                   Operators reach for these when their custom slate text is
-                  hard to read against a busy background. */}
-              <div className="space-y-1.5 rounded-md border border-border/40 bg-background/40 p-2">
-                <p className="text-[10px] font-mono uppercase text-muted-foreground">Slate Text Style</p>
+                  hard to read against a busy background. Collapsed by default
+                  so the inspector stays compact during a live show. */}
+              <Collapsible open={textStyleOpen} onOpenChange={setTextStyleOpen}>
+                <div className="rounded-md border border-border/40 bg-background/40">
+                  <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 text-[10px] font-mono uppercase text-muted-foreground hover:text-foreground">
+                    <span>Slate Text Style</span>
+                    {textStyleOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-1.5 px-2 pb-2">
                 <div className="flex items-center gap-2">
                   <Label className="w-16 text-[10px] text-muted-foreground">Color</Label>
                   <input
@@ -958,12 +964,19 @@ export function OperatorOutputMode({
                 >
                   <RotateCcw className="mr-1 h-3 w-3" /> Reset slate text style
                 </Button>
-              </div>
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
               {/* Subline ("Stay tuned…") — fully editable so operators can
                   rewrite the copy and adjust typography to read against any
                   background. */}
-              <div className="space-y-1.5 rounded-md border border-border/40 bg-background/40 p-2">
-                <p className="text-[10px] font-mono uppercase text-muted-foreground">Subline</p>
+              <Collapsible open={sublineOpen} onOpenChange={setSublineOpen}>
+                <div className="rounded-md border border-border/40 bg-background/40">
+                  <CollapsibleTrigger className="flex w-full items-center justify-between px-2 py-1.5 text-[10px] font-mono uppercase text-muted-foreground hover:text-foreground">
+                    <span>Subline</span>
+                    {sublineOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                  </CollapsibleTrigger>
+                  <CollapsibleContent className="space-y-1.5 px-2 pb-2">
                 <Textarea
                   value={slateSublineText}
                   onChange={(e) => setSlateSublineText(e.target.value)}
@@ -1045,7 +1058,9 @@ export function OperatorOutputMode({
                 >
                   <RotateCcw className="mr-1 h-3 w-3" /> Reset subline
                 </Button>
-              </div>
+                  </CollapsibleContent>
+                </div>
+              </Collapsible>
               <div className="flex items-center gap-2">
                 <label className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-border/60 px-2 py-1.5 text-[10px] text-muted-foreground hover:bg-accent/20">
                   <ImageIcon className="h-3 w-3" />
