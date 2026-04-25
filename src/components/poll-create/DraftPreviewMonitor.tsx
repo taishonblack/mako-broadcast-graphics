@@ -15,6 +15,7 @@ import { AssetColorMap, AssetId, AssetState, AssetTransformMap } from './polling
 import { QRPosition } from '@/lib/types';
 import { WordmarkLockup } from '@/components/broadcast/WordmarkLockup';
 import { usePreviewOverlays } from '@/lib/preview-overlays';
+import { getAssetTransformStyle } from '@/lib/asset-transforms';
 
 export type PreviewMode = 'program' | 'mobile' | 'desktop';
 
@@ -260,16 +261,24 @@ export function DraftPreviewMonitor({
     const questionTextColor = assetColors.question?.textPrimary ?? 'hsl(var(--foreground))';
     const subheadlineTextColor = assetColors.subheadline?.textPrimary ?? 'hsl(var(--muted-foreground))';
 
+    // Per-viewport transforms also drive the voter mock so the operator's
+    // Mobile/Desktop slider tweaks (translate, scale, rotate, opacity, crop)
+    // are reflected in real time. Each section is wrapped in its own
+    // transform style so question/subheadline/answers move independently.
+    const questionStyle = getAssetTransformStyle(transforms.question);
+    const subheadlineStyle = getAssetTransformStyle(transforms.subheadline);
+    const answersStyle = getAssetTransformStyle(transforms.answers);
+
     if (answerType === 'yes-no') {
       const yesBg = barColors[0];
       const noBg = barColors[1];
       return (
         <div className="space-y-4">
           <div className="text-center space-y-1.5">
-            <h2 className="text-base font-bold" style={{ color: questionTextColor }}>{question}</h2>
-            {subheadline && <p className="text-xs" style={{ color: subheadlineTextColor }}>{subheadline}</p>}
+            <h2 className="text-base font-bold" style={{ color: questionTextColor, ...questionStyle }}>{question}</h2>
+            {subheadline && <p className="text-xs" style={{ color: subheadlineTextColor, ...subheadlineStyle }}>{subheadline}</p>}
           </div>
-          <div className="grid grid-cols-2 gap-3 pt-2">
+          <div className="grid grid-cols-2 gap-3 pt-2" style={answersStyle}>
             <button
               className="py-6 rounded-2xl border border-white/15 transition-colors text-base font-bold"
               style={{ background: yesBg ?? 'hsl(var(--primary) / 0.15)', color: answerTextColor }}
@@ -290,10 +299,10 @@ export function DraftPreviewMonitor({
     return (
       <div className="space-y-4">
         <div className="text-center space-y-1.5">
-          <h2 className="text-base font-bold" style={{ color: questionTextColor }}>{question}</h2>
-          {subheadline && <p className="text-xs" style={{ color: subheadlineTextColor }}>{subheadline}</p>}
+          <h2 className="text-base font-bold" style={{ color: questionTextColor, ...questionStyle }}>{question}</h2>
+          {subheadline && <p className="text-xs" style={{ color: subheadlineTextColor, ...subheadlineStyle }}>{subheadline}</p>}
         </div>
-        <div className="space-y-2">
+        <div className="space-y-2" style={answersStyle}>
           {labelledOptions.map((opt, i) => {
             const showLabelChip = answerType === 'multiple-choice';
             const buttonText = answerType === 'custom'
@@ -303,14 +312,19 @@ export function DraftPreviewMonitor({
             return (
               <button
                 key={opt.id}
-                className="w-full flex items-center gap-3 p-3 rounded-xl border border-white/10 transition-colors text-left text-sm bg-card/50"
-                style={{ color: answerTextColor }}
+                className="w-full flex items-center gap-3 p-3 rounded-xl border border-white/10 transition-colors text-left text-sm"
+                style={{
+                  color: answerTextColor,
+                  // Honor per-bar custom color as the row background so the chip
+                  // and the bar share a coherent fill in the voter mock.
+                  background: chipBg ?? 'hsla(220, 18%, 13%, 0.5)',
+                }}
               >
                 {showLabelChip && (
                   <span
-                    className="w-7 h-7 rounded-md font-mono text-xs font-bold flex items-center justify-center shrink-0"
+                    className="w-7 h-7 rounded-md font-mono text-xs font-bold flex items-center justify-center shrink-0 border border-white/20"
                     style={{
-                      background: chipBg ?? 'hsl(var(--primary) / 0.15)',
+                      background: 'rgba(0,0,0,0.25)',
                       color: answerTextColor,
                     }}
                   >
