@@ -50,6 +50,11 @@ export interface OutputAssets {
   wordmarkShowGuides?: boolean;
   /** Lower-third banner height in % of frame */
   lowerThirdHeight?: number;
+  /** Active folder's tally pacing — Output applies this to scenes so the
+   *  bars/percentages either track live votes continuously (`live`) or
+   *  snap forward every N seconds (`stopMotion`). */
+  tallyMode?: 'live' | 'stopMotion';
+  tallyIntervalSeconds?: number;
 }
 
 export interface OutputStatePayload {
