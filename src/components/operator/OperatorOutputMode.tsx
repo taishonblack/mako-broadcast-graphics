@@ -9,7 +9,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { ViewerSlatePreview, SlateTextStyle, DEFAULT_SLATE_TEXT_STYLE } from '@/components/broadcast/preview/ViewerSlatePreview';
+import {
+  ViewerSlatePreview,
+  SlateTextStyle,
+  DEFAULT_SLATE_TEXT_STYLE,
+  DEFAULT_SLATE_SUBLINE_STYLE,
+  DEFAULT_SLATE_SUBLINE_TEXT,
+} from '@/components/broadcast/preview/ViewerSlatePreview';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   AlertDialog,
@@ -67,7 +73,10 @@ interface OperatorOutputModeProps {
   onSceneChange: (scene: SceneType) => void;
   onTake: () => void;
   onCut: () => void;
-  onOpenOutput: () => void;
+  /** Returning the popup window lets us watch for `closed` so the ACTIVE
+   *  indicator on the Open Output button clears when the operator dismisses
+   *  the fullscreen surface. */
+  onOpenOutput: () => Window | null | void;
   onGoLive: () => void;
   onEndPoll: () => void;
   onOpenVoting: () => void;
@@ -188,6 +197,10 @@ export function OperatorOutputMode({
   // operator's mobile/desktop previews and (when wired into ViewerVote) the
   // real public viewer page.
   const [slateTextStyle, setSlateTextStyle] = useState<SlateTextStyle>(DEFAULT_SLATE_TEXT_STYLE);
+  // Subline ("Stay tuned…") is editable too — operators reach for this when
+  // the default copy is hard to read against a busy background.
+  const [slateSublineText, setSlateSublineText] = useState<string>(DEFAULT_SLATE_SUBLINE_TEXT);
+  const [slateSublineStyle, setSlateSublineStyle] = useState<SlateTextStyle>(DEFAULT_SLATE_SUBLINE_STYLE);
   // "Test viewer view" — when ON the Program monitor renders the viewer
   // (mobile or desktop) instead of the broadcast composition so the operator
   // can sanity-check what voters will see before going on-air.
@@ -198,6 +211,8 @@ export function OperatorOutputMode({
   // Drives the green "ACTIVE" state on the Open Output quick action so
   // operators can see at a glance that a fullscreen surface is live.
   const [outputOpen, setOutputOpen] = useState(false);
+  // Track the popup so we can detect close and flip the ACTIVE indicator off.
+  const outputWindowRef = useRef<Window | null>(null);
 
   // Confirmation dialogs for destructive / on-air actions.
   const [confirmGoLive, setConfirmGoLive] = useState(false);
@@ -237,9 +252,26 @@ export function OperatorOutputMode({
   const handleToggleSlate = () => setSlateActive((v) => !v);
 
   const handleOpenOutputClick = () => {
-    onOpenOutput();
+    const win = onOpenOutput();
+    if (win && typeof win === 'object') {
+      outputWindowRef.current = win as Window;
+    }
     setOutputOpen(true);
   };
+
+  // Poll the popup's `closed` flag so the ACTIVE indicator on Open Output
+  // turns off the moment the operator dismisses the fullscreen surface.
+  useEffect(() => {
+    if (!outputOpen) return;
+    const id = window.setInterval(() => {
+      const win = outputWindowRef.current;
+      if (win && win.closed) {
+        outputWindowRef.current = null;
+        setOutputOpen(false);
+      }
+    }, 500);
+    return () => window.clearInterval(id);
+  }, [outputOpen]);
 
   const handleScheduleVote = () => {
     if (voteSchedule === 'now') {
@@ -266,7 +298,10 @@ export function OperatorOutputMode({
   const slateActiveClass = slateActive
     ? 'border-mako-success/60 bg-mako-success/15 text-mako-success hover:bg-mako-success/25'
     : '';
-  const outputActiveClass = outputOpen || liveState !== 'not_live'
+  // ACTIVE = the fullscreen Output window is currently open. Closing the
+  // popup window flips this off (poll on `window.closed` above), regardless
+  // of liveState — operators want the indicator to mirror the surface only.
+  const outputActiveClass = outputOpen
     ? 'border-mako-success/60 bg-mako-success/15 text-mako-success hover:bg-mako-success/25'
     : '';
   const votingActiveClass = votingState === 'open'
@@ -485,6 +520,8 @@ export function OperatorOutputMode({
                     slateText={slateText}
                     slateImage={slateImage}
                     textStyle={slateTextStyle}
+                    sublineText={slateSublineText}
+                    sublineStyle={slateSublineStyle}
                   />
                 </div>
               </div>
@@ -505,6 +542,8 @@ export function OperatorOutputMode({
                 slateText={slateText}
                 slateImage={slateImage}
                 textStyle={slateTextStyle}
+                sublineText={slateSublineText}
+                sublineStyle={slateSublineStyle}
               />
             </div>
           )}
@@ -683,7 +722,7 @@ export function OperatorOutputMode({
                 onClick={handleOpenOutputClick}
               >
                 <Monitor className="h-3.5 w-3.5" /> Open Output
-                {(outputOpen || liveState !== 'not_live') && <span className="ml-auto text-[9px] font-mono">ACTIVE</span>}
+                {outputOpen && <span className="ml-auto text-[9px] font-mono">ACTIVE</span>}
               </Button>
               {liveState === 'not_live' ? (
                 <Button size="sm" className="w-full justify-start gap-2 text-xs" onClick={() => setConfirmGoLive(true)}>
@@ -857,6 +896,93 @@ export function OperatorOutputMode({
                   onClick={() => setSlateTextStyle(DEFAULT_SLATE_TEXT_STYLE)}
                 >
                   <RotateCcw className="mr-1 h-3 w-3" /> Reset slate text style
+                </Button>
+              </div>
+              {/* Subline ("Stay tuned…") — fully editable so operators can
+                  rewrite the copy and adjust typography to read against any
+                  background. */}
+              <div className="space-y-1.5 rounded-md border border-border/40 bg-background/40 p-2">
+                <p className="text-[10px] font-mono uppercase text-muted-foreground">Subline</p>
+                <Textarea
+                  value={slateSublineText}
+                  onChange={(e) => setSlateSublineText(e.target.value)}
+                  placeholder={DEFAULT_SLATE_SUBLINE_TEXT}
+                  rows={2}
+                  className="text-xs"
+                />
+                <div className="flex items-center gap-2">
+                  <Label className="w-16 text-[10px] text-muted-foreground">Color</Label>
+                  <input
+                    type="color"
+                    value={slateSublineStyle.color ?? DEFAULT_SLATE_SUBLINE_STYLE.color}
+                    onChange={(e) => setSlateSublineStyle((s) => ({ ...s, color: e.target.value }))}
+                    className="h-7 w-10 cursor-pointer rounded border border-border bg-transparent p-0"
+                  />
+                  <Input
+                    value={slateSublineStyle.color ?? DEFAULT_SLATE_SUBLINE_STYLE.color}
+                    onChange={(e) => setSlateSublineStyle((s) => ({ ...s, color: e.target.value }))}
+                    className="h-7 flex-1 px-2 text-[10px] font-mono"
+                  />
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="w-16 text-[10px] text-muted-foreground">Weight</Label>
+                  <Slider
+                    value={[slateSublineStyle.weight ?? DEFAULT_SLATE_SUBLINE_STYLE.weight]}
+                    min={300}
+                    max={900}
+                    step={100}
+                    onValueChange={([v]) => setSlateSublineStyle((s) => ({ ...s, weight: v }))}
+                    className="flex-1"
+                  />
+                  <span className="w-10 text-right text-[10px] font-mono text-muted-foreground">{slateSublineStyle.weight ?? DEFAULT_SLATE_SUBLINE_STYLE.weight}</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="w-16 text-[10px] text-muted-foreground">Size</Label>
+                  <Slider
+                    value={[slateSublineStyle.sizePx ?? DEFAULT_SLATE_SUBLINE_STYLE.sizePx]}
+                    min={10}
+                    max={48}
+                    step={1}
+                    onValueChange={([v]) => setSlateSublineStyle((s) => ({ ...s, sizePx: v }))}
+                    className="flex-1"
+                  />
+                  <span className="w-10 text-right text-[10px] font-mono text-muted-foreground">{slateSublineStyle.sizePx ?? DEFAULT_SLATE_SUBLINE_STYLE.sizePx}px</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="w-16 text-[10px] text-muted-foreground">X</Label>
+                  <Slider
+                    value={[slateSublineStyle.offsetX ?? 0]}
+                    min={-160}
+                    max={160}
+                    step={1}
+                    onValueChange={([v]) => setSlateSublineStyle((s) => ({ ...s, offsetX: v }))}
+                    className="flex-1"
+                  />
+                  <span className="w-10 text-right text-[10px] font-mono text-muted-foreground">{slateSublineStyle.offsetX ?? 0}px</span>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Label className="w-16 text-[10px] text-muted-foreground">Y</Label>
+                  <Slider
+                    value={[slateSublineStyle.offsetY ?? 0]}
+                    min={-200}
+                    max={200}
+                    step={1}
+                    onValueChange={([v]) => setSlateSublineStyle((s) => ({ ...s, offsetY: v }))}
+                    className="flex-1"
+                  />
+                  <span className="w-10 text-right text-[10px] font-mono text-muted-foreground">{slateSublineStyle.offsetY ?? 0}px</span>
+                </div>
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="h-6 w-full text-[10px] text-muted-foreground"
+                  onClick={() => {
+                    setSlateSublineText(DEFAULT_SLATE_SUBLINE_TEXT);
+                    setSlateSublineStyle(DEFAULT_SLATE_SUBLINE_STYLE);
+                  }}
+                >
+                  <RotateCcw className="mr-1 h-3 w-3" /> Reset subline
                 </Button>
               </div>
               <div className="flex items-center gap-2">

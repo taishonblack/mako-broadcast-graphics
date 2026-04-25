@@ -15,6 +15,13 @@ const templateOptions: TemplateName[] = [
   'puck-slider', 'lower-third',
 ];
 
+/**
+ * Templates that are temporarily disabled in the picker. Lower-third is being
+ * reworked, so we keep it visible (so operators know it's coming) but render
+ * the button as inactive with a "Coming soon" hint.
+ */
+const COMING_SOON_TEMPLATES: TemplateName[] = ['lower-third'];
+
 interface BuildControlsPanelProps {
   selectedTemplate: TemplateName;
   setSelectedTemplate: (t: TemplateName) => void;
@@ -63,19 +70,30 @@ export function BuildControlsPanel({
             <Tooltip key={t}>
               <TooltipTrigger asChild>
                 <button
-                  onClick={() => setSelectedTemplate(t)}
-                  className={`w-full text-left p-2 rounded-lg text-[10px] font-medium transition-all border ${
-                    selectedTemplate === t
+                  onClick={() => {
+                    if (COMING_SOON_TEMPLATES.includes(t)) return;
+                    setSelectedTemplate(t);
+                  }}
+                  disabled={COMING_SOON_TEMPLATES.includes(t)}
+                  className={`w-full flex items-center justify-between gap-2 text-left p-2 rounded-lg text-[10px] font-medium transition-all border ${
+                    COMING_SOON_TEMPLATES.includes(t)
+                      ? 'bg-muted/20 border-border/40 text-muted-foreground/60 cursor-not-allowed'
+                      : selectedTemplate === t
                       ? 'bg-primary/10 border-primary/30 text-primary'
                       : 'bg-accent/30 border-border/50 text-muted-foreground hover:bg-accent/50'
                   }`}
                 >
-                  {templateLabels[t]}
+                  <span>{templateLabels[t]}</span>
+                  {COMING_SOON_TEMPLATES.includes(t) && (
+                    <span className="text-[8px] font-mono uppercase tracking-wider text-muted-foreground/70 bg-muted/40 px-1.5 py-0.5 rounded">
+                      Coming soon
+                    </span>
+                  )}
                 </button>
               </TooltipTrigger>
               <TooltipContent side="left">
                 {t === 'lower-third'
-                  ? 'Anchored bottom banner — leaves the top of frame clear for camera footage'
+                  ? 'Coming soon — anchored bottom banner that leaves the top of frame clear for camera footage'
                   : `Full-frame ${templateLabels[t]} broadcast composition`}
               </TooltipContent>
             </Tooltip>

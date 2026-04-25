@@ -26,6 +26,21 @@ export const DEFAULT_SLATE_TEXT_STYLE: Required<SlateTextStyle> = {
   offsetY: 0,
 };
 
+/**
+ * Default typography for the slate's subline ("Stay tuned…"). Lighter weight +
+ * smaller size than the headline, but operators can override per-poll if the
+ * subline needs to read against a busy background.
+ */
+export const DEFAULT_SLATE_SUBLINE_STYLE: Required<SlateTextStyle> = {
+  color: '#e5e7eb',
+  weight: 500,
+  sizePx: 16,
+  offsetX: 0,
+  offsetY: 0,
+};
+
+export const DEFAULT_SLATE_SUBLINE_TEXT = 'Stay tuned — the poll will open soon.';
+
 export interface ViewerSlatePreviewProps {
   mode: 'mobile' | 'desktop';
   bgImage?: string;
@@ -35,6 +50,10 @@ export interface ViewerSlatePreviewProps {
   slateImage?: string;
   /** Optional typography overrides for the slate headline. */
   textStyle?: SlateTextStyle;
+  /** Optional override for the subline ("Stay tuned …") text. */
+  sublineText?: string;
+  /** Optional typography overrides for the slate subline. */
+  sublineStyle?: SlateTextStyle;
   /** Optional explicit frame size — defaults are tuned for the operator workspace. */
   frameWidth?: number;
   frameHeight?: number;
@@ -60,6 +79,8 @@ export function ViewerSlatePreview({
   slateText,
   slateImage,
   textStyle,
+  sublineText,
+  sublineStyle,
   frameWidth,
   frameHeight,
 }: ViewerSlatePreviewProps) {
@@ -75,6 +96,8 @@ export function ViewerSlatePreview({
     : { background: bgColor || 'hsl(220, 20%, 7%)' };
 
   const style = { ...DEFAULT_SLATE_TEXT_STYLE, ...textStyle };
+  const sub = { ...DEFAULT_SLATE_SUBLINE_STYLE, ...sublineStyle };
+  const subText = sublineText ?? DEFAULT_SLATE_SUBLINE_TEXT;
 
   return (
     <div
@@ -127,8 +150,16 @@ export function ViewerSlatePreview({
               >
                 {slateActive ? slateText : 'Voting Will Begin Shortly'}
               </h1>
-              <p className="text-sm text-muted-foreground">
-                Stay tuned — the poll will open soon.
+              <p
+                className="leading-snug"
+                style={{
+                  color: sub.color,
+                  fontWeight: sub.weight,
+                  fontSize: `${sub.sizePx}px`,
+                  transform: `translate(${sub.offsetX}px, ${sub.offsetY}px)`,
+                }}
+              >
+                {subText}
               </p>
               <div className="flex items-center justify-center gap-2 pt-4 opacity-30">
                 <div className="w-4 h-4 rounded bg-primary flex items-center justify-center">

@@ -2,7 +2,10 @@ import { useEffect, useRef, useState } from 'react';
 import { PreviewWithOverlays } from '@/components/broadcast/preview/PreviewWithOverlays';
 import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
 import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
-import { ViewerSlatePreview } from '@/components/broadcast/preview/ViewerSlatePreview';
+import {
+  ViewerSlatePreview,
+  SlateTextStyle,
+} from '@/components/broadcast/preview/ViewerSlatePreview';
 import { PollOption, TemplateName, ThemePreset } from '@/lib/types';
 import { Monitor, Smartphone, Globe, Copy, Link2, Check } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
@@ -13,7 +16,7 @@ import { QRPosition } from '@/lib/types';
 import { WordmarkLockup } from '@/components/broadcast/WordmarkLockup';
 import { usePreviewOverlays } from '@/lib/preview-overlays';
 
-type PreviewMode = 'program' | 'mobile' | 'desktop';
+export type PreviewMode = 'program' | 'mobile' | 'desktop';
 
 interface AnswerItem {
   id: string; text: string; shortLabel: string; testVotes?: number;
@@ -47,6 +50,20 @@ interface DraftPreviewMonitorProps {
   assetColors: AssetColorMap;
   qrVisible: boolean;
   qrUrlVisible: boolean;
+  /** When provided, the preview-mode tabs become controlled. Lets the parent
+   *  keep the editing viewport (Program / Mobile / Desktop) in sync with the
+   *  transform inspector. */
+  previewMode?: PreviewMode;
+  onPreviewModeChange?: (mode: PreviewMode) => void;
+  /** Optional slate preview overrides — when wired, the mobile/desktop preview
+   *  uses the same ViewerSlatePreview as Output so backgrounds + slate
+   *  typography render identically across surfaces. */
+  slateActive?: boolean;
+  slateText?: string;
+  slateImage?: string;
+  slateTextStyle?: SlateTextStyle;
+  slateSublineText?: string;
+  slateSublineStyle?: SlateTextStyle;
 }
 
 /**
@@ -72,8 +89,21 @@ export function DraftPreviewMonitor({
   slug,
   qrSize, qrPosition, showBranding, brandingPosition, enabledAssetIds, transforms, assetColors, qrVisible,
   qrUrlVisible,
+  previewMode: previewModeProp,
+  onPreviewModeChange,
+  slateActive = false,
+  slateText = '',
+  slateImage,
+  slateTextStyle,
+  slateSublineText,
+  slateSublineStyle,
 }: DraftPreviewMonitorProps) {
-  const [previewMode, setPreviewMode] = useState<PreviewMode>('program');
+  const [previewModeUncontrolled, setPreviewModeUncontrolled] = useState<PreviewMode>('program');
+  const previewMode = previewModeProp ?? previewModeUncontrolled;
+  const setPreviewMode = (mode: PreviewMode) => {
+    if (onPreviewModeChange) onPreviewModeChange(mode);
+    else setPreviewModeUncontrolled(mode);
+  };
   const [copied, setCopied] = useState<'full' | 'short' | null>(null);
   const overlayApiRef = useRef<ReturnType<typeof usePreviewOverlays> | null>(null);
 
@@ -269,7 +299,10 @@ export function DraftPreviewMonitor({
     { mode: 'desktop', icon: Globe, label: 'Desktop', tooltip: 'Viewer Desktop — what audiences see in browser' },
   ];
 
-  const previewLabel = previewMode === 'program' ? 'Broadcast Preview' : 'Viewer Preview';
+  // Title reflects the data lens, not the surface — the mode tabs already
+  // communicate Program vs. Mobile vs. Desktop, so we use the title slot to
+  // call out whether the preview is showing test or real data.
+  const previewLabel = previewDataMode === 'test' ? 'Test Data' : 'Real Data';
 
   return (
     <div className="flex flex-col">
@@ -277,12 +310,6 @@ export function DraftPreviewMonitor({
       <div className="flex items-center justify-between px-3 py-2 border-b border-border bg-card/50 shrink-0">
         <div className="flex items-center gap-2">
           <h2 className="text-xs font-semibold text-foreground uppercase tracking-wider">{previewLabel}</h2>
-          {previewDataMode === 'test' && (
-            <span className="mako-chip text-[9px] bg-primary/15 text-primary border border-primary/30">Test Data</span>
-          )}
-          {previewDataMode === 'real' && (
-            <span className="mako-chip text-[9px] bg-muted/40 text-muted-foreground border border-border">Real Data</span>
-          )}
         </div>
         <div className="flex gap-0.5 bg-muted/50 rounded-lg p-0.5">
           {modeButtons.map(({ mode, icon: Icon, label, tooltip }) => (
@@ -318,7 +345,24 @@ export function DraftPreviewMonitor({
           // exactly as a real voter would. Once question/answers exist, fall
           // back to the interactive voter buttons (Y/N, MC, custom) inside a
           // browser frame so the operator can verify tap targets too.
-          hasContent ? (
+          // Mirror Output's viewer mock so backgrounds + slate typography read
+          // identically across surfaces. When the slate is active or there is
+          // no content yet, render the slate; otherwise render the interactive
+          // voter buttons inside the same scaled device frame so tap targets
+          // can be sanity-checked too.
+          slateActive || !hasContent ? (
+            <ViewerSlatePreview
+              mode={previewMode}
+              bgImage={bgImage}
+              bgColor={bgColor}
+              slateActive={slateActive}
+              slateText={slateText}
+              slateImage={slateImage}
+              textStyle={slateTextStyle}
+              sublineText={slateSublineText}
+              sublineStyle={slateSublineStyle}
+            />
+          ) : (
             <div className={`bg-background border border-border rounded-lg overflow-hidden shadow-xl ${
               previewMode === 'mobile' ? 'w-[280px] h-[500px]' : 'w-full max-w-lg h-[420px]'
             }`} style={bgImage ? { backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: bgColor || undefined }}>
@@ -332,14 +376,6 @@ export function DraftPreviewMonitor({
                 {renderViewerButtons()}
               </div>
             </div>
-          ) : (
-            <ViewerSlatePreview
-              mode={previewMode}
-              bgImage={bgImage}
-              bgColor={bgColor}
-              slateActive={false}
-              slateText=""
-            />
           )
         )}
 
