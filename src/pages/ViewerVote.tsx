@@ -25,6 +25,7 @@ interface ViewerPoll {
   show_final_results: boolean;
   slate_text: string;
   slate_subline_text: string;
+  post_vote_delay_ms: number;
 }
 
 export default function ViewerVote() {
@@ -33,6 +34,7 @@ export default function ViewerVote() {
   const [poll, setPoll] = useState<ViewerPoll | null>(null);
   const [answers, setAnswers] = useState<ViewerAnswer[]>([]);
   const [hasVoted, setHasVoted] = useState(false);
+  const [postVoteStage, setPostVoteStage] = useState<'received' | 'after'>('received');
   const [, setSelectedOption] = useState<string | null>(null);
 
   useEffect(() => {
@@ -41,7 +43,7 @@ export default function ViewerVote() {
       if (!slug) { setStatus('not_found'); return; }
       const { data: pollRow } = await supabase
         .from('polls')
-        .select('id, project_id, question, subheadline, bg_color, bg_image, show_live_results, show_thank_you, show_final_results, slate_text, slate_subline_text')
+        .select('id, project_id, question, subheadline, bg_color, bg_image, show_live_results, show_thank_you, show_final_results, slate_text, slate_subline_text, post_vote_delay_ms')
         .eq('viewer_slug', slug)
         .maybeSingle();
       if (cancelled) return;
@@ -103,8 +105,18 @@ export default function ViewerVote() {
 
   const handleVote = (optionId: string) => {
     setSelectedOption(optionId);
-    setTimeout(() => setHasVoted(true), 300);
+    setPostVoteStage('received');
+    setHasVoted(true);
   };
+
+  // After "Vote Received" shows, wait the configured delay then transition
+  // to the thank-you / results screen (same hasVoted view, second stage).
+  useEffect(() => {
+    if (!hasVoted || postVoteStage !== 'received') return;
+    const delay = Math.max(0, poll?.post_vote_delay_ms ?? 1500);
+    const timer = window.setTimeout(() => setPostVoteStage('after'), delay);
+    return () => window.clearTimeout(timer);
+  }, [hasVoted, postVoteStage, poll?.post_vote_delay_ms]);
 
   const totalVotes = useMemo(() => answers.reduce((sum, a) => sum + (a.live_votes ?? 0), 0), [answers]);
   const showLiveResults = Boolean(poll?.show_live_results);
