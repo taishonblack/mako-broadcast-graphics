@@ -165,6 +165,7 @@ export function OperatorOutputMode({
   tallyIntervalSeconds = 5,
   onTallyModeChange,
   onTallyIntervalChange,
+  assetColors,
 }: OperatorOutputModeProps) {
   const navigate = useNavigate();
   // Suppress unused-prop warnings until those features come back. Kept in the
@@ -633,6 +634,7 @@ export function OperatorOutputMode({
                     enabledAssetIds={enabledAssetIds}
                     subheadline={currentPoll.subheadline}
                     slug={currentPoll.slug}
+                    assetColors={assetColors}
                   />
                 </div>
               </div>
@@ -661,6 +663,7 @@ export function OperatorOutputMode({
                 enabledAssetIds={enabledAssetIds}
                 subheadline={currentPoll.subheadline}
                 slug={currentPoll.slug}
+                assetColors={assetColors}
               />
             </div>
           )}
