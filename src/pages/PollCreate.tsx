@@ -1274,7 +1274,13 @@ export default function PollCreate() {
     if (bgImage !== activeFolder.bgImage) {
       setBgImage(activeFolder.bgImage);
     }
-  }, [activeFolder, bgColor, bgImage, question]);
+    // Slug is per-folder. When switching folders, the URL/QR destination
+    // updates to that folder's slug so each folder has its own /vote/* URL.
+    const nextSlug = activeFolder.slug ?? '';
+    if (slug !== nextSlug) {
+      setSlug(nextSlug);
+    }
+  }, [activeFolder, bgColor, bgImage, question, slug]);
 
   useEffect(() => {
     setAssetColors((current) => {
@@ -1336,6 +1342,18 @@ export default function PollCreate() {
       folders: current.folders.map((folder) => (
         folder.id === current.activeFolderId
           ? { ...folder, questionText: nextQuestion }
+          : folder
+      )),
+    }));
+  };
+
+  const handleSlugChange = (nextSlug: string) => {
+    setSlug(nextSlug);
+    updateFolderState((current) => ({
+      ...current,
+      folders: current.folders.map((folder) => (
+        folder.id === current.activeFolderId
+          ? { ...folder, slug: nextSlug }
           : folder
       )),
     }));
@@ -1879,7 +1897,7 @@ export default function PollCreate() {
                 question={question} setQuestion={handleFolderQuestionChange}
                   subheadline={subheadline} setSubheadline={setSubheadline}
                   internalName={internalName} setInternalName={setInternalName}
-                  slug={slug} setSlug={setSlug}
+                  slug={slug} setSlug={handleSlugChange}
                   answerType={answerType} setAnswerType={setAnswerType}
                   mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
                   answers={answers} setAnswers={setAnswers}
@@ -1980,7 +1998,7 @@ export default function PollCreate() {
                 question={question} setQuestion={handleFolderQuestionChange}
                       subheadline={subheadline} setSubheadline={setSubheadline}
                       internalName={internalName} setInternalName={setInternalName}
-                      slug={slug} setSlug={setSlug}
+                      slug={slug} setSlug={handleSlugChange}
                       answerType={answerType} setAnswerType={setAnswerType}
                       mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
                       answers={answers} setAnswers={setAnswers}
