@@ -588,6 +588,9 @@ export function OperatorOutputMode({
                     textStyle={slateTextStyle}
                     sublineText={slateSublineText}
                     sublineStyle={slateSublineStyle}
+                    votingOpen={votingState === 'open'}
+                    question={currentPoll.question}
+                    options={currentPoll.options}
                   />
                 </div>
               </div>
@@ -610,6 +613,9 @@ export function OperatorOutputMode({
                 textStyle={slateTextStyle}
                 sublineText={slateSublineText}
                 sublineStyle={slateSublineStyle}
+                votingOpen={votingState === 'open'}
+                question={currentPoll.question}
+                options={currentPoll.options}
               />
             </div>
           )}
