@@ -154,6 +154,25 @@ export const DEFAULT_ASSET_COLORS: AssetColorMap = {
   image: {},
 };
 
+/**
+ * Per-viewport color overrides. Mirrors AssetTransformSet so the operator can
+ * tune answer-bar colors, text colors, etc. independently for the broadcast
+ * Program composition vs the Mobile / Desktop voter views. Scenes / mirrored
+ * Output always read from `set.program`; the in-app preview reads the slice
+ * matching the active preview tab.
+ */
+export type AssetColorSet = Record<TransformViewport, AssetColorMap>;
+
+const cloneDefaultColors = (): AssetColorMap => JSON.parse(JSON.stringify(DEFAULT_ASSET_COLORS));
+
+export const createDefaultColorSet = (): AssetColorSet => ({
+  program: cloneDefaultColors(),
+  mobile: cloneDefaultColors(),
+  desktop: cloneDefaultColors(),
+});
+
+export const DEFAULT_ASSET_COLOR_SET: AssetColorSet = createDefaultColorSet();
+
 export const DEFAULT_ASSET_STATE: AssetState = {
   qrPosition: 'bottom-right',
   qrSize: 120,
