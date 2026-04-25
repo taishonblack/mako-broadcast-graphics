@@ -1016,7 +1016,7 @@ export default function PollCreate() {
     });
   }, [
     currentWorkspacePoll,
-    programScene,
+    previewScene,
     qrSize,
     assetState,
     showBranding,
