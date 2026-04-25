@@ -9,7 +9,13 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Switch } from '@/components/ui/switch';
-import { ViewerSlatePreview, SlateTextStyle, DEFAULT_SLATE_TEXT_STYLE } from '@/components/broadcast/preview/ViewerSlatePreview';
+import {
+  ViewerSlatePreview,
+  SlateTextStyle,
+  DEFAULT_SLATE_TEXT_STYLE,
+  DEFAULT_SLATE_SUBLINE_STYLE,
+  DEFAULT_SLATE_SUBLINE_TEXT,
+} from '@/components/broadcast/preview/ViewerSlatePreview';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
 import {
   AlertDialog,
@@ -67,7 +73,10 @@ interface OperatorOutputModeProps {
   onSceneChange: (scene: SceneType) => void;
   onTake: () => void;
   onCut: () => void;
-  onOpenOutput: () => void;
+  /** Returning the popup window lets us watch for `closed` so the ACTIVE
+   *  indicator on the Open Output button clears when the operator dismisses
+   *  the fullscreen surface. */
+  onOpenOutput: () => Window | null | void;
   onGoLive: () => void;
   onEndPoll: () => void;
   onOpenVoting: () => void;
@@ -188,6 +197,10 @@ export function OperatorOutputMode({
   // operator's mobile/desktop previews and (when wired into ViewerVote) the
   // real public viewer page.
   const [slateTextStyle, setSlateTextStyle] = useState<SlateTextStyle>(DEFAULT_SLATE_TEXT_STYLE);
+  // Subline ("Stay tuned…") is editable too — operators reach for this when
+  // the default copy is hard to read against a busy background.
+  const [slateSublineText, setSlateSublineText] = useState<string>(DEFAULT_SLATE_SUBLINE_TEXT);
+  const [slateSublineStyle, setSlateSublineStyle] = useState<SlateTextStyle>(DEFAULT_SLATE_SUBLINE_STYLE);
   // "Test viewer view" — when ON the Program monitor renders the viewer
   // (mobile or desktop) instead of the broadcast composition so the operator
   // can sanity-check what voters will see before going on-air.
@@ -198,6 +211,8 @@ export function OperatorOutputMode({
   // Drives the green "ACTIVE" state on the Open Output quick action so
   // operators can see at a glance that a fullscreen surface is live.
   const [outputOpen, setOutputOpen] = useState(false);
+  // Track the popup so we can detect close and flip the ACTIVE indicator off.
+  const outputWindowRef = useRef<Window | null>(null);
 
   // Confirmation dialogs for destructive / on-air actions.
   const [confirmGoLive, setConfirmGoLive] = useState(false);
@@ -237,9 +252,26 @@ export function OperatorOutputMode({
   const handleToggleSlate = () => setSlateActive((v) => !v);
 
   const handleOpenOutputClick = () => {
-    onOpenOutput();
+    const win = onOpenOutput();
+    if (win && typeof win === 'object') {
+      outputWindowRef.current = win as Window;
+    }
     setOutputOpen(true);
   };
+
+  // Poll the popup's `closed` flag so the ACTIVE indicator on Open Output
+  // turns off the moment the operator dismisses the fullscreen surface.
+  useEffect(() => {
+    if (!outputOpen) return;
+    const id = window.setInterval(() => {
+      const win = outputWindowRef.current;
+      if (win && win.closed) {
+        outputWindowRef.current = null;
+        setOutputOpen(false);
+      }
+    }, 500);
+    return () => window.clearInterval(id);
+  }, [outputOpen]);
 
   const handleScheduleVote = () => {
     if (voteSchedule === 'now') {
