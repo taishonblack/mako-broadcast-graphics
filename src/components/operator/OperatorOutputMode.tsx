@@ -101,6 +101,13 @@ interface OperatorOutputModeProps {
    */
   answers?: AnswerLite[];
   onSetAnswers?: (next: AnswerLite[]) => void;
+  /** Active folder's tally pacing — controls Live vs Stop Motion display
+   *  in scenes. Operator can flip modes / adjust the interval directly
+   *  from the Vote Runner panel. */
+  tallyMode?: 'live' | 'stopMotion';
+  tallyIntervalSeconds?: number;
+  onTallyModeChange?: (mode: 'live' | 'stopMotion') => void;
+  onTallyIntervalChange?: (seconds: number) => void;
 }
 
 export function OperatorOutputMode({
@@ -145,6 +152,10 @@ export function OperatorOutputMode({
   onResetTestVotes,
   answers,
   onSetAnswers,
+  tallyMode = 'live',
+  tallyIntervalSeconds = 5,
+  onTallyModeChange,
+  onTallyIntervalChange,
 }: OperatorOutputModeProps) {
   const navigate = useNavigate();
   // Suppress unused-prop warnings until those features come back. Kept in the
@@ -186,6 +197,10 @@ export function OperatorOutputMode({
   const [testVoteTotal, setTestVoteTotal] = useState(100);
   const [testVoteDuration, setTestVoteDuration] = useState(30);
   const [targetsOpen, setTargetsOpen] = useState(false);
+  // Vote Runner + Live % editor default collapsed — they take a lot of
+  // vertical space and most operators only need them periodically.
+  const [voteRunnerOpen, setVoteRunnerOpen] = useState(false);
+  const [livePctOpen, setLivePctOpen] = useState(false);
 
   // ─── Output Inspector state ────────────────────────────────────────────
   // Polling Slate: a still image / message shown to mobile voters (and on
