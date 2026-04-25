@@ -1896,6 +1896,7 @@ export default function PollCreate() {
             brandingPosition={brandingPosition}
             previewNode={renderOutputScene()}
             hasAnswerBars={enabledAssets.includes('answers')}
+            enabledAssetIds={enabledAssets}
             onSelectBlock={(letter) => {
               setOutputActiveBlock(letter);
               setOutputBlockSource(outputBlockPinned ? 'pinned' : 'manual');
