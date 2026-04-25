@@ -10,8 +10,6 @@ import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
 import { BroadcastCanvas } from '@/components/broadcast/BroadcastCanvas';
 import { DEFAULT_LAYERS, GraphicLayer, cloneLayers } from '@/lib/layers';
 import {
-  OUTPUT_HEARTBEAT_CHANNEL,
-  OUTPUT_HEARTBEAT_STORAGE_KEY,
   OUTPUT_STATE_CHANNEL,
   OUTPUT_STATE_STORAGE_KEY,
   OutputAssets,
@@ -75,50 +73,10 @@ export default function ProgramOutput() {
     } catch { /* user denied or unsupported */ }
   };
 
-  // Mirror status indicator — tracks the most recent heartbeat or state
-  // message from the operator. If nothing arrives for >2s we flip to
-  // STALLED (red); >5s degrades to LOST. Any incoming message restores LIVE.
-  const [lastBeat, setLastBeat] = useState<number>(() => {
-    const raw = typeof localStorage !== 'undefined'
-      ? localStorage.getItem(OUTPUT_HEARTBEAT_STORAGE_KEY)
-      : null;
-    const parsed = raw ? Number(raw) : 0;
-    return Number.isFinite(parsed) ? parsed : 0;
-  });
-  const [now, setNow] = useState(() => Date.now());
-  useEffect(() => {
-    const id = window.setInterval(() => setNow(Date.now()), 500);
-    return () => window.clearInterval(id);
-  }, []);
-  useEffect(() => {
-    const markBeat = () => setLastBeat(Date.now());
-    const onStorage = (e: StorageEvent) => {
-      if (e.key === OUTPUT_HEARTBEAT_STORAGE_KEY || e.key === OUTPUT_STATE_STORAGE_KEY) {
-        markBeat();
-      }
-    };
-    window.addEventListener('storage', onStorage);
-    let beatChannel: BroadcastChannel | null = null;
-    try {
-      if (typeof BroadcastChannel !== 'undefined') {
-        beatChannel = new BroadcastChannel(OUTPUT_HEARTBEAT_CHANNEL);
-        beatChannel.onmessage = () => markBeat();
-      }
-    } catch { /* ignore */ }
-    return () => {
-      window.removeEventListener('storage', onStorage);
-      try { beatChannel?.close(); } catch { /* ignore */ }
-    };
-  }, []);
-  const sinceBeat = lastBeat ? now - lastBeat : Infinity;
-  const mirrorStatus: 'live' | 'stalled' | 'lost' =
-    sinceBeat <= 2000 ? 'live' : sinceBeat <= 5000 ? 'stalled' : 'lost';
-
   // Listen for scene/state changes from dashboard
   useEffect(() => {
     const handler = (e: StorageEvent) => {
       if (e.key === OUTPUT_STATE_STORAGE_KEY && e.newValue) {
-        setLastBeat(Date.now());
         try {
           const next = JSON.parse(e.newValue) as Partial<{
             poll: Poll; scene: SceneType; layers: GraphicLayer[]; assets: OutputAssets;
@@ -145,7 +103,6 @@ export default function ProgramOutput() {
       if (typeof BroadcastChannel !== 'undefined') {
         channel = new BroadcastChannel(OUTPUT_STATE_CHANNEL);
         channel.onmessage = (ev) => {
-          setLastBeat(Date.now());
           const next = ev.data as OutputStatePayload | undefined;
           if (!next) return;
           if (next.poll) setPoll(next.poll);
