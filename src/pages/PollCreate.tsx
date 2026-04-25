@@ -36,7 +36,8 @@ import { pollImportSchema, formatZodIssues, ImportIssue, ImportSection } from '@
 import { themePresets } from '@/lib/themes';
 import { TemplateName, Poll, PollOption, QRPosition, VotingState, LiveState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { broadcastOutputHeartbeat, broadcastOutputState } from '@/lib/output-state';
+import { broadcastOutputHeartbeat, broadcastOutputLock, broadcastOutputState } from '@/lib/output-state';
+import { supabase } from '@/integrations/supabase/client';
 import { EQUAL_BASE, equalShareAnswers } from '@/lib/answer-percents';
 import { FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Monitor, Radio, Undo2, Redo2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -47,6 +48,9 @@ import {
   createDefaultFolderState,
   createFolderId,
   createFolderName,
+  DEFAULT_TALLY_INTERVAL_SECONDS,
+  DEFAULT_TALLY_MODE,
+  TallyMode,
   findAssetFolder,
   getFolderById,
   loadProjectPollingAssetFolders,
@@ -617,6 +621,7 @@ export default function PollCreate() {
 
   const handleTake = () => {
     setProgramScene(previewScene);
+    const folder = getFolderById(folderState, folderState.activeFolderId);
     broadcastOutputState({
       poll: currentWorkspacePoll,
       scene: previewScene,
@@ -635,12 +640,15 @@ export default function PollCreate() {
         wordmarkTracking: assetState.wordmarkTracking,
         wordmarkScale: assetState.wordmarkScale,
         wordmarkShowGuides: assetState.wordmarkShowGuides,
+        tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
+        tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
       },
     });
   };
 
   const handleCut = () => {
     setProgramScene(previewScene);
+    const folder = getFolderById(folderState, folderState.activeFolderId);
     broadcastOutputState({
       poll: currentWorkspacePoll,
       scene: previewScene,
@@ -659,13 +667,54 @@ export default function PollCreate() {
         wordmarkTracking: assetState.wordmarkTracking,
         wordmarkScale: assetState.wordmarkScale,
         wordmarkShowGuides: assetState.wordmarkShowGuides,
+        tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
+        tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
       },
     });
   };
 
   const handleGoLive = () => {
     setLiveState('live');
+    // Build the canonical Program payload for the lock snapshot. We push it
+    // through handleTake() (so existing listeners + DB sync stay in sync) AND
+    // emit a lock message that freezes Output until End Live.
     handleTake();
+    const folder = getFolderById(folderState, folderState.activeFolderId);
+    const snapshot = {
+      poll: currentWorkspacePoll,
+      scene: previewScene,
+      layers: [],
+      assets: {
+        qrSize,
+        qrPosition: assetState.qrPosition,
+        qrVisible: assetState.qrVisible,
+        qrUrlVisible: assetState.qrUrlVisible,
+        showBranding,
+        brandingPosition,
+        enabledAssetIds: enabledAssets,
+        transforms: assetTransforms,
+        assetColors,
+        wordmarkWeight: assetState.wordmarkWeight,
+        wordmarkTracking: assetState.wordmarkTracking,
+        wordmarkScale: assetState.wordmarkScale,
+        wordmarkShowGuides: assetState.wordmarkShowGuides,
+        tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
+        tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
+      },
+    };
+    broadcastOutputLock({ locked: true, snapshot, lockedAt: Date.now() });
+    // Persist the snapshot to project_live_state so cross-network viewers
+    // (mobile/desktop on /vote/:slug) can read the operator's color
+    // assignments and enabled-asset list and render in parity with Program.
+    if (projectId) {
+      void supabase.from('project_live_state').upsert({
+        project_id: projectId,
+        active_poll_id: currentWorkspacePoll.id,
+        active_folder_id: folderState.activeFolderId ?? null,
+        live_folder_id: folderState.activeFolderId ?? null,
+        live_poll_snapshot: snapshot as never,
+      } as never);
+    }
     // Open Output fullscreen window if not already open, and open voting so
     // the slate/voting flow begins simultaneously with the on-air push.
     try {
@@ -677,6 +726,15 @@ export default function PollCreate() {
   const handleEndPoll = () => {
     setLiveState('not_live');
     setVotingState('closed');
+    // Release the Program lock so the workspace once again drives Output.
+    broadcastOutputLock({ locked: false });
+    if (projectId) {
+      void supabase.from('project_live_state').upsert({
+        project_id: projectId,
+        live_poll_snapshot: null,
+        live_folder_id: null,
+      } as never);
+    }
   };
 
   const [layout, setLayout] = useState<WorkspaceLayout>(loadWorkspaceLayout);
@@ -1039,6 +1097,8 @@ export default function PollCreate() {
         wordmarkTracking: assetState.wordmarkTracking,
         wordmarkScale: assetState.wordmarkScale,
         wordmarkShowGuides: assetState.wordmarkShowGuides,
+        tallyMode: activeFolder?.tallyMode ?? DEFAULT_TALLY_MODE,
+        tallyIntervalSeconds: activeFolder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
       },
     });
   }, [
@@ -1051,6 +1111,8 @@ export default function PollCreate() {
     enabledAssets,
     assetTransformSet,
     assetColorSet,
+    activeFolder?.tallyMode,
+    activeFolder?.tallyIntervalSeconds,
   ]);
   // Presence heartbeat — pings open Output windows once per second so the
   // Output page can show "Mirroring: Live" and detect stalls even when
@@ -1860,6 +1922,24 @@ export default function PollCreate() {
             onQrPositionChange={(next) => setAssetState((current) => ({ ...current, qrPosition: next }))}
             onShowBrandingChange={setShowBranding}
             onBrandingPositionChange={setBrandingPosition}
+            tallyMode={getFolderById(folderState, folderState.activeFolderId)?.tallyMode ?? DEFAULT_TALLY_MODE}
+            tallyIntervalSeconds={getFolderById(folderState, folderState.activeFolderId)?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS}
+            onTallyModeChange={(mode: TallyMode) => {
+              setFolderState((current) => ({
+                ...current,
+                folders: current.folders.map((f) =>
+                  f.id === current.activeFolderId ? { ...f, tallyMode: mode } : f
+                ),
+              }));
+            }}
+            onTallyIntervalChange={(seconds: number) => {
+              setFolderState((current) => ({
+                ...current,
+                folders: current.folders.map((f) =>
+                  f.id === current.activeFolderId ? { ...f, tallyIntervalSeconds: seconds } : f
+                ),
+              }));
+            }}
           />
         </div>
       ) : (

@@ -12,13 +12,18 @@ import { DEFAULT_LAYERS, GraphicLayer, cloneLayers } from '@/lib/layers';
 import {
   OUTPUT_STATE_CHANNEL,
   OUTPUT_STATE_STORAGE_KEY,
+  OUTPUT_LOCK_CHANNEL,
+  OUTPUT_LOCK_STORAGE_KEY,
   OutputAssets,
+  OutputLockMessage,
   OutputStatePayload,
   readOutputState,
+  readOutputLock,
 } from '@/lib/output-state';
 import { Poll } from '@/lib/types';
 import { DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/types';
 import { Maximize, Minimize } from 'lucide-react';
+import { useTallyDisplay } from '@/hooks/useTallyDisplay';
 
 const DEFAULT_ASSETS: OutputAssets = {
   qrSize: 120,
@@ -37,15 +42,30 @@ export default function ProgramOutput() {
   const { id } = useParams();
   const fallbackPoll = useMemo(() => mockPolls.find((poll) => poll.id === id) || mockPolls[0], [id]);
   const initialOutputState = useMemo(() => readOutputState(), []);
-  const [poll, setPoll] = useState<Poll>(initialOutputState?.poll ?? fallbackPoll);
-  const [layers, setLayers] = useState<GraphicLayer[]>(() => initialOutputState?.layers ?? cloneLayers(DEFAULT_LAYERS));
-  const [liveVotes, setLiveVotes] = useState((initialOutputState?.poll ?? fallbackPoll).options.map(o => o.votes));
-  const [total, setTotal] = useState((initialOutputState?.poll ?? fallbackPoll).totalVotes);
-  const [scene, setScene] = useState<SceneType>(initialOutputState?.scene ?? 'fullscreen');
+  const initialLock = useMemo(() => readOutputLock(), []);
+  const initialEffective = initialLock?.locked && initialLock.snapshot ? initialLock.snapshot : initialOutputState;
+  const [poll, setPoll] = useState<Poll>(initialEffective?.poll ?? fallbackPoll);
+  const [layers, setLayers] = useState<GraphicLayer[]>(() => initialEffective?.layers ?? cloneLayers(DEFAULT_LAYERS));
+  const [liveVotes, setLiveVotes] = useState((initialEffective?.poll ?? fallbackPoll).options.map(o => o.votes));
+  const [total, setTotal] = useState((initialEffective?.poll ?? fallbackPoll).totalVotes);
+  const [scene, setScene] = useState<SceneType>(initialEffective?.scene ?? 'fullscreen');
   const [transitionType, setTransitionType] = useState<'take' | 'cut'>('take');
   const [sceneKey, setSceneKey] = useState(0);
-  const [assets, setAssets] = useState<OutputAssets>(initialOutputState?.assets ?? DEFAULT_ASSETS);
+  const [assets, setAssets] = useState<OutputAssets>(initialEffective?.assets ?? DEFAULT_ASSETS);
+  /** When locked, ignore all incoming OutputStatePayload pushes — the
+   *  snapshot above is the canonical broadcast frame until End Live fires. */
+  const [locked, setLocked] = useState<boolean>(Boolean(initialLock?.locked));
   const theme = themePresets.find((preset) => preset.id === poll.themeId) || themePresets[0];
+
+  // Apply Stop Motion / Live tally pacing on the display votes that scenes
+  // render. The "true" liveVotes / total still tick in the background; this
+  // hook only affects what's shown.
+  const { displayVotes, displayTotal } = useTallyDisplay(
+    liveVotes,
+    total,
+    assets.tallyMode ?? 'live',
+    assets.tallyIntervalSeconds ?? 5,
+  );
 
   // Fullscreen controls — browsers won't strip the URL bar without an
   // explicit user gesture calling the Fullscreen API. We expose a small
@@ -75,22 +95,45 @@ export default function ProgramOutput() {
 
   // Listen for scene/state changes from dashboard
   useEffect(() => {
+    const applyPayload = (next: Partial<OutputStatePayload>) => {
+      if (next.poll) setPoll(next.poll);
+      if (next.scene) setScene(next.scene);
+      setLayers(Array.isArray(next.layers) ? cloneLayers(next.layers) : cloneLayers(DEFAULT_LAYERS));
+      if (next.assets) setAssets(next.assets);
+    };
+
+    const applyLock = (msg: OutputLockMessage | null) => {
+      if (msg?.locked && msg.snapshot) {
+        applyPayload(msg.snapshot);
+        setLocked(true);
+      } else {
+        setLocked(false);
+      }
+    };
+
     const handler = (e: StorageEvent) => {
+      if (e.key === OUTPUT_LOCK_STORAGE_KEY) {
+        try {
+          const msg = e.newValue ? JSON.parse(e.newValue) as OutputLockMessage : { locked: false };
+          applyLock(msg);
+        } catch { applyLock({ locked: false }); }
+        return;
+      }
       if (e.key === OUTPUT_STATE_STORAGE_KEY && e.newValue) {
         try {
           const next = JSON.parse(e.newValue) as Partial<{
             poll: Poll; scene: SceneType; layers: GraphicLayer[]; assets: OutputAssets;
           }>;
-          if (next.poll) setPoll(next.poll);
-          if (next.scene) setScene(next.scene);
-          setLayers(Array.isArray(next.layers) ? cloneLayers(next.layers) : cloneLayers(DEFAULT_LAYERS));
-          if (next.assets) setAssets(next.assets);
+          // Discard payloads while locked — the snapshot is canonical.
+          if (locked) return;
+          applyPayload(next);
         } catch {}
       }
 
       if (e.key === 'mako-scene' && e.newValue) {
         const [newScene, transition] = e.newValue.split('|') as [SceneType, string];
         setTransitionType((transition as 'take' | 'cut') || 'take');
+        if (locked) return;
         setScene(newScene);
         setSceneKey(k => k + 1);
       }
@@ -99,16 +142,19 @@ export default function ProgramOutput() {
 
     // Realtime mirror via BroadcastChannel for instant sync across windows.
     let channel: BroadcastChannel | null = null;
+    let lockChannel: BroadcastChannel | null = null;
     try {
       if (typeof BroadcastChannel !== 'undefined') {
         channel = new BroadcastChannel(OUTPUT_STATE_CHANNEL);
         channel.onmessage = (ev) => {
           const next = ev.data as OutputStatePayload | undefined;
           if (!next) return;
-          if (next.poll) setPoll(next.poll);
-          if (next.scene) setScene(next.scene);
-          setLayers(Array.isArray(next.layers) ? cloneLayers(next.layers) : cloneLayers(DEFAULT_LAYERS));
-          if (next.assets) setAssets(next.assets);
+          if (locked) return;
+          applyPayload(next);
+        };
+        lockChannel = new BroadcastChannel(OUTPUT_LOCK_CHANNEL);
+        lockChannel.onmessage = (ev) => {
+          applyLock((ev.data as OutputLockMessage | undefined) ?? { locked: false });
         };
       }
     } catch { /* ignore */ }
@@ -116,8 +162,9 @@ export default function ProgramOutput() {
     return () => {
       window.removeEventListener('storage', handler);
       try { channel?.close(); } catch { /* ignore */ }
+      try { lockChannel?.close(); } catch { /* ignore */ }
     };
-  }, []);
+  }, [locked]);
 
   useEffect(() => {
     setLiveVotes(poll.options.map((option) => option.votes));
@@ -140,7 +187,7 @@ export default function ProgramOutput() {
     return () => clearInterval(interval);
   }, [poll.question]);
 
-  const liveOptions = poll.options.map((o, i) => ({ ...o, votes: liveVotes[i] }));
+  const liveOptions = poll.options.map((o, i) => ({ ...o, votes: displayVotes[i] ?? 0 }));
   const colors = [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
 
   const renderScene = () => {
@@ -159,7 +206,7 @@ export default function ProgramOutput() {
       wordmarkScale: assets.wordmarkScale,
     };
     const baseProps = {
-      question: poll.question, options: liveOptions, totalVotes: total,
+      question: poll.question, options: liveOptions, totalVotes: displayTotal,
       colors, theme, template: poll.template, ...sharedAssets,
     };
 

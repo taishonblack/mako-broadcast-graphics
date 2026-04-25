@@ -505,6 +505,8 @@ export type Database = {
         Row: {
           active_folder_id: string | null
           active_poll_id: string | null
+          live_folder_id: string | null
+          live_poll_snapshot: Json | null
           output_state: string
           preview_poll_id: string | null
           project_id: string
@@ -516,6 +518,8 @@ export type Database = {
         Insert: {
           active_folder_id?: string | null
           active_poll_id?: string | null
+          live_folder_id?: string | null
+          live_poll_snapshot?: Json | null
           output_state?: string
           preview_poll_id?: string | null
           project_id: string
@@ -527,6 +531,8 @@ export type Database = {
         Update: {
           active_folder_id?: string | null
           active_poll_id?: string | null
+          live_folder_id?: string | null
+          live_poll_snapshot?: Json | null
           output_state?: string
           preview_poll_id?: string | null
           project_id?: string

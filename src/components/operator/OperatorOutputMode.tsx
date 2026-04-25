@@ -101,6 +101,13 @@ interface OperatorOutputModeProps {
    */
   answers?: AnswerLite[];
   onSetAnswers?: (next: AnswerLite[]) => void;
+  /** Active folder's tally pacing — controls Live vs Stop Motion display
+   *  in scenes. Operator can flip modes / adjust the interval directly
+   *  from the Vote Runner panel. */
+  tallyMode?: 'live' | 'stopMotion';
+  tallyIntervalSeconds?: number;
+  onTallyModeChange?: (mode: 'live' | 'stopMotion') => void;
+  onTallyIntervalChange?: (seconds: number) => void;
 }
 
 export function OperatorOutputMode({
@@ -145,6 +152,10 @@ export function OperatorOutputMode({
   onResetTestVotes,
   answers,
   onSetAnswers,
+  tallyMode = 'live',
+  tallyIntervalSeconds = 5,
+  onTallyModeChange,
+  onTallyIntervalChange,
 }: OperatorOutputModeProps) {
   const navigate = useNavigate();
   // Suppress unused-prop warnings until those features come back. Kept in the
@@ -186,6 +197,10 @@ export function OperatorOutputMode({
   const [testVoteTotal, setTestVoteTotal] = useState(100);
   const [testVoteDuration, setTestVoteDuration] = useState(30);
   const [targetsOpen, setTargetsOpen] = useState(false);
+  // Vote Runner + Live % editor default collapsed — they take a lot of
+  // vertical space and most operators only need them periodically.
+  const [voteRunnerOpen, setVoteRunnerOpen] = useState(false);
+  const [livePctOpen, setLivePctOpen] = useState(false);
 
   // ─── Output Inspector state ────────────────────────────────────────────
   // Polling Slate: a still image / message shown to mobile voters (and on
@@ -419,6 +434,21 @@ export function OperatorOutputMode({
 
   return (
     <div className="h-full overflow-hidden">
+      {liveState === 'live' && (
+        <div
+          role="status"
+          aria-label="Program output is locked while live"
+          className="flex items-center justify-center gap-2 border-b border-destructive/40 bg-destructive/15 px-3 py-1.5"
+        >
+          <span className="relative flex h-2 w-2">
+            <span className="absolute inset-0 animate-ping rounded-full bg-destructive opacity-75" />
+            <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
+          </span>
+          <span className="text-[10px] font-mono uppercase tracking-widest text-destructive">
+            LIVE — Program Locked · workspace edits won't affect on-air output until you End Poll
+          </span>
+        </div>
+      )}
       <div className="grid h-full grid-cols-[280px_minmax(0,1fr)_320px] gap-3 p-3">
         <div className="min-h-0 overflow-auto space-y-3">
           <div className="mako-panel p-3 space-y-2">
@@ -624,14 +654,17 @@ export function OperatorOutputMode({
               state that the inspector reads from, so Build and Output stay in
               perfect sync without any extra storage layer. */}
           {answers && onSetAnswers && answers.length > 0 && (
-            <div className="mako-panel p-3 space-y-2">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-mono uppercase text-muted-foreground">Answer Bars · Live %</p>
+            <Collapsible open={livePctOpen} onOpenChange={setLivePctOpen} className="mako-panel p-3 space-y-2">
+              <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-accent/30">
+                <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase text-muted-foreground">
+                  {livePctOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                  Answer Bars · Live %
+                </span>
                 <span className="text-[10px] font-mono text-muted-foreground">
                   {percentsFromAnswers(answers).reduce((s, v) => s + v, 0).toFixed(0)}%
                 </span>
-              </div>
-              <div className="space-y-1.5">
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-1.5 pt-2">
                 {answers.map((a, i) => {
                   const livePercents = percentsFromAnswers(answers);
                   return (
@@ -654,26 +687,72 @@ export function OperatorOutputMode({
                     </div>
                   );
                 })}
-              </div>
-              <p className="text-[10px] text-muted-foreground">
-                Edits sync to Build's inspector instantly.
-              </p>
-            </div>
+                <p className="text-[10px] text-muted-foreground">
+                  Edits sync to Build's inspector instantly.
+                </p>
+              </CollapsibleContent>
+            </Collapsible>
           )}
 
           {/* Test-vote runner — inject N votes over T seconds and watch the
               bars + counters animate in the preview above. Useful for QA'ing
               the chart animation without opening a viewer browser. */}
           {(onStartTestVotes || onStopTestVotes) && (
-            <div className="mako-panel p-3 space-y-3">
-              <div className="flex items-center justify-between">
-                <p className="text-[10px] font-mono uppercase text-muted-foreground">Vote Runner</p>
-                {testVoteRunning && (
-                  <span className="flex items-center gap-1 text-[10px] font-mono text-primary">
-                    <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" /> running
+            <Collapsible open={voteRunnerOpen} onOpenChange={setVoteRunnerOpen} className="mako-panel p-3 space-y-3">
+              <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-accent/30">
+                <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase text-muted-foreground">
+                  {voteRunnerOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
+                  Vote Runner & Tally
+                </span>
+                <span className="flex items-center gap-2">
+                  {testVoteRunning && (
+                    <span className="flex items-center gap-1 text-[10px] font-mono text-primary">
+                      <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" /> running
+                    </span>
+                  )}
+                  <span className="text-[10px] font-mono text-muted-foreground uppercase">
+                    {tallyMode === 'stopMotion' ? `Stop · ${tallyIntervalSeconds}s` : 'Live'}
                   </span>
-                )}
-              </div>
+                </span>
+              </CollapsibleTrigger>
+              <CollapsibleContent className="space-y-3 pt-2">
+              {/* Tally pacing controls — Live vs Stop Motion + interval. */}
+              {(onTallyModeChange || onTallyIntervalChange) && (
+                <div className="rounded-md border border-border/60 bg-accent/10 p-2 space-y-2">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-[10px] font-mono uppercase text-muted-foreground">Tally Mode</p>
+                    <div className="flex gap-1">
+                      <Button
+                        size="sm"
+                        variant={tallyMode === 'live' ? 'default' : 'outline'}
+                        className="h-6 px-2 text-[10px]"
+                        onClick={() => onTallyModeChange?.('live')}
+                      >Live</Button>
+                      <Button
+                        size="sm"
+                        variant={tallyMode === 'stopMotion' ? 'default' : 'outline'}
+                        className="h-6 px-2 text-[10px]"
+                        onClick={() => onTallyModeChange?.('stopMotion')}
+                      >Stop Motion</Button>
+                    </div>
+                  </div>
+                  {tallyMode === 'stopMotion' && (
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between">
+                        <span className="text-[10px] uppercase text-muted-foreground">Interval</span>
+                        <span className="text-[10px] font-mono text-foreground">{tallyIntervalSeconds}s</span>
+                      </div>
+                      <Slider
+                        min={1}
+                        max={30}
+                        step={1}
+                        value={[tallyIntervalSeconds]}
+                        onValueChange={(v) => onTallyIntervalChange?.(v[0] ?? tallyIntervalSeconds)}
+                      />
+                    </div>
+                  )}
+                </div>
+              )}
               {/* Active Poll summary — merged from the standalone Active Poll
                   panel so the right column has room for the Output Inspector. */}
               <div className="rounded-md border border-border/60 bg-accent/10 p-2 space-y-1.5">
@@ -754,7 +833,12 @@ export function OperatorOutputMode({
                   size="sm"
                   className="flex-1 gap-1.5 text-xs"
                   disabled={testVoteRunning}
-                  onClick={() => onStartTestVotes?.(testVoteTotal, testVoteDuration, targetPercents)}
+                  onClick={() => {
+                    // Reset tallies to zero before ramping toward the targets so
+                    // each Run produces a clean animation from 0% → target.
+                    onResetTestVotes?.();
+                    onStartTestVotes?.(testVoteTotal, testVoteDuration, targetPercents);
+                  }}
                 >
                   <Play className="h-3.5 w-3.5" /> Run
                 </Button>
@@ -771,7 +855,8 @@ export function OperatorOutputMode({
               <p className="text-[10px] text-muted-foreground text-center">
                 Pressing Run resets the tally to 0% and ramps to your targets.
               </p>
-            </div>
+              </CollapsibleContent>
+            </Collapsible>
           )}
         </div>
 

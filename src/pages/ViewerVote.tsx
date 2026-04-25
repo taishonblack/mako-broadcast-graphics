@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { CheckCircle, Clock, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { QRCodeSVG } from 'qrcode.react';
 
 type ViewerStatus = 'loading' | 'not_found' | 'not_open' | 'open' | 'closed';
 
@@ -28,6 +29,22 @@ interface ViewerPoll {
   post_vote_delay_ms: number;
 }
 
+/** Subset of OutputAssets we actually consume on the viewer. Kept loose so a
+ *  partial / older snapshot still renders. */
+interface ViewerSnapshotAssets {
+  enabledAssetIds?: string[];
+  assetColors?: {
+    question?: { textPrimary?: string };
+    answers?: { textPrimary?: string; textSecondary?: string; barColors?: string[] };
+    subheadline?: { textSecondary?: string };
+  };
+}
+
+interface ViewerSnapshot {
+  poll?: { question?: string };
+  assets?: ViewerSnapshotAssets;
+}
+
 export default function ViewerVote() {
   const { slug = '' } = useParams<{ slug: string }>();
   const [status, setStatus] = useState<ViewerStatus>('loading');
@@ -36,6 +53,10 @@ export default function ViewerVote() {
   const [hasVoted, setHasVoted] = useState(false);
   const [postVoteStage, setPostVoteStage] = useState<'received' | 'after'>('received');
   const [, setSelectedOption] = useState<string | null>(null);
+  /** Operator's color + enabled-asset choices, mirrored from the live state
+   *  snapshot. When present we apply them so mobile/desktop voters see the
+   *  same palette as the on-air program. */
+  const [snapshot, setSnapshot] = useState<ViewerSnapshot | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -59,7 +80,7 @@ export default function ViewerVote() {
         pollRow.project_id
           ? supabase
               .from('project_live_state')
-              .select('voting_state, active_poll_id')
+              .select('voting_state, active_poll_id, live_poll_snapshot')
               .eq('project_id', pollRow.project_id)
               .maybeSingle()
           : Promise.resolve({ data: null } as { data: null }),
@@ -68,9 +89,10 @@ export default function ViewerVote() {
 
       setAnswers((answerRows ?? []) as ViewerAnswer[]);
 
-      const live = (liveStateRes as { data: { voting_state?: string; active_poll_id?: string | null } | null }).data;
+      const live = (liveStateRes as { data: { voting_state?: string; active_poll_id?: string | null; live_poll_snapshot?: ViewerSnapshot | null } | null }).data;
       const votingState = live?.voting_state ?? 'not_open';
       const isThisPollLive = !live || live.active_poll_id === pollRow.id;
+      if (live?.live_poll_snapshot) setSnapshot(live.live_poll_snapshot);
 
       if (votingState === 'open' && isThisPollLive) setStatus('open');
       else if (votingState === 'closed' && isThisPollLive) setStatus('closed');
@@ -92,9 +114,10 @@ export default function ViewerVote() {
         setAnswers((current) => current.map((a) => a.id === row.id ? { ...a, live_votes: row.live_votes ?? a.live_votes } : a));
       })
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_live_state', filter: poll.project_id ? `project_id=eq.${poll.project_id}` : undefined }, (payload) => {
-        const row = payload.new as { voting_state?: string; active_poll_id?: string | null } | undefined;
+        const row = payload.new as { voting_state?: string; active_poll_id?: string | null; live_poll_snapshot?: ViewerSnapshot | null } | undefined;
         if (!row) return;
         const isThisPollLive = !row.active_poll_id || row.active_poll_id === poll.id;
+        if (row.live_poll_snapshot !== undefined) setSnapshot(row.live_poll_snapshot ?? null);
         if (row.voting_state === 'open' && isThisPollLive) setStatus('open');
         else if (row.voting_state === 'closed' && isThisPollLive) setStatus('closed');
         else setStatus('not_open');
@@ -122,6 +145,19 @@ export default function ViewerVote() {
   const showLiveResults = Boolean(poll?.show_live_results);
   const showThankYou = poll?.show_thank_you !== false; // default on
   const showFinalResults = Boolean(poll?.show_final_results);
+
+  // Operator-assigned colors. Falls back to the design tokens used in the
+  // existing viewer if the operator hasn't customized anything.
+  const colors = snapshot?.assets?.assetColors;
+  const questionColor = colors?.question?.textPrimary;
+  const subColor = colors?.subheadline?.textSecondary;
+  const barColors = colors?.answers?.barColors;
+
+  // QR-only / no-answers folders mirror the Program composition: show the
+  // question text + a QR (the same slug the viewer is already on) without
+  // any vote UI. Useful for "tease the question" segments.
+  const enabled = snapshot?.assets?.enabledAssetIds;
+  const isMirrorMode = Array.isArray(enabled) && !enabled.includes('answers');
 
   const bgStyle: React.CSSProperties = poll?.bg_image
     ? { backgroundImage: `url(${poll.bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
@@ -216,12 +252,41 @@ export default function ViewerVote() {
   }
 
   // ---- Active voting ----
+  if (status === 'open' && isMirrorMode) {
+    const voteUrl = typeof window !== 'undefined'
+      ? `${window.location.origin}/vote/${slug}`
+      : `/vote/${slug}`;
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 animate-fade-in" style={bgStyle}>
+        <div className="w-full max-w-sm space-y-8 bg-background/40 backdrop-blur-md rounded-2xl p-6 border border-white/10 text-center">
+          <h1 className="text-2xl font-bold leading-tight" style={{ color: questionColor || 'hsl(var(--foreground))' }}>
+            {poll?.question || snapshot?.poll?.question || 'Stand by'}
+          </h1>
+          {poll?.subheadline && (
+            <p className="text-sm" style={{ color: subColor || 'hsl(var(--muted-foreground))' }}>{poll.subheadline}</p>
+          )}
+          <div className="bg-white p-4 rounded-xl inline-block">
+            <QRCodeSVG value={voteUrl} size={180} level="M" />
+          </div>
+          <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+            Scan to follow along
+          </p>
+          <BrandBug />
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 animate-fade-in" style={bgStyle}>
       <div className="w-full max-w-sm space-y-8 bg-background/40 backdrop-blur-md rounded-2xl p-6 border border-white/10">
         <div className="text-center">
-          <h1 className="text-2xl font-bold text-foreground leading-tight">{poll?.question || 'Cast your vote'}</h1>
-          {poll?.subheadline && <p className="text-sm text-muted-foreground mt-2">{poll.subheadline}</p>}
+          <h1 className="text-2xl font-bold leading-tight" style={{ color: questionColor || 'hsl(var(--foreground))' }}>
+            {poll?.question || 'Cast your vote'}
+          </h1>
+          {poll?.subheadline && (
+            <p className="text-sm mt-2" style={{ color: subColor || 'hsl(var(--muted-foreground))' }}>{poll.subheadline}</p>
+          )}
         </div>
         <div className="space-y-3">
           {answers.map((option) => (
@@ -236,7 +301,7 @@ export default function ViewerVote() {
           ))}
         </div>
         {showLiveResults && totalVotes > 0 && (
-          <ResultsList answers={answers} totalVotes={totalVotes} />
+          <ResultsList answers={answers} totalVotes={totalVotes} barColors={barColors} />
         )}
         <BrandBug />
       </div>
@@ -244,15 +309,16 @@ export default function ViewerVote() {
   );
 }
 
-function ResultsList({ answers, totalVotes }: { answers: ViewerAnswer[]; totalVotes: number }) {
+function ResultsList({ answers, totalVotes, barColors }: { answers: ViewerAnswer[]; totalVotes: number; barColors?: string[] }) {
   return (
     <div className="space-y-2 text-left">
       <div className="flex items-baseline justify-between">
         <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Live Results</span>
         <span className="text-[10px] font-mono text-muted-foreground">{totalVotes} vote{totalVotes === 1 ? '' : 's'}</span>
       </div>
-      {answers.map((a) => {
+      {answers.map((a, i) => {
         const pct = totalVotes > 0 ? Math.round(((a.live_votes ?? 0) / totalVotes) * 100) : 0;
+        const fill = barColors?.[i % barColors.length];
         return (
           <div key={a.id} className="space-y-1">
             <div className="flex items-baseline justify-between text-xs">
@@ -260,7 +326,10 @@ function ResultsList({ answers, totalVotes }: { answers: ViewerAnswer[]; totalVo
               <span className="font-mono text-muted-foreground">{pct}%</span>
             </div>
             <div className="h-2 rounded-full bg-muted/40 overflow-hidden">
-              <div className="h-full bg-primary transition-all duration-500" style={{ width: `${pct}%` }} />
+              <div
+                className="h-full transition-all duration-500"
+                style={{ width: `${pct}%`, backgroundColor: fill || 'hsl(var(--primary))' }}
+              />
             </div>
           </div>
         );
