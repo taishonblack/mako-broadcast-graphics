@@ -17,7 +17,7 @@ import {
 import {
   Type, ListChecks, AlignLeft, Image as ImageIcon, QrCode,
   Sparkles, Users, Plus, X, GripVertical, ChevronDown, MoreVertical, FolderOpen,
-  Trash2, Camera,
+  Trash2, Camera, Link2,
 } from 'lucide-react';
 import { AnswerType, MCLabelStyle } from '@/components/poll-create/ContentPanel';
 import { AssetId, AssetMeta } from './types';
@@ -277,6 +277,27 @@ export function PollingAssetsPane({
 
             {!isCollapsed && (
               <div className="p-2.5 space-y-2">
+                {isActiveFolder && (
+                  <div className="rounded-md border border-border/60 bg-background/40 px-2.5 py-2">
+                    <div className="flex items-center justify-between mb-1">
+                      <label className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                        <Link2 className="w-3 h-3" />
+                        Viewer Slug
+                      </label>
+                      <span className="text-[9px] font-mono text-muted-foreground/70 truncate max-w-[60%]" title={`makovote.app/vote/${slug || 'your-poll-slug'}`}>
+                        /vote/{slug || 'your-poll-slug'}
+                      </span>
+                    </div>
+                    <Input
+                      value={slug}
+                      onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'))}
+                      placeholder="asl"
+                      className="bg-background/60 h-7 text-[11px] font-mono"
+                      aria-label="Viewer slug for QR destination"
+                    />
+                    <p className="mt-1 text-[9px] text-muted-foreground/70">QR points here. Change per show (ASL, Beyond, DataCast…). When voting is closed viewers see the MakoVote slate.</p>
+                  </div>
+                )}
                  {folderAssets.length === 0 && (
                   <div className="rounded-md border border-dashed border-border/60 bg-background/30 px-3 py-4 text-center">
                      <p className="text-xs text-muted-foreground">Add only the assets you want shown for this folder.</p>
