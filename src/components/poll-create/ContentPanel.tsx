@@ -39,6 +39,8 @@ interface ContentPanelProps {
   setShowThankYou: (v: boolean) => void;
   showFinalResults: boolean;
   setShowFinalResults: (v: boolean) => void;
+  postVoteDelayMs: number;
+  setPostVoteDelayMs: (v: number) => void;
   previewDataMode: PreviewDataMode;
   setPreviewDataMode: (v: PreviewDataMode) => void;
 }
