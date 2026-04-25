@@ -992,6 +992,10 @@ export default function PollCreate() {
   // fullscreen surface so it stays in lockstep without requiring a manual
   // Take/Cut for purely cosmetic edits.
   useEffect(() => {
+    // Always mirror the PROGRAM viewport's transforms to Full Screen Output —
+    // switching the in-app preview tab to Mobile/Desktop must NOT alter what
+    // is being broadcast to the on-air output window.
+    const programTransforms = assetTransformSet.program;
     broadcastOutputState({
       poll: currentWorkspacePoll,
       // Mirror Program Preview directly: the Full Screen Output is meant to
@@ -1006,7 +1010,7 @@ export default function PollCreate() {
         showBranding,
         brandingPosition,
         enabledAssetIds: enabledAssets,
-        transforms: assetTransforms,
+        transforms: programTransforms,
         assetColors,
         wordmarkWeight: assetState.wordmarkWeight,
         wordmarkTracking: assetState.wordmarkTracking,
@@ -1022,7 +1026,7 @@ export default function PollCreate() {
     showBranding,
     brandingPosition,
     enabledAssets,
-    assetTransforms,
+    assetTransformSet,
     assetColors,
   ]);
   // Presence heartbeat — pings open Output windows once per second so the
