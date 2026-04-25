@@ -678,6 +678,7 @@ export default function PollCreate() {
     // through handleTake() (so existing listeners + DB sync stay in sync) AND
     // emit a lock message that freezes Output until End Live.
     handleTake();
+    const folder = getFolderById(folderState, folderState.activeFolderId);
     const snapshot = {
       poll: currentWorkspacePoll,
       scene: previewScene,
@@ -696,6 +697,8 @@ export default function PollCreate() {
         wordmarkTracking: assetState.wordmarkTracking,
         wordmarkScale: assetState.wordmarkScale,
         wordmarkShowGuides: assetState.wordmarkShowGuides,
+        tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
+        tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
       },
     };
     broadcastOutputLock({ locked: true, snapshot, lockedAt: Date.now() });
