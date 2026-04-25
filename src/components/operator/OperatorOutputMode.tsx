@@ -520,6 +520,8 @@ export function OperatorOutputMode({
                     slateText={slateText}
                     slateImage={slateImage}
                     textStyle={slateTextStyle}
+                    sublineText={slateSublineText}
+                    sublineStyle={slateSublineStyle}
                   />
                 </div>
               </div>
@@ -540,6 +542,8 @@ export function OperatorOutputMode({
                 slateText={slateText}
                 slateImage={slateImage}
                 textStyle={slateTextStyle}
+                sublineText={slateSublineText}
+                sublineStyle={slateSublineStyle}
               />
             </div>
           )}
