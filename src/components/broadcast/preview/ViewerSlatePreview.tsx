@@ -1,4 +1,5 @@
 import { PollOption } from '@/lib/types';
+import { QRCodeSVG } from 'qrcode.react';
 
 /**
  * Operator-controlled typography for the polling slate. Drives the headline
@@ -62,6 +63,16 @@ export interface ViewerSlatePreviewProps {
   /** Poll question + options, used when voting is open. */
   question?: string;
   options?: PollOption[];
+  /** Folder asset toggles. Drives Mirror Mode: when `answers` is not in the
+   *  enabled list but `question` or `qr` is, the mobile/desktop preview
+   *  renders the question + QR (matching Program) instead of the answer
+   *  buttons. Mirrors the real viewer's `isMirrorMode` branch so the three
+   *  surfaces (Build, Output, real Viewer) stay visually identical. */
+  enabledAssetIds?: string[];
+  /** Subheadline text mirrored from Program. */
+  subheadline?: string;
+  /** Slug used to render the Mirror Mode QR (defaults to the current page). */
+  slug?: string;
 }
 
 /**
@@ -91,6 +102,9 @@ export function ViewerSlatePreview({
   votingOpen = false,
   question,
   options,
+  enabledAssetIds,
+  subheadline,
+  slug,
 }: ViewerSlatePreviewProps) {
   const NATIVE_W = mode === 'mobile' ? 375 : 1280;
   const NATIVE_H = mode === 'mobile' ? 667 : 800;
@@ -112,7 +126,16 @@ export function ViewerSlatePreview({
   // 2. Slate active with custom text → show that text only (no extra copy)
   // 3. Otherwise → MakoVote wordmark over background
   const hasSlateText = slateActive && (slateText.trim().length > 0 || Boolean(slateImage));
-  const showVoting = votingOpen && options && options.length > 0;
+  // Mirror Mode: folder explicitly toggled answers OFF (but kept question /
+  // qr / etc on). On mobile + desktop we should show the same composition
+  // the program output is rendering — the question text + a QR — instead
+  // of vote buttons.
+  const isMirrorMode = Array.isArray(enabledAssetIds) && !enabledAssetIds.includes('answers');
+  const showVoting = votingOpen && !isMirrorMode && options && options.length > 0;
+  const showMirror = votingOpen && isMirrorMode;
+  const mirrorUrl = typeof window !== 'undefined' && slug
+    ? `${window.location.origin}/vote/${slug}`
+    : slug ? `/vote/${slug}` : '';
 
   return (
     <div
@@ -139,7 +162,37 @@ export function ViewerSlatePreview({
             />
           )}
 
-          {showVoting ? (
+          {showMirror ? (
+            <div className="absolute inset-0 flex flex-col items-center justify-center px-8 gap-6">
+              {question && (
+                <h1
+                  className="text-center leading-tight"
+                  style={{ color: '#ffffff', fontWeight: 700, fontSize: mode === 'mobile' ? 28 : 40, maxWidth: '90%' }}
+                >
+                  {question}
+                </h1>
+              )}
+              {subheadline && (
+                <p
+                  className="text-center"
+                  style={{ color: '#e5e7eb', fontSize: mode === 'mobile' ? 14 : 18, maxWidth: '85%' }}
+                >
+                  {subheadline}
+                </p>
+              )}
+              {mirrorUrl && (
+                <div className="bg-white p-3 rounded-xl">
+                  <QRCodeSVG value={mirrorUrl} size={mode === 'mobile' ? 160 : 220} level="M" />
+                </div>
+              )}
+              <p
+                className="font-mono uppercase tracking-wider opacity-80"
+                style={{ color: '#e5e7eb', fontSize: mode === 'mobile' ? 10 : 12 }}
+              >
+                Scan to follow along
+              </p>
+            </div>
+          ) : showVoting ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center px-8 gap-6">
               {question && (
                 <h1
