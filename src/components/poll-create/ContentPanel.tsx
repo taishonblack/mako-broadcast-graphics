@@ -75,6 +75,7 @@ export function ContentPanel({
   autoClose, setAutoClose,
   showThankYou, setShowThankYou,
   showFinalResults, setShowFinalResults,
+  postVoteDelayMs, setPostVoteDelayMs,
   previewDataMode, setPreviewDataMode,
 }: ContentPanelProps) {
 
