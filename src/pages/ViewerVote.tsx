@@ -230,7 +230,8 @@ export default function ViewerVote() {
   const totalVotes = useMemo(() => answers.reduce((sum, a) => sum + (a.live_votes ?? 0), 0), [answers]);
   const showLiveResults = Boolean(poll?.show_live_results);
   const showThankYou = poll?.show_thank_you !== false; // default on
-  const showFinalResults = Boolean(poll?.show_final_results);
+  // Final results are no longer rendered on close — operator-stop reverts
+  // viewers to the MakoVote slate per product spec.
 
   // Operator-assigned colors. Falls back to the design tokens used in the
   // existing viewer if the operator hasn't customized anything.
