@@ -90,7 +90,7 @@ interface OperatorOutputModeProps {
   onRescanPolls?: () => void;
   /** Notify parent when the operator toggles the Polling Slate on/off so it
    *  can broadcast the slate state to public viewers (mobile/desktop). */
-  onSlateActiveChange?: (active: boolean) => void;
+  onSlateActiveChange?: (active: boolean, slate?: { text: string; sublineText: string; image?: string | null }) => void;
   onQrSizeChange: (size: number) => void;
   onQrPositionChange: (position: QRPosition) => void;
   onShowBrandingChange: (show: boolean) => void;
@@ -465,7 +465,11 @@ export function OperatorOutputMode({
   const handleToggleSlate = () => {
     setSlateActive((v) => {
       const next = !v;
-      onSlateActiveChange?.(next);
+      onSlateActiveChange?.(next, {
+        text: slateText,
+        sublineText: slateSublineText,
+        image: slateImage ?? null,
+      });
       return next;
     });
   };
@@ -475,9 +479,8 @@ export function OperatorOutputMode({
   useEffect(() => {
     if (votingState === 'open' && slateActive) {
       setSlateActive(false);
-      onSlateActiveChange?.(false);
     }
-  }, [votingState, slateActive, onSlateActiveChange]);
+  }, [votingState, slateActive]);
 
   const handleOpenOutputClick = () => {
     const win = onOpenOutput();
