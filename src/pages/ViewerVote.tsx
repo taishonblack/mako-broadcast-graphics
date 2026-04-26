@@ -254,8 +254,7 @@ export default function ViewerVote() {
   // "Polling is Closed" screen. The flag rides on the live snapshot so we
   // only render the slate when the operator explicitly turned it on for
   // this poll's slug.
-  const slateBroadcastActive = Boolean(snapshot?.slateActive)
-    && (snapshot?.poll?.slug === slug);
+  const slateBroadcastActive = Boolean(snapshot?.slateActive);
 
   const bgStyle: React.CSSProperties = poll?.bg_image
     ? { backgroundImage: `url(${poll.bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
@@ -272,7 +271,7 @@ export default function ViewerVote() {
 
   // ---- Polling Slate broadcast (operator pressed "Polling Slate") ----
   // Render the operator's slate copy/image instead of MakoVote.
-  if (slateBroadcastActive && status !== 'open') {
+  if (slateBroadcastActive) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
         <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10 w-full max-w-sm">
@@ -338,31 +337,6 @@ export default function ViewerVote() {
   }
 
   // ---- Active voting ----
-  if (status === 'open' && isMirrorMode) {
-    const voteUrl = typeof window !== 'undefined'
-      ? `${window.location.origin}/vote/${slug}`
-      : `/vote/${slug}`;
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 animate-fade-in" style={bgStyle}>
-        <div className="w-full max-w-sm space-y-8 bg-background/40 backdrop-blur-md rounded-2xl p-6 border border-white/10 text-center">
-          <h1 className="text-2xl font-bold leading-tight" style={{ color: questionColor || 'hsl(var(--foreground))' }}>
-            {poll?.question || snapshot?.poll?.question || 'Stand by'}
-          </h1>
-          {poll?.subheadline && (
-            <p className="text-sm" style={{ color: subColor || 'hsl(var(--muted-foreground))' }}>{poll.subheadline}</p>
-          )}
-          <div className="bg-white p-4 rounded-xl inline-block">
-            <QRCodeSVG value={voteUrl} size={180} level="M" />
-          </div>
-          <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-            Scan to follow along
-          </p>
-          <BrandBug />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 animate-fade-in" style={bgStyle}>
       <div className="w-full max-w-sm space-y-8 bg-background/40 backdrop-blur-md rounded-2xl p-6 border border-white/10">
