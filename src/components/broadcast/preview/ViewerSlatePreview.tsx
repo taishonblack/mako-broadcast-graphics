@@ -1,5 +1,4 @@
 import { PollOption } from '@/lib/types';
-import { QRCodeSVG } from 'qrcode.react';
 import { AssetColorMap, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
 import { getAssetTransformStyle } from '@/lib/asset-transforms';
 
@@ -141,16 +140,24 @@ export function ViewerSlatePreview({
   // 2. Slate active with custom text → show that text only (no extra copy)
   // 3. Otherwise → MakoVote wordmark over background
   const hasSlateText = slateActive && (slateText.trim().length > 0 || Boolean(slateImage));
-  // Mirror Mode: folder explicitly toggled answers OFF (but kept question /
-  // qr / etc on). On mobile + desktop we should show the same composition
-  // the program output is rendering — the question text + a QR — instead
-  // of vote buttons.
-  const isMirrorMode = Array.isArray(enabledAssetIds) && !enabledAssetIds.includes('answers');
-  const showVoting = votingOpen && !isMirrorMode && options && options.length > 0;
-  const showMirror = votingOpen && isMirrorMode;
-  const mirrorUrl = typeof window !== 'undefined' && slug
-    ? `${window.location.origin}/vote/${slug}`
-    : slug ? `/vote/${slug}` : '';
+  // Folder render rules (Build → Mobile/Desktop, Output → Mobile/Desktop):
+  //
+  // - QR-folder      (folder contains `qr`):  Program shows QR-only; here on
+  //   mobile/desktop we render the actual vote-input buttons (Yes/No or
+  //   multiple choice). The QR itself is **never** drawn on mobile/desktop —
+  //   the device IS the QR destination.
+  // - Bars-folder    (folder contains `answers` but NOT `qr`): Program shows
+  //   live bars; mobile/desktop show the MakoVote wordmark (no polling UI
+  //   to interact with — viewers are just watching results).
+  // - Other          (text/branding only): MakoVote wordmark fallback.
+  const enabledList = Array.isArray(enabledAssetIds) ? enabledAssetIds : null;
+  const folderHasQR = enabledList ? enabledList.includes('qr') : false;
+  const folderHasAnswers = enabledList ? enabledList.includes('answers') : true;
+  // When the folder has a QR asset, mobile/desktop should always offer the
+  // vote input — even outside an "Open Voting" gesture — because that's the
+  // whole point of the QR being live. When it has bars but no QR, suppress
+  // vote UI entirely (folder is for results display only).
+  const showVoting = (votingOpen || folderHasQR) && folderHasQR && options && options.length > 0;
 
   // Resolve colors from the active viewport's asset color map. Falls back to
   // the previous hard-coded white / light-gray values so existing previews
@@ -192,7 +199,7 @@ export function ViewerSlatePreview({
             />
           )}
 
-          {showMirror ? (
+          {showVoting ? (
             <div className="absolute inset-0 flex flex-col items-center justify-center px-8 gap-6">
               {question && (
                 <h1
@@ -209,28 +216,6 @@ export function ViewerSlatePreview({
                 >
                   {subheadline}
                 </p>
-              )}
-              {mirrorUrl && (
-                <div className="bg-white p-3 rounded-xl">
-                  <QRCodeSVG value={mirrorUrl} size={mode === 'mobile' ? 160 : 220} level="M" />
-                </div>
-              )}
-              <p
-                className="font-mono uppercase tracking-wider opacity-80"
-                style={{ color: subheadlineColor, fontSize: mode === 'mobile' ? 10 : 12 }}
-              >
-                Scan to follow along
-              </p>
-            </div>
-          ) : showVoting ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center px-8 gap-6">
-              {question && (
-                <h1
-                  className="text-center leading-tight"
-                  style={{ color: questionColor, fontWeight: 700, fontSize: mode === 'mobile' ? 28 : 40, maxWidth: '90%', ...questionTransformStyle }}
-                >
-                  {question}
-                </h1>
               )}
               <div className="w-full max-w-[420px] space-y-3" style={answersTransformStyle}>
                 {options!.map((opt, i) => (

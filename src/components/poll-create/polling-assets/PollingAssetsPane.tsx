@@ -17,14 +17,14 @@ import {
 import {
   Type, ListChecks, AlignLeft, Image as ImageIcon, QrCode,
   Sparkles, Users, Plus, X, GripVertical, ChevronDown, MoreVertical, FolderOpen,
-  Trash2, Camera, Link2,
+  Trash2, Camera, Link2, Copy,
 } from 'lucide-react';
 import { AnswerType, MCLabelStyle } from '@/components/poll-create/ContentPanel';
 import { AssetId, AssetMeta } from './types';
 import { BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-persistence';
 
 export const ASSET_REGISTRY: Record<AssetId, AssetMeta> = {
-  question:    { id: 'question',    label: 'Question Text', icon: Type,        description: 'Main on-air question shown above answers' },
+  question:    { id: 'question',    label: 'Text',          icon: Type,        description: 'On-air text — question, prompt, lower-third, etc.' },
   answers:     { id: 'answers',     label: 'Answer Bars',   icon: ListChecks,  description: 'Voter response options and labels' },
   subheadline: { id: 'subheadline', label: 'Subheadline',   icon: AlignLeft,   description: 'Optional secondary line beneath the question' },
   background:  { id: 'background',  label: 'Background',    icon: ImageIcon,   description: 'Solid color or uploaded image backdrop' },
@@ -50,6 +50,8 @@ interface PollingAssetsPaneProps {
   onSetFolderBlock: (folderId: string, next: BlockLetter) => void;
   onDeleteFolder: (folderId: string) => void;
   onToggleFolderCollapse: (folderId: string) => void;
+  /** Clone the folder (assets, slug, tally, background) and select it. */
+  onDuplicateFolder?: (folderId: string) => void;
   blockLetter: BlockLetter;
   onBlockLetterChange: (next: BlockLetter) => void;
 
@@ -77,6 +79,7 @@ export function PollingAssetsPane({
   onSetFolderBlock,
   onDeleteFolder,
   onToggleFolderCollapse,
+  onDuplicateFolder,
   blockLetter, onBlockLetterChange,
   question, setQuestion,
   subheadline, setSubheadline,
@@ -236,6 +239,16 @@ export function PollingAssetsPane({
                   >
                     Rename
                   </DropdownMenuItem>
+                  {onDuplicateFolder && (
+                    <DropdownMenuItem
+                      aria-label={`Duplicate folder ${folder.name}`}
+                      onClick={() => onDuplicateFolder(folder.id)}
+                      className="gap-2"
+                    >
+                      <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                      Duplicate Folder
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuLabel className="text-[10px] uppercase font-mono">Set Block</DropdownMenuLabel>
                   <DropdownMenuRadioGroup value={folder.blockLetter}>
                     {BLOCK_LETTERS.map((letter) => (
