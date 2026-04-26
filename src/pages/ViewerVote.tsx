@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { QRCodeSVG } from 'qrcode.react';
 
 type ViewerStatus = 'loading' | 'not_found' | 'not_open' | 'open' | 'closed';
 
@@ -245,10 +244,6 @@ export default function ViewerVote() {
   // has answer bars but no viewer answer type / QR entry point, show a mirror
   // slate instead of vote buttons. Folders with `answerType` or `qr` collect
   // votes and must render the answer UI when voting is open.
-  const enabled = snapshot?.assets?.enabledAssetIds;
-  const folderCollectsVotes = Array.isArray(enabled) && (enabled.includes('answerType') || enabled.includes('qr'));
-  const isMirrorMode = Array.isArray(enabled) && !folderCollectsVotes;
-
   // Operator broadcast: when the Polling Slate button is ON, show the
   // operator-authored slate text/image instead of MakoVote branding or the
   // "Polling is Closed" screen. The flag rides on the live snapshot so we
