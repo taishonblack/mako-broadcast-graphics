@@ -74,6 +74,9 @@ interface ViewerSnapshot {
   /** Operator pressed "Polling Slate" — viewer should render the slate
    *  text/image instead of the MakoVote branding or the "Closed" screen. */
   slateActive?: boolean;
+  /** Optional explicit viewer mode. When set to "mirror", the viewer mirrors
+   *  the operator's program composition instead of rendering vote buttons. */
+  viewerMode?: 'mirror' | 'vote';
 }
 
 type LiveStateRow = {
