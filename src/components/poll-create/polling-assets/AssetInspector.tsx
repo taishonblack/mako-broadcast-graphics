@@ -146,8 +146,24 @@ export function AssetInspector(p: AssetInspectorProps) {
           </div>
         )}
 
-        {id === 'answers' && (
+        {(id === 'answers' || id === 'answerType') && (
           <div className="space-y-3">
+            {id === 'answerType' && p.onConvertAnswerTypeToBars && (
+              <div className="rounded-md border border-primary/30 bg-primary/5 p-2.5 space-y-1.5">
+                <p className="text-[10px] text-muted-foreground leading-tight">
+                  This is the on-device vote input. When you're ready to reveal results, convert it to Answer Bars — the QR in this folder will be muted.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="w-full h-7 text-[10px]"
+                  onClick={p.onConvertAnswerTypeToBars}
+                >
+                  Convert to Answer Bars
+                </Button>
+              </div>
+            )}
             <div className="space-y-1">
               <Label className="text-[10px] text-muted-foreground">Answer Type</Label>
               <div className="grid grid-cols-3 gap-1">
