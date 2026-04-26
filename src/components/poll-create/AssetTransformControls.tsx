@@ -294,6 +294,7 @@ function getAssetLabel(assetId: AssetId) {
   switch (assetId) {
     case 'question': return 'Question Text';
     case 'answers': return 'Answer Bars';
+    case 'answerType': return 'Answer Type';
     case 'subheadline': return 'Subheadline';
     case 'background': return 'Background';
     case 'qr': return 'QR Code';
@@ -309,11 +310,15 @@ function getTemplateBarColor(index: number) {
 
 function getTemplateColors(assetId: AssetId, answerCount: number): AssetColorConfig {
   const base = DEFAULT_ASSET_COLORS[assetId] ?? {};
-  if (assetId !== 'answers') return { ...base };
+  if (assetId !== 'answers' && assetId !== 'answerType') return { ...base };
 
+  const defaultBars = base.barColors ?? ['hsl(0 0% 100%)'];
   return {
     ...base,
-    barColors: Array.from({ length: Math.max(answerCount, 1) }, (_, index) => getTemplateBarColor(index)),
+    barColors: Array.from(
+      { length: Math.max(answerCount, 1) },
+      (_, index) => assetId === 'answers' ? getTemplateBarColor(index) : (defaultBars[index % defaultBars.length] ?? defaultBars[0]),
+    ),
   };
 }
 
@@ -358,6 +363,15 @@ function buildColorSections(assetId: AssetId, colors: AssetColorConfig | undefin
         assetId,
         label: 'Answer bars',
         fields: barColors.map((value, index) => createField({ key: 'barColors', label: `Bar ${index + 1}`, value, index })),
+      }];
+    case 'answerType':
+      return [{
+        assetId,
+        label: 'Voter buttons',
+        fields: [
+          createField({ key: 'textPrimary', label: 'Text', value: textPrimary }),
+          ...barColors.map((value, index) => createField({ key: 'barColors', label: `Choice ${index + 1} bg`, value, index })),
+        ],
       }];
     case 'subheadline':
       return [{ assetId, label: 'Subheadline', fields: [createField({ key: 'textSecondary', label: 'Text', value: textSecondary })] }];
