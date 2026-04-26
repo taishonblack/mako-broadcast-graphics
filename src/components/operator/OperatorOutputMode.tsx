@@ -1067,6 +1067,25 @@ export function OperatorOutputMode({
                   <RefreshCw className="h-3.5 w-3.5" /> Re-scan Polls
                 </Button>
               ) : null}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start gap-2 text-xs"
+                    onClick={handleRunTransitionTest}
+                    disabled={transitionTesting}
+                  >
+                    <FlaskConical className={`h-3.5 w-3.5 ${transitionTesting ? 'animate-pulse' : ''}`} />
+                    {transitionTesting ? 'Testing viewer…' : 'Run Viewer Transition Test'}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-xs">
+                  Opens voting on the active poll, polls the public viewer
+                  state, and reports whether mobile/desktop voters would see
+                  answer types appear after Go Live.
+                </TooltipContent>
+              </Tooltip>
               <Button
                 variant="outline"
                 size="sm"
