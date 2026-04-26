@@ -191,16 +191,15 @@ export default function ViewerVote() {
         const row = payload.new as { voting_state?: string; active_poll_id?: string | null; live_poll_snapshot?: ViewerSnapshot | null } | undefined;
         if (!row) return;
         const snapshotPoll = row.live_poll_snapshot?.poll;
-        const isThisPollLive = !row.active_poll_id || row.active_poll_id === poll.id || snapshotPoll?.slug === slug;
+        const snapshotMatchesSlug = snapshotPoll?.slug === slug;
+        const isThisPollLive = !row.active_poll_id || row.active_poll_id === poll.id || snapshotMatchesSlug;
         if (row.live_poll_snapshot !== undefined) setSnapshot(row.live_poll_snapshot ?? null);
+        if (snapshotMatchesSlug) {
+          const snapshotPollRow = pollFromLiveSnapshot(row, slug);
+          if (snapshotPollRow) setPoll((current) => ({ ...snapshotPollRow, ...current, id: snapshotPollRow.id }));
+        }
         if (snapshotPoll?.options?.length) {
-          setAnswers(snapshotPoll.options.map((option, index) => ({
-            id: option.id,
-            label: option.text || `Answer ${index + 1}`,
-            short_label: option.shortLabel || '',
-            sort_order: option.order ?? index,
-            live_votes: option.votes ?? 0,
-          })));
+          setAnswers(answersFromSnapshot(snapshotPoll));
         }
         if (row.voting_state === 'open' && isThisPollLive) setStatus('open');
         else if (row.voting_state === 'closed' && isThisPollLive) setStatus('closed');
