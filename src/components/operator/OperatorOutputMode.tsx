@@ -462,7 +462,13 @@ export function OperatorOutputMode({
     };
   }, [voteScheduledFor, onOpenVoting]);
 
-  const handleToggleSlate = () => setSlateActive((v) => !v);
+  const handleToggleSlate = () => {
+    setSlateActive((v) => {
+      const next = !v;
+      onSlateActiveChange?.(next);
+      return next;
+    });
+  };
 
   const handleOpenOutputClick = () => {
     const win = onOpenOutput();
