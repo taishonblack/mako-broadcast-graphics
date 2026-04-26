@@ -1632,6 +1632,21 @@ export default function PollCreate() {
     toast.success('Folder duplicated');
   };
 
+  /** Toggle an asset's inactive flag (used by the dimmed asset card). */
+  const handleToggleAssetInactive = (folderId: string, assetId: AssetId, inactive: boolean) => {
+    updateFolderState((current) => setAssetInactive(current, folderId, assetId, inactive));
+    toast.success(inactive ? 'Asset muted' : 'Asset reactivated');
+  };
+
+  /** Fired by the Answer Type inspector — swaps answerType→answers and
+   *  marks any QR in the folder as inactive. One-way (operator can re-add
+   *  Answer Type from the + menu if they want to swap back). */
+  const handleConvertAnswerTypeToBars = (folderId: string) => {
+    updateFolderState((current) => convertAnswerTypeToBars(current, folderId));
+    setSelectedAssetId('answers');
+    toast.success('Converted to Answer Bars — QR muted');
+  };
+
   const handleAddAnswer = () => {
     if (answerType === 'yes-no' || answers.length >= 4) return;
     // Add the new bar and re-equalize so all bars share 100% evenly.
