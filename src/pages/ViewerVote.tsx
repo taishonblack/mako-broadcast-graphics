@@ -42,7 +42,13 @@ interface ViewerSnapshotAssets {
 }
 
 interface ViewerSnapshot {
-  poll?: { question?: string };
+  poll?: {
+    id?: string;
+    slug?: string;
+    question?: string;
+    subheadline?: string;
+    options?: Array<{ id: string; text?: string; shortLabel?: string; votes?: number; order?: number }>;
+  };
   assets?: ViewerSnapshotAssets;
 }
 
@@ -94,8 +100,20 @@ export default function ViewerVote() {
 
       const live = (liveStateRes as { data: { voting_state?: string; active_poll_id?: string | null; live_poll_snapshot?: ViewerSnapshot | null } | null }).data;
       const votingState = live?.voting_state ?? 'not_open';
-      const isThisPollLive = !live || live.active_poll_id === pollRow.id;
+      const liveSnapshot = live?.live_poll_snapshot;
+      const snapshotPoll = liveSnapshot?.poll;
+      const snapshotMatchesSlug = snapshotPoll?.slug === slug;
+      const isThisPollLive = !live || live.active_poll_id === pollRow.id || snapshotMatchesSlug;
       if (live?.live_poll_snapshot) setSnapshot(live.live_poll_snapshot);
+      if ((answerRows ?? []).length === 0 && snapshotPoll?.options?.length) {
+        setAnswers(snapshotPoll.options.map((option, index) => ({
+          id: option.id,
+          label: option.text || `Answer ${index + 1}`,
+          short_label: option.shortLabel || '',
+          sort_order: option.order ?? index,
+          live_votes: option.votes ?? 0,
+        })));
+      }
 
       if (votingState === 'open' && isThisPollLive) setStatus('open');
       else if (votingState === 'closed' && isThisPollLive) setStatus('closed');
@@ -119,8 +137,18 @@ export default function ViewerVote() {
       .on('postgres_changes', { event: '*', schema: 'public', table: 'project_live_state', filter: poll.project_id ? `project_id=eq.${poll.project_id}` : undefined }, (payload) => {
         const row = payload.new as { voting_state?: string; active_poll_id?: string | null; live_poll_snapshot?: ViewerSnapshot | null } | undefined;
         if (!row) return;
-        const isThisPollLive = !row.active_poll_id || row.active_poll_id === poll.id;
+        const snapshotPoll = row.live_poll_snapshot?.poll;
+        const isThisPollLive = !row.active_poll_id || row.active_poll_id === poll.id || snapshotPoll?.slug === slug;
         if (row.live_poll_snapshot !== undefined) setSnapshot(row.live_poll_snapshot ?? null);
+        if (snapshotPoll?.options?.length) {
+          setAnswers(snapshotPoll.options.map((option, index) => ({
+            id: option.id,
+            label: option.text || `Answer ${index + 1}`,
+            short_label: option.shortLabel || '',
+            sort_order: option.order ?? index,
+            live_votes: option.votes ?? 0,
+          })));
+        }
         if (row.voting_state === 'open' && isThisPollLive) setStatus('open');
         else if (row.voting_state === 'closed' && isThisPollLive) setStatus('closed');
         else setStatus('not_open');
@@ -156,11 +184,13 @@ export default function ViewerVote() {
   const subColor = colors?.subheadline?.textSecondary;
   const barColors = colors?.answers?.barColors;
 
-  // QR-only / no-answers folders mirror the Program composition: show the
-  // question text + a QR (the same slug the viewer is already on) without
-  // any vote UI. Useful for "tease the question" segments.
+  // Results-only folders mirror the Program composition: if the live folder
+  // has answer bars but no viewer answer type / QR entry point, show a mirror
+  // slate instead of vote buttons. Folders with `answerType` or `qr` collect
+  // votes and must render the answer UI when voting is open.
   const enabled = snapshot?.assets?.enabledAssetIds;
-  const isMirrorMode = Array.isArray(enabled) && !enabled.includes('answers');
+  const folderCollectsVotes = Array.isArray(enabled) && (enabled.includes('answerType') || enabled.includes('qr'));
+  const isMirrorMode = Array.isArray(enabled) && !folderCollectsVotes;
 
   const bgStyle: React.CSSProperties = poll?.bg_image
     ? { backgroundImage: `url(${poll.bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
