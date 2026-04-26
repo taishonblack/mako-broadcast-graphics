@@ -51,6 +51,10 @@ interface AssetInspectorProps {
   /** Fires the Convert-to-Bars action on the active folder. Shown only on
    *  the Answer Type asset panel. */
   onConvertAnswerTypeToBars?: () => void;
+  /** Fires the reverse Convert-to-Answer-Type action. Shown only on the
+   *  Answer Bars asset panel so the operator can flip back to vote-input
+   *  mode without rebuilding the folder. */
+  onConvertAnswerBarsToAnswerType?: () => void;
 }
 
 export function AssetInspector(p: AssetInspectorProps) {
@@ -184,6 +188,22 @@ export function AssetInspector(p: AssetInspectorProps) {
                   onClick={p.onConvertAnswerTypeToBars}
                 >
                   Convert to Answer Bars
+                </Button>
+              </div>
+            )}
+            {id === 'answers' && p.onConvertAnswerBarsToAnswerType && (
+              <div className="rounded-md border border-primary/30 bg-primary/5 p-2.5 space-y-1.5">
+                <p className="text-[10px] text-muted-foreground leading-tight">
+                  Need to collect votes again? Convert back to Answer Type — the on-device vote buttons return and the QR in this folder is re-activated.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="w-full h-7 text-[10px]"
+                  onClick={p.onConvertAnswerBarsToAnswerType}
+                >
+                  Convert to Answer Type
                 </Button>
               </div>
             )}

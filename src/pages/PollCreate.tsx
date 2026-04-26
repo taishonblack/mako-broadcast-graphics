@@ -54,6 +54,7 @@ import {
   duplicateFolder,
   setAssetInactive,
   convertAnswerTypeToBars,
+  convertAnswerBarsToAnswerType,
   findAssetFolder,
   getFolderById,
   loadProjectPollingAssetFolders,
@@ -1682,6 +1683,14 @@ export default function PollCreate() {
     toast.success('Converted to Answer Bars — QR muted');
   };
 
+  /** Reverse: swap an `answers` asset back to `answerType` and re-activate
+   *  any muted QR so the folder collects votes again. */
+  const handleConvertAnswerBarsToAnswerType = (folderId: string) => {
+    updateFolderState((current) => convertAnswerBarsToAnswerType(current, folderId));
+    setSelectedAssetId('answerType');
+    toast.success('Converted to Answer Type — QR re-activated');
+  };
+
   const handleAddAnswer = () => {
     if (answerType === 'yes-no' || answers.length >= 4) return;
     // Add the new bar and re-equalize so all bars share 100% evenly.
@@ -1971,6 +1980,8 @@ export default function PollCreate() {
             enabledAssetIds={enabledAssets}
             assetColors={assetColors}
             assetTransforms={assetTransforms}
+            assetColorSet={assetColorSet}
+            assetTransformSet={assetTransformSet}
             onSelectBlock={(letter) => {
               setOutputActiveBlock(letter);
               setOutputBlockSource(outputBlockPinned ? 'pinned' : 'manual');
@@ -2182,6 +2193,9 @@ export default function PollCreate() {
                       }}
                       onConvertAnswerTypeToBars={() => {
                         if (folderState.activeFolderId) handleConvertAnswerTypeToBars(folderState.activeFolderId);
+                      }}
+                      onConvertAnswerBarsToAnswerType={() => {
+                        if (folderState.activeFolderId) handleConvertAnswerBarsToAnswerType(folderState.activeFolderId);
                       }}
                     />
                   </Pane>

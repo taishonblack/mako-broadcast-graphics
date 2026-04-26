@@ -140,6 +140,39 @@ export function convertAnswerTypeToBars(state: PollingAssetFolderState, folderId
   };
 }
 
+/**
+ * Reverse of `convertAnswerTypeToBars` — swaps the `answers` (results bars)
+ * asset back to `answerType` (on-device vote input) and re-activates any
+ * previously-muted QR in the folder so viewers can vote again.
+ */
+export function convertAnswerBarsToAnswerType(state: PollingAssetFolderState, folderId: string): PollingAssetFolderState {
+  return {
+    ...state,
+    folders: state.folders.map((folder) => {
+      if (folder.id !== folderId) return folder;
+      const idx = folder.assetIds.indexOf('answers');
+      const nextAssetIds = [...folder.assetIds];
+      if (idx >= 0) {
+        if (nextAssetIds.includes('answerType')) {
+          nextAssetIds.splice(idx, 1);
+        } else {
+          nextAssetIds[idx] = 'answerType';
+        }
+      } else if (!nextAssetIds.includes('answerType')) {
+        nextAssetIds.push('answerType');
+      }
+      // Re-activate the QR so the folder can collect votes again.
+      const inactive = new Set(folder.inactiveAssetIds ?? []);
+      inactive.delete('qr');
+      return {
+        ...folder,
+        assetIds: nextAssetIds,
+        inactiveAssetIds: Array.from(inactive),
+      };
+    }),
+  };
+}
+
 /** Toggle the inactive flag on a single asset within a folder. Used by the
  *  inactive-card "Re-activate" button in the QR inspector. */
 export function setAssetInactive(state: PollingAssetFolderState, folderId: string, assetId: AssetId, inactive: boolean): PollingAssetFolderState {
