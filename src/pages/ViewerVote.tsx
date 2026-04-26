@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { AlertTriangle, CheckCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 type ViewerStatus = 'loading' | 'not_found' | 'not_open' | 'open' | 'closed';
@@ -133,6 +133,7 @@ export default function ViewerVote() {
    *  snapshot. When present we apply them so mobile/desktop voters see the
    *  same palette as the on-air program. */
   const [snapshot, setSnapshot] = useState<ViewerSnapshot | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const applyLiveStateRow = useCallback((row?: LiveStateRow | null) => {
     const voting_state = row?.voting_state ?? 'not_open';
@@ -154,6 +155,24 @@ export default function ViewerVote() {
     setAnswers(answersFromSnapshot(live_poll_snapshot.poll));
     setStatus(voting_state === 'open' ? 'open' : 'closed');
   }, [slug]);
+
+  // Manual refetch — voters on flaky networks can tap this to force a
+  // re-pull of project_live_state and immediately rerun the slate/open
+  // decision without waiting for the 2s polling tick or realtime event.
+  const refreshNow = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const { data: liveRows } = await supabase
+        .from('project_live_state')
+        .select('project_id, voting_state, active_poll_id, live_poll_snapshot')
+        .in('voting_state', ['open', 'closed']);
+      const rows = (liveRows ?? []) as LiveStateRow[];
+      const liveMatch = rows.find((row) => Boolean(row.live_poll_snapshot));
+      applyLiveStateRow(liveMatch ?? null);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [applyLiveStateRow]);
 
   useEffect(() => {
     let cancelled = false;
