@@ -56,6 +56,29 @@ interface AssetInspectorProps {
 export function AssetInspector(p: AssetInspectorProps) {
   const id = p.selectedAssetId;
   const [draggedAnswerId, setDraggedAnswerId] = useState<string | null>(null);
+  // Live validation for AnswerType choices: flag empty and duplicate (case-
+  // insensitive, trimmed) entries so the operator can't ship a poll with
+  // ambiguous voter buttons.
+  const answerTypeIssues = (() => {
+    if (id !== 'answerType') return new Map<string, 'empty' | 'duplicate'>();
+    const issues = new Map<string, 'empty' | 'duplicate'>();
+    const seen = new Map<string, string>(); // normalized -> first answer id
+    p.answers.forEach((a) => {
+      const norm = a.text.trim().toLowerCase();
+      if (!norm) {
+        issues.set(a.id, 'empty');
+        return;
+      }
+      if (seen.has(norm)) {
+        issues.set(a.id, 'duplicate');
+        const firstId = seen.get(norm)!;
+        if (!issues.has(firstId)) issues.set(firstId, 'duplicate');
+      } else {
+        seen.set(norm, a.id);
+      }
+    });
+    return issues;
+  })();
   const hl = (field: string) =>
     p.highlightField === field
       ? 'ring-2 ring-primary/70 animate-pulse'
@@ -206,12 +229,16 @@ export function AssetInspector(p: AssetInspectorProps) {
 
             <div className="space-y-1.5">
               <Label className="text-[10px] text-muted-foreground">
-                {id === 'answerType' ? 'Possible Answers' : 'Answers · Test Votes'}
+                {id === 'answerType' ? 'Choices' : 'Answers · Test Votes'}
               </Label>
               {p.answers.map((a, i) => (
                 <div
                   key={a.id}
-                  className="flex items-center gap-1.5 rounded-md border border-border/40 bg-accent/30 p-1.5"
+                  className={`flex items-center gap-1.5 rounded-md border bg-accent/30 p-1.5 ${
+                    answerTypeIssues.has(a.id)
+                      ? 'border-destructive/60 ring-1 ring-destructive/30'
+                      : 'border-border/40'
+                  }`}
                   onDragOver={(event) => {
                     if (!draggedAnswerId) return;
                     event.preventDefault();
@@ -243,9 +270,12 @@ export function AssetInspector(p: AssetInspectorProps) {
                       next[i] = { ...next[i], text: e.target.value };
                       p.setAnswers(next);
                     }}
-                    placeholder={`Answer ${i + 1}`}
+                    placeholder={id === 'answerType' ? `Choice ${i + 1}` : `Answer ${i + 1}`}
                     disabled={id !== 'answerType' && p.answerType === 'yes-no'}
-                    className="bg-background/50 h-7 text-[11px] flex-1"
+                    className={`bg-background/50 h-7 text-[11px] flex-1 ${
+                      answerTypeIssues.has(a.id) ? 'border-destructive/60' : ''
+                    }`}
+                    aria-invalid={answerTypeIssues.has(a.id) || undefined}
                   />
                   {id === 'answers' && (
                   <div className="flex items-center gap-0.5">
@@ -282,6 +312,19 @@ export function AssetInspector(p: AssetInspectorProps) {
                   </button>
                 </div>
               ))}
+              {id === 'answerType' && answerTypeIssues.size > 0 && (
+                <ul className="space-y-0.5 text-[9px] text-destructive">
+                  {p.answers.map((a, i) => {
+                    const issue = answerTypeIssues.get(a.id);
+                    if (!issue) return null;
+                    return (
+                      <li key={a.id} className="leading-tight">
+                        Choice {i + 1}: {issue === 'empty' ? 'text is required.' : 'duplicate of another choice.'}
+                      </li>
+                    );
+                  })}
+                </ul>
+              )}
               {(id === 'answerType' || (p.answerType !== 'yes-no' && p.answers.length < 4)) && (
                 <Button
                   variant="outline" size="sm"
@@ -294,7 +337,7 @@ export function AssetInspector(p: AssetInspectorProps) {
                   }}
                   className="w-full h-7 text-[10px] gap-1"
                 >
-                  <PlusCircle className="w-3 h-3" /> Add Answer
+                  <PlusCircle className="w-3 h-3" /> {id === 'answerType' ? 'Add Choice' : 'Add Answer'}
                 </Button>
               )}
               {id === 'answerType' && (

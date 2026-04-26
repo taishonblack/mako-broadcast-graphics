@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect, useCallback } from 'react';
+import { useState, useMemo, useEffect, useCallback, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { AnswerType, MCLabelStyle, PreviewDataMode } from '@/components/poll-create/ContentPanel';
@@ -273,6 +273,11 @@ export default function PollCreate() {
   const [mode, setMode] = useState<OperatorMode>(searchParams.get('mode') === 'output' ? 'output' : 'build');
   const [projectPolls, setProjectPolls] = useState<SavedPoll[]>([]);
   const [outputActiveBlock, setOutputActiveBlock] = useState<BlockLetter>(() => loadPersistedOutputBlock().block);
+  // Snapshot of the active folder list, kept current via an effect after
+  // `folderState` is declared further down. Used by save handlers (which
+  // are defined before `folderState`) to validate Answer Type choices
+  // without forming a forward dependency.
+  const foldersRef = useRef<PollingAssetFolderState['folders']>([]);
   const [outputBlockPinned, setOutputBlockPinned] = useState<boolean>(() => loadPersistedOutputBlock().pinned);
   const [outputBlockSource, setOutputBlockSource] = useState<OutputBlockSource>(() => (
     loadPersistedOutputBlock().pinned ? 'pinned' : 'default'
@@ -436,6 +441,31 @@ export default function PollCreate() {
   const persistProjectSave = useCallback(async (selectedProjectId: string, selectedProjectName?: string, source: 'manual' | 'autosave' = 'manual') => {
     if (!user) { toast.error('Please sign in first'); return false; }
 
+    // Block saves (manual + autosave) when any folder uses the Answer Type
+    // asset and its choices are empty or duplicated. Voter buttons must be
+    // unambiguous before the poll can be persisted. Read folders via the
+    // ref so this callback doesn't need to depend on folderState (which is
+    // declared further down in the component).
+    const folders = foldersRef.current;
+    const anyFolderUsesAnswerType = folders.some((f) =>
+      f.assetIds.includes('answerType') && !(f.inactiveAssetIds ?? []).includes('answerType')
+    );
+    if (anyFolderUsesAnswerType) {
+      const seen = new Map<string, number>();
+      for (let i = 0; i < answers.length; i += 1) {
+        const norm = answers[i].text.trim().toLowerCase();
+        if (!norm) {
+          toast.error(`Answer Type · Choice ${i + 1} is empty.`);
+          return false;
+        }
+        if (seen.has(norm)) {
+          toast.error(`Answer Type · Choice ${i + 1} duplicates Choice ${(seen.get(norm) ?? 0) + 1}.`);
+          return false;
+        }
+        seen.set(norm, i);
+      }
+    }
+
     setSaving('project');
     try {
       const saved = await savePoll({
@@ -464,7 +494,7 @@ export default function PollCreate() {
     } finally {
       setSaving(null);
     }
-  }, [buildPayload, navigate, pollId, projectName, user]);
+  }, [answers, buildPayload, navigate, pollId, projectName, user]);
 
   const handleSaveToProject = () => {
     if (!user) { toast.error('Please sign in first'); return; }
@@ -920,6 +950,11 @@ export default function PollCreate() {
   );
   const [highlightField, setHighlightField] = useState<string | null>(null);
   const [folderState, setFolderState] = useState<PollingAssetFolderState>(() => createDefaultFolderState(question));
+  // Keep foldersRef in sync so callbacks defined earlier can read the
+  // latest folder list without a stale-closure bug.
+  useEffect(() => {
+    foldersRef.current = folderState.folders;
+  }, [folderState.folders]);
   const [deleteFolderTargetId, setDeleteFolderTargetId] = useState<string | null>(null);
   const [foldersLoadedForProject, setFoldersLoadedForProject] = useState<string | null>(null);
   const [selectionHistory, setSelectionHistory] = useState<Record<string, SelectionHistory>>({});
