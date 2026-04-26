@@ -756,6 +756,8 @@ export default function PollCreate() {
         active_folder_id: folderState.activeFolderId ?? null,
         live_folder_id: folderState.activeFolderId ?? null,
         live_poll_snapshot: snapshot as never,
+        voting_state: 'open',
+        output_state: 'live_output',
       } as never);
     }
     // Open Output fullscreen window if not already open, and open voting so
@@ -776,6 +778,8 @@ export default function PollCreate() {
         project_id: projectId,
         live_poll_snapshot: null,
         live_folder_id: null,
+        voting_state: 'closed',
+        output_state: 'preview',
       } as never);
     }
   };
