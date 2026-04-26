@@ -165,6 +165,7 @@ export function OperatorOutputMode({
   onOpenVoting,
   onCloseVoting,
   onRescanPolls,
+  onSlateActiveChange,
   onQrSizeChange,
   onQrPositionChange,
   onShowBrandingChange,
