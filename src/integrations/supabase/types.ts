@@ -676,6 +676,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      get_viewer_poll_by_slug: {
+        Args: { _slug: string }
+        Returns: {
+          bg_color: string
+          bg_image: string
+          id: string
+          post_vote_delay_ms: number
+          project_id: string
+          question: string
+          show_final_results: boolean
+          show_live_results: boolean
+          show_thank_you: boolean
+          slate_subline_text: string
+          slate_text: string
+          subheadline: string
+        }[]
+      }
       normalize_project_tags: { Args: { _tags: string[] }; Returns: string[] }
       poll_owned_by_user: { Args: { _poll_id: string }; Returns: boolean }
       project_owned_by_user: { Args: { _project_id: string }; Returns: boolean }
