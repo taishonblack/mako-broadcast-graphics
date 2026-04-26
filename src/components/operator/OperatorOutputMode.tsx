@@ -1235,29 +1235,18 @@ export function OperatorOutputMode({
                   </CollapsibleContent>
                 </div>
               </Collapsible>
-              <div className="flex items-center gap-2">
-                <label className="flex flex-1 cursor-pointer items-center justify-center gap-1.5 rounded-md border border-dashed border-border/60 px-2 py-1.5 text-[10px] text-muted-foreground hover:bg-accent/20">
-                  <ImageIcon className="h-3 w-3" />
-                  {slateImage ? 'Replace image' : 'Upload image'}
-                  <input
-                    type="file"
-                    accept="image/*"
-                    className="hidden"
-                    onChange={(e) => {
-                      const file = e.target.files?.[0];
-                      if (!file) return;
-                      const reader = new FileReader();
-                      reader.onload = () => setSlateImage(typeof reader.result === 'string' ? reader.result : undefined);
-                      reader.readAsDataURL(file);
-                    }}
-                  />
-                </label>
-                {slateImage && (
-                  <Button variant="ghost" size="sm" className="h-7 px-2 text-[10px]" onClick={() => setSlateImage(undefined)}>
-                    Clear
-                  </Button>
-                )}
-              </div>
+              {/* Slate image — pick from the operator's saved gallery OR
+                  upload a fresh one. MediaPicker handles both flows and
+                  persists uploads to the `images` storage bucket so the
+                  same artwork can be reused across polls. */}
+              <MediaPicker
+                kind="image"
+                label="Slate image"
+                value={slateImage}
+                onChange={(url) => setSlateImage(url)}
+                onClear={() => setSlateImage(undefined)}
+                emptyHint="No saved images yet — upload one to reuse."
+              />
               <Button
                 size="sm"
                 variant={slateActive ? 'outline' : 'default'}
