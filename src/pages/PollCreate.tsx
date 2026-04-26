@@ -736,7 +736,24 @@ export default function PollCreate() {
     });
   };
 
-  const handleGoLive = () => {
+  const handleGoLive = async () => {
+    let livePoll = currentWorkspacePoll;
+    if (!isUuid(livePoll.id) && projectId) {
+      const match = projectPolls.find((poll) => poll.projectId === projectId && poll.slug === slugForUrl);
+      if (match) {
+        livePoll = {
+          ...livePoll,
+          id: match.id,
+          projectId: match.projectId,
+          options: savedPollOptions(match),
+          question: livePoll.question || match.question,
+          subheadline: livePoll.subheadline || match.subheadline,
+          bgColor: livePoll.bgColor || match.bgColor,
+          bgImage: livePoll.bgImage || match.bgImage,
+        };
+      }
+    }
+
     setLiveState('live');
     // Build the canonical Program payload for the lock snapshot. We push it
     // through handleTake() (so existing listeners + DB sync stay in sync) AND
@@ -744,7 +761,7 @@ export default function PollCreate() {
     handleTake();
     const folder = getFolderById(folderState, folderState.activeFolderId);
     const snapshot = {
-      poll: currentWorkspacePoll,
+      poll: livePoll,
       scene: previewScene,
       layers: [],
       assets: {
@@ -770,15 +787,18 @@ export default function PollCreate() {
     // (mobile/desktop on /vote/:slug) can read the operator's color
     // assignments and enabled-asset list and render in parity with Program.
     if (projectId) {
-      void supabase.from('project_live_state').upsert({
+      const { error } = await supabase.from('project_live_state').upsert({
         project_id: projectId,
-        active_poll_id: currentWorkspacePoll.id,
+        active_poll_id: isUuid(livePoll.id) ? livePoll.id : null,
         active_folder_id: folderState.activeFolderId ?? null,
         live_folder_id: folderState.activeFolderId ?? null,
         live_poll_snapshot: snapshot as never,
         voting_state: 'open',
         output_state: 'live_output',
       } as never);
+      if (error) {
+        toast.error(`Go Live viewer sync failed: ${error.message}`);
+      }
     }
     // Open Output fullscreen window if not already open, and open voting so
     // the slate/voting flow begins simultaneously with the on-air push.
