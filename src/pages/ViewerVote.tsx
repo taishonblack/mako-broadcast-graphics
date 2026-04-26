@@ -213,38 +213,14 @@ export default function ViewerVote() {
         { event: '*', schema: 'public', table: 'project_live_state', filter: `project_id=eq.${projectId}` },
         (payload) => {
           const row = payload.new as LiveStateRow | undefined;
-          if (!row) return;
-        const live_poll_snapshot = row.live_poll_snapshot ?? null;
-        console.log('Viewer live state', {
-          voting_state: row.voting_state ?? 'not_open',
-          hasSnapshot: Boolean(live_poll_snapshot),
-          slateActive: live_poll_snapshot?.slateActive,
-          snapshotSlug: live_poll_snapshot?.poll?.viewer_slug || live_poll_snapshot?.poll?.slug,
-          routeSlug: slug,
-        });
-
-        if (!live_poll_snapshot) {
-          setSnapshot(null);
-          setPoll(null);
-          setAnswers([]);
-          setStatus('not_open');
-          setHasVoted(false);
-          setSelectedOption(null);
-          setPostVoteStage('received');
-          return;
-        }
-
-        setSnapshot(live_poll_snapshot);
-        setPoll(pollFromLiveSnapshot(row, slug));
-        setAnswers(answersFromSnapshot(live_poll_snapshot.poll));
-        setStatus(row.voting_state === 'open' ? 'open' : 'closed');
+          applyLiveStateRow(row ?? null);
         },
       );
     }
 
     channel.subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [projectId, pollId, slug]);
+  }, [applyLiveStateRow, projectId, pollId]);
 
   // Discovery subscription: when the viewer has not yet matched a project
   // (e.g. the operator hasn't pressed Go Live / Polling Slate for the first
@@ -260,20 +236,12 @@ export default function ViewerVote() {
         { event: '*', schema: 'public', table: 'project_live_state' },
         (payload) => {
           const row = payload.new as LiveStateRow | undefined;
-          const snap = row?.live_poll_snapshot ?? null;
-          if (!snap) return;
-          // Only act if this row could be ours (slug matches or no slug yet).
-          const snapSlug = snapshotSlug(snap);
-          if (slug && snapSlug && snapSlug !== slug) return;
-          setSnapshot(snap);
-          setPoll(pollFromLiveSnapshot(row as LiveStateRow, slug));
-          setAnswers(answersFromSnapshot(snap.poll));
-          setStatus(row?.voting_state === 'open' ? 'open' : 'closed');
+          applyLiveStateRow(row ?? null);
         },
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [projectId, slug]);
+  }, [applyLiveStateRow, projectId, slug]);
 
   const handleVote = (optionId: string) => {
     setSelectedOption(optionId);
