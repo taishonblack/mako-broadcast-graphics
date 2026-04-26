@@ -123,6 +123,7 @@ interface ColorSection {
 export function AssetTransformControls({ assetId, assetLabel, folderLabel, folderAssetIds, transforms, colors, answerCount, onChange, onToggleLock, onColorsChange, onCenterAsset, viewport, onViewportChange }: AssetTransformControlsProps) {
   const [transformOpen, setTransformOpen] = useState(true);
   const [colorsOpen, setColorsOpen] = useState(true);
+  const { swatches, addSwatch, removeSwatch } = useColorSwatches();
 
   const visibleAssetIds = assetId ? [assetId] : (folderAssetIds ?? []);
   const title = assetId ? (assetLabel ?? assetId) : (folderLabel ?? 'Selected folder');
@@ -286,6 +287,43 @@ export function AssetTransformControls({ assetId, assetLabel, folderLabel, folde
         </button>
         {colorsOpen && (
           <div className="space-y-3 border-t border-border/50 px-3 py-3">
+            {/* Saved color swatches — operator's personal palette. Click a
+                swatch to copy its value (useful when manually editing the hex
+                input). The "+" button on each ColorInput row saves that
+                field's current color into the palette. */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Swatches</span>
+                <span className="text-[9px] font-mono text-muted-foreground/70">{swatches.length}/{MAX_SWATCHES}</span>
+              </div>
+              {swatches.length === 0 ? (
+                <p className="text-[10px] text-muted-foreground/70">Tap <Plus className="inline h-2.5 w-2.5" /> on a color row to save it here.</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {swatches.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(c).catch(() => {});
+                      }}
+                      title={`${c} — click to copy`}
+                      className="group relative h-6 w-6 rounded-md border border-border/60 transition-transform hover:scale-110"
+                      style={{ background: c }}
+                    >
+                      <span
+                        role="button"
+                        tabIndex={-1}
+                        onClick={(e) => { e.stopPropagation(); removeSwatch(c); }}
+                        className="absolute -right-1 -top-1 hidden h-3 w-3 items-center justify-center rounded-full bg-background text-foreground shadow-sm group-hover:flex"
+                      >
+                        <X className="h-2 w-2" />
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             {colorSections.length > 0 ? (
               <>
                 <div className="flex items-center justify-end">
@@ -305,6 +343,8 @@ export function AssetTransformControls({ assetId, assetLabel, folderLabel, folde
                           value={field.value}
                           onChange={(value) => onColorsChange(section.assetId, field.apply(value))}
                           onReset={() => onColorsChange(section.assetId, field.reset())}
+                          swatches={swatches}
+                          onSaveSwatch={() => field.value && addSwatch(field.value)}
                         />
                       ))}
                     </div>
@@ -321,24 +361,62 @@ export function AssetTransformControls({ assetId, assetLabel, folderLabel, folde
   );
 }
 
-function ColorInput({ label, value, onChange, onReset }: { label: string; value?: string; onChange: (value: string) => void; onReset: () => void }) {
+function ColorInput({
+  label, value, onChange, onReset, swatches, onSaveSwatch,
+}: {
+  label: string;
+  value?: string;
+  onChange: (value: string) => void;
+  onReset: () => void;
+  swatches?: string[];
+  onSaveSwatch?: () => void;
+}) {
   return (
-    <div className="flex items-center gap-3">
-      <Label className="w-24 text-[10px] text-muted-foreground">{label}</Label>
-      <input
-        type="color"
-        value={toHex(value)}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-8 w-10 cursor-pointer rounded border border-border bg-transparent p-0"
-      />
-      <Input
-        value={value ?? ''}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-8 flex-1 bg-background/50 px-2 text-[10px] font-mono"
-      />
-      <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-[10px] text-muted-foreground" onClick={onReset}>
-        Reset
-      </Button>
+    <div className="space-y-1">
+      <div className="flex items-center gap-3">
+        <Label className="w-24 text-[10px] text-muted-foreground">{label}</Label>
+        <input
+          type="color"
+          value={toHex(value)}
+          onChange={(event) => onChange(event.target.value)}
+          className="h-8 w-10 cursor-pointer rounded border border-border bg-transparent p-0"
+        />
+        <Input
+          value={value ?? ''}
+          onChange={(event) => onChange(event.target.value)}
+          className="h-8 flex-1 bg-background/50 px-2 text-[10px] font-mono"
+        />
+        {onSaveSwatch && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground"
+            onClick={onSaveSwatch}
+            title="Save this color as a swatch"
+            disabled={!value}
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
+        )}
+        <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-[10px] text-muted-foreground" onClick={onReset}>
+          Reset
+        </Button>
+      </div>
+      {swatches && swatches.length > 0 && (
+        <div className="flex flex-wrap gap-1 pl-[6.75rem]">
+          {swatches.slice(0, 12).map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => onChange(c)}
+              title={`Apply ${c}`}
+              className="h-4 w-4 rounded border border-border/60 transition-transform hover:scale-125"
+              style={{ background: c }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }
