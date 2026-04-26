@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { AlertTriangle, CheckCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, RefreshCw } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 type ViewerStatus = 'loading' | 'not_found' | 'not_open' | 'open' | 'closed';
@@ -133,6 +133,7 @@ export default function ViewerVote() {
    *  snapshot. When present we apply them so mobile/desktop voters see the
    *  same palette as the on-air program. */
   const [snapshot, setSnapshot] = useState<ViewerSnapshot | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
 
   const applyLiveStateRow = useCallback((row?: LiveStateRow | null) => {
     const voting_state = row?.voting_state ?? 'not_open';
@@ -154,6 +155,24 @@ export default function ViewerVote() {
     setAnswers(answersFromSnapshot(live_poll_snapshot.poll));
     setStatus(voting_state === 'open' ? 'open' : 'closed');
   }, [slug]);
+
+  // Manual refetch — voters on flaky networks can tap this to force a
+  // re-pull of project_live_state and immediately rerun the slate/open
+  // decision without waiting for the 2s polling tick or realtime event.
+  const refreshNow = useCallback(async () => {
+    setRefreshing(true);
+    try {
+      const { data: liveRows } = await supabase
+        .from('project_live_state')
+        .select('project_id, voting_state, active_poll_id, live_poll_snapshot')
+        .in('voting_state', ['open', 'closed']);
+      const rows = (liveRows ?? []) as LiveStateRow[];
+      const liveMatch = rows.find((row) => Boolean(row.live_poll_snapshot));
+      applyLiveStateRow(liveMatch ?? null);
+    } finally {
+      setRefreshing(false);
+    }
+  }, [applyLiveStateRow]);
 
   useEffect(() => {
     let cancelled = false;
@@ -319,6 +338,7 @@ export default function ViewerVote() {
   if (decision === 'PollingSlate') {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
+        <RefreshButton onClick={refreshNow} busy={refreshing} />
         <div className="text-center space-y-6 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-12 border border-white/10 w-full max-w-md">
           {poll?.slate_image && (
             <img
@@ -342,6 +362,7 @@ export default function ViewerVote() {
   if (decision === 'MakoVoteBranding' || decision === 'Mirror') {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
+        <RefreshButton onClick={refreshNow} busy={refreshing} />
         <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10">
           <MakoVoteSlate />
         </div>
@@ -355,6 +376,7 @@ export default function ViewerVote() {
   if (hasVoted && postVoteStage === 'after') {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
+        <RefreshButton onClick={refreshNow} busy={refreshing} />
         <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10 w-full max-w-sm">
           {showThankYou && (
             <>
@@ -377,6 +399,7 @@ export default function ViewerVote() {
   // ---- Active voting ----
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 animate-fade-in" style={bgStyle}>
+      <RefreshButton onClick={refreshNow} busy={refreshing} />
       <div className="w-full max-w-sm space-y-8 bg-background/40 backdrop-blur-md rounded-2xl p-6 border border-white/10">
         <div className="text-center">
           <h1 className="text-2xl font-bold leading-tight" style={{ color: questionColor || 'hsl(var(--foreground))' }}>
@@ -486,5 +509,19 @@ function BrandBug() {
       </div>
       <span className="font-mono text-[10px] text-muted-foreground">MakoVote</span>
     </div>
+  );
+}
+
+function RefreshButton({ onClick, busy }: { onClick: () => void; busy: boolean }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      disabled={busy}
+      aria-label="Refresh"
+      className="fixed top-4 right-4 z-50 inline-flex items-center justify-center w-10 h-10 rounded-full bg-background/60 backdrop-blur-md border border-white/15 text-foreground/80 hover:text-foreground hover:bg-background/80 transition-colors disabled:opacity-50"
+    >
+      <RefreshCw className={`h-4 w-4 ${busy ? 'animate-spin' : ''}`} />
+    </button>
   );
 }
