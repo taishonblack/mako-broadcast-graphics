@@ -760,10 +760,17 @@ export default function PollCreate() {
     // emit a lock message that freezes Output until End Live.
     handleTake();
     const folder = getFolderById(folderState, folderState.activeFolderId);
+    const snapshotPoll = {
+      ...livePoll,
+      viewer_slug: livePoll.slug,
+      options: livePoll.options?.length ? livePoll.options : previewOptions,
+      answers: livePoll.options?.length ? livePoll.options : previewOptions,
+    };
     const snapshot = {
-      poll: livePoll,
+      poll: snapshotPoll,
       scene: previewScene,
       layers: [],
+      slateActive: false,
       assets: {
         qrSize,
         qrPosition: assetState.qrPosition,
