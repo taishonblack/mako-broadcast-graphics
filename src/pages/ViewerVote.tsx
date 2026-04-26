@@ -334,16 +334,13 @@ export default function ViewerVote() {
   const hasSnapshot = Boolean(snapshot);
   const isSlate = Boolean(snapshot?.slateActive);
   const isOpen = status === 'open';
-  const isMirror = snapshot?.viewerMode === 'mirror';
-  const decision = isSlate
-    ? 'PollingSlate'
-    : hasSnapshot && isOpen && !isMirror
-      ? 'AnswerButtons'
-      : hasSnapshot && isOpen && isMirror
-        ? 'Mirror'
-        : 'MakoVoteBranding';
+  const decision = hasSnapshot && isOpen
+    ? 'answers'
+    : hasSnapshot && isSlate
+      ? 'slate'
+      : 'branding';
 
-  console.log('Viewer render decision', {
+  console.log('Viewer decision', {
     votingState: status,
     hasSnapshot,
     slateActive: snapshot?.slateActive,
@@ -354,7 +351,7 @@ export default function ViewerVote() {
   });
 
   // ---- Polling Slate broadcast ----
-  if (decision === 'PollingSlate') {
+  if (decision === 'slate') {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
         <RefreshButton onClick={refreshNow} busy={refreshing} />
@@ -378,7 +375,7 @@ export default function ViewerVote() {
   }
 
   // ---- No snapshot: MakoVote branding ----
-  if (decision === 'MakoVoteBranding' || decision === 'Mirror') {
+  if (decision === 'branding') {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
         <RefreshButton onClick={refreshNow} busy={refreshing} />
