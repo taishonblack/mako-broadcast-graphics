@@ -137,13 +137,6 @@ export default function ViewerVote() {
   const applyLiveStateRow = useCallback((row?: LiveStateRow | null) => {
     const voting_state = row?.voting_state ?? 'not_open';
     const live_poll_snapshot = row?.live_poll_snapshot ?? null;
-    console.log('Viewer state update', {
-      voting_state,
-      hasSnapshot: Boolean(live_poll_snapshot),
-      slateActive: live_poll_snapshot?.slateActive,
-      routeSlug: slug,
-      snapshotSlug: live_poll_snapshot?.poll?.slug,
-    });
 
     if (!row || !live_poll_snapshot) {
       setSnapshot(null);
@@ -177,6 +170,25 @@ export default function ViewerVote() {
     };
     load();
     return () => { cancelled = true; };
+  }, [applyLiveStateRow]);
+
+  // Safari/mobile realtime can drop silently. Poll project_live_state every
+  // 2s as a deterministic fallback so the viewer always converges to the
+  // current snapshot regardless of websocket health.
+  useEffect(() => {
+    let cancelled = false;
+    const tick = async () => {
+      const { data: liveRows } = await supabase
+        .from('project_live_state')
+        .select('project_id, voting_state, active_poll_id, live_poll_snapshot')
+        .in('voting_state', ['open', 'closed']);
+      if (cancelled) return;
+      const rows = (liveRows ?? []) as LiveStateRow[];
+      const liveMatch = rows.find((row) => Boolean(row.live_poll_snapshot));
+      applyLiveStateRow(liveMatch ?? null);
+    };
+    const id = window.setInterval(tick, 2000);
+    return () => { cancelled = true; window.clearInterval(id); };
   }, [applyLiveStateRow]);
 
   // Realtime: stream live vote totals + voting state changes so the viewer
