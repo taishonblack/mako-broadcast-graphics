@@ -286,57 +286,64 @@ export default function ViewerVote() {
   const subColor = colors?.subheadline?.textSecondary;
   const barColors = colors?.answers?.barColors;
 
-  // Results-only folders mirror the Program composition: if the live folder
-  // has answer bars but no viewer answer type / QR entry point, show a mirror
-  // slate instead of vote buttons. Folders with `answerType` or `qr` collect
-  // votes and must render the answer UI when voting is open.
-  // Operator broadcast: when the Polling Slate button is ON, show the
-  // operator-authored slate text/image instead of MakoVote branding or the
-  // "Polling is Closed" screen. The flag rides on the live snapshot so we
-  // only render the slate when the operator explicitly turned it on for
-  // this poll's slug.
-  const slateBroadcastActive = Boolean(snapshot?.slateActive);
-
   const bgStyle: React.CSSProperties = poll?.bg_image
     ? { backgroundImage: `url(${poll.bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { background: poll?.bg_color || 'hsl(220, 20%, 7%)' };
 
-  // ---- No live snapshot: MakoVote branding ----
-  if (!snapshot) {
+  // Deterministic state machine — snapshot is the source of truth.
+  // Order: slate > open voting > MakoVote branding. Status is never used to
+  // override snapshot presence; routeSlug never gates rendering.
+  const hasSnapshot = Boolean(snapshot);
+  const isSlate = Boolean(snapshot?.slateActive);
+  const isOpen = status === 'open';
+  const isMirror = snapshot?.viewerMode === 'mirror';
+  const decision = isSlate
+    ? 'PollingSlate'
+    : hasSnapshot && isOpen && !isMirror
+      ? 'AnswerButtons'
+      : hasSnapshot && isOpen && isMirror
+        ? 'Mirror'
+        : 'MakoVoteBranding';
+
+  console.log('Viewer render decision', {
+    votingState: status,
+    hasSnapshot,
+    slateActive: snapshot?.slateActive,
+    routeSlug: slug,
+    snapshotSlug: snapshot?.poll?.slug,
+    answerCount: snapshot?.poll?.options?.length ?? snapshot?.poll?.answers?.length,
+    decision,
+  });
+
+  // ---- Polling Slate broadcast ----
+  if (decision === 'PollingSlate') {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
-        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10">
-          <MakoVoteSlate />
+        <div className="text-center space-y-6 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-12 border border-white/10 w-full max-w-md">
+          {poll?.slate_image && (
+            <img
+              src={poll.slate_image}
+              alt="Polling slate"
+              className="mx-auto max-h-72 max-w-full rounded-lg border border-white/10 object-contain"
+            />
+          )}
+          <h1 className="text-3xl font-bold text-foreground leading-tight">
+            {poll?.slate_text || 'Polling will open soon'}
+          </h1>
+          {poll?.slate_subline_text && (
+            <p className="text-base text-muted-foreground">{poll.slate_subline_text}</p>
+          )}
         </div>
       </div>
     );
   }
 
-  // ---- Polling Slate broadcast (operator pressed "Polling Slate") ----
-  // Render the operator's slate copy/image instead of MakoVote. If a snapshot
-  // exists but voting is not open, keep rendering snapshot-backed slate UI
-  // rather than falling back to branding due to status/slug mismatch.
-  if (slateBroadcastActive || status !== 'open') {
+  // ---- No snapshot: MakoVote branding ----
+  if (decision === 'MakoVoteBranding' || decision === 'Mirror') {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
-        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10 w-full max-w-sm">
-          <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto">
-            <Clock className="w-8 h-8 text-muted-foreground" />
-          </div>
-          {poll?.slate_image && (
-            <img
-              src={poll.slate_image}
-              alt="Polling slate"
-              className="mx-auto max-h-64 max-w-full rounded-lg border border-white/10 object-contain"
-            />
-          )}
-          <h1 className="text-2xl font-bold text-foreground leading-tight">
-            {poll?.slate_text || 'Polling will open soon'}
-          </h1>
-          {poll?.slate_subline_text && (
-            <p className="text-sm text-muted-foreground">{poll.slate_subline_text}</p>
-          )}
-          <BrandBug />
+        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10">
+          <MakoVoteSlate />
         </div>
       </div>
     );
