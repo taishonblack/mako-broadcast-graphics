@@ -405,9 +405,7 @@ export function OperatorOutputMode({
       // 4. Restore prior voting state if the test changed it. We only
       //    auto-close when the operator started in a non-open state —
       //    avoids interrupting a real live show.
-      if (startedClosed && votingState !== 'open') {
-        // No-op: we never moved off closed if onOpenVoting failed silently.
-      } else if (startedClosed) {
+      if (startedClosed) {
         onCloseVoting();
       }
       setTransitionTesting(false);
