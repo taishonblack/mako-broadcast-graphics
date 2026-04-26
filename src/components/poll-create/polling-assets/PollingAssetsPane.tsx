@@ -387,6 +387,8 @@ export function PollingAssetsPane({
 function AssetCard({
   meta, isSelected, onSelect, onRemove,
   onDragStart, onDragOver, onDrop, children,
+  inactive = false,
+  onToggleInactive,
 }: {
   meta: AssetMeta;
   isSelected: boolean;
@@ -396,6 +398,8 @@ function AssetCard({
   onDragOver: (e: React.DragEvent) => void;
   onDrop: () => void;
   children: React.ReactNode;
+  inactive?: boolean;
+  onToggleInactive?: () => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const Icon = meta.icon;
@@ -406,7 +410,7 @@ function AssetCard({
       onDragOver={onDragOver}
       onDrop={onDrop}
       onClick={onSelect}
-      className={`group rounded-lg border transition-all overflow-hidden cursor-pointer ${
+      className={`group rounded-lg border transition-all overflow-hidden cursor-pointer ${inactive ? 'opacity-50' : ''} ${
         isSelected
           ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/20'
           : 'border-border/60 bg-card/40 hover:border-border'
@@ -417,7 +421,21 @@ function AssetCard({
         <Icon className={`w-3.5 h-3.5 shrink-0 ${isSelected ? 'text-primary' : 'text-muted-foreground'}`} />
         <span className={`text-[11px] font-medium flex-1 truncate ${isSelected ? 'text-primary' : 'text-foreground'}`}>
           {meta.label}
+          {inactive && (
+            <span className="ml-1.5 text-[8px] font-mono uppercase tracking-wider text-muted-foreground/70 px-1 py-0.5 rounded bg-muted/40">
+              inactive
+            </span>
+          )}
         </span>
+        {onToggleInactive && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onToggleInactive(); }}
+            className="text-[9px] font-mono uppercase tracking-wider text-muted-foreground/60 hover:text-foreground transition-colors px-1.5 py-0.5"
+            title={inactive ? 'Re-activate this asset' : 'Mark this asset inactive'}
+          >
+            {inactive ? 'Activate' : 'Mute'}
+          </button>
+        )}
         <button
           onClick={(e) => { e.stopPropagation(); setCollapsed((v) => !v); }}
           className="text-muted-foreground/50 hover:text-foreground transition-colors p-0.5"
