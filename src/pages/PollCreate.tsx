@@ -2013,6 +2013,7 @@ export default function PollCreate() {
                   onDeleteFolder={(folderId) => setDeleteFolderTargetId(folderId)}
                   onToggleFolderCollapse={handleToggleFolderCollapse}
                   onDuplicateFolder={handleDuplicateFolder}
+                  onToggleAssetInactive={handleToggleAssetInactive}
                   blockLetter={blockLetter}
                   onBlockLetterChange={handleBlockLetterChange}
                 question={question} setQuestion={handleFolderQuestionChange}
