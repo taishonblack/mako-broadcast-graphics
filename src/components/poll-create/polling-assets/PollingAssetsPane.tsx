@@ -557,6 +557,54 @@ function AssetEditor(props: {
     );
   }
 
+  if (assetId === 'answerType') {
+    return (
+      <div className="space-y-1.5">
+        {props.answers.map((a, i) => (
+          <div key={a.id} className="flex items-center gap-1">
+            <Input
+              value={a.text}
+              onChange={(e) => {
+                const next = [...props.answers];
+                next[i] = { ...next[i], text: e.target.value };
+                props.setAnswers(next);
+              }}
+              placeholder={`Choice ${i + 1}`}
+              className="bg-background/50 h-7 text-[11px] flex-1"
+            />
+            <button
+              type="button"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (props.answers.length > 1) {
+                  props.setAnswers(props.answers.filter((_, idx) => idx !== i));
+                }
+              }}
+              disabled={props.answers.length <= 1}
+              className="h-7 w-7 flex items-center justify-center text-muted-foreground/60 hover:text-destructive transition-colors disabled:opacity-30 disabled:hover:text-muted-foreground/60 disabled:cursor-not-allowed"
+              title="Remove choice"
+              aria-label={`Remove choice ${i + 1}`}
+            >
+              <Trash2 className="w-3 h-3" />
+            </button>
+          </div>
+        ))}
+        <Button
+          type="button"
+          variant="outline"
+          size="sm"
+          className="h-7 w-full gap-1 text-[10px]"
+          onClick={props.onAddAnswer}
+        >
+          <Plus className="w-3 h-3" /> Add Choice
+        </Button>
+        <p className="text-[9px] text-muted-foreground">
+          Voter-facing choices on mobile/desktop. Inspector controls Yes/No vs MC and label style.
+        </p>
+      </div>
+    );
+  }
+
   // QR / Logo / Voter Tally / Background — quick summaries; details in Inspector
   return (
     <p className="text-[10px] text-muted-foreground italic">
