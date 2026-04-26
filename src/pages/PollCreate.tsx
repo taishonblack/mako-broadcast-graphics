@@ -2195,6 +2195,7 @@ export default function PollCreate() {
               setVotingState('closed');
               void syncViewerVotingClosed();
             }}
+            onSlateActiveChange={(active) => { void syncViewerSlate(active); }}
             testVoteRunning={testVoteRunning}
             onStartTestVotes={handleStartTestVotes}
             onStopTestVotes={handleStopTestVotes}
