@@ -1292,6 +1292,12 @@ export default function PollCreate() {
         output_state: liveState === 'live' ? 'program_live' : 'preview',
       } as never);
       if (error) toast.error(`Slate stop sync failed: ${error.message}`);
+      void writePublicViewerState({
+        projectId,
+        viewerSlug: currentWorkspacePoll.slug,
+        state: 'branding',
+        pollSnapshot: null,
+      });
       return;
     }
     const savedMatch = !isUuid(currentWorkspacePoll.id)
@@ -1357,6 +1363,29 @@ export default function PollCreate() {
       output_state: liveState === 'live' ? 'program_live' : 'preview',
     } as never);
     if (error) toast.error(`Slate sync failed: ${error.message}`);
+    // Audience-facing slate write.
+    const audienceSnapshot: PublicViewerPollSnapshot = {
+      id: isUuid(livePoll.id) ? livePoll.id : undefined,
+      question: snapshotPoll.question,
+      subheadline: snapshotPoll.subheadline,
+      bgColor: snapshotPoll.bgColor,
+      bgImage: snapshotPoll.bgImage,
+      answers: (snapshotPoll.options ?? []).map((o, i) => ({
+        id: o.id,
+        label: o.text || `Answer ${i + 1}`,
+        shortLabel: o.shortLabel,
+        sortOrder: i,
+      })),
+      assetColors,
+    };
+    const audience = await writePublicViewerState({
+      projectId,
+      viewerSlug: livePoll.slug,
+      state: 'slate',
+      pollSnapshot: audienceSnapshot,
+      slateText: slateTextValue,
+    });
+    if (audience.error) toast.error(`Viewer slate sync failed: ${audience.error}`);
   }, [assetColors, assetState, assetTransforms, brandingPosition, currentWorkspacePoll, enabledAssets, folderState.activeFolderId, liveState, previewOptions, previewScene, projectId, projectPolls, qrSize, showBranding, slugForUrl]);
 
   // Mirror the Program Preview to any open Output window in real time.
