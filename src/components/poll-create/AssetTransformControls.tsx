@@ -8,6 +8,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel,
 import { AssetColorConfig, AssetColorMap, AssetId, AssetTransformMap, DEFAULT_ASSET_COLORS, TransformField, TransformViewport } from '@/components/poll-create/polling-assets/types';
 import { useState } from 'react';
 import { ColorSwatch, MAX_SWATCHES, useColorSwatches } from '@/lib/color-swatches';
+import { Link as RouterLink } from 'react-router-dom';
 
 interface AssetTransformControlsProps {
   assetId: AssetId | null;
@@ -249,21 +250,21 @@ export function AssetTransformControls({ assetId, assetLabel, folderLabel, folde
                 <p className="text-[10px] text-muted-foreground/70">Tap <Plus className="inline h-2.5 w-2.5" /> on a color row to save it here.</p>
               ) : (
                 <div className="flex flex-wrap gap-1.5">
-                  {swatches.map((c) => (
+                  {swatches.map((sw) => (
                     <button
-                      key={c}
+                      key={sw.id}
                       type="button"
                       onClick={() => {
-                        navigator.clipboard?.writeText(c).catch(() => {});
+                        navigator.clipboard?.writeText(sw.value).catch(() => {});
                       }}
-                      title={`${c} — click to copy`}
+                      title={`${sw.name || 'Unnamed'} — ${sw.value} (click to copy)`}
                       className="group relative h-6 w-6 rounded-md border border-border/60 transition-transform hover:scale-110"
-                      style={{ background: c }}
+                      style={{ background: sw.value }}
                     >
                       <span
                         role="button"
                         tabIndex={-1}
-                        onClick={(e) => { e.stopPropagation(); removeSwatch(c); }}
+                        onClick={(e) => { e.stopPropagation(); removeSwatch(sw.id); }}
                         className="absolute -right-1 -top-1 hidden h-3 w-3 items-center justify-center rounded-full bg-background text-foreground shadow-sm group-hover:flex"
                       >
                         <X className="h-2 w-2" />
@@ -272,6 +273,14 @@ export function AssetTransformControls({ assetId, assetLabel, folderLabel, folde
                   ))}
                 </div>
               )}
+              <div className="pt-1">
+                <RouterLink
+                  to="/settings"
+                  className="text-[10px] text-primary hover:underline"
+                >
+                  Manage swatches →
+                </RouterLink>
+              </div>
             </div>
             {colorSections.length > 0 ? (
               <>
