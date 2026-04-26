@@ -218,14 +218,14 @@ export default function ViewerVote() {
     setHasVoted(true);
   };
 
-  // After "Vote Received" shows, wait the configured delay then transition
-  // to the thank-you / results screen (same hasVoted view, second stage).
+  // After the voter taps an answer, keep the highlighted selection visible
+  // for ~3 seconds so they see which choice they cast, then transition to
+  // the Thank You screen. (Per product spec — overrides per-poll delay.)
   useEffect(() => {
     if (!hasVoted || postVoteStage !== 'received') return;
-    const delay = Math.max(0, poll?.post_vote_delay_ms ?? 1500);
-    const timer = window.setTimeout(() => setPostVoteStage('after'), delay);
+    const timer = window.setTimeout(() => setPostVoteStage('after'), 3000);
     return () => window.clearTimeout(timer);
-  }, [hasVoted, postVoteStage, poll?.post_vote_delay_ms]);
+  }, [hasVoted, postVoteStage]);
 
   const totalVotes = useMemo(() => answers.reduce((sum, a) => sum + (a.live_votes ?? 0), 0), [answers]);
   const showLiveResults = Boolean(poll?.show_live_results);
