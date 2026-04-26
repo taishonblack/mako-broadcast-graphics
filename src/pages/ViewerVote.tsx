@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { AlertTriangle, CheckCircle, Clock } from 'lucide-react';
+import { AlertTriangle, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
 type ViewerStatus = 'loading' | 'not_found' | 'not_open' | 'open' | 'closed';
@@ -74,6 +74,9 @@ interface ViewerSnapshot {
   /** Operator pressed "Polling Slate" — viewer should render the slate
    *  text/image instead of the MakoVote branding or the "Closed" screen. */
   slateActive?: boolean;
+  /** Optional explicit viewer mode. When set to "mirror", the viewer mirrors
+   *  the operator's program composition instead of rendering vote buttons. */
+  viewerMode?: 'mirror' | 'vote';
 }
 
 type LiveStateRow = {
@@ -134,13 +137,6 @@ export default function ViewerVote() {
   const applyLiveStateRow = useCallback((row?: LiveStateRow | null) => {
     const voting_state = row?.voting_state ?? 'not_open';
     const live_poll_snapshot = row?.live_poll_snapshot ?? null;
-    console.log('Viewer state update', {
-      voting_state,
-      hasSnapshot: Boolean(live_poll_snapshot),
-      slateActive: live_poll_snapshot?.slateActive,
-      routeSlug: slug,
-      snapshotSlug: live_poll_snapshot?.poll?.slug,
-    });
 
     if (!row || !live_poll_snapshot) {
       setSnapshot(null);
@@ -174,6 +170,25 @@ export default function ViewerVote() {
     };
     load();
     return () => { cancelled = true; };
+  }, [applyLiveStateRow]);
+
+  // Safari/mobile realtime can drop silently. Poll project_live_state every
+  // 2s as a deterministic fallback so the viewer always converges to the
+  // current snapshot regardless of websocket health.
+  useEffect(() => {
+    let cancelled = false;
+    const tick = async () => {
+      const { data: liveRows } = await supabase
+        .from('project_live_state')
+        .select('project_id, voting_state, active_poll_id, live_poll_snapshot')
+        .in('voting_state', ['open', 'closed']);
+      if (cancelled) return;
+      const rows = (liveRows ?? []) as LiveStateRow[];
+      const liveMatch = rows.find((row) => Boolean(row.live_poll_snapshot));
+      applyLiveStateRow(liveMatch ?? null);
+    };
+    const id = window.setInterval(tick, 2000);
+    return () => { cancelled = true; window.clearInterval(id); };
   }, [applyLiveStateRow]);
 
   // Realtime: stream live vote totals + voting state changes so the viewer
@@ -271,57 +286,64 @@ export default function ViewerVote() {
   const subColor = colors?.subheadline?.textSecondary;
   const barColors = colors?.answers?.barColors;
 
-  // Results-only folders mirror the Program composition: if the live folder
-  // has answer bars but no viewer answer type / QR entry point, show a mirror
-  // slate instead of vote buttons. Folders with `answerType` or `qr` collect
-  // votes and must render the answer UI when voting is open.
-  // Operator broadcast: when the Polling Slate button is ON, show the
-  // operator-authored slate text/image instead of MakoVote branding or the
-  // "Polling is Closed" screen. The flag rides on the live snapshot so we
-  // only render the slate when the operator explicitly turned it on for
-  // this poll's slug.
-  const slateBroadcastActive = Boolean(snapshot?.slateActive);
-
   const bgStyle: React.CSSProperties = poll?.bg_image
     ? { backgroundImage: `url(${poll.bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { background: poll?.bg_color || 'hsl(220, 20%, 7%)' };
 
-  // ---- No live snapshot: MakoVote branding ----
-  if (!snapshot) {
+  // Deterministic state machine — snapshot is the source of truth.
+  // Order: slate > open voting > MakoVote branding. Status is never used to
+  // override snapshot presence; routeSlug never gates rendering.
+  const hasSnapshot = Boolean(snapshot);
+  const isSlate = Boolean(snapshot?.slateActive);
+  const isOpen = status === 'open';
+  const isMirror = snapshot?.viewerMode === 'mirror';
+  const decision = isSlate
+    ? 'PollingSlate'
+    : hasSnapshot && isOpen && !isMirror
+      ? 'AnswerButtons'
+      : hasSnapshot && isOpen && isMirror
+        ? 'Mirror'
+        : 'MakoVoteBranding';
+
+  console.log('Viewer render decision', {
+    votingState: status,
+    hasSnapshot,
+    slateActive: snapshot?.slateActive,
+    routeSlug: slug,
+    snapshotSlug: snapshot?.poll?.slug,
+    answerCount: snapshot?.poll?.options?.length ?? snapshot?.poll?.answers?.length,
+    decision,
+  });
+
+  // ---- Polling Slate broadcast ----
+  if (decision === 'PollingSlate') {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
-        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10">
-          <MakoVoteSlate />
+        <div className="text-center space-y-6 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-12 border border-white/10 w-full max-w-md">
+          {poll?.slate_image && (
+            <img
+              src={poll.slate_image}
+              alt="Polling slate"
+              className="mx-auto max-h-72 max-w-full rounded-lg border border-white/10 object-contain"
+            />
+          )}
+          <h1 className="text-3xl font-bold text-foreground leading-tight">
+            {poll?.slate_text || 'Polling will open soon'}
+          </h1>
+          {poll?.slate_subline_text && (
+            <p className="text-base text-muted-foreground">{poll.slate_subline_text}</p>
+          )}
         </div>
       </div>
     );
   }
 
-  // ---- Polling Slate broadcast (operator pressed "Polling Slate") ----
-  // Render the operator's slate copy/image instead of MakoVote. If a snapshot
-  // exists but voting is not open, keep rendering snapshot-backed slate UI
-  // rather than falling back to branding due to status/slug mismatch.
-  if (slateBroadcastActive || status !== 'open') {
+  // ---- No snapshot: MakoVote branding ----
+  if (decision === 'MakoVoteBranding' || decision === 'Mirror') {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
-        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10 w-full max-w-sm">
-          <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto">
-            <Clock className="w-8 h-8 text-muted-foreground" />
-          </div>
-          {poll?.slate_image && (
-            <img
-              src={poll.slate_image}
-              alt="Polling slate"
-              className="mx-auto max-h-64 max-w-full rounded-lg border border-white/10 object-contain"
-            />
-          )}
-          <h1 className="text-2xl font-bold text-foreground leading-tight">
-            {poll?.slate_text || 'Polling will open soon'}
-          </h1>
-          {poll?.slate_subline_text && (
-            <p className="text-sm text-muted-foreground">{poll.slate_subline_text}</p>
-          )}
-          <BrandBug />
+        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10">
+          <MakoVoteSlate />
         </div>
       </div>
     );
