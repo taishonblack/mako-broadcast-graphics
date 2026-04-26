@@ -1189,10 +1189,17 @@ export default function PollCreate() {
           bgImage: currentWorkspacePoll.bgImage || savedMatch.bgImage,
         }
       : currentWorkspacePoll;
+    const snapshotPoll = {
+      ...livePoll,
+      viewer_slug: livePoll.slug,
+      options: livePoll.options?.length ? livePoll.options : previewOptions,
+      answers: livePoll.options?.length ? livePoll.options : previewOptions,
+    };
     const snapshot = {
-      poll: livePoll,
+      poll: snapshotPoll,
       scene: previewScene,
       layers: [],
+      slateActive: false,
       assets: {
         qrSize,
         qrPosition: assetState.qrPosition,
@@ -1221,7 +1228,7 @@ export default function PollCreate() {
       output_state: liveState === 'live' ? 'live_output' : 'preview',
     } as never);
     if (error) toast.error(`Viewer sync failed: ${error.message}`);
-  }, [activeFolder, assetColors, assetState, assetTransforms, brandingPosition, currentWorkspacePoll, enabledAssets, folderState.activeFolderId, liveState, previewScene, projectId, projectPolls, qrSize, showBranding, slugForUrl]);
+  }, [activeFolder, assetColors, assetState, assetTransforms, brandingPosition, currentWorkspacePoll, enabledAssets, folderState.activeFolderId, liveState, previewOptions, previewScene, projectId, projectPolls, qrSize, showBranding, slugForUrl]);
 
   const syncViewerVotingClosed = useCallback(async () => {
     if (!projectId) return;
@@ -1238,7 +1245,7 @@ export default function PollCreate() {
   // a `slateActive: true` flag so /vote/:slug renders the operator-authored
   // slate text/image instead of the MakoVote branding. When `active` is
   // false we clear the snapshot so viewers fall back to the MakoVote slate.
-  const syncViewerSlate = useCallback(async (active: boolean) => {
+  const syncViewerSlate = useCallback(async (active: boolean, slate?: { text: string; sublineText: string; image?: string | null }) => {
     if (!projectId) return;
     if (!active) {
       // Stop slate → revert mobile/desktop voters to MakoVote branding by
@@ -1269,11 +1276,32 @@ export default function PollCreate() {
           bgImage: currentWorkspacePoll.bgImage || savedMatch.bgImage,
         }
       : currentWorkspacePoll;
+    const slateTextValue = slate?.text || 'Polling will open soon';
+    const slateSublineValue = slate?.sublineText || '';
+    const slateImageValue = slate?.image ?? null;
+    const snapshotPoll = {
+      ...livePoll,
+      viewer_slug: livePoll.slug,
+      options: livePoll.options?.length ? livePoll.options : previewOptions,
+      answers: livePoll.options?.length ? livePoll.options : previewOptions,
+      slateText: slateTextValue,
+      slate_text: slateTextValue,
+      slateSublineText: slateSublineValue,
+      slate_subline_text: slateSublineValue,
+      slateImage: slateImageValue,
+      slate_image: slateImageValue,
+    };
     const snapshot = {
-      poll: livePoll,
+      poll: snapshotPoll,
       scene: previewScene,
       layers: [],
       slateActive: true,
+      slateText: slateTextValue,
+      slate_text: slateTextValue,
+      slateSublineText: slateSublineValue,
+      slate_subline_text: slateSublineValue,
+      slateImage: slateImageValue,
+      slate_image: slateImageValue,
       assets: {
         qrSize,
         qrPosition: assetState.qrPosition,
@@ -1296,7 +1324,7 @@ export default function PollCreate() {
       output_state: liveState === 'live' ? 'live_output' : 'preview',
     } as never);
     if (error) toast.error(`Slate sync failed: ${error.message}`);
-  }, [assetColors, assetState, assetTransforms, brandingPosition, currentWorkspacePoll, enabledAssets, folderState.activeFolderId, liveState, previewScene, projectId, projectPolls, qrSize, showBranding, slugForUrl]);
+  }, [assetColors, assetState, assetTransforms, brandingPosition, currentWorkspacePoll, enabledAssets, folderState.activeFolderId, liveState, previewOptions, previewScene, projectId, projectPolls, qrSize, showBranding, slugForUrl]);
 
   // Mirror the Program Preview to any open Output window in real time.
   // Whenever the operator's program-preview state (poll content, scene,
