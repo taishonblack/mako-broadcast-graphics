@@ -993,15 +993,18 @@ export function OperatorOutputMode({
               )}
             </div>
 
-            {/* Test viewer view — swap the Program monitor between the
-                broadcast composition and a viewer-eye render so the operator
-                can QA exactly what mobile / desktop voters will see before
-                going on-air. */}
+            {/* Test viewer view — when ON, the Mobile / Desktop preview
+                forces the slate render instead of the live answer-type
+                voting UI, so the operator can QA the slate copy/image
+                without actually starting the slate on-air. No effect in
+                Program mode. */}
             <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/40 px-2 py-1.5">
               <div className="min-w-0">
                 <p className="text-[10px] font-mono uppercase text-muted-foreground">Test viewer view</p>
                 <p className="text-[10px] text-muted-foreground/70 leading-snug">
-                  {testViewerView ? `Program monitor → ${testViewerMode}` : 'Program monitor shows broadcast'}
+                  {testViewerView
+                    ? 'Mobile / Desktop preview shows the slate'
+                    : 'Mobile / Desktop preview shows the live voting UI'}
                 </p>
               </div>
               <Switch checked={testViewerView} onCheckedChange={setTestViewerView} />
