@@ -57,6 +57,9 @@ interface ViewerSnapshot {
     options?: Array<{ id: string; text?: string; shortLabel?: string; votes?: number; order?: number }>;
   };
   assets?: ViewerSnapshotAssets;
+  /** Operator pressed "Polling Slate" — viewer should render the slate
+   *  text/image instead of the MakoVote branding or the "Closed" screen. */
+  slateActive?: boolean;
 }
 
 type LiveStateRow = {
