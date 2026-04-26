@@ -1611,6 +1611,18 @@ export default function PollCreate() {
     }));
   };
 
+  /**
+   * Duplicate a folder (3-dots → Duplicate Folder). The clone is inserted
+   * directly below the source so operators can quickly stage the
+   * "voting → bars reveal" pair without scrolling. Active folder swaps to
+   * the new clone so they immediately see and can edit it.
+   */
+  const handleDuplicateFolder = (folderId: string) => {
+    updateFolderState((current) => duplicateFolder(current, folderId));
+    setSelectedAssetId(null);
+    toast.success('Folder duplicated');
+  };
+
   const handleAddAnswer = () => {
     if (answerType === 'yes-no' || answers.length >= 4) return;
     // Add the new bar and re-equalize so all bars share 100% evenly.
