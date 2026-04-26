@@ -247,6 +247,14 @@ export default function ViewerVote() {
   const folderCollectsVotes = Array.isArray(enabled) && (enabled.includes('answerType') || enabled.includes('qr'));
   const isMirrorMode = Array.isArray(enabled) && !folderCollectsVotes;
 
+  // Operator broadcast: when the Polling Slate button is ON, show the
+  // operator-authored slate text/image instead of MakoVote branding or the
+  // "Polling is Closed" screen. The flag rides on the live snapshot so we
+  // only render the slate when the operator explicitly turned it on for
+  // this poll's slug.
+  const slateBroadcastActive = Boolean(snapshot?.slateActive)
+    && (snapshot?.poll?.slug === slug);
+
   const bgStyle: React.CSSProperties = poll?.bg_image
     ? { backgroundImage: `url(${poll.bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { background: poll?.bg_color || 'hsl(220, 20%, 7%)' };
@@ -260,46 +268,43 @@ export default function ViewerVote() {
     );
   }
 
-  // ---- Slug not found OR not open: show MakoVote slate ----
-  if (status === 'not_found' || status === 'not_open') {
+  // ---- Polling Slate broadcast (operator pressed "Polling Slate") ----
+  // Render the operator's slate copy/image instead of MakoVote.
+  if (slateBroadcastActive && status !== 'open') {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
-        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10">
-          {status === 'not_open' && (
-            <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto">
-              <Clock className="w-8 h-8 text-muted-foreground" />
-            </div>
-          )}
-          {status === 'not_open' && poll?.slate_image && (
+        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10 w-full max-w-sm">
+          <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto">
+            <Clock className="w-8 h-8 text-muted-foreground" />
+          </div>
+          {poll?.slate_image && (
             <img
               src={poll.slate_image}
               alt="Polling slate"
               className="mx-auto max-h-64 max-w-full rounded-lg border border-white/10 object-contain"
             />
           )}
-          <MakoVoteSlate sublabel={status === 'not_open' ? (poll?.slate_text || 'Polling will open soon') : undefined} />
-          {status === 'not_open' && poll?.slate_subline_text && (
+          <h1 className="text-2xl font-bold text-foreground leading-tight">
+            {poll?.slate_text || 'Polling will open soon'}
+          </h1>
+          {poll?.slate_subline_text && (
             <p className="text-sm text-muted-foreground">{poll.slate_subline_text}</p>
           )}
+          <BrandBug />
         </div>
       </div>
     );
   }
 
-  // ---- Closed: optionally show final results ----
-  if (status === 'closed') {
+  // ---- Slug not found, not open, OR closed without slate: MakoVote slate ----
+  // When the operator stops Go Live, voting_state goes to 'closed' and the
+  // snapshot is cleared — viewers should see MakoVote branding again
+  // (NOT the "Polling is Closed" screen).
+  if (status === 'not_found' || status === 'not_open' || status === 'closed') {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
-        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10 w-full max-w-sm">
-          <div className="w-16 h-16 rounded-full bg-mako-warning/20 flex items-center justify-center mx-auto">
-            <XCircle className="w-8 h-8 text-mako-warning" />
-          </div>
-          <h1 className="text-xl font-bold text-foreground">Polling is Closed</h1>
-          <p className="text-sm text-muted-foreground">Thanks for participating!</p>
-          {showFinalResults && answers.length > 0 && (
-            <ResultsList answers={answers} totalVotes={totalVotes} />
-          )}
-          <BrandBug />
+        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10">
+          <MakoVoteSlate />
         </div>
       </div>
     );
