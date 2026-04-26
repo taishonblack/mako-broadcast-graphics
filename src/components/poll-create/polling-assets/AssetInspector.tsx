@@ -48,6 +48,9 @@ interface AssetInspectorProps {
    * that traps it on one side of the 1920x1080 stage.
    */
   onResetAssetPosition?: (assetId: AssetId) => void;
+  /** Fires the Convert-to-Bars action on the active folder. Shown only on
+   *  the Answer Type asset panel. */
+  onConvertAnswerTypeToBars?: () => void;
 }
 
 export function AssetInspector(p: AssetInspectorProps) {
