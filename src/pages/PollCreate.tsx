@@ -436,6 +436,28 @@ export default function PollCreate() {
   const persistProjectSave = useCallback(async (selectedProjectId: string, selectedProjectName?: string, source: 'manual' | 'autosave' = 'manual') => {
     if (!user) { toast.error('Please sign in first'); return false; }
 
+    // Block saves (manual + autosave) when any folder uses the Answer Type
+    // asset and its choices are empty or duplicated. Voter buttons must be
+    // unambiguous before the poll can be persisted.
+    const anyFolderUsesAnswerType = folderState.folders.some((f) =>
+      f.assetIds.includes('answerType') && !(f.inactiveAssetIds ?? []).includes('answerType')
+    );
+    if (anyFolderUsesAnswerType) {
+      const seen = new Map<string, number>();
+      for (let i = 0; i < answers.length; i += 1) {
+        const norm = answers[i].text.trim().toLowerCase();
+        if (!norm) {
+          toast.error(`Answer Type · Choice ${i + 1} is empty.`);
+          return false;
+        }
+        if (seen.has(norm)) {
+          toast.error(`Answer Type · Choice ${i + 1} duplicates Choice ${(seen.get(norm) ?? 0) + 1}.`);
+          return false;
+        }
+        seen.set(norm, i);
+      }
+    }
+
     setSaving('project');
     try {
       const saved = await savePoll({
@@ -464,7 +486,7 @@ export default function PollCreate() {
     } finally {
       setSaving(null);
     }
-  }, [buildPayload, navigate, pollId, projectName, user]);
+  }, [answers, buildPayload, folderState.folders, navigate, pollId, projectName, user]);
 
   const handleSaveToProject = () => {
     if (!user) { toast.error('Please sign in first'); return; }
