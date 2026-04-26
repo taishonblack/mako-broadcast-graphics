@@ -1165,6 +1165,57 @@ export default function PollCreate() {
   const enabledAssets = (activeFolder?.assetIds ?? SEEDED_ASSETS).filter(
     (id) => !inactiveAssetIds.includes(id),
   );
+  const syncViewerVotingOpen = useCallback(async () => {
+    if (!projectId) return;
+    const savedMatch = !isUuid(currentWorkspacePoll.id)
+      ? projectPolls.find((poll) => poll.projectId === projectId && poll.slug === slugForUrl)
+      : undefined;
+    const livePoll: Poll = savedMatch
+      ? {
+          ...currentWorkspacePoll,
+          id: savedMatch.id,
+          projectId: savedMatch.projectId,
+          options: savedPollOptions(savedMatch),
+          question: currentWorkspacePoll.question || savedMatch.question,
+          subheadline: currentWorkspacePoll.subheadline || savedMatch.subheadline,
+          bgColor: currentWorkspacePoll.bgColor || savedMatch.bgColor,
+          bgImage: currentWorkspacePoll.bgImage || savedMatch.bgImage,
+        }
+      : currentWorkspacePoll;
+    const snapshot = {
+      poll: livePoll,
+      scene: previewScene,
+      layers: [],
+      assets: {
+        qrSize,
+        qrPosition: assetState.qrPosition,
+        qrVisible: assetState.qrVisible,
+        qrUrlVisible: assetState.qrUrlVisible,
+        showBranding,
+        brandingPosition,
+        enabledAssetIds: enabledAssets,
+        transforms: assetTransforms,
+        assetColors,
+        wordmarkWeight: assetState.wordmarkWeight,
+        wordmarkTracking: assetState.wordmarkTracking,
+        wordmarkScale: assetState.wordmarkScale,
+        wordmarkShowGuides: assetState.wordmarkShowGuides,
+        tallyMode: activeFolder?.tallyMode ?? DEFAULT_TALLY_MODE,
+        tallyIntervalSeconds: activeFolder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
+      },
+    };
+    const { error } = await supabase.from('project_live_state').upsert({
+      project_id: projectId,
+      active_poll_id: isUuid(livePoll.id) ? livePoll.id : null,
+      active_folder_id: folderState.activeFolderId ?? null,
+      live_folder_id: folderState.activeFolderId ?? null,
+      live_poll_snapshot: snapshot as never,
+      voting_state: 'open',
+      output_state: liveState === 'live' ? 'live_output' : 'preview',
+    } as never);
+    if (error) toast.error(`Viewer sync failed: ${error.message}`);
+  }, [activeFolder, assetColors, assetState, assetTransforms, brandingPosition, currentWorkspacePoll, enabledAssets, folderState.activeFolderId, liveState, previewScene, projectId, projectPolls, qrSize, showBranding, slugForUrl]);
+
   // Mirror the Program Preview to any open Output window in real time.
   // Whenever the operator's program-preview state (poll content, scene,
   // assets, transforms, colors, wordmark) changes, push it to the Output
