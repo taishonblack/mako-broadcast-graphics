@@ -326,6 +326,8 @@ export function PollingAssetsPane({
                     key={id}
                     meta={ASSET_REGISTRY[id]}
                     isSelected={isActiveFolder && selectedAssetId === id}
+                    inactive={(folder.inactiveAssetIds ?? []).includes(id)}
+                    onToggleInactive={onToggleAssetInactive ? () => onToggleAssetInactive(folder.id, id, !((folder.inactiveAssetIds ?? []).includes(id))) : undefined}
                     onSelect={() => { onSelectFolder(folder.id); onSelectAsset(id); }}
                     onRemove={() => setPendingRemoval({ folderId: folder.id, assetId: id })}
                     onDragStart={() => setDraggedId(id)}
