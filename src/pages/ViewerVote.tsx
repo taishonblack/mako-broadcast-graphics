@@ -121,6 +121,27 @@ function snapshotSlug(snapshot?: ViewerSnapshot | null) {
   return snapshot?.poll?.viewer_slug || snapshot?.poll?.slug || '';
 }
 
+function selectLiveStateRow(rows: LiveStateRow[], currentProjectId: string | null, routeSlug: string): LiveStateRow | null {
+  if (currentProjectId) {
+    const currentProjectRow = rows.find((row) => row.project_id === currentProjectId);
+    if (currentProjectRow) return currentProjectRow;
+  }
+
+  const rowsWithSnapshot = rows.filter((row) => Boolean(row.live_poll_snapshot));
+  const normalizedRouteSlug = routeSlug.trim().toLowerCase();
+  if (normalizedRouteSlug) {
+    const slugMatch = rowsWithSnapshot.find((row) => {
+      const poll = row.live_poll_snapshot?.poll;
+      return [poll?.viewer_slug, poll?.slug]
+        .filter(Boolean)
+        .some((value) => String(value).trim().toLowerCase() === normalizedRouteSlug);
+    });
+    if (slugMatch) return slugMatch;
+  }
+
+  return rowsWithSnapshot[0] ?? null;
+}
+
 export default function ViewerVote() {
   const { slug = '' } = useParams<{ slug: string }>();
   const [status, setStatus] = useState<ViewerStatus>('loading');
@@ -156,6 +177,12 @@ export default function ViewerVote() {
     setStatus(voting_state === 'open' ? 'open' : 'closed');
   }, [slug]);
 
+  const projectId = poll?.project_id ?? null;
+  const pollId = poll?.id ?? null;
+  const applyFetchedLiveRows = useCallback((rows: LiveStateRow[]) => {
+    applyLiveStateRow(selectLiveStateRow(rows, projectId, slug));
+  }, [applyLiveStateRow, projectId, slug]);
+
   // Manual refetch — voters on flaky networks can tap this to force a
   // re-pull of project_live_state and immediately rerun the slate/open
   // decision without waiting for the 2s polling tick or realtime event.
@@ -166,13 +193,11 @@ export default function ViewerVote() {
         .from('project_live_state')
         .select('project_id, voting_state, active_poll_id, live_poll_snapshot')
         .in('voting_state', ['open', 'closed']);
-      const rows = (liveRows ?? []) as LiveStateRow[];
-      const liveMatch = rows.find((row) => Boolean(row.live_poll_snapshot));
-      applyLiveStateRow(liveMatch ?? null);
+      applyFetchedLiveRows((liveRows ?? []) as LiveStateRow[]);
     } finally {
       setRefreshing(false);
     }
-  }, [applyLiveStateRow]);
+  }, [applyFetchedLiveRows]);
 
   useEffect(() => {
     let cancelled = false;
