@@ -2194,6 +2194,9 @@ export default function PollCreate() {
                       onConvertAnswerTypeToBars={() => {
                         if (folderState.activeFolderId) handleConvertAnswerTypeToBars(folderState.activeFolderId);
                       }}
+                      onConvertAnswerBarsToAnswerType={() => {
+                        if (folderState.activeFolderId) handleConvertAnswerBarsToAnswerType(folderState.activeFolderId);
+                      }}
                     />
                   </Pane>
                 </ResizablePanel>
