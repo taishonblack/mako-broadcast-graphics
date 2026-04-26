@@ -694,6 +694,7 @@ export type Database = {
         }[]
       }
       normalize_project_tags: { Args: { _tags: string[] }; Returns: string[] }
+      poll_is_publicly_live: { Args: { _poll_id: string }; Returns: boolean }
       poll_owned_by_user: { Args: { _poll_id: string }; Returns: boolean }
       project_owned_by_user: { Args: { _project_id: string }; Returns: boolean }
     }
