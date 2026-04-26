@@ -152,12 +152,14 @@ export function ViewerSlatePreview({
   // - Other          (text/branding only): MakoVote wordmark fallback.
   const enabledList = Array.isArray(enabledAssetIds) ? enabledAssetIds : null;
   const folderHasQR = enabledList ? enabledList.includes('qr') : false;
+  const folderHasAnswerType = enabledList ? enabledList.includes('answerType') : false;
   const folderHasAnswers = enabledList ? enabledList.includes('answers') : true;
-  // When the folder has a QR asset, mobile/desktop should always offer the
-  // vote input — even outside an "Open Voting" gesture — because that's the
-  // whole point of the QR being live. When it has bars but no QR, suppress
-  // vote UI entirely (folder is for results display only).
-  const showVoting = (votingOpen || folderHasQR) && folderHasQR && options && options.length > 0;
+  // Mobile/Desktop show the vote-input buttons whenever the folder is set
+  // up to collect votes — that's any folder with `qr` or `answerType`. A
+  // folder with only `answers` (bars graphic) is "results display only" and
+  // should fall through to the MakoVote wordmark.
+  const folderCollectsVotes = folderHasQR || folderHasAnswerType;
+  const showVoting = (votingOpen || folderCollectsVotes) && folderCollectsVotes && options && options.length > 0;
 
   // Resolve colors from the active viewport's asset color map. Falls back to
   // the previous hard-coded white / light-gray values so existing previews
