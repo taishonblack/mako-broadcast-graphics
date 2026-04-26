@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -131,6 +131,34 @@ export default function ViewerVote() {
    *  same palette as the on-air program. */
   const [snapshot, setSnapshot] = useState<ViewerSnapshot | null>(null);
 
+  const applyLiveStateRow = useCallback((row?: LiveStateRow | null) => {
+    const voting_state = row?.voting_state ?? 'not_open';
+    const live_poll_snapshot = row?.live_poll_snapshot ?? null;
+    console.log('Viewer state update', {
+      voting_state,
+      hasSnapshot: Boolean(live_poll_snapshot),
+      slateActive: live_poll_snapshot?.slateActive,
+      routeSlug: slug,
+      snapshotSlug: live_poll_snapshot?.poll?.slug,
+    });
+
+    if (!row || !live_poll_snapshot) {
+      setSnapshot(null);
+      setPoll(null);
+      setAnswers([]);
+      setStatus('not_open');
+      setHasVoted(false);
+      setSelectedOption(null);
+      setPostVoteStage('received');
+      return;
+    }
+
+    setSnapshot(live_poll_snapshot);
+    setPoll(pollFromLiveSnapshot(row, slug));
+    setAnswers(answersFromSnapshot(live_poll_snapshot.poll));
+    setStatus(voting_state === 'open' ? 'open' : 'closed');
+  }, [slug]);
+
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -141,34 +169,12 @@ export default function ViewerVote() {
       if (cancelled) return;
 
       const rows = (liveRows ?? []) as LiveStateRow[];
-      const exactMatch = rows.find((row) => snapshotSlug(row.live_poll_snapshot) === slug);
-      const liveMatch = exactMatch ?? rows.find((row) => Boolean(row.live_poll_snapshot));
-      const voting_state = liveMatch?.voting_state ?? 'not_open';
-      const live_poll_snapshot = liveMatch?.live_poll_snapshot ?? null;
-      console.log('Viewer live state', {
-        voting_state,
-        hasSnapshot: Boolean(live_poll_snapshot),
-        slateActive: live_poll_snapshot?.slateActive,
-        snapshotSlug: live_poll_snapshot?.poll?.viewer_slug || live_poll_snapshot?.poll?.slug,
-        routeSlug: slug,
-      });
-
-      if (!liveMatch || !live_poll_snapshot) {
-        setSnapshot(null);
-        setPoll(null);
-        setAnswers([]);
-        setStatus('not_open');
-        return;
-      }
-
-      setSnapshot(live_poll_snapshot);
-      setPoll(pollFromLiveSnapshot(liveMatch, slug));
-      setAnswers(answersFromSnapshot(live_poll_snapshot.poll));
-      setStatus(voting_state === 'open' ? 'open' : 'closed');
+      const liveMatch = rows.find((row) => Boolean(row.live_poll_snapshot));
+      applyLiveStateRow(liveMatch ?? null);
     };
     load();
     return () => { cancelled = true; };
-  }, [slug]);
+  }, [applyLiveStateRow]);
 
   // Realtime: stream live vote totals + voting state changes so the viewer
   // reflects open/close transitions and tally updates without refresh.
