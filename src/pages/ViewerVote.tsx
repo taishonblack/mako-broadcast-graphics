@@ -106,7 +106,7 @@ export default function ViewerVote() {
   const [answers, setAnswers] = useState<ViewerAnswer[]>([]);
   const [hasVoted, setHasVoted] = useState(false);
   const [postVoteStage, setPostVoteStage] = useState<'received' | 'after'>('received');
-  const [, setSelectedOption] = useState<string | null>(null);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
   /** Operator's color + enabled-asset choices, mirrored from the live state
    *  snapshot. When present we apply them so mobile/desktop voters see the
    *  same palette as the on-air program. */
