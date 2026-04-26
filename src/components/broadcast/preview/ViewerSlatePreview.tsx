@@ -166,15 +166,22 @@ export function ViewerSlatePreview({
   // keep working when no overrides are set.
   const questionColor = assetColors?.question?.textPrimary ?? '#ffffff';
   const subheadlineColor = assetColors?.subheadline?.textPrimary ?? '#e5e7eb';
-  const answerColor = assetColors?.answers?.textPrimary ?? '#ffffff';
-  const answerBarColors = assetColors?.answers?.barColors ?? [];
+  // Voter button styling reads from the dedicated `answerType` asset so the
+  // operator can theme the on-device buttons independently of the broadcast
+  // results bars (`answers`). Falls back to `answers` colors, then defaults.
+  const answerColor =
+    assetColors?.answerType?.textPrimary ?? assetColors?.answers?.textPrimary ?? '#ffffff';
+  const answerBarColors =
+    assetColors?.answerType?.barColors ?? assetColors?.answers?.barColors ?? [];
 
   // Per-asset transform styles. Computed once per render so each block can
   // be translated / scaled / rotated independently of the others, matching
   // how the inspector's per-asset sliders behave in Program.
   const questionTransformStyle = getAssetTransformStyle(transforms?.question);
   const subheadlineTransformStyle = getAssetTransformStyle(transforms?.subheadline);
-  const answersTransformStyle = getAssetTransformStyle(transforms?.answers);
+  // Voter button group reads from `answerType` transform (falls back to
+  // `answers` for legacy polls authored before the split).
+  const answersTransformStyle = getAssetTransformStyle(transforms?.answerType ?? transforms?.answers);
 
   return (
     <div
