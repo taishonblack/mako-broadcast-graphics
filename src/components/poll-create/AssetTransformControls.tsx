@@ -326,7 +326,7 @@ function ColorInput({
   value?: string;
   onChange: (value: string) => void;
   onReset: () => void;
-  swatches?: string[];
+  swatches?: ColorSwatch[];
   onSaveSwatch?: () => void;
 }) {
   return (
