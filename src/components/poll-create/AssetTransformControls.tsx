@@ -1,9 +1,10 @@
-import { ChevronDown, ChevronRight, Crosshair, Globe, Lock, Monitor, Plus, RotateCcw, Smartphone, Unlock, X } from 'lucide-react';
+import { ChevronDown, ChevronRight, Crosshair, Globe, Lock, Monitor, Palette, Plus, RotateCcw, Smartphone, Unlock, X } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AssetColorConfig, AssetColorMap, AssetId, AssetTransformMap, DEFAULT_ASSET_COLORS, TransformField, TransformViewport } from '@/components/poll-create/polling-assets/types';
 import { useEffect, useState } from 'react';
 
