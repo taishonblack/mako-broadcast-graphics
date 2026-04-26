@@ -375,16 +375,31 @@ export default function ViewerVote() {
         </div>
         {answers.length > 0 ? (
           <div className="space-y-3">
-            {answers.map((option) => (
-              <button
-                key={option.id}
-                onClick={() => handleVote(option.id)}
-                className="w-full p-4 rounded-2xl text-left font-medium text-foreground transition-all active:scale-[0.98] border border-border/50 hover:border-primary/50 hover:bg-primary/5"
-                style={{ background: 'hsla(220, 18%, 13%, 0.8)' }}
-              >
-                <span className="text-base">{option.label}</span>
-              </button>
-            ))}
+            {answers.map((option) => {
+              const isSelected = selectedOption === option.id;
+              const isOtherSelected = hasVoted && !isSelected;
+              return (
+                <button
+                  key={option.id}
+                  onClick={() => handleVote(option.id)}
+                  disabled={hasVoted}
+                  className={[
+                    'w-full p-4 rounded-2xl text-left font-medium text-foreground transition-all border',
+                    isSelected
+                      ? 'border-primary bg-primary/20 ring-2 ring-primary shadow-[0_0_24px_hsl(var(--primary)/0.45)]'
+                      : isOtherSelected
+                        ? 'border-border/30 opacity-40'
+                        : 'border-border/50 hover:border-primary/50 hover:bg-primary/5 active:scale-[0.98]',
+                  ].join(' ')}
+                  style={{ background: isSelected ? undefined : 'hsla(220, 18%, 13%, 0.8)' }}
+                >
+                  <span className="text-base flex items-center justify-between gap-2">
+                    <span>{option.label}</span>
+                    {isSelected && <CheckCircle className="h-5 w-5 text-primary shrink-0" />}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         ) : (
           <div
