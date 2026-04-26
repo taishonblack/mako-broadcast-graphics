@@ -176,6 +176,8 @@ export function OperatorOutputMode({
   onTallyIntervalChange,
   assetColors,
   assetTransforms,
+  assetColorSet,
+  assetTransformSet,
 }: OperatorOutputModeProps) {
   const navigate = useNavigate();
   // Suppress unused-prop warnings until those features come back. Kept in the
