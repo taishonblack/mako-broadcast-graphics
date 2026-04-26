@@ -1216,6 +1216,16 @@ export default function PollCreate() {
     if (error) toast.error(`Viewer sync failed: ${error.message}`);
   }, [activeFolder, assetColors, assetState, assetTransforms, brandingPosition, currentWorkspacePoll, enabledAssets, folderState.activeFolderId, liveState, previewScene, projectId, projectPolls, qrSize, showBranding, slugForUrl]);
 
+  const syncViewerVotingClosed = useCallback(async () => {
+    if (!projectId) return;
+    const { error } = await supabase.from('project_live_state').upsert({
+      project_id: projectId,
+      voting_state: 'closed',
+      output_state: liveState === 'live' ? 'live_output' : 'preview',
+    } as never);
+    if (error) toast.error(`Viewer close sync failed: ${error.message}`);
+  }, [liveState, projectId]);
+
   // Mirror the Program Preview to any open Output window in real time.
   // Whenever the operator's program-preview state (poll content, scene,
   // assets, transforms, colors, wordmark) changes, push it to the Output
