@@ -52,6 +52,8 @@ import {
   DEFAULT_TALLY_MODE,
   TallyMode,
   duplicateFolder,
+  setAssetInactive,
+  convertAnswerTypeToBars,
   findAssetFolder,
   getFolderById,
   loadProjectPollingAssetFolders,
