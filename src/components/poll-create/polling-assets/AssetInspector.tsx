@@ -205,7 +205,9 @@ export function AssetInspector(p: AssetInspectorProps) {
             )}
 
             <div className="space-y-1.5">
-              <Label className="text-[10px] text-muted-foreground">Answers · Test Votes</Label>
+              <Label className="text-[10px] text-muted-foreground">
+                {id === 'answerType' ? 'Possible Answers' : 'Answers · Test Votes'}
+              </Label>
               {p.answers.map((a, i) => (
                 <div
                   key={a.id}
@@ -242,9 +244,10 @@ export function AssetInspector(p: AssetInspectorProps) {
                       p.setAnswers(next);
                     }}
                     placeholder={`Answer ${i + 1}`}
-                    disabled={p.answerType === 'yes-no'}
+                    disabled={id !== 'answerType' && p.answerType === 'yes-no'}
                     className="bg-background/50 h-7 text-[11px] flex-1"
                   />
+                  {id === 'answers' && (
                   <div className="flex items-center gap-0.5">
                     <Input
                       type="number"
@@ -262,18 +265,24 @@ export function AssetInspector(p: AssetInspectorProps) {
                     />
                     <span className="text-[10px] text-muted-foreground">%</span>
                   </div>
+                  )}
                   <button
                     onClick={() => {
-                      if (p.answers.length > 2) p.setAnswers(p.answers.filter((x) => x.id !== a.id));
+                      const min = id === 'answerType' ? 1 : 2;
+                      if (p.answers.length > min) p.setAnswers(p.answers.filter((x) => x.id !== a.id));
                     }}
-                    disabled={p.answers.length <= 2 || p.answerType === 'yes-no'}
+                    disabled={
+                      id === 'answerType'
+                        ? p.answers.length <= 1
+                        : p.answers.length <= 2 || p.answerType === 'yes-no'
+                    }
                     className="text-muted-foreground/50 hover:text-destructive disabled:opacity-30"
                   >
                     <Trash2 className="w-3 h-3" />
                   </button>
                 </div>
               ))}
-              {p.answerType !== 'yes-no' && p.answers.length < 4 && (
+              {(id === 'answerType' || (p.answerType !== 'yes-no' && p.answers.length < 4)) && (
                 <Button
                   variant="outline" size="sm"
                   onClick={() => {
@@ -287,6 +296,11 @@ export function AssetInspector(p: AssetInspectorProps) {
                 >
                   <PlusCircle className="w-3 h-3" /> Add Answer
                 </Button>
+              )}
+              {id === 'answerType' && (
+                <p className="text-[9px] text-muted-foreground/70 leading-tight">
+                  These are the choices voters tap on mobile/desktop. Add as many as you need.
+                </p>
               )}
             </div>
           </div>
