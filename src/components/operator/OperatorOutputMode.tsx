@@ -611,67 +611,28 @@ export function OperatorOutputMode({
           </div>
 
           {previewMode === 'program' ? (
-            testViewerView ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-end gap-1 px-1">
-                  {(['mobile', 'desktop'] as const).map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => setTestViewerMode(m)}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium border transition-all ${
-                        testViewerMode === m
-                          ? 'border-primary/40 bg-primary/15 text-primary'
-                          : 'border-border bg-transparent text-muted-foreground hover:bg-accent/30'
-                      }`}
-                    >
-                      {m === 'mobile' ? <Smartphone className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
-                      {m === 'mobile' ? 'Mobile' : 'Desktop'}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex justify-center">
-                  <ViewerSlatePreview
-                    mode={testViewerMode}
-                    bgImage={currentPoll.bgImage}
-                    bgColor={currentPoll.bgColor}
-                    slateActive={slateActive}
-                    slateText={slateText}
-                    slateImage={slateImage}
-                    textStyle={slateTextStyle}
-                    sublineText={slateSublineText}
-                    sublineStyle={slateSublineStyle}
-                    votingOpen={votingState === 'open'}
-                    question={currentPoll.question}
-                    options={currentPoll.options}
-                    enabledAssetIds={enabledAssetIds}
-                    subheadline={currentPoll.subheadline}
-                    slug={currentPoll.slug}
-                    assetColors={assetColorSet?.[testViewerMode] ?? assetColors}
-                    transforms={assetTransformSet?.[testViewerMode] ?? assetTransforms}
-                  />
-                </div>
-              </div>
-            ) : (
-              <MonitorContainer variant="operator">
-                <PreviewWithOverlays showLabel label="1920×1080">
-                  {previewNode}
-                </PreviewWithOverlays>
-              </MonitorContainer>
-            )
+            <MonitorContainer variant="operator">
+              <PreviewWithOverlays showLabel label="1920×1080">
+                {previewNode}
+              </PreviewWithOverlays>
+            </MonitorContainer>
           ) : (
             <div className="flex justify-center">
               <ViewerSlatePreview
                 mode={previewMode}
                 bgImage={currentPoll.bgImage}
                 bgColor={currentPoll.bgColor}
-                slateActive={slateActive}
+                /* Test Viewer View forces the slate render so the operator
+                 * can preview slate copy/image without actually starting
+                 * the slate on-air. When OFF, behaviour follows the real
+                 * slate/voting state (answer types when voting is open). */
+                slateActive={slateActive || testViewerView}
                 slateText={slateText}
                 slateImage={slateImage}
                 textStyle={slateTextStyle}
                 sublineText={slateSublineText}
                 sublineStyle={slateSublineStyle}
-                votingOpen={votingState === 'open'}
+                votingOpen={votingState === 'open' && !testViewerView}
                 question={currentPoll.question}
                 options={currentPoll.options}
                 enabledAssetIds={enabledAssetIds}
