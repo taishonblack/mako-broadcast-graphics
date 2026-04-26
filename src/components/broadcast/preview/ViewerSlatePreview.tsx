@@ -1,6 +1,7 @@
 import { PollOption } from '@/lib/types';
 import { QRCodeSVG } from 'qrcode.react';
-import { AssetColorMap } from '@/components/poll-create/polling-assets/types';
+import { AssetColorMap, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
+import { getAssetTransformStyle } from '@/lib/asset-transforms';
 
 /**
  * Operator-controlled typography for the polling slate. Drives the headline
@@ -78,6 +79,13 @@ export interface ViewerSlatePreviewProps {
    *  subheadline / answer text colors so Mobile + Desktop previews match
    *  the operator's color picks (instead of always-white). */
   assetColors?: AssetColorMap;
+  /** Per-asset transform overrides (translate / scale / rotate / opacity /
+   *  crop) for the *active* viewport. The voter previews apply these to
+   *  question, subheadline, and answers blocks so the operator's mobile /
+   *  desktop nudges in Build are reflected here in real time. Without this
+   *  the preview would render at the canonical zero-transform position
+   *  regardless of slider edits. */
+  transforms?: AssetTransformMap;
 }
 
 /**
@@ -111,6 +119,7 @@ export function ViewerSlatePreview({
   subheadline,
   slug,
   assetColors,
+  transforms,
 }: ViewerSlatePreviewProps) {
   const NATIVE_W = mode === 'mobile' ? 375 : 1280;
   const NATIVE_H = mode === 'mobile' ? 667 : 800;
@@ -151,6 +160,13 @@ export function ViewerSlatePreview({
   const answerColor = assetColors?.answers?.textPrimary ?? '#ffffff';
   const answerBarColors = assetColors?.answers?.barColors ?? [];
 
+  // Per-asset transform styles. Computed once per render so each block can
+  // be translated / scaled / rotated independently of the others, matching
+  // how the inspector's per-asset sliders behave in Program.
+  const questionTransformStyle = getAssetTransformStyle(transforms?.question);
+  const subheadlineTransformStyle = getAssetTransformStyle(transforms?.subheadline);
+  const answersTransformStyle = getAssetTransformStyle(transforms?.answers);
+
   return (
     <div
       className="bg-background border border-border rounded-lg overflow-hidden shadow-xl"
@@ -181,7 +197,7 @@ export function ViewerSlatePreview({
               {question && (
                 <h1
                   className="text-center leading-tight"
-                  style={{ color: questionColor, fontWeight: 700, fontSize: mode === 'mobile' ? 28 : 40, maxWidth: '90%' }}
+                  style={{ color: questionColor, fontWeight: 700, fontSize: mode === 'mobile' ? 28 : 40, maxWidth: '90%', ...questionTransformStyle }}
                 >
                   {question}
                 </h1>
@@ -189,7 +205,7 @@ export function ViewerSlatePreview({
               {subheadline && (
                 <p
                   className="text-center"
-                  style={{ color: subheadlineColor, fontSize: mode === 'mobile' ? 14 : 18, maxWidth: '85%' }}
+                  style={{ color: subheadlineColor, fontSize: mode === 'mobile' ? 14 : 18, maxWidth: '85%', ...subheadlineTransformStyle }}
                 >
                   {subheadline}
                 </p>
@@ -211,12 +227,12 @@ export function ViewerSlatePreview({
               {question && (
                 <h1
                   className="text-center leading-tight"
-                  style={{ color: questionColor, fontWeight: 700, fontSize: mode === 'mobile' ? 28 : 40, maxWidth: '90%' }}
+                  style={{ color: questionColor, fontWeight: 700, fontSize: mode === 'mobile' ? 28 : 40, maxWidth: '90%', ...questionTransformStyle }}
                 >
                   {question}
                 </h1>
               )}
-              <div className="w-full max-w-[420px] space-y-3">
+              <div className="w-full max-w-[420px] space-y-3" style={answersTransformStyle}>
                 {options!.map((opt, i) => (
                   <div
                     key={opt.id}

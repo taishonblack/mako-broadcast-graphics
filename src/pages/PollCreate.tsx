@@ -1898,6 +1898,7 @@ export default function PollCreate() {
             hasAnswerBars={enabledAssets.includes('answers')}
             enabledAssetIds={enabledAssets}
             assetColors={assetColors}
+            assetTransforms={assetTransforms}
             onSelectBlock={(letter) => {
               setOutputActiveBlock(letter);
               setOutputBlockSource(outputBlockPinned ? 'pinned' : 'manual');

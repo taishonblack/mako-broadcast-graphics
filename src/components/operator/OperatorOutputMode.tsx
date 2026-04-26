@@ -116,6 +116,9 @@ interface OperatorOutputModeProps {
    *  answer text colors match what the operator picked, instead of always
    *  rendering white. */
   assetColors?: import('@/components/poll-create/polling-assets/types').AssetColorMap;
+  /** Per-asset transforms (active viewport) — drives mobile/desktop preview
+   *  positioning so operator slider edits in Build are reflected in Output. */
+  assetTransforms?: import('@/components/poll-create/polling-assets/types').AssetTransformMap;
 }
 
 export function OperatorOutputMode({
@@ -166,6 +169,7 @@ export function OperatorOutputMode({
   onTallyModeChange,
   onTallyIntervalChange,
   assetColors,
+  assetTransforms,
 }: OperatorOutputModeProps) {
   const navigate = useNavigate();
   // Suppress unused-prop warnings until those features come back. Kept in the
@@ -635,6 +639,7 @@ export function OperatorOutputMode({
                     subheadline={currentPoll.subheadline}
                     slug={currentPoll.slug}
                     assetColors={assetColors}
+                    transforms={assetTransforms}
                   />
                 </div>
               </div>
@@ -664,6 +669,7 @@ export function OperatorOutputMode({
                 subheadline={currentPoll.subheadline}
                 slug={currentPoll.slug}
                 assetColors={assetColors}
+                transforms={assetTransforms}
               />
             </div>
           )}

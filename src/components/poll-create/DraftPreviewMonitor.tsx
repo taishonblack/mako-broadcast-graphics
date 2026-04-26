@@ -423,6 +423,7 @@ export function DraftPreviewMonitor({
               enabledAssetIds={enabledAssetIds}
               slug={slug}
               assetColors={assetColors}
+              transforms={transforms}
             />
           ) : (
             <div className={`bg-background border border-border rounded-lg overflow-hidden shadow-xl ${
