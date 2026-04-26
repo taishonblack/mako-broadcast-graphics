@@ -646,8 +646,8 @@ export function OperatorOutputMode({
                     enabledAssetIds={enabledAssetIds}
                     subheadline={currentPoll.subheadline}
                     slug={currentPoll.slug}
-                    assetColors={assetColors}
-                    transforms={assetTransforms}
+                    assetColors={assetColorSet?.[testViewerMode] ?? assetColors}
+                    transforms={assetTransformSet?.[testViewerMode] ?? assetTransforms}
                   />
                 </div>
               </div>
@@ -676,8 +676,8 @@ export function OperatorOutputMode({
                 enabledAssetIds={enabledAssetIds}
                 subheadline={currentPoll.subheadline}
                 slug={currentPoll.slug}
-                assetColors={assetColors}
-                transforms={assetTransforms}
+                assetColors={assetColorSet?.[previewMode] ?? assetColors}
+                transforms={assetTransformSet?.[previewMode] ?? assetTransforms}
               />
             </div>
           )}
