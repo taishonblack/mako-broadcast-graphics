@@ -1031,7 +1031,30 @@ export function OperatorOutputMode({
                     : 'Mobile / Desktop preview shows the live voting UI'}
                 </p>
               </div>
-              <Switch checked={testViewerView} onCheckedChange={setTestViewerView} />
+              <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 gap-1 px-2 text-[10px]"
+                      onClick={handleQaFlip}
+                      disabled={qaFlipping || previewMode === 'program'}
+                    >
+                      <RefreshCw className={`h-3 w-3 ${qaFlipping ? 'animate-spin' : ''}`} />
+                      QA Flip
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    Briefly cycles slate ↔ live answer-types on the current
+                    Mobile / Desktop preview so you can confirm the transition
+                    before Go Live.
+                  </TooltipContent>
+                </Tooltip>
+                <Switch checked={testViewerView} onCheckedChange={setTestViewerView} />
+              </div>
+            </div>
             </div>
 
             {/* Polling Slate */}
