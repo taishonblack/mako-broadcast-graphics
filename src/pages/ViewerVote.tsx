@@ -62,11 +62,13 @@ export default function ViewerVote() {
     let cancelled = false;
     const load = async () => {
       if (!slug) { setStatus('not_found'); return; }
-      const { data: pollRow } = await supabase
-        .from('polls')
-        .select('id, project_id, question, subheadline, bg_color, bg_image, show_live_results, show_thank_you, show_final_results, slate_text, slate_subline_text, post_vote_delay_ms')
-        .eq('viewer_slug', slug)
-        .maybeSingle();
+      // Public viewers cannot SELECT directly from `polls` anymore — that
+      // table is locked down to its owner. Instead we call a SECURITY
+      // DEFINER RPC that returns ONLY the safe viewer-facing columns for
+      // the requested slug. Prevents enumeration of other operators' polls.
+      const { data: rpcRows } = await supabase
+        .rpc('get_viewer_poll_by_slug', { _slug: slug });
+      const pollRow = Array.isArray(rpcRows) ? rpcRows[0] : null;
       if (cancelled) return;
       if (!pollRow) { setStatus('not_found'); return; }
       setPoll(pollRow as ViewerPoll);
