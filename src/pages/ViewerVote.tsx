@@ -26,6 +26,7 @@ interface ViewerPoll {
   show_final_results: boolean;
   slate_text: string;
   slate_subline_text: string;
+  slate_image: string | null;
   post_vote_delay_ms: number;
 }
 
@@ -183,6 +184,13 @@ export default function ViewerVote() {
             <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto">
               <Clock className="w-8 h-8 text-muted-foreground" />
             </div>
+          )}
+          {status === 'not_open' && poll?.slate_image && (
+            <img
+              src={poll.slate_image}
+              alt="Polling slate"
+              className="mx-auto max-h-64 max-w-full rounded-lg border border-white/10 object-contain"
+            />
           )}
           <MakoVoteSlate sublabel={status === 'not_open' ? (poll?.slate_text || 'Polling will open soon') : undefined} />
           {status === 'not_open' && poll?.slate_subline_text && (
