@@ -1226,6 +1226,71 @@ export default function PollCreate() {
     if (error) toast.error(`Viewer close sync failed: ${error.message}`);
   }, [liveState, projectId]);
 
+  // Broadcast the Polling Slate state to public viewers. When `active` is
+  // true we publish a `voting_state='closed'` row WITH the live snapshot and
+  // a `slateActive: true` flag so /vote/:slug renders the operator-authored
+  // slate text/image instead of the MakoVote branding. When `active` is
+  // false we clear the snapshot so viewers fall back to the MakoVote slate.
+  const syncViewerSlate = useCallback(async (active: boolean) => {
+    if (!projectId) return;
+    if (!active) {
+      // Stop slate → revert mobile/desktop voters to MakoVote branding by
+      // clearing the live snapshot. We keep voting_state at 'closed' so the
+      // public RLS row stays readable; the missing snapshot triggers the
+      // fallback "not_found" branch which renders MakoVote.
+      const { error } = await supabase.from('project_live_state').upsert({
+        project_id: projectId,
+        voting_state: 'closed',
+        live_poll_snapshot: null,
+        output_state: liveState === 'live' ? 'live_output' : 'preview',
+      } as never);
+      if (error) toast.error(`Slate stop sync failed: ${error.message}`);
+      return;
+    }
+    const savedMatch = !isUuid(currentWorkspacePoll.id)
+      ? projectPolls.find((poll) => poll.projectId === projectId && poll.slug === slugForUrl)
+      : undefined;
+    const livePoll: Poll = savedMatch
+      ? {
+          ...currentWorkspacePoll,
+          id: savedMatch.id,
+          projectId: savedMatch.projectId,
+          options: savedPollOptions(savedMatch),
+          question: currentWorkspacePoll.question || savedMatch.question,
+          subheadline: currentWorkspacePoll.subheadline || savedMatch.subheadline,
+          bgColor: currentWorkspacePoll.bgColor || savedMatch.bgColor,
+          bgImage: currentWorkspacePoll.bgImage || savedMatch.bgImage,
+        }
+      : currentWorkspacePoll;
+    const snapshot = {
+      poll: livePoll,
+      scene: previewScene,
+      layers: [],
+      slateActive: true,
+      assets: {
+        qrSize,
+        qrPosition: assetState.qrPosition,
+        qrVisible: assetState.qrVisible,
+        qrUrlVisible: assetState.qrUrlVisible,
+        showBranding,
+        brandingPosition,
+        enabledAssetIds: enabledAssets,
+        transforms: assetTransforms,
+        assetColors,
+      },
+    };
+    const { error } = await supabase.from('project_live_state').upsert({
+      project_id: projectId,
+      active_poll_id: isUuid(livePoll.id) ? livePoll.id : null,
+      active_folder_id: folderState.activeFolderId ?? null,
+      live_folder_id: folderState.activeFolderId ?? null,
+      live_poll_snapshot: snapshot as never,
+      voting_state: 'closed',
+      output_state: liveState === 'live' ? 'live_output' : 'preview',
+    } as never);
+    if (error) toast.error(`Slate sync failed: ${error.message}`);
+  }, [assetColors, assetState, assetTransforms, brandingPosition, currentWorkspacePoll, enabledAssets, folderState.activeFolderId, liveState, previewScene, projectId, projectPolls, qrSize, showBranding, slugForUrl]);
+
   // Mirror the Program Preview to any open Output window in real time.
   // Whenever the operator's program-preview state (poll content, scene,
   // assets, transforms, colors, wordmark) changes, push it to the Output
