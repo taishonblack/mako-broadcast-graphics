@@ -801,7 +801,7 @@ export default function PollCreate() {
         live_folder_id: folderState.activeFolderId ?? null,
         live_poll_snapshot: snapshot as never,
         voting_state: 'open',
-        output_state: 'live_output',
+        output_state: 'program_live',
       } as never);
       if (error) {
         toast.error(`Go Live viewer sync failed: ${error.message}`);
@@ -1225,7 +1225,7 @@ export default function PollCreate() {
       live_folder_id: folderState.activeFolderId ?? null,
       live_poll_snapshot: snapshot as never,
       voting_state: 'open',
-      output_state: liveState === 'live' ? 'live_output' : 'preview',
+      output_state: liveState === 'live' ? 'program_live' : 'preview',
     } as never);
     if (error) toast.error(`Viewer sync failed: ${error.message}`);
   }, [activeFolder, assetColors, assetState, assetTransforms, brandingPosition, currentWorkspacePoll, enabledAssets, folderState.activeFolderId, liveState, previewOptions, previewScene, projectId, projectPolls, qrSize, showBranding, slugForUrl]);
