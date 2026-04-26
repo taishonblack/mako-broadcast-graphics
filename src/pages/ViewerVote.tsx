@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { AlertTriangle, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -57,6 +57,9 @@ interface ViewerSnapshot {
     options?: Array<{ id: string; text?: string; shortLabel?: string; votes?: number; order?: number }>;
   };
   assets?: ViewerSnapshotAssets;
+  /** Operator pressed "Polling Slate" — viewer should render the slate
+   *  text/image instead of the MakoVote branding or the "Closed" screen. */
+  slateActive?: boolean;
 }
 
 type LiveStateRow = {
@@ -103,7 +106,7 @@ export default function ViewerVote() {
   const [answers, setAnswers] = useState<ViewerAnswer[]>([]);
   const [hasVoted, setHasVoted] = useState(false);
   const [postVoteStage, setPostVoteStage] = useState<'received' | 'after'>('received');
-  const [, setSelectedOption] = useState<string | null>(null);
+  const [selectedOption, setSelectedOption] = useState<string | null>(null);
   /** Operator's color + enabled-asset choices, mirrored from the live state
    *  snapshot. When present we apply them so mobile/desktop voters see the
    *  same palette as the on-air program. */
@@ -215,19 +218,20 @@ export default function ViewerVote() {
     setHasVoted(true);
   };
 
-  // After "Vote Received" shows, wait the configured delay then transition
-  // to the thank-you / results screen (same hasVoted view, second stage).
+  // After the voter taps an answer, keep the highlighted selection visible
+  // for ~3 seconds so they see which choice they cast, then transition to
+  // the Thank You screen. (Per product spec — overrides per-poll delay.)
   useEffect(() => {
     if (!hasVoted || postVoteStage !== 'received') return;
-    const delay = Math.max(0, poll?.post_vote_delay_ms ?? 1500);
-    const timer = window.setTimeout(() => setPostVoteStage('after'), delay);
+    const timer = window.setTimeout(() => setPostVoteStage('after'), 3000);
     return () => window.clearTimeout(timer);
-  }, [hasVoted, postVoteStage, poll?.post_vote_delay_ms]);
+  }, [hasVoted, postVoteStage]);
 
   const totalVotes = useMemo(() => answers.reduce((sum, a) => sum + (a.live_votes ?? 0), 0), [answers]);
   const showLiveResults = Boolean(poll?.show_live_results);
   const showThankYou = poll?.show_thank_you !== false; // default on
-  const showFinalResults = Boolean(poll?.show_final_results);
+  // Final results are no longer rendered on close — operator-stop reverts
+  // viewers to the MakoVote slate per product spec.
 
   // Operator-assigned colors. Falls back to the design tokens used in the
   // existing viewer if the operator hasn't customized anything.
@@ -244,6 +248,14 @@ export default function ViewerVote() {
   const folderCollectsVotes = Array.isArray(enabled) && (enabled.includes('answerType') || enabled.includes('qr'));
   const isMirrorMode = Array.isArray(enabled) && !folderCollectsVotes;
 
+  // Operator broadcast: when the Polling Slate button is ON, show the
+  // operator-authored slate text/image instead of MakoVote branding or the
+  // "Polling is Closed" screen. The flag rides on the live snapshot so we
+  // only render the slate when the operator explicitly turned it on for
+  // this poll's slug.
+  const slateBroadcastActive = Boolean(snapshot?.slateActive)
+    && (snapshot?.poll?.slug === slug);
+
   const bgStyle: React.CSSProperties = poll?.bg_image
     ? { backgroundImage: `url(${poll.bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { background: poll?.bg_color || 'hsl(220, 20%, 7%)' };
@@ -257,44 +269,27 @@ export default function ViewerVote() {
     );
   }
 
-  // ---- Slug not found OR not open: show MakoVote slate ----
-  if (status === 'not_found' || status === 'not_open') {
+  // ---- Polling Slate broadcast (operator pressed "Polling Slate") ----
+  // Render the operator's slate copy/image instead of MakoVote.
+  if (slateBroadcastActive && status !== 'open') {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
-        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10">
-          {status === 'not_open' && (
-            <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto">
-              <Clock className="w-8 h-8 text-muted-foreground" />
-            </div>
-          )}
-          {status === 'not_open' && poll?.slate_image && (
+        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10 w-full max-w-sm">
+          <div className="w-16 h-16 rounded-full bg-muted/30 flex items-center justify-center mx-auto">
+            <Clock className="w-8 h-8 text-muted-foreground" />
+          </div>
+          {poll?.slate_image && (
             <img
               src={poll.slate_image}
               alt="Polling slate"
               className="mx-auto max-h-64 max-w-full rounded-lg border border-white/10 object-contain"
             />
           )}
-          <MakoVoteSlate sublabel={status === 'not_open' ? (poll?.slate_text || 'Polling will open soon') : undefined} />
-          {status === 'not_open' && poll?.slate_subline_text && (
+          <h1 className="text-2xl font-bold text-foreground leading-tight">
+            {poll?.slate_text || 'Polling will open soon'}
+          </h1>
+          {poll?.slate_subline_text && (
             <p className="text-sm text-muted-foreground">{poll.slate_subline_text}</p>
-          )}
-        </div>
-      </div>
-    );
-  }
-
-  // ---- Closed: optionally show final results ----
-  if (status === 'closed') {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
-        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10 w-full max-w-sm">
-          <div className="w-16 h-16 rounded-full bg-mako-warning/20 flex items-center justify-center mx-auto">
-            <XCircle className="w-8 h-8 text-mako-warning" />
-          </div>
-          <h1 className="text-xl font-bold text-foreground">Polling is Closed</h1>
-          <p className="text-sm text-muted-foreground">Thanks for participating!</p>
-          {showFinalResults && answers.length > 0 && (
-            <ResultsList answers={answers} totalVotes={totalVotes} />
           )}
           <BrandBug />
         </div>
@@ -302,26 +297,24 @@ export default function ViewerVote() {
     );
   }
 
-  // ---- Vote received: thank-you screen + optional live results ----
-  if (hasVoted) {
-    // Stage 1: brief "Vote Received" confirmation before the configured delay
-    // elapses, regardless of which post-vote screen is configured.
-    if (postVoteStage === 'received') {
-      return (
-        <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
-          <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10 w-full max-w-sm">
-            <div className="w-16 h-16 rounded-full bg-mako-success/20 flex items-center justify-center mx-auto">
-              <CheckCircle className="w-8 h-8 text-mako-success" />
-            </div>
-            <h1 className="text-xl font-bold text-foreground">Vote Received</h1>
-            <p className="text-sm text-muted-foreground">Your vote has been counted</p>
-            <BrandBug />
-          </div>
+  // ---- Slug not found, not open, OR closed without slate: MakoVote slate ----
+  // When the operator stops Go Live, voting_state goes to 'closed' and the
+  // snapshot is cleared — viewers should see MakoVote branding again
+  // (NOT the "Polling is Closed" screen).
+  if (status === 'not_found' || status === 'not_open' || status === 'closed') {
+    return (
+      <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
+        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10">
+          <MakoVoteSlate />
         </div>
-      );
-    }
+      </div>
+    );
+  }
 
-    // Stage 2: after the configured delay — show thank-you and/or live results.
+  // ---- Vote received → Thank You (stage 2 only). Stage 1 keeps the
+  //      answer types visible with the operator's choice highlighted so the
+  //      voter sees what they tapped for ~3s before this Thank You appears. ----
+  if (hasVoted && postVoteStage === 'after') {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
         <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10 w-full max-w-sm">
@@ -330,7 +323,7 @@ export default function ViewerVote() {
               <div className="w-16 h-16 rounded-full bg-mako-success/20 flex items-center justify-center mx-auto">
                 <CheckCircle className="w-8 h-8 text-mako-success" />
               </div>
-              <h1 className="text-xl font-bold text-foreground">Thank You</h1>
+              <h1 className="text-xl font-bold text-foreground">Thank you for voting</h1>
               <p className="text-sm text-muted-foreground">Your vote has been counted</p>
             </>
           )}
@@ -382,16 +375,31 @@ export default function ViewerVote() {
         </div>
         {answers.length > 0 ? (
           <div className="space-y-3">
-            {answers.map((option) => (
-              <button
-                key={option.id}
-                onClick={() => handleVote(option.id)}
-                className="w-full p-4 rounded-2xl text-left font-medium text-foreground transition-all active:scale-[0.98] border border-border/50 hover:border-primary/50 hover:bg-primary/5"
-                style={{ background: 'hsla(220, 18%, 13%, 0.8)' }}
-              >
-                <span className="text-base">{option.label}</span>
-              </button>
-            ))}
+            {answers.map((option) => {
+              const isSelected = selectedOption === option.id;
+              const isOtherSelected = hasVoted && !isSelected;
+              return (
+                <button
+                  key={option.id}
+                  onClick={() => handleVote(option.id)}
+                  disabled={hasVoted}
+                  className={[
+                    'w-full p-4 rounded-2xl text-left font-medium text-foreground transition-all border',
+                    isSelected
+                      ? 'border-primary bg-primary/20 ring-2 ring-primary shadow-[0_0_24px_hsl(var(--primary)/0.45)]'
+                      : isOtherSelected
+                        ? 'border-border/30 opacity-40'
+                        : 'border-border/50 hover:border-primary/50 hover:bg-primary/5 active:scale-[0.98]',
+                  ].join(' ')}
+                  style={{ background: isSelected ? undefined : 'hsla(220, 18%, 13%, 0.8)' }}
+                >
+                  <span className="text-base flex items-center justify-between gap-2">
+                    <span>{option.label}</span>
+                    {isSelected && <CheckCircle className="h-5 w-5 text-primary shrink-0" />}
+                  </span>
+                </button>
+              );
+            })}
           </div>
         ) : (
           <div

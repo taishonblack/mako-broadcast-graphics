@@ -88,6 +88,9 @@ interface OperatorOutputModeProps {
   onOpenVoting: () => void;
   onCloseVoting: () => void;
   onRescanPolls?: () => void;
+  /** Notify parent when the operator toggles the Polling Slate on/off so it
+   *  can broadcast the slate state to public viewers (mobile/desktop). */
+  onSlateActiveChange?: (active: boolean) => void;
   onQrSizeChange: (size: number) => void;
   onQrPositionChange: (position: QRPosition) => void;
   onShowBrandingChange: (show: boolean) => void;
@@ -162,6 +165,7 @@ export function OperatorOutputMode({
   onOpenVoting,
   onCloseVoting,
   onRescanPolls,
+  onSlateActiveChange,
   onQrSizeChange,
   onQrPositionChange,
   onShowBrandingChange,
@@ -458,7 +462,22 @@ export function OperatorOutputMode({
     };
   }, [voteScheduledFor, onOpenVoting]);
 
-  const handleToggleSlate = () => setSlateActive((v) => !v);
+  const handleToggleSlate = () => {
+    setSlateActive((v) => {
+      const next = !v;
+      onSlateActiveChange?.(next);
+      return next;
+    });
+  };
+
+  // When voting opens (Go Live), force the polling slate off so viewers
+  // immediately see the answer types instead of the holding screen.
+  useEffect(() => {
+    if (votingState === 'open' && slateActive) {
+      setSlateActive(false);
+      onSlateActiveChange?.(false);
+    }
+  }, [votingState, slateActive, onSlateActiveChange]);
 
   const handleOpenOutputClick = () => {
     const win = onOpenOutput();
