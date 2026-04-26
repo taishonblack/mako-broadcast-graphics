@@ -381,17 +381,18 @@ function ColorInput({
             </DropdownMenuLabel>
             <DropdownMenuSeparator />
             {swatches && swatches.length > 0 ? (
-              swatches.map((c) => (
+              swatches.map((sw) => (
                 <DropdownMenuItem
-                  key={c}
-                  onSelect={() => onChange(c)}
+                  key={sw.id}
+                  onSelect={() => onChange(sw.value)}
                   className="gap-2 text-[11px] font-mono"
                 >
                   <span
                     className="h-3.5 w-3.5 shrink-0 rounded border border-border/60"
-                    style={{ background: c }}
+                    style={{ background: sw.value }}
                   />
-                  <span className="truncate">{c}</span>
+                  <span className="flex-1 truncate font-sans">{sw.name || 'Unnamed'}</span>
+                  <span className="text-[9px] text-muted-foreground">{sw.value}</span>
                 </DropdownMenuItem>
               ))
             ) : (
@@ -407,14 +408,14 @@ function ColorInput({
       </div>
       {swatches && swatches.length > 0 && (
         <div className="flex flex-wrap gap-1 pl-[6.75rem]">
-          {swatches.slice(0, 12).map((c) => (
+          {swatches.slice(0, 12).map((sw) => (
             <button
-              key={c}
+              key={sw.id}
               type="button"
-              onClick={() => onChange(c)}
-              title={`Apply ${c}`}
+              onClick={() => onChange(sw.value)}
+              title={`Apply ${sw.name || sw.value}`}
               className="h-4 w-4 rounded border border-border/60 transition-transform hover:scale-125"
-              style={{ background: c }}
+              style={{ background: sw.value }}
             />
           ))}
         </div>
