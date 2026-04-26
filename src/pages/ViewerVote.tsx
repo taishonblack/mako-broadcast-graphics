@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
-import { CheckCircle, Clock, XCircle } from 'lucide-react';
+import { AlertTriangle, CheckCircle, Clock, XCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { QRCodeSVG } from 'qrcode.react';
 
@@ -328,18 +328,33 @@ export default function ViewerVote() {
             <p className="text-sm mt-2" style={{ color: subColor || 'hsl(var(--muted-foreground))' }}>{poll.subheadline}</p>
           )}
         </div>
-        <div className="space-y-3">
-          {answers.map((option) => (
-            <button
-              key={option.id}
-              onClick={() => handleVote(option.id)}
-              className="w-full p-4 rounded-2xl text-left font-medium text-foreground transition-all active:scale-[0.98] border border-border/50 hover:border-primary/50 hover:bg-primary/5"
-              style={{ background: 'hsla(220, 18%, 13%, 0.8)' }}
-            >
-              <span className="text-base">{option.label}</span>
-            </button>
-          ))}
-        </div>
+        {answers.length > 0 ? (
+          <div className="space-y-3">
+            {answers.map((option) => (
+              <button
+                key={option.id}
+                onClick={() => handleVote(option.id)}
+                className="w-full p-4 rounded-2xl text-left font-medium text-foreground transition-all active:scale-[0.98] border border-border/50 hover:border-primary/50 hover:bg-primary/5"
+                style={{ background: 'hsla(220, 18%, 13%, 0.8)' }}
+              >
+                <span className="text-base">{option.label}</span>
+              </button>
+            ))}
+          </div>
+        ) : (
+          <div
+            role="status"
+            className="flex items-center gap-2 rounded-2xl border border-mako-warning/40 bg-mako-warning/10 px-4 py-3 text-left"
+          >
+            <AlertTriangle className="h-4 w-4 shrink-0 text-mako-warning" />
+            <div className="min-w-0">
+              <p className="text-xs font-semibold text-mako-warning">No answers loaded</p>
+              <p className="text-[11px] text-muted-foreground leading-snug">
+                Voting is open but answer choices haven&apos;t arrived yet. Hold tight — they&apos;ll appear automatically.
+              </p>
+            </div>
+          </div>
+        )}
         {showLiveResults && totalVotes > 0 && (
           <ResultsList answers={answers} totalVotes={totalVotes} barColors={barColors} />
         )}

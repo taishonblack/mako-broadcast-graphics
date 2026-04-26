@@ -32,10 +32,11 @@ import { useEffect, useRef, useState } from 'react';
 import { BLOCK_LETTERS, BlockLetter, DEFAULT_BLOCK_LABELS, SavedPoll } from '@/lib/poll-persistence';
 import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { ChevronDown, ChevronRight, Clock, Eye, EyeOff, Globe, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Smartphone, Square, StopCircle, Type as TypeIcon, Vote, XCircle } from 'lucide-react';
+import { ChevronDown, ChevronRight, Clock, Eye, EyeOff, FlaskConical, Globe, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Smartphone, Square, StopCircle, Type as TypeIcon, Vote, XCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { percentsFromAnswers, rebalancePercents, answersFromPercents, AnswerLite } from '@/lib/answer-percents';
 import { supabase } from '@/integrations/supabase/client';
+import { toast } from 'sonner';
 
 export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
 
@@ -328,6 +329,87 @@ export function OperatorOutputMode({
       setTestViewerView(restore);
       setQaFlipping(false);
     }, 3600));
+  };
+
+  // ─── Run Viewer Transition Test ────────────────────────────────────────
+  // Opens voting on the active poll, then polls the public viewer data
+  // (project_live_state + poll_answers + the live snapshot embedded in
+  // project_live_state.live_poll_snapshot.poll.options) to verify the
+  // mobile / desktop voter would actually see the answer-types render
+  // after Go Live. Reports pass/fail via toast. Designed to be safe to
+  // run during rehearsal (it does NOT touch live_state / Go Live — it
+  // only flips voting open, mirroring `Open Voting Now`).
+  const [transitionTesting, setTransitionTesting] = useState(false);
+  const handleRunTransitionTest = async () => {
+    if (transitionTesting) return;
+    setTransitionTesting(true);
+    const projectId = (currentPoll as Poll & { projectId?: string }).projectId;
+    const pollId = currentPoll.id;
+    if (!projectId) {
+      toast.error('Viewer test failed: poll has no project — save it first.');
+      setTransitionTesting(false);
+      return;
+    }
+    const startedClosed = votingState !== 'open';
+    try {
+      // 1. Open voting via the same handler the Open Voting button uses.
+      //    This ensures the test exercises the real production path.
+      if (startedClosed) onOpenVoting();
+
+      // 2. Poll project_live_state until voting_state flips to 'open' OR
+      //    we time out. The handler writes to the DB asynchronously, so
+      //    we give it up to ~5s to land before declaring failure.
+      const deadline = Date.now() + 5000;
+      let liveRow: { voting_state?: string; live_poll_snapshot?: { poll?: { options?: unknown[] } } | null } | null = null;
+      while (Date.now() < deadline) {
+        const { data } = await supabase
+          .from('project_live_state')
+          .select('voting_state, live_poll_snapshot')
+          .eq('project_id', projectId)
+          .maybeSingle();
+        liveRow = data as typeof liveRow;
+        if (liveRow?.voting_state === 'open') break;
+        await new Promise((r) => setTimeout(r, 250));
+      }
+      if (liveRow?.voting_state !== 'open') {
+        toast.error('Viewer test FAILED: voting_state never reached "open".');
+        return;
+      }
+
+      // 3. Confirm the viewer would have answer choices to render —
+      //    either persisted poll_answers rows OR options inside the
+      //    live snapshot (used when slugs are linked across folders).
+      const { data: answerRows } = await supabase
+        .from('poll_answers')
+        .select('id')
+        .eq('poll_id', pollId);
+      const dbCount = answerRows?.length ?? 0;
+      const snapshotOptions = liveRow.live_poll_snapshot?.poll?.options;
+      const snapshotCount = Array.isArray(snapshotOptions) ? snapshotOptions.length : 0;
+      const totalCount = Math.max(dbCount, snapshotCount);
+
+      if (totalCount === 0) {
+        toast.warning(
+          'Viewer test PARTIAL: voting opened but 0 answers reachable — viewer will show "No answers loaded".',
+        );
+        return;
+      }
+
+      toast.success(
+        `Viewer test PASSED · ${totalCount} answer${totalCount === 1 ? '' : 's'} reachable (db: ${dbCount}, snapshot: ${snapshotCount}).`,
+      );
+    } catch (err) {
+      const message = err instanceof Error ? err.message : 'Unknown error';
+      toast.error(`Viewer test ERRORED: ${message}`);
+    } finally {
+      // 4. Restore prior voting state if the test changed it. We only
+      //    auto-close when the operator started in a non-open state —
+      //    avoids interrupting a real live show.
+      if (startedClosed) {
+        onCloseVoting();
+      }
+      setTransitionTesting(false);
+    }
   };
 
   // Tracks whether the operator has opened the fullscreen Output window.
@@ -985,6 +1067,25 @@ export function OperatorOutputMode({
                   <RefreshCw className="h-3.5 w-3.5" /> Re-scan Polls
                 </Button>
               ) : null}
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full justify-start gap-2 text-xs"
+                    onClick={handleRunTransitionTest}
+                    disabled={transitionTesting}
+                  >
+                    <FlaskConical className={`h-3.5 w-3.5 ${transitionTesting ? 'animate-pulse' : ''}`} />
+                    {transitionTesting ? 'Testing viewer…' : 'Run Viewer Transition Test'}
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent side="right" className="max-w-xs">
+                  Opens voting on the active poll, polls the public viewer
+                  state, and reports whether mobile/desktop voters would see
+                  answer types appear after Go Live.
+                </TooltipContent>
+              </Tooltip>
               <Button
                 variant="outline"
                 size="sm"
