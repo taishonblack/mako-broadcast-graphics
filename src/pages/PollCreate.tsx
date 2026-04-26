@@ -438,8 +438,11 @@ export default function PollCreate() {
 
     // Block saves (manual + autosave) when any folder uses the Answer Type
     // asset and its choices are empty or duplicated. Voter buttons must be
-    // unambiguous before the poll can be persisted.
-    const anyFolderUsesAnswerType = folderState.folders.some((f) =>
+    // unambiguous before the poll can be persisted. Read folders via the
+    // ref so this callback doesn't need to depend on folderState (which is
+    // declared further down in the component).
+    const folders = foldersRef.current;
+    const anyFolderUsesAnswerType = folders.some((f) =>
       f.assetIds.includes('answerType') && !(f.inactiveAssetIds ?? []).includes('answerType')
     );
     if (anyFolderUsesAnswerType) {
@@ -486,7 +489,7 @@ export default function PollCreate() {
     } finally {
       setSaving(null);
     }
-  }, [answers, buildPayload, folderState.folders, navigate, pollId, projectName, user]);
+  }, [answers, buildPayload, navigate, pollId, projectName, user]);
 
   const handleSaveToProject = () => {
     if (!user) { toast.error('Please sign in first'); return; }
