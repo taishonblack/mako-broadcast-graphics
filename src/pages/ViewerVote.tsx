@@ -44,12 +44,56 @@ interface ViewerSnapshotAssets {
 interface ViewerSnapshot {
   poll?: {
     id?: string;
+    projectId?: string;
     slug?: string;
     question?: string;
     subheadline?: string;
+    bgColor?: string;
+    bgImage?: string;
+    showLiveResults?: boolean;
+    showThankYou?: boolean;
+    showFinalResults?: boolean;
+    postVoteDelayMs?: number;
     options?: Array<{ id: string; text?: string; shortLabel?: string; votes?: number; order?: number }>;
   };
   assets?: ViewerSnapshotAssets;
+}
+
+type LiveStateRow = {
+  project_id?: string | null;
+  voting_state?: string;
+  active_poll_id?: string | null;
+  live_poll_snapshot?: ViewerSnapshot | null;
+};
+
+function answersFromSnapshot(snapshotPoll?: ViewerSnapshot['poll']): ViewerAnswer[] {
+  return (snapshotPoll?.options ?? []).map((option, index) => ({
+    id: option.id,
+    label: option.text || `Answer ${index + 1}`,
+    short_label: option.shortLabel || '',
+    sort_order: option.order ?? index,
+    live_votes: option.votes ?? 0,
+  }));
+}
+
+function pollFromLiveSnapshot(row: LiveStateRow, slug: string): ViewerPoll | null {
+  const snapshotPoll = row.live_poll_snapshot?.poll;
+  if (!snapshotPoll || snapshotPoll.slug !== slug) return null;
+  return {
+    id: row.active_poll_id || snapshotPoll.id || `snapshot-${slug}`,
+    project_id: row.project_id || snapshotPoll.projectId || null,
+    question: snapshotPoll.question || 'Cast your vote',
+    subheadline: snapshotPoll.subheadline || '',
+    bg_color: snapshotPoll.bgColor || 'hsl(220, 20%, 7%)',
+    bg_image: snapshotPoll.bgImage || null,
+    show_live_results: snapshotPoll.showLiveResults ?? true,
+    show_thank_you: snapshotPoll.showThankYou ?? true,
+    show_final_results: snapshotPoll.showFinalResults ?? true,
+    slate_text: 'Polling will open soon',
+    slate_subline_text: '',
+    slate_image: null,
+    post_vote_delay_ms: snapshotPoll.postVoteDelayMs ?? 1500,
+  };
 }
 
 export default function ViewerVote() {
