@@ -104,6 +104,56 @@ export function duplicateFolder(state: PollingAssetFolderState, folderId: string
   };
 }
 
+/**
+ * "Convert this folder's vote input to Answer Bars" — fired from the
+ * Answer Type asset inspector. Replaces the `answerType` asset with the
+ * `answers` (results-bars) asset in the same slot, and marks any QR asset
+ * as inactive (operator can re-activate or delete from the QR card). The
+ * net effect: this folder stops accepting new votes (no QR for viewers,
+ * no on-device vote UI) and starts displaying the live bars graphic.
+ */
+export function convertAnswerTypeToBars(state: PollingAssetFolderState, folderId: string): PollingAssetFolderState {
+  return {
+    ...state,
+    folders: state.folders.map((folder) => {
+      if (folder.id !== folderId) return folder;
+      const idx = folder.assetIds.indexOf('answerType');
+      const nextAssetIds = [...folder.assetIds];
+      if (idx >= 0) {
+        // Avoid duplicate `answers` if the folder already had bars staged.
+        if (nextAssetIds.includes('answers')) {
+          nextAssetIds.splice(idx, 1);
+        } else {
+          nextAssetIds[idx] = 'answers';
+        }
+      } else if (!nextAssetIds.includes('answers')) {
+        nextAssetIds.push('answers');
+      }
+      const inactive = new Set(folder.inactiveAssetIds ?? []);
+      if (folder.assetIds.includes('qr')) inactive.add('qr');
+      return {
+        ...folder,
+        assetIds: nextAssetIds,
+        inactiveAssetIds: Array.from(inactive),
+      };
+    }),
+  };
+}
+
+/** Toggle the inactive flag on a single asset within a folder. Used by the
+ *  inactive-card "Re-activate" button in the QR inspector. */
+export function setAssetInactive(state: PollingAssetFolderState, folderId: string, assetId: AssetId, inactive: boolean): PollingAssetFolderState {
+  return {
+    ...state,
+    folders: state.folders.map((folder) => {
+      if (folder.id !== folderId) return folder;
+      const set = new Set(folder.inactiveAssetIds ?? []);
+      if (inactive) set.add(assetId); else set.delete(assetId);
+      return { ...folder, inactiveAssetIds: Array.from(set) };
+    }),
+  };
+}
+
 export function createDefaultFolderState(initialQuestionText = '', initialBgColor = '#1a1a2e'): PollingAssetFolderState {
   const id = createFolderId();
   return {
