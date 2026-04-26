@@ -352,6 +352,10 @@ export function normalizeFolderState(input: unknown): PollingAssetFolderState {
         inactiveAssetIds: Array.isArray(folder.inactiveAssetIds)
           ? Array.from(new Set(folder.inactiveAssetIds.filter((id): id is AssetId => VALID_ASSETS.includes(id as AssetId))))
           : [],
+        linkedFolderId: typeof folder.linkedFolderId === 'string' && folder.linkedFolderId.length > 0 ? folder.linkedFolderId : undefined,
+        slateText: typeof folder.slateText === 'string' ? folder.slateText : undefined,
+        slateImage: typeof folder.slateImage === 'string' ? folder.slateImage : undefined,
+        slateSublineText: typeof folder.slateSublineText === 'string' ? folder.slateSublineText : undefined,
       };
     })
     .filter((folder) => folder.assetIds.length > 0 || folder.name.length > 0);
@@ -364,7 +368,15 @@ export function normalizeFolderState(input: unknown): PollingAssetFolderState {
     ? input.activeFolderId
     : folders[0].id;
 
-  return { folders, activeFolderId };
+  // Garbage-collect dangling linkedFolderId pointers so a deleted partner
+  // doesn't leave the survivor in a half-linked state.
+  const validIds = new Set(folders.map((f) => f.id));
+  const cleaned = folders.map((folder) =>
+    folder.linkedFolderId && !validIds.has(folder.linkedFolderId)
+      ? { ...folder, linkedFolderId: undefined }
+      : folder
+  );
+  return { folders: cleaned, activeFolderId };
 }
 
 export async function loadProjectPollingAssetFolders(projectId: string, userId: string) {
