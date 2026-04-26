@@ -1683,6 +1683,18 @@ export default function PollCreate() {
     toast.success('Folder duplicated');
   };
 
+  /** Mutually couple two folders so they share slate / background / slug. */
+  const handleLinkFolders = (folderAId: string, folderBId: string) => {
+    updateFolderState((current) => linkFolders(current, folderAId, folderBId));
+    toast.success('Folders linked');
+  };
+
+  /** Break the link on a folder (and its partner). */
+  const handleUnlinkFolder = (folderId: string) => {
+    updateFolderState((current) => unlinkFolder(current, folderId));
+    toast.success('Folder unlinked');
+  };
+
   /** Toggle an asset's inactive flag (used by the dimmed asset card). */
   const handleToggleAssetInactive = (folderId: string, assetId: AssetId, inactive: boolean) => {
     updateFolderState((current) => setAssetInactive(current, folderId, assetId, inactive));
