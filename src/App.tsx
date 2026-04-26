@@ -10,6 +10,7 @@ import PollCreate from "./pages/PollCreate";
 import BackgroundGallery from "./pages/BackgroundGallery";
 import ProgramOutput from "./pages/ProgramOutput";
 import OperatorSettings from "./pages/OperatorSettings";
+import SecurityAudit from "./pages/SecurityAudit";
 import ViewerVote from "./pages/ViewerVote";
 import NotFound from "./pages/NotFound";
 import { ProtectedRoute } from "./components/ProtectedRoute";
@@ -41,6 +42,7 @@ const App = () => (
           <Route path="/blocks" element={<ProtectedRoute><Blocks /></ProtectedRoute>} />
           <Route path="/backgrounds" element={<ProtectedRoute><BackgroundGallery /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><OperatorSettings /></ProtectedRoute>} />
+          <Route path="/settings/security-audit" element={<ProtectedRoute><SecurityAudit /></ProtectedRoute>} />
           <Route path="/polls/new" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
           <Route path="/workspace" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
           <Route path="/polls/:id" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
