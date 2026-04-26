@@ -191,6 +191,22 @@ export function AssetInspector(p: AssetInspectorProps) {
                 </Button>
               </div>
             )}
+            {id === 'answers' && p.onConvertAnswerBarsToAnswerType && (
+              <div className="rounded-md border border-primary/30 bg-primary/5 p-2.5 space-y-1.5">
+                <p className="text-[10px] text-muted-foreground leading-tight">
+                  Need to collect votes again? Convert back to Answer Type — the on-device vote buttons return and the QR in this folder is re-activated.
+                </p>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="outline"
+                  className="w-full h-7 text-[10px]"
+                  onClick={p.onConvertAnswerBarsToAnswerType}
+                >
+                  Convert to Answer Type
+                </Button>
+              </div>
+            )}
             <div className="space-y-1">
               <Label className="text-[10px] text-muted-foreground">Answer Type</Label>
               <div className="grid grid-cols-3 gap-1">
