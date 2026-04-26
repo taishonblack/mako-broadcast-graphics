@@ -273,6 +273,11 @@ export default function PollCreate() {
   const [mode, setMode] = useState<OperatorMode>(searchParams.get('mode') === 'output' ? 'output' : 'build');
   const [projectPolls, setProjectPolls] = useState<SavedPoll[]>([]);
   const [outputActiveBlock, setOutputActiveBlock] = useState<BlockLetter>(() => loadPersistedOutputBlock().block);
+  // Snapshot of the active folder list, kept current via an effect after
+  // `folderState` is declared further down. Used by save handlers (which
+  // are defined before `folderState`) to validate Answer Type choices
+  // without forming a forward dependency.
+  const foldersRef = useRef<PollingAssetFolderState['folders']>([]);
   const [outputBlockPinned, setOutputBlockPinned] = useState<boolean>(() => loadPersistedOutputBlock().pinned);
   const [outputBlockSource, setOutputBlockSource] = useState<OutputBlockSource>(() => (
     loadPersistedOutputBlock().pinned ? 'pinned' : 'default'
