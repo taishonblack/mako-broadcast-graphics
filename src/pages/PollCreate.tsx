@@ -2112,7 +2112,10 @@ export default function PollCreate() {
             onOpenOutput={() => window.open(`/output/${currentWorkspacePoll.id}`, 'mako-output', 'width=1920,height=1080') ?? null}
             onGoLive={handleGoLive}
             onEndPoll={handleEndPoll}
-            onOpenVoting={() => setVotingState('open')}
+            onOpenVoting={() => {
+              setVotingState('open');
+              void syncViewerVotingOpen();
+            }}
             onCloseVoting={() => setVotingState('closed')}
             testVoteRunning={testVoteRunning}
             onStartTestVotes={handleStartTestVotes}
