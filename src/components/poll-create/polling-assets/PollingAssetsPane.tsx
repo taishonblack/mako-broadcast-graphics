@@ -270,6 +270,39 @@ export function PollingAssetsPane({
                       Duplicate Folder
                     </DropdownMenuItem>
                   )}
+                  {onLinkFolders && folders.length > 1 && !folder.linkedFolderId && (
+                    <>
+                      <DropdownMenuLabel className="text-[10px] uppercase font-mono">Link to folder</DropdownMenuLabel>
+                      {folders
+                        .filter((other) => other.id !== folder.id && !other.linkedFolderId)
+                        .map((other) => (
+                          <DropdownMenuItem
+                            key={`link-${other.id}`}
+                            aria-label={`Link ${folder.name} with ${other.name}`}
+                            onClick={() => onLinkFolders(folder.id, other.id)}
+                            className="gap-2"
+                          >
+                            <Link2 className="w-3.5 h-3.5 text-muted-foreground" />
+                            <span className="truncate">{other.name}</span>
+                          </DropdownMenuItem>
+                        ))}
+                      {folders.filter((other) => other.id !== folder.id && !other.linkedFolderId).length === 0 && (
+                        <div className="px-2 py-1.5 text-[10px] text-muted-foreground italic">
+                          No other unlinked folders.
+                        </div>
+                      )}
+                    </>
+                  )}
+                  {onUnlinkFolder && folder.linkedFolderId && (
+                    <DropdownMenuItem
+                      aria-label={`Unlink folder ${folder.name}`}
+                      onClick={() => onUnlinkFolder(folder.id)}
+                      className="gap-2"
+                    >
+                      <Link2 className="w-3.5 h-3.5 text-muted-foreground" />
+                      Unlink Folder
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuLabel className="text-[10px] uppercase font-mono">Set Block</DropdownMenuLabel>
                   <DropdownMenuRadioGroup value={folder.blockLetter}>
                     {BLOCK_LETTERS.map((letter) => (
