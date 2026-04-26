@@ -950,6 +950,11 @@ export default function PollCreate() {
   );
   const [highlightField, setHighlightField] = useState<string | null>(null);
   const [folderState, setFolderState] = useState<PollingAssetFolderState>(() => createDefaultFolderState(question));
+  // Keep foldersRef in sync so callbacks defined earlier can read the
+  // latest folder list without a stale-closure bug.
+  useEffect(() => {
+    foldersRef.current = folderState.folders;
+  }, [folderState.folders]);
   const [deleteFolderTargetId, setDeleteFolderTargetId] = useState<string | null>(null);
   const [foldersLoadedForProject, setFoldersLoadedForProject] = useState<string | null>(null);
   const [selectionHistory, setSelectionHistory] = useState<Record<string, SelectionHistory>>({});
