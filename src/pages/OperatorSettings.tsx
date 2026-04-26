@@ -3,8 +3,9 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { AUTOSAVE_MINUTE_OPTIONS, DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes, saveAutosaveMinutes } from '@/lib/operator-settings';
 import { useColorSwatches, MAX_SWATCHES } from '@/lib/color-swatches';
-import { Palette, Plus, Settings2, Trash2 } from 'lucide-react';
+import { Palette, Plus, Settings2, ShieldCheck, Trash2 } from 'lucide-react';
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
 
 export default function OperatorSettings() {
@@ -223,6 +224,22 @@ export default function OperatorSettings() {
                   </Button>
                 </div>
               )}
+            </div>
+          </section>
+
+          <section className="rounded-lg border border-border bg-card/40 p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1">
+                <h2 className="text-sm font-medium text-foreground flex items-center gap-2">
+                  <ShieldCheck className="h-4 w-4 text-primary" /> Security audit
+                </h2>
+                <p className="text-sm text-muted-foreground">
+                  Review every public route, anon-accessible policy, and run live verification checks.
+                </p>
+              </div>
+              <Button asChild size="sm" variant="outline">
+                <Link to="/settings/security-audit">Open audit</Link>
+              </Button>
             </div>
           </section>
         </div>
