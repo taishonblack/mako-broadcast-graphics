@@ -119,6 +119,12 @@ interface OperatorOutputModeProps {
   /** Per-asset transforms (active viewport) — drives mobile/desktop preview
    *  positioning so operator slider edits in Build are reflected in Output. */
   assetTransforms?: import('@/components/poll-create/polling-assets/types').AssetTransformMap;
+  /** Full per-viewport color set. When provided, the mobile/desktop voter
+   *  previews read the slice that matches the rendered viewport instead of
+   *  whatever single slice the operator was editing in Build. */
+  assetColorSet?: import('@/components/poll-create/polling-assets/types').AssetColorSet;
+  /** Full per-viewport transform set — same intent as `assetColorSet`. */
+  assetTransformSet?: import('@/components/poll-create/polling-assets/types').AssetTransformSet;
 }
 
 export function OperatorOutputMode({
