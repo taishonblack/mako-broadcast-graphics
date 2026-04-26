@@ -17,7 +17,7 @@ import {
 import {
   Type, ListChecks, AlignLeft, Image as ImageIcon, QrCode,
   Sparkles, Users, Plus, X, GripVertical, ChevronDown, MoreVertical, FolderOpen,
-  Trash2, Camera, Link2, Copy,
+  Trash2, Camera, Link2, Copy, MessageCircleQuestion,
 } from 'lucide-react';
 import { AnswerType, MCLabelStyle } from '@/components/poll-create/ContentPanel';
 import { AssetId, AssetMeta } from './types';
@@ -26,6 +26,7 @@ import { BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-per
 export const ASSET_REGISTRY: Record<AssetId, AssetMeta> = {
   question:    { id: 'question',    label: 'Text',          icon: Type,        description: 'On-air text — question, prompt, lower-third, etc.' },
   answers:     { id: 'answers',     label: 'Answer Bars',   icon: ListChecks,  description: 'Voter response options and labels' },
+  answerType:  { id: 'answerType',  label: 'Answer Type',   icon: MessageCircleQuestion, description: 'How viewers vote on their device — Yes/No or multiple choice buttons' },
   subheadline: { id: 'subheadline', label: 'Subheadline',   icon: AlignLeft,   description: 'Optional secondary line beneath the question' },
   background:  { id: 'background',  label: 'Background',    icon: ImageIcon,   description: 'Solid color or uploaded image backdrop' },
   qr:          { id: 'qr',          label: 'QR Code',       icon: QrCode,      description: 'Scannable code linking viewers to the vote URL' },
