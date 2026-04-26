@@ -84,6 +84,7 @@ export function PollingAssetsPane({
   onDeleteFolder,
   onToggleFolderCollapse,
   onDuplicateFolder,
+  onToggleAssetInactive,
   blockLetter, onBlockLetterChange,
   question, setQuestion,
   subheadline, setSubheadline,
