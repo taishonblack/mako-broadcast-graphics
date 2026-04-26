@@ -157,7 +157,17 @@ export function PollingAssetsPane({
               <button type="button" onClick={() => onSelectFolder(folder.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
                 <FolderOpen className={`w-3.5 h-3.5 shrink-0 ${isActiveFolder ? 'text-primary' : 'text-muted-foreground'}`} />
                 <div className="min-w-0 flex-1">
-                  <p className="text-[11px] font-medium text-foreground truncate">{folder.name}</p>
+                  <p className="text-[11px] font-medium text-foreground truncate flex items-center gap-1">
+                    <span className="truncate">{folder.name}</span>
+                    {folder.linkedFolderId && (
+                      <span
+                        className="inline-flex items-center gap-0.5 rounded-sm border border-primary/40 bg-primary/10 px-1 text-[8px] font-mono uppercase text-primary"
+                        title={`Linked with ${folders.find((f) => f.id === folder.linkedFolderId)?.name ?? 'another folder'} — shares slate, background, and slug.`}
+                      >
+                        <Link2 className="h-2.5 w-2.5" /> linked
+                      </span>
+                    )}
+                  </p>
                   <p className="text-[10px] text-muted-foreground truncate">{DEFAULT_BLOCK_LABELS[folder.blockLetter]}</p>
                 </div>
               </button>
