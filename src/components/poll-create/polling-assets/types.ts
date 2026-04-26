@@ -3,6 +3,7 @@ import { LucideIcon } from 'lucide-react';
 export type AssetId =
   | 'question'
   | 'answers'
+  | 'answerType'
   | 'subheadline'
   | 'background'
   | 'qr'
@@ -122,6 +123,7 @@ const createDefaultBackgroundTransform = (): AssetTransformConfig => ({
 export const DEFAULT_ASSET_TRANSFORMS: AssetTransformMap = {
   question: createDefaultTransform(),
   answers: createDefaultTransform(),
+  answerType: createDefaultTransform(),
   subheadline: createDefaultTransform(),
   background: createDefaultBackgroundTransform(),
   qr: createDefaultTransform(),
@@ -132,9 +134,9 @@ export const DEFAULT_ASSET_TRANSFORMS: AssetTransformMap = {
 
 /** Build a fresh per-viewport transform set seeded with the same defaults. */
 export const createDefaultTransformSet = (): AssetTransformSet => ({
-  program: { question: createDefaultTransform(), answers: createDefaultTransform(), subheadline: createDefaultTransform(), background: createDefaultBackgroundTransform(), qr: createDefaultTransform(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
-  mobile:  { question: createDefaultTransform(), answers: createDefaultTransform(), subheadline: createDefaultTransform(), background: createDefaultBackgroundTransform(), qr: createDefaultTransform(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
-  desktop: { question: createDefaultTransform(), answers: createDefaultTransform(), subheadline: createDefaultTransform(), background: createDefaultBackgroundTransform(), qr: createDefaultTransform(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
+  program: { question: createDefaultTransform(), answers: createDefaultTransform(), answerType: createDefaultTransform(), subheadline: createDefaultTransform(), background: createDefaultBackgroundTransform(), qr: createDefaultTransform(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
+  mobile:  { question: createDefaultTransform(), answers: createDefaultTransform(), answerType: createDefaultTransform(), subheadline: createDefaultTransform(), background: createDefaultBackgroundTransform(), qr: createDefaultTransform(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
+  desktop: { question: createDefaultTransform(), answers: createDefaultTransform(), answerType: createDefaultTransform(), subheadline: createDefaultTransform(), background: createDefaultBackgroundTransform(), qr: createDefaultTransform(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
 });
 
 export const DEFAULT_ASSET_TRANSFORM_SET: AssetTransformSet = createDefaultTransformSet();
@@ -145,6 +147,14 @@ export const DEFAULT_ASSET_COLORS: AssetColorMap = {
     textPrimary: 'hsl(0 0% 100%)',
     textSecondary: 'hsl(215 15% 65%)',
     barColors: ['hsl(24 95% 53%)', 'hsl(210 70% 50%)', 'hsl(142 71% 45%)', 'hsl(280 65% 55%)'],
+  },
+  answerType: {
+    textPrimary: 'hsl(0 0% 100%)',
+    textSecondary: 'hsl(215 15% 65%)',
+    // Voter button background tints — independent of bar colors so the
+    // operator can theme the on-device buttons separately from the
+    // broadcast bars graphic.
+    barColors: ['hsla(220, 18%, 13%, 0.85)', 'hsla(220, 18%, 13%, 0.85)', 'hsla(220, 18%, 13%, 0.85)', 'hsla(220, 18%, 13%, 0.85)'],
   },
   subheadline: { textSecondary: 'hsl(215 15% 65%)' },
   background: {},
