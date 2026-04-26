@@ -43,6 +43,29 @@ export interface PollingAssetFolder {
    * without losing its placement).
    */
   inactiveAssetIds?: AssetId[];
+  /**
+   * Folder linking — when set, this folder reuses the *source* folder's
+   * shared content: slate text/image/subline, background, question text,
+   * and viewer slug. Edits to the source propagate to the link target on
+   * read (see `resolveLinkedFolder`). Use cases:
+   *  - Operator duplicates a Q-voting folder, converts the clone to bars,
+   *    and wants both to share one slate + one slug so the audience sees
+   *    the same QR / theme through the segment (auto-set by `duplicateFolder`).
+   *  - Operator manually couples Folder 1 with Folder 3 in the same project
+   *    via the "Link to folder…" picker.
+   * Linking is mutual — both folders point at each other so either can be
+   * the source. The first-created folder of the pair is treated as the
+   * source unless the operator picks a different one in the picker.
+   */
+  linkedFolderId?: string;
+  /**
+   * Optional slate overrides held at the folder level so linked folders can
+   * share a single slate. Falls back to the per-poll `polls.slate_*` rows
+   * when unset, preserving existing behavior for unlinked folders.
+   */
+  slateText?: string;
+  slateImage?: string;
+  slateSublineText?: string;
 }
 
 export interface PollingAssetFolderState {
