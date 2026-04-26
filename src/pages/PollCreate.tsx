@@ -2126,7 +2126,10 @@ export default function PollCreate() {
               setVotingState('open');
               void syncViewerVotingOpen();
             }}
-            onCloseVoting={() => setVotingState('closed')}
+            onCloseVoting={() => {
+              setVotingState('closed');
+              void syncViewerVotingClosed();
+            }}
             testVoteRunning={testVoteRunning}
             onStartTestVotes={handleStartTestVotes}
             onStopTestVotes={handleStopTestVotes}
