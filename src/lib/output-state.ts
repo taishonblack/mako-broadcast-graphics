@@ -1,7 +1,7 @@
 import { DEFAULT_LAYERS, GraphicLayer, cloneLayers } from './layers';
 import { SceneType } from './scenes';
 import { Poll, QRPosition } from './types';
-import { AssetColorMap, AssetState, DEFAULT_ASSET_COLORS, DEFAULT_ASSET_STATE, AssetTransformMap, DEFAULT_ASSET_TRANSFORMS } from '@/components/poll-create/polling-assets/types';
+import { AssetColorMap, AssetState, DEFAULT_ASSET_COLORS, DEFAULT_ASSET_STATE, AssetTransformMap, DEFAULT_ASSET_TRANSFORMS, AssetId } from '@/components/poll-create/polling-assets/types';
 
 export const OUTPUT_STATE_STORAGE_KEY = 'mako-output-state';
 export const OUTPUT_STATE_CHANNEL = 'mako-output-channel';

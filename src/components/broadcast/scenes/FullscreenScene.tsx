@@ -2,7 +2,7 @@ import { ThemePreset, PollOption, TemplateName, QRPosition } from '@/lib/types';
 import { GraphicLayer } from '@/lib/layers';
 import { AssetOverlay } from '@/components/broadcast/AssetOverlay';
 import { renderChart } from '@/lib/render-chart';
-import { AssetColorMap, AssetState, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
+import { AssetColorMap, AssetState, AssetTransformMap, AssetId } from '@/components/poll-create/polling-assets/types';
 import { getAssetTransformStyle } from '@/lib/asset-transforms';
 import { WordmarkLockup } from '@/components/broadcast/WordmarkLockup';
 

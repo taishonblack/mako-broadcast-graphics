@@ -1,6 +1,6 @@
 import { ThemePreset, PollOption, TemplateName, QRPosition } from '@/lib/types';
 import { AssetOverlay } from '@/components/broadcast/AssetOverlay';
-import { AssetColorMap, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
+import { AssetColorMap, AssetTransformMap, AssetId } from '@/components/poll-create/polling-assets/types';
 import { getAssetTransformStyle } from '@/lib/asset-transforms';
 
 interface LowerThirdSceneProps {
