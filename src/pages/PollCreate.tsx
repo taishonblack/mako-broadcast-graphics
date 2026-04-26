@@ -682,6 +682,58 @@ export default function PollCreate() {
     setMode(nextMode);
   };
 
+  const syncViewerVotingOpen = useCallback(async () => {
+    if (!projectId) return;
+    const folder = getFolderById(folderState, folderState.activeFolderId);
+    const savedMatch = !isUuid(currentWorkspacePoll.id)
+      ? projectPolls.find((poll) => poll.projectId === projectId && poll.slug === slugForUrl)
+      : undefined;
+    const livePoll: Poll = savedMatch
+      ? {
+          ...currentWorkspacePoll,
+          id: savedMatch.id,
+          projectId: savedMatch.projectId,
+          options: savedPollOptions(savedMatch),
+          question: currentWorkspacePoll.question || savedMatch.question,
+          subheadline: currentWorkspacePoll.subheadline || savedMatch.subheadline,
+          bgColor: currentWorkspacePoll.bgColor || savedMatch.bgColor,
+          bgImage: currentWorkspacePoll.bgImage || savedMatch.bgImage,
+        }
+      : currentWorkspacePoll;
+    const snapshot = {
+      poll: livePoll,
+      scene: previewScene,
+      layers: [],
+      assets: {
+        qrSize,
+        qrPosition: assetState.qrPosition,
+        qrVisible: assetState.qrVisible,
+        qrUrlVisible: assetState.qrUrlVisible,
+        showBranding,
+        brandingPosition,
+        enabledAssetIds: enabledAssets,
+        transforms: assetTransforms,
+        assetColors,
+        wordmarkWeight: assetState.wordmarkWeight,
+        wordmarkTracking: assetState.wordmarkTracking,
+        wordmarkScale: assetState.wordmarkScale,
+        wordmarkShowGuides: assetState.wordmarkShowGuides,
+        tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
+        tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
+      },
+    };
+    const { error } = await supabase.from('project_live_state').upsert({
+      project_id: projectId,
+      active_poll_id: isUuid(livePoll.id) ? livePoll.id : null,
+      active_folder_id: folderState.activeFolderId ?? null,
+      live_folder_id: folderState.activeFolderId ?? null,
+      live_poll_snapshot: snapshot as never,
+      voting_state: 'open',
+      output_state: liveState === 'live' ? 'live_output' : 'preview',
+    } as never);
+    if (error) toast.error(`Viewer sync failed: ${error.message}`);
+  }, [assetColors, assetState, assetTransforms, brandingPosition, currentWorkspacePoll, enabledAssets, folderState, liveState, previewScene, projectId, projectPolls, qrSize, showBranding, slugForUrl]);
+
   const handleTake = () => {
     setProgramScene(previewScene);
     const folder = getFolderById(folderState, folderState.activeFolderId);
