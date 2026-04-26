@@ -300,11 +300,11 @@ export function OperatorOutputMode({
     }, 500);
     return () => window.clearTimeout(handle);
   }, [slateHydrated, currentPoll.id, slateText, slateImage, slateTextStyle, slateSublineText, slateSublineStyle]);
-  // "Test viewer view" — when ON the Program monitor renders the viewer
-  // (mobile or desktop) instead of the broadcast composition so the operator
-  // can sanity-check what voters will see before going on-air.
+  // "Test viewer view" — when ON, the Mobile / Desktop preview forces the
+  // slate render (instead of the live answer-type voting UI) so the operator
+  // can QA the slate copy/image without actually starting the slate on-air.
+  // Has no effect in Program mode.
   const [testViewerView, setTestViewerView] = useState(false);
-  const [testViewerMode, setTestViewerMode] = useState<'mobile' | 'desktop'>('mobile');
 
   // Tracks whether the operator has opened the fullscreen Output window.
   // Drives the green "ACTIVE" state on the Open Output quick action so
