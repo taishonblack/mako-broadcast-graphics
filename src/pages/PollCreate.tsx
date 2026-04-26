@@ -1971,6 +1971,8 @@ export default function PollCreate() {
             enabledAssetIds={enabledAssets}
             assetColors={assetColors}
             assetTransforms={assetTransforms}
+            assetColorSet={assetColorSet}
+            assetTransformSet={assetTransformSet}
             onSelectBlock={(letter) => {
               setOutputActiveBlock(letter);
               setOutputBlockSource(outputBlockPinned ? 'pinned' : 'manual');
