@@ -305,6 +305,30 @@ export function OperatorOutputMode({
   // can QA the slate copy/image without actually starting the slate on-air.
   // Has no effect in Program mode.
   const [testViewerView, setTestViewerView] = useState(false);
+  // QA flip: briefly toggles the preview between slate and live answer-types
+  // so the operator can confirm the transition cleanly before Go Live. Runs
+  // a short scripted sequence (slate → live → slate → restore) on whichever
+  // viewport (mobile/desktop) is currently being previewed.
+  const [qaFlipping, setQaFlipping] = useState(false);
+  const qaTimersRef = useRef<number[]>([]);
+  useEffect(() => () => {
+    qaTimersRef.current.forEach((id) => window.clearTimeout(id));
+  }, []);
+  const handleQaFlip = () => {
+    if (qaFlipping) return;
+    qaTimersRef.current.forEach((id) => window.clearTimeout(id));
+    qaTimersRef.current = [];
+    const restore = testViewerView;
+    setQaFlipping(true);
+    // Sequence: slate (1.2s) → live (1.2s) → slate (1.2s) → restore.
+    setTestViewerView(true);
+    qaTimersRef.current.push(window.setTimeout(() => setTestViewerView(false), 1200));
+    qaTimersRef.current.push(window.setTimeout(() => setTestViewerView(true), 2400));
+    qaTimersRef.current.push(window.setTimeout(() => {
+      setTestViewerView(restore);
+      setQaFlipping(false);
+    }, 3600));
+  };
 
   // Tracks whether the operator has opened the fullscreen Output window.
   // Drives the green "ACTIVE" state on the Open Output quick action so
