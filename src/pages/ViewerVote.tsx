@@ -2,7 +2,6 @@ import { useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { QRCodeSVG } from 'qrcode.react';
 
 type ViewerStatus = 'loading' | 'not_found' | 'not_open' | 'open' | 'closed';
 
@@ -45,7 +44,9 @@ interface ViewerSnapshot {
   poll?: {
     id?: string;
     projectId?: string;
+    project_id?: string;
     slug?: string;
+    viewer_slug?: string;
     question?: string;
     subheadline?: string;
     bgColor?: string;
@@ -54,9 +55,22 @@ interface ViewerSnapshot {
     showThankYou?: boolean;
     showFinalResults?: boolean;
     postVoteDelayMs?: number;
-    options?: Array<{ id: string; text?: string; shortLabel?: string; votes?: number; order?: number }>;
+    slateText?: string;
+    slate_text?: string;
+    slateSublineText?: string;
+    slate_subline_text?: string;
+    slateImage?: string | null;
+    slate_image?: string | null;
+    options?: Array<{ id: string; text?: string; label?: string; shortLabel?: string; short_label?: string; votes?: number; live_votes?: number; order?: number; sort_order?: number }>;
+    answers?: Array<{ id: string; text?: string; label?: string; shortLabel?: string; short_label?: string; votes?: number; live_votes?: number; order?: number; sort_order?: number }>;
   };
   assets?: ViewerSnapshotAssets;
+  slateText?: string;
+  slate_text?: string;
+  slateSublineText?: string;
+  slate_subline_text?: string;
+  slateImage?: string | null;
+  slate_image?: string | null;
   /** Operator pressed "Polling Slate" — viewer should render the slate
    *  text/image instead of the MakoVote branding or the "Closed" screen. */
   slateActive?: boolean;
@@ -70,21 +84,22 @@ type LiveStateRow = {
 };
 
 function answersFromSnapshot(snapshotPoll?: ViewerSnapshot['poll']): ViewerAnswer[] {
-  return (snapshotPoll?.options ?? []).map((option, index) => ({
+  return (snapshotPoll?.options ?? snapshotPoll?.answers ?? []).map((option, index) => ({
     id: option.id,
-    label: option.text || `Answer ${index + 1}`,
-    short_label: option.shortLabel || '',
-    sort_order: option.order ?? index,
-    live_votes: option.votes ?? 0,
+    label: option.text || option.label || `Answer ${index + 1}`,
+    short_label: option.shortLabel || option.short_label || '',
+    sort_order: option.order ?? option.sort_order ?? index,
+    live_votes: option.votes ?? option.live_votes ?? 0,
   }));
 }
 
-function pollFromLiveSnapshot(row: LiveStateRow, slug: string): ViewerPoll | null {
-  const snapshotPoll = row.live_poll_snapshot?.poll;
-  if (!snapshotPoll || snapshotPoll.slug !== slug) return null;
+function pollFromLiveSnapshot(row: LiveStateRow, routeSlug: string): ViewerPoll | null {
+  const liveSnapshot = row.live_poll_snapshot;
+  const snapshotPoll = liveSnapshot?.poll;
+  if (!snapshotPoll) return null;
   return {
-    id: row.active_poll_id || snapshotPoll.id || `snapshot-${slug}`,
-    project_id: row.project_id || snapshotPoll.projectId || null,
+    id: row.active_poll_id || snapshotPoll.id || `snapshot-${snapshotPoll.viewer_slug || snapshotPoll.slug || routeSlug || 'viewer'}`,
+    project_id: row.project_id || snapshotPoll.projectId || snapshotPoll.project_id || null,
     question: snapshotPoll.question || 'Cast your vote',
     subheadline: snapshotPoll.subheadline || '',
     bg_color: snapshotPoll.bgColor || 'hsl(220, 20%, 7%)',
@@ -92,11 +107,15 @@ function pollFromLiveSnapshot(row: LiveStateRow, slug: string): ViewerPoll | nul
     show_live_results: snapshotPoll.showLiveResults ?? true,
     show_thank_you: snapshotPoll.showThankYou ?? true,
     show_final_results: snapshotPoll.showFinalResults ?? true,
-    slate_text: 'Polling will open soon',
-    slate_subline_text: '',
-    slate_image: null,
+    slate_text: liveSnapshot.slateText || liveSnapshot.slate_text || snapshotPoll.slateText || snapshotPoll.slate_text || 'Polling will open soon',
+    slate_subline_text: liveSnapshot.slateSublineText || liveSnapshot.slate_subline_text || snapshotPoll.slateSublineText || snapshotPoll.slate_subline_text || '',
+    slate_image: liveSnapshot.slateImage || liveSnapshot.slate_image || snapshotPoll.slateImage || snapshotPoll.slate_image || null,
     post_vote_delay_ms: snapshotPoll.postVoteDelayMs ?? 1500,
   };
+}
+
+function snapshotSlug(snapshot?: ViewerSnapshot | null) {
+  return snapshot?.poll?.viewer_slug || snapshot?.poll?.slug || '';
 }
 
 export default function ViewerVote() {
@@ -115,65 +134,37 @@ export default function ViewerVote() {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      if (!slug) { setStatus('not_found'); return; }
-      // Public viewers cannot SELECT directly from `polls` anymore — that
-      // table is locked down to its owner. Instead we call a SECURITY
-      // DEFINER RPC that returns ONLY the safe viewer-facing columns for
-      // the requested slug. Prevents enumeration of other operators' polls.
-      const { data: rpcRows } = await supabase
-        .rpc('get_viewer_poll_by_slug', { _slug: slug });
-      const pollRow = Array.isArray(rpcRows) ? rpcRows[0] : null;
+      const { data: liveRows } = await supabase
+        .from('project_live_state')
+        .select('project_id, voting_state, active_poll_id, live_poll_snapshot')
+        .in('voting_state', ['open', 'closed']);
       if (cancelled) return;
-      if (!pollRow) {
-        const { data: liveRows } = await supabase
-          .from('project_live_state')
-          .select('project_id, voting_state, active_poll_id, live_poll_snapshot')
-          .in('voting_state', ['open', 'closed']);
-        if (cancelled) return;
-        const liveMatch = ((liveRows ?? []) as LiveStateRow[]).find((row) => row.live_poll_snapshot?.poll?.slug === slug);
-        const snapshotPoll = liveMatch?.live_poll_snapshot?.poll;
-        const fallbackPoll = liveMatch ? pollFromLiveSnapshot(liveMatch, slug) : null;
-        if (!liveMatch || !fallbackPoll) { setStatus('not_found'); return; }
-        setPoll(fallbackPoll);
-        setSnapshot(liveMatch.live_poll_snapshot ?? null);
-        setAnswers(answersFromSnapshot(snapshotPoll));
-        setStatus(liveMatch.voting_state === 'closed' ? 'closed' : 'open');
+
+      const rows = (liveRows ?? []) as LiveStateRow[];
+      const exactMatch = rows.find((row) => snapshotSlug(row.live_poll_snapshot) === slug);
+      const liveMatch = exactMatch ?? rows.find((row) => Boolean(row.live_poll_snapshot));
+      const voting_state = liveMatch?.voting_state ?? 'not_open';
+      const live_poll_snapshot = liveMatch?.live_poll_snapshot ?? null;
+      console.log('Viewer live state', {
+        voting_state,
+        hasSnapshot: Boolean(live_poll_snapshot),
+        slateActive: live_poll_snapshot?.slateActive,
+        snapshotSlug: live_poll_snapshot?.poll?.viewer_slug || live_poll_snapshot?.poll?.slug,
+        routeSlug: slug,
+      });
+
+      if (!liveMatch || !live_poll_snapshot) {
+        setSnapshot(null);
+        setPoll(null);
+        setAnswers([]);
+        setStatus('not_open');
         return;
       }
-      setPoll(pollRow as ViewerPoll);
 
-      const [{ data: answerRows }, liveStateRes] = await Promise.all([
-        supabase
-          .from('poll_answers')
-          .select('id, label, short_label, sort_order, live_votes')
-          .eq('poll_id', pollRow.id)
-          .order('sort_order', { ascending: true }),
-        pollRow.project_id
-          ? supabase
-              .from('project_live_state')
-              .select('voting_state, active_poll_id, live_poll_snapshot')
-              .eq('project_id', pollRow.project_id)
-              .maybeSingle()
-          : Promise.resolve({ data: null } as { data: null }),
-      ]);
-      if (cancelled) return;
-
-      setAnswers((answerRows ?? []) as ViewerAnswer[]);
-
-      const live = (liveStateRes as { data: { voting_state?: string; active_poll_id?: string | null; live_poll_snapshot?: ViewerSnapshot | null } | null }).data;
-      const votingState = live?.voting_state ?? 'not_open';
-      const liveSnapshot = live?.live_poll_snapshot;
-      const snapshotPoll = liveSnapshot?.poll;
-      const snapshotMatchesSlug = snapshotPoll?.slug === slug;
-      const isThisPollLive = !live || live.active_poll_id === pollRow.id || snapshotMatchesSlug;
-      if (live?.live_poll_snapshot) setSnapshot(live.live_poll_snapshot);
-      if ((answerRows ?? []).length === 0 && snapshotPoll?.options?.length) {
-        setAnswers(answersFromSnapshot(snapshotPoll));
-      }
-
-      if (votingState === 'open' && isThisPollLive) setStatus('open');
-      else if (votingState === 'closed' && isThisPollLive) setStatus('closed');
-      else setStatus('not_open');
+      setSnapshot(live_poll_snapshot);
+      setPoll(pollFromLiveSnapshot(liveMatch, slug));
+      setAnswers(answersFromSnapshot(live_poll_snapshot.poll));
+      setStatus(voting_state === 'open' ? 'open' : 'closed');
     };
     load();
     return () => { cancelled = true; };
@@ -182,35 +173,44 @@ export default function ViewerVote() {
   // Realtime: stream live vote totals + voting state changes so the viewer
   // reflects open/close transitions and tally updates without refresh.
   useEffect(() => {
-    if (!poll?.id) return;
     const channel = supabase
-      .channel(`viewer-poll-${poll.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_answers', filter: `poll_id=eq.${poll.id}` }, (payload) => {
+      .channel(`viewer-live-${slug || 'default'}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_answers' }, (payload) => {
         const row = payload.new as Partial<ViewerAnswer> | undefined;
-        if (!row?.id) return;
+        if (!row?.id || (poll?.id && (row as Partial<ViewerAnswer> & { poll_id?: string }).poll_id !== poll.id)) return;
         setAnswers((current) => current.map((a) => a.id === row.id ? { ...a, live_votes: row.live_votes ?? a.live_votes } : a));
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_live_state', filter: poll.project_id ? `project_id=eq.${poll.project_id}` : undefined }, (payload) => {
-        const row = payload.new as { voting_state?: string; active_poll_id?: string | null; live_poll_snapshot?: ViewerSnapshot | null } | undefined;
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_live_state' }, (payload) => {
+        const row = payload.new as LiveStateRow | undefined;
         if (!row) return;
-        const snapshotPoll = row.live_poll_snapshot?.poll;
-        const snapshotMatchesSlug = snapshotPoll?.slug === slug;
-        const isThisPollLive = !row.active_poll_id || row.active_poll_id === poll.id || snapshotMatchesSlug;
-        if (row.live_poll_snapshot !== undefined) setSnapshot(row.live_poll_snapshot ?? null);
-        if (snapshotMatchesSlug) {
-          const snapshotPollRow = pollFromLiveSnapshot(row, slug);
-          if (snapshotPollRow) setPoll((current) => ({ ...snapshotPollRow, ...current, id: snapshotPollRow.id }));
+        const live_poll_snapshot = row.live_poll_snapshot ?? null;
+        console.log('Viewer live state', {
+          voting_state: row.voting_state ?? 'not_open',
+          hasSnapshot: Boolean(live_poll_snapshot),
+          slateActive: live_poll_snapshot?.slateActive,
+          snapshotSlug: live_poll_snapshot?.poll?.viewer_slug || live_poll_snapshot?.poll?.slug,
+          routeSlug: slug,
+        });
+
+        if (!live_poll_snapshot) {
+          setSnapshot(null);
+          setPoll(null);
+          setAnswers([]);
+          setStatus('not_open');
+          setHasVoted(false);
+          setSelectedOption(null);
+          setPostVoteStage('received');
+          return;
         }
-        if (snapshotPoll?.options?.length) {
-          setAnswers(answersFromSnapshot(snapshotPoll));
-        }
-        if (row.voting_state === 'open' && isThisPollLive) setStatus('open');
-        else if (row.voting_state === 'closed' && isThisPollLive) setStatus('closed');
-        else setStatus('not_open');
+
+        setSnapshot(live_poll_snapshot);
+        setPoll(pollFromLiveSnapshot(row, slug));
+        setAnswers(answersFromSnapshot(live_poll_snapshot.poll));
+        setStatus(row.voting_state === 'open' ? 'open' : 'closed');
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [poll?.id, poll?.project_id]);
+  }, [poll?.id, slug]);
 
   const handleVote = (optionId: string) => {
     setSelectedOption(optionId);
@@ -244,17 +244,12 @@ export default function ViewerVote() {
   // has answer bars but no viewer answer type / QR entry point, show a mirror
   // slate instead of vote buttons. Folders with `answerType` or `qr` collect
   // votes and must render the answer UI when voting is open.
-  const enabled = snapshot?.assets?.enabledAssetIds;
-  const folderCollectsVotes = Array.isArray(enabled) && (enabled.includes('answerType') || enabled.includes('qr'));
-  const isMirrorMode = Array.isArray(enabled) && !folderCollectsVotes;
-
   // Operator broadcast: when the Polling Slate button is ON, show the
   // operator-authored slate text/image instead of MakoVote branding or the
   // "Polling is Closed" screen. The flag rides on the live snapshot so we
   // only render the slate when the operator explicitly turned it on for
   // this poll's slug.
-  const slateBroadcastActive = Boolean(snapshot?.slateActive)
-    && (snapshot?.poll?.slug === slug);
+  const slateBroadcastActive = Boolean(snapshot?.slateActive);
 
   const bgStyle: React.CSSProperties = poll?.bg_image
     ? { backgroundImage: `url(${poll.bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
@@ -271,7 +266,7 @@ export default function ViewerVote() {
 
   // ---- Polling Slate broadcast (operator pressed "Polling Slate") ----
   // Render the operator's slate copy/image instead of MakoVote.
-  if (slateBroadcastActive && status !== 'open') {
+  if (slateBroadcastActive) {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
         <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10 w-full max-w-sm">
@@ -337,31 +332,6 @@ export default function ViewerVote() {
   }
 
   // ---- Active voting ----
-  if (status === 'open' && isMirrorMode) {
-    const voteUrl = typeof window !== 'undefined'
-      ? `${window.location.origin}/vote/${slug}`
-      : `/vote/${slug}`;
-    return (
-      <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 animate-fade-in" style={bgStyle}>
-        <div className="w-full max-w-sm space-y-8 bg-background/40 backdrop-blur-md rounded-2xl p-6 border border-white/10 text-center">
-          <h1 className="text-2xl font-bold leading-tight" style={{ color: questionColor || 'hsl(var(--foreground))' }}>
-            {poll?.question || snapshot?.poll?.question || 'Stand by'}
-          </h1>
-          {poll?.subheadline && (
-            <p className="text-sm" style={{ color: subColor || 'hsl(var(--muted-foreground))' }}>{poll.subheadline}</p>
-          )}
-          <div className="bg-white p-4 rounded-xl inline-block">
-            <QRCodeSVG value={voteUrl} size={180} level="M" />
-          </div>
-          <p className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-            Scan to follow along
-          </p>
-          <BrandBug />
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen flex flex-col items-center justify-center px-6 py-12 animate-fade-in" style={bgStyle}>
       <div className="w-full max-w-sm space-y-8 bg-background/40 backdrop-blur-md rounded-2xl p-6 border border-white/10">
