@@ -174,35 +174,44 @@ export default function ViewerVote() {
   // Realtime: stream live vote totals + voting state changes so the viewer
   // reflects open/close transitions and tally updates without refresh.
   useEffect(() => {
-    if (!poll?.id) return;
     const channel = supabase
-      .channel(`viewer-poll-${poll.id}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_answers', filter: `poll_id=eq.${poll.id}` }, (payload) => {
+      .channel(`viewer-live-${slug || 'default'}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_answers' }, (payload) => {
         const row = payload.new as Partial<ViewerAnswer> | undefined;
-        if (!row?.id) return;
+        if (!row?.id || (poll?.id && (row as Partial<ViewerAnswer> & { poll_id?: string }).poll_id !== poll.id)) return;
         setAnswers((current) => current.map((a) => a.id === row.id ? { ...a, live_votes: row.live_votes ?? a.live_votes } : a));
       })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_live_state', filter: poll.project_id ? `project_id=eq.${poll.project_id}` : undefined }, (payload) => {
-        const row = payload.new as { voting_state?: string; active_poll_id?: string | null; live_poll_snapshot?: ViewerSnapshot | null } | undefined;
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_live_state' }, (payload) => {
+        const row = payload.new as LiveStateRow | undefined;
         if (!row) return;
-        const snapshotPoll = row.live_poll_snapshot?.poll;
-        const snapshotMatchesSlug = snapshotPoll?.slug === slug;
-        const isThisPollLive = !row.active_poll_id || row.active_poll_id === poll.id || snapshotMatchesSlug;
-        if (row.live_poll_snapshot !== undefined) setSnapshot(row.live_poll_snapshot ?? null);
-        if (snapshotMatchesSlug) {
-          const snapshotPollRow = pollFromLiveSnapshot(row, slug);
-          if (snapshotPollRow) setPoll((current) => ({ ...snapshotPollRow, ...current, id: snapshotPollRow.id }));
+        const live_poll_snapshot = row.live_poll_snapshot ?? null;
+        console.log('Viewer live state', {
+          voting_state: row.voting_state ?? 'not_open',
+          hasSnapshot: Boolean(live_poll_snapshot),
+          slateActive: live_poll_snapshot?.slateActive,
+          snapshotSlug: live_poll_snapshot?.poll?.viewer_slug || live_poll_snapshot?.poll?.slug,
+          routeSlug: slug,
+        });
+
+        if (!live_poll_snapshot) {
+          setSnapshot(null);
+          setPoll(null);
+          setAnswers([]);
+          setStatus('not_open');
+          setHasVoted(false);
+          setSelectedOption(null);
+          setPostVoteStage('received');
+          return;
         }
-        if (snapshotPoll?.options?.length) {
-          setAnswers(answersFromSnapshot(snapshotPoll));
-        }
-        if (row.voting_state === 'open' && isThisPollLive) setStatus('open');
-        else if (row.voting_state === 'closed' && isThisPollLive) setStatus('closed');
-        else setStatus('not_open');
+
+        setSnapshot(live_poll_snapshot);
+        setPoll(pollFromLiveSnapshot(row, slug));
+        setAnswers(answersFromSnapshot(live_poll_snapshot.poll));
+        setStatus(row.voting_state === 'open' ? 'open' : 'closed');
       })
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [poll?.id, poll?.project_id]);
+  }, [poll?.id, slug]);
 
   const handleVote = (optionId: string) => {
     setSelectedOption(optionId);
