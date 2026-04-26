@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useParams } from 'react-router-dom';
 import { AlertTriangle, CheckCircle, Clock } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
@@ -131,6 +131,34 @@ export default function ViewerVote() {
    *  same palette as the on-air program. */
   const [snapshot, setSnapshot] = useState<ViewerSnapshot | null>(null);
 
+  const applyLiveStateRow = useCallback((row?: LiveStateRow | null) => {
+    const voting_state = row?.voting_state ?? 'not_open';
+    const live_poll_snapshot = row?.live_poll_snapshot ?? null;
+    console.log('Viewer state update', {
+      voting_state,
+      hasSnapshot: Boolean(live_poll_snapshot),
+      slateActive: live_poll_snapshot?.slateActive,
+      routeSlug: slug,
+      snapshotSlug: live_poll_snapshot?.poll?.slug,
+    });
+
+    if (!row || !live_poll_snapshot) {
+      setSnapshot(null);
+      setPoll(null);
+      setAnswers([]);
+      setStatus('not_open');
+      setHasVoted(false);
+      setSelectedOption(null);
+      setPostVoteStage('received');
+      return;
+    }
+
+    setSnapshot(live_poll_snapshot);
+    setPoll(pollFromLiveSnapshot(row, slug));
+    setAnswers(answersFromSnapshot(live_poll_snapshot.poll));
+    setStatus(voting_state === 'open' ? 'open' : 'closed');
+  }, [slug]);
+
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
@@ -141,34 +169,12 @@ export default function ViewerVote() {
       if (cancelled) return;
 
       const rows = (liveRows ?? []) as LiveStateRow[];
-      const exactMatch = rows.find((row) => snapshotSlug(row.live_poll_snapshot) === slug);
-      const liveMatch = exactMatch ?? rows.find((row) => Boolean(row.live_poll_snapshot));
-      const voting_state = liveMatch?.voting_state ?? 'not_open';
-      const live_poll_snapshot = liveMatch?.live_poll_snapshot ?? null;
-      console.log('Viewer live state', {
-        voting_state,
-        hasSnapshot: Boolean(live_poll_snapshot),
-        slateActive: live_poll_snapshot?.slateActive,
-        snapshotSlug: live_poll_snapshot?.poll?.viewer_slug || live_poll_snapshot?.poll?.slug,
-        routeSlug: slug,
-      });
-
-      if (!liveMatch || !live_poll_snapshot) {
-        setSnapshot(null);
-        setPoll(null);
-        setAnswers([]);
-        setStatus('not_open');
-        return;
-      }
-
-      setSnapshot(live_poll_snapshot);
-      setPoll(pollFromLiveSnapshot(liveMatch, slug));
-      setAnswers(answersFromSnapshot(live_poll_snapshot.poll));
-      setStatus(voting_state === 'open' ? 'open' : 'closed');
+      const liveMatch = rows.find((row) => Boolean(row.live_poll_snapshot));
+      applyLiveStateRow(liveMatch ?? null);
     };
     load();
     return () => { cancelled = true; };
-  }, [slug]);
+  }, [applyLiveStateRow]);
 
   // Realtime: stream live vote totals + voting state changes so the viewer
   // reflects open/close transitions and tally updates without refresh.
@@ -207,38 +213,14 @@ export default function ViewerVote() {
         { event: '*', schema: 'public', table: 'project_live_state', filter: `project_id=eq.${projectId}` },
         (payload) => {
           const row = payload.new as LiveStateRow | undefined;
-          if (!row) return;
-        const live_poll_snapshot = row.live_poll_snapshot ?? null;
-        console.log('Viewer live state', {
-          voting_state: row.voting_state ?? 'not_open',
-          hasSnapshot: Boolean(live_poll_snapshot),
-          slateActive: live_poll_snapshot?.slateActive,
-          snapshotSlug: live_poll_snapshot?.poll?.viewer_slug || live_poll_snapshot?.poll?.slug,
-          routeSlug: slug,
-        });
-
-        if (!live_poll_snapshot) {
-          setSnapshot(null);
-          setPoll(null);
-          setAnswers([]);
-          setStatus('not_open');
-          setHasVoted(false);
-          setSelectedOption(null);
-          setPostVoteStage('received');
-          return;
-        }
-
-        setSnapshot(live_poll_snapshot);
-        setPoll(pollFromLiveSnapshot(row, slug));
-        setAnswers(answersFromSnapshot(live_poll_snapshot.poll));
-        setStatus(row.voting_state === 'open' ? 'open' : 'closed');
+          applyLiveStateRow(row ?? null);
         },
       );
     }
 
     channel.subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [projectId, pollId, slug]);
+  }, [applyLiveStateRow, projectId, pollId]);
 
   // Discovery subscription: when the viewer has not yet matched a project
   // (e.g. the operator hasn't pressed Go Live / Polling Slate for the first
@@ -254,20 +236,12 @@ export default function ViewerVote() {
         { event: '*', schema: 'public', table: 'project_live_state' },
         (payload) => {
           const row = payload.new as LiveStateRow | undefined;
-          const snap = row?.live_poll_snapshot ?? null;
-          if (!snap) return;
-          // Only act if this row could be ours (slug matches or no slug yet).
-          const snapSlug = snapshotSlug(snap);
-          if (slug && snapSlug && snapSlug !== slug) return;
-          setSnapshot(snap);
-          setPoll(pollFromLiveSnapshot(row as LiveStateRow, slug));
-          setAnswers(answersFromSnapshot(snap.poll));
-          setStatus(row?.voting_state === 'open' ? 'open' : 'closed');
+          applyLiveStateRow(row ?? null);
         },
       )
       .subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [projectId, slug]);
+  }, [applyLiveStateRow, projectId, slug]);
 
   const handleVote = (optionId: string) => {
     setSelectedOption(optionId);
@@ -312,18 +286,22 @@ export default function ViewerVote() {
     ? { backgroundImage: `url(${poll.bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { background: poll?.bg_color || 'hsl(220, 20%, 7%)' };
 
-  // ---- Loading ----
-  if (status === 'loading') {
+  // ---- No live snapshot: MakoVote branding ----
+  if (!snapshot) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={{ background: 'hsl(220, 20%, 7%)' }}>
-        <MakoVoteSlate sublabel="Loading…" />
+      <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
+        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10">
+          <MakoVoteSlate />
+        </div>
       </div>
     );
   }
 
   // ---- Polling Slate broadcast (operator pressed "Polling Slate") ----
-  // Render the operator's slate copy/image instead of MakoVote.
-  if (slateBroadcastActive) {
+  // Render the operator's slate copy/image instead of MakoVote. If a snapshot
+  // exists but voting is not open, keep rendering snapshot-backed slate UI
+  // rather than falling back to branding due to status/slug mismatch.
+  if (slateBroadcastActive || status !== 'open') {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
         <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10 w-full max-w-sm">
@@ -344,20 +322,6 @@ export default function ViewerVote() {
             <p className="text-sm text-muted-foreground">{poll.slate_subline_text}</p>
           )}
           <BrandBug />
-        </div>
-      </div>
-    );
-  }
-
-  // ---- Slug not found, not open, OR closed without slate: MakoVote slate ----
-  // When the operator stops Go Live, voting_state goes to 'closed' and the
-  // snapshot is cleared — viewers should see MakoVote branding again
-  // (NOT the "Polling is Closed" screen).
-  if (status === 'not_found' || status === 'not_open' || status === 'closed') {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
-        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10">
-          <MakoVoteSlate />
         </div>
       </div>
     );
