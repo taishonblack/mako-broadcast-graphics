@@ -1,11 +1,64 @@
-import { ChevronDown, ChevronRight, Crosshair, Globe, Lock, Monitor, RotateCcw, Smartphone, Unlock } from 'lucide-react';
+import { ChevronDown, ChevronRight, Crosshair, Globe, Lock, Monitor, Plus, RotateCcw, Smartphone, Unlock, X } from 'lucide-react';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { AssetColorConfig, AssetColorMap, AssetId, AssetTransformMap, DEFAULT_ASSET_COLORS, TransformField, TransformViewport } from '@/components/poll-create/polling-assets/types';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
+
+// LocalStorage-backed swatch palette. Operators save colors they're using
+// in the Colors pane and recall them with a single click — useful for keeping
+// brand HSLs handy across answer bars, QR, voter buttons, etc.
+const SWATCH_STORAGE_KEY = 'mako-color-swatches-v1';
+const MAX_SWATCHES = 24;
+
+function loadSwatches(): string[] {
+  try {
+    const raw = localStorage.getItem(SWATCH_STORAGE_KEY);
+    if (!raw) return [];
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
+  } catch {
+    return [];
+  }
+}
+
+function saveSwatches(swatches: string[]) {
+  try {
+    localStorage.setItem(SWATCH_STORAGE_KEY, JSON.stringify(swatches));
+  } catch { /* ignore */ }
+}
+
+function useColorSwatches() {
+  const [swatches, setSwatches] = useState<string[]>(() => loadSwatches());
+  // Sync across multiple inspector instances / tabs.
+  useEffect(() => {
+    const handler = (e: StorageEvent) => {
+      if (e.key === SWATCH_STORAGE_KEY) setSwatches(loadSwatches());
+    };
+    window.addEventListener('storage', handler);
+    return () => window.removeEventListener('storage', handler);
+  }, []);
+  const addSwatch = (color: string) => {
+    if (!color) return;
+    setSwatches((prev) => {
+      const next = [color, ...prev.filter((c) => c.toLowerCase() !== color.toLowerCase())].slice(0, MAX_SWATCHES);
+      saveSwatches(next);
+      window.dispatchEvent(new StorageEvent('storage', { key: SWATCH_STORAGE_KEY }));
+      return next;
+    });
+  };
+  const removeSwatch = (color: string) => {
+    setSwatches((prev) => {
+      const next = prev.filter((c) => c !== color);
+      saveSwatches(next);
+      window.dispatchEvent(new StorageEvent('storage', { key: SWATCH_STORAGE_KEY }));
+      return next;
+    });
+  };
+  return { swatches, addSwatch, removeSwatch };
+}
 
 interface AssetTransformControlsProps {
   assetId: AssetId | null;
@@ -70,6 +123,7 @@ interface ColorSection {
 export function AssetTransformControls({ assetId, assetLabel, folderLabel, folderAssetIds, transforms, colors, answerCount, onChange, onToggleLock, onColorsChange, onCenterAsset, viewport, onViewportChange }: AssetTransformControlsProps) {
   const [transformOpen, setTransformOpen] = useState(true);
   const [colorsOpen, setColorsOpen] = useState(true);
+  const { swatches, addSwatch, removeSwatch } = useColorSwatches();
 
   const visibleAssetIds = assetId ? [assetId] : (folderAssetIds ?? []);
   const title = assetId ? (assetLabel ?? assetId) : (folderLabel ?? 'Selected folder');
@@ -233,6 +287,43 @@ export function AssetTransformControls({ assetId, assetLabel, folderLabel, folde
         </button>
         {colorsOpen && (
           <div className="space-y-3 border-t border-border/50 px-3 py-3">
+            {/* Saved color swatches — operator's personal palette. Click a
+                swatch to copy its value (useful when manually editing the hex
+                input). The "+" button on each ColorInput row saves that
+                field's current color into the palette. */}
+            <div className="space-y-1.5">
+              <div className="flex items-center justify-between">
+                <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Swatches</span>
+                <span className="text-[9px] font-mono text-muted-foreground/70">{swatches.length}/{MAX_SWATCHES}</span>
+              </div>
+              {swatches.length === 0 ? (
+                <p className="text-[10px] text-muted-foreground/70">Tap <Plus className="inline h-2.5 w-2.5" /> on a color row to save it here.</p>
+              ) : (
+                <div className="flex flex-wrap gap-1.5">
+                  {swatches.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => {
+                        navigator.clipboard?.writeText(c).catch(() => {});
+                      }}
+                      title={`${c} — click to copy`}
+                      className="group relative h-6 w-6 rounded-md border border-border/60 transition-transform hover:scale-110"
+                      style={{ background: c }}
+                    >
+                      <span
+                        role="button"
+                        tabIndex={-1}
+                        onClick={(e) => { e.stopPropagation(); removeSwatch(c); }}
+                        className="absolute -right-1 -top-1 hidden h-3 w-3 items-center justify-center rounded-full bg-background text-foreground shadow-sm group-hover:flex"
+                      >
+                        <X className="h-2 w-2" />
+                      </span>
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
             {colorSections.length > 0 ? (
               <>
                 <div className="flex items-center justify-end">
@@ -252,6 +343,8 @@ export function AssetTransformControls({ assetId, assetLabel, folderLabel, folde
                           value={field.value}
                           onChange={(value) => onColorsChange(section.assetId, field.apply(value))}
                           onReset={() => onColorsChange(section.assetId, field.reset())}
+                          swatches={swatches}
+                          onSaveSwatch={() => field.value && addSwatch(field.value)}
                         />
                       ))}
                     </div>
@@ -268,24 +361,62 @@ export function AssetTransformControls({ assetId, assetLabel, folderLabel, folde
   );
 }
 
-function ColorInput({ label, value, onChange, onReset }: { label: string; value?: string; onChange: (value: string) => void; onReset: () => void }) {
+function ColorInput({
+  label, value, onChange, onReset, swatches, onSaveSwatch,
+}: {
+  label: string;
+  value?: string;
+  onChange: (value: string) => void;
+  onReset: () => void;
+  swatches?: string[];
+  onSaveSwatch?: () => void;
+}) {
   return (
-    <div className="flex items-center gap-3">
-      <Label className="w-24 text-[10px] text-muted-foreground">{label}</Label>
-      <input
-        type="color"
-        value={toHex(value)}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-8 w-10 cursor-pointer rounded border border-border bg-transparent p-0"
-      />
-      <Input
-        value={value ?? ''}
-        onChange={(event) => onChange(event.target.value)}
-        className="h-8 flex-1 bg-background/50 px-2 text-[10px] font-mono"
-      />
-      <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-[10px] text-muted-foreground" onClick={onReset}>
-        Reset
-      </Button>
+    <div className="space-y-1">
+      <div className="flex items-center gap-3">
+        <Label className="w-24 text-[10px] text-muted-foreground">{label}</Label>
+        <input
+          type="color"
+          value={toHex(value)}
+          onChange={(event) => onChange(event.target.value)}
+          className="h-8 w-10 cursor-pointer rounded border border-border bg-transparent p-0"
+        />
+        <Input
+          value={value ?? ''}
+          onChange={(event) => onChange(event.target.value)}
+          className="h-8 flex-1 bg-background/50 px-2 text-[10px] font-mono"
+        />
+        {onSaveSwatch && (
+          <Button
+            type="button"
+            variant="ghost"
+            size="icon"
+            className="h-7 w-7 text-muted-foreground"
+            onClick={onSaveSwatch}
+            title="Save this color as a swatch"
+            disabled={!value}
+          >
+            <Plus className="h-3 w-3" />
+          </Button>
+        )}
+        <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-[10px] text-muted-foreground" onClick={onReset}>
+          Reset
+        </Button>
+      </div>
+      {swatches && swatches.length > 0 && (
+        <div className="flex flex-wrap gap-1 pl-[6.75rem]">
+          {swatches.slice(0, 12).map((c) => (
+            <button
+              key={c}
+              type="button"
+              onClick={() => onChange(c)}
+              title={`Apply ${c}`}
+              className="h-4 w-4 rounded border border-border/60 transition-transform hover:scale-125"
+              style={{ background: c }}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 }

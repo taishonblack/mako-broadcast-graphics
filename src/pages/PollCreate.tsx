@@ -604,6 +604,15 @@ export default function PollCreate() {
   }, [outputBlockPinned]);
 
   const renderOutputScene = () => {
+    // Always render the PROGRAM viewport's transforms/colors here. This is the
+    // node passed to OperatorOutputMode as the on-air program preview, so it
+    // must NOT drift to the operator's currently-selected mobile/desktop tab
+    // in Build. (Previously it read `assetTransforms`/`assetColors` which
+    // followed `transformViewport`, causing the QR/asset placement to
+    // momentarily snap to mobile/desktop defaults when the operator switched
+    // from Build → Output until they revisited Build's Program tab.)
+    const programTransforms = assetTransformSet.program;
+    const programAssetColors = assetColorSet.program;
     const sharedAssets = {
       slug: slugForUrl,
       qrSize,
@@ -613,8 +622,8 @@ export default function PollCreate() {
       showBranding,
       brandingPosition,
       enabledAssetIds: enabledAssets,
-      transforms: assetTransforms,
-        assetColors,
+      transforms: programTransforms,
+      assetColors: programAssetColors,
       wordmarkWeight: assetState.wordmarkWeight,
       wordmarkTracking: assetState.wordmarkTracking,
       wordmarkScale: assetState.wordmarkScale,
