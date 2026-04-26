@@ -52,6 +52,8 @@ import {
   DEFAULT_TALLY_MODE,
   TallyMode,
   duplicateFolder,
+  setAssetInactive,
+  convertAnswerTypeToBars,
   findAssetFolder,
   getFolderById,
   loadProjectPollingAssetFolders,
@@ -1066,7 +1068,14 @@ export default function PollCreate() {
       localStorage.setItem(ASSET_STATE_STORAGE_KEY, JSON.stringify(assetState));
     } catch { /* ignore */ }
   }, [assetState]);
-  const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
+  // Filter out inactive assets so downstream surfaces (scenes, voter
+  // previews, output snapshot) treat them as absent. Inactive assets
+  // remain in the folder list as a dimmed card so the operator can
+  // re-activate them without losing position/inspector state.
+  const inactiveAssetIds = activeFolder?.inactiveAssetIds ?? [];
+  const enabledAssets = (activeFolder?.assetIds ?? SEEDED_ASSETS).filter(
+    (id) => !inactiveAssetIds.includes(id),
+  );
   // Mirror the Program Preview to any open Output window in real time.
   // Whenever the operator's program-preview state (poll content, scene,
   // assets, transforms, colors, wordmark) changes, push it to the Output
@@ -1623,6 +1632,21 @@ export default function PollCreate() {
     toast.success('Folder duplicated');
   };
 
+  /** Toggle an asset's inactive flag (used by the dimmed asset card). */
+  const handleToggleAssetInactive = (folderId: string, assetId: AssetId, inactive: boolean) => {
+    updateFolderState((current) => setAssetInactive(current, folderId, assetId, inactive));
+    toast.success(inactive ? 'Asset muted' : 'Asset reactivated');
+  };
+
+  /** Fired by the Answer Type inspector — swaps answerType→answers and
+   *  marks any QR in the folder as inactive. One-way (operator can re-add
+   *  Answer Type from the + menu if they want to swap back). */
+  const handleConvertAnswerTypeToBars = (folderId: string) => {
+    updateFolderState((current) => convertAnswerTypeToBars(current, folderId));
+    setSelectedAssetId('answers');
+    toast.success('Converted to Answer Bars — QR muted');
+  };
+
   const handleAddAnswer = () => {
     if (answerType === 'yes-no' || answers.length >= 4) return;
     // Add the new bar and re-equalize so all bars share 100% evenly.
@@ -1989,6 +2013,7 @@ export default function PollCreate() {
                   onDeleteFolder={(folderId) => setDeleteFolderTargetId(folderId)}
                   onToggleFolderCollapse={handleToggleFolderCollapse}
                   onDuplicateFolder={handleDuplicateFolder}
+                  onToggleAssetInactive={handleToggleAssetInactive}
                   blockLetter={blockLetter}
                   onBlockLetterChange={handleBlockLetterChange}
                 question={question} setQuestion={handleFolderQuestionChange}
@@ -2119,6 +2144,9 @@ export default function PollCreate() {
                             [assetId]: { ...t, x: 0, y: 0 },
                           };
                         });
+                      }}
+                      onConvertAnswerTypeToBars={() => {
+                        if (folderState.activeFolderId) handleConvertAnswerTypeToBars(folderState.activeFolderId);
                       }}
                     />
                   </Pane>

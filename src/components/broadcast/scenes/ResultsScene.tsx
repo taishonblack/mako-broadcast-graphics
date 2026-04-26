@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react';
 import { ThemePreset, PollOption, QRPosition } from '@/lib/types';
 import { AssetOverlay } from '@/components/broadcast/AssetOverlay';
-import { AssetColorMap, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
+import { AssetColorMap, AssetTransformMap, AssetId } from '@/components/poll-create/polling-assets/types';
 import { getAssetTransformStyle } from '@/lib/asset-transforms';
 
 interface ResultsSceneProps {
@@ -18,7 +18,7 @@ interface ResultsSceneProps {
   debugVoteUrl?: string;
   showBranding?: boolean;
   brandingPosition?: QRPosition;
-  enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally' | 'image'>;
+  enabledAssetIds?: AssetId[];
   transforms?: AssetTransformMap;
   assetColors?: AssetColorMap;
 }

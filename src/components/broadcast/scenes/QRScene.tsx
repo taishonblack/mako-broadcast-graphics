@@ -1,12 +1,12 @@
 import { ThemePreset } from '@/lib/types';
 import { QRCodeSVG } from 'qrcode.react';
-import { AssetColorMap, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
+import { AssetColorMap, AssetTransformMap, AssetId } from '@/components/poll-create/polling-assets/types';
 import { getAssetTransformStyle } from '@/lib/asset-transforms';
 
 interface QRSceneProps {
   slug: string;
   theme: ThemePreset;
-  enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally' | 'image'>;
+  enabledAssetIds?: AssetId[];
   transforms?: AssetTransformMap;
   assetColors?: AssetColorMap;
   qrVisible?: boolean;
