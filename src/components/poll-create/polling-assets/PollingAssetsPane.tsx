@@ -239,6 +239,16 @@ export function PollingAssetsPane({
                   >
                     Rename
                   </DropdownMenuItem>
+                  {onDuplicateFolder && (
+                    <DropdownMenuItem
+                      aria-label={`Duplicate folder ${folder.name}`}
+                      onClick={() => onDuplicateFolder(folder.id)}
+                      className="gap-2"
+                    >
+                      <Copy className="w-3.5 h-3.5 text-muted-foreground" />
+                      Duplicate Folder
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuLabel className="text-[10px] uppercase font-mono">Set Block</DropdownMenuLabel>
                   <DropdownMenuRadioGroup value={folder.blockLetter}>
                     {BLOCK_LETTERS.map((letter) => (
