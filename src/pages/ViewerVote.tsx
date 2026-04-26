@@ -286,18 +286,22 @@ export default function ViewerVote() {
     ? { backgroundImage: `url(${poll.bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
     : { background: poll?.bg_color || 'hsl(220, 20%, 7%)' };
 
-  // ---- Loading ----
-  if (status === 'loading') {
+  // ---- No live snapshot: MakoVote branding ----
+  if (!snapshot) {
     return (
-      <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={{ background: 'hsl(220, 20%, 7%)' }}>
-        <MakoVoteSlate sublabel="Loading…" />
+      <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
+        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10">
+          <MakoVoteSlate />
+        </div>
       </div>
     );
   }
 
   // ---- Polling Slate broadcast (operator pressed "Polling Slate") ----
-  // Render the operator's slate copy/image instead of MakoVote.
-  if (slateBroadcastActive) {
+  // Render the operator's slate copy/image instead of MakoVote. If a snapshot
+  // exists but voting is not open, keep rendering snapshot-backed slate UI
+  // rather than falling back to branding due to status/slug mismatch.
+  if (slateBroadcastActive || status !== 'open') {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
         <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10 w-full max-w-sm">
@@ -318,20 +322,6 @@ export default function ViewerVote() {
             <p className="text-sm text-muted-foreground">{poll.slate_subline_text}</p>
           )}
           <BrandBug />
-        </div>
-      </div>
-    );
-  }
-
-  // ---- Slug not found, not open, OR closed without slate: MakoVote slate ----
-  // When the operator stops Go Live, voting_state goes to 'closed' and the
-  // snapshot is cleared — viewers should see MakoVote branding again
-  // (NOT the "Polling is Closed" screen).
-  if (status === 'not_found' || status === 'not_open' || status === 'closed') {
-    return (
-      <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
-        <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10">
-          <MakoVoteSlate />
         </div>
       </div>
     );
