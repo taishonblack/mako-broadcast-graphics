@@ -116,14 +116,92 @@ export function duplicateFolder(state: PollingAssetFolderState, folderId: string
     name: copyName,
     collapsed: false,
     assetIds: [...source.assetIds],
+    // Auto-couple the duplicate with the source so both share slate +
+    // background + slug. Operator can break the link later from the 3-dots
+    // menu if they want them to diverge.
+    linkedFolderId: source.id,
   };
 
-  const nextFolders = [...state.folders];
+  const nextFolders = state.folders.map((folder) =>
+    folder.id === source.id ? { ...folder, linkedFolderId: clone.id } : folder
+  );
   nextFolders.splice(sourceIndex + 1, 0, clone);
 
   return {
     folders: nextFolders,
     activeFolderId: clone.id,
+  };
+}
+
+/**
+ * Mutually link two folders so they share slate + background + slug. If
+ * either folder was already linked to a third folder, that prior link is
+ * cleanly broken first so we never leave dangling references.
+ */
+export function linkFolders(state: PollingAssetFolderState, folderAId: string, folderBId: string): PollingAssetFolderState {
+  if (folderAId === folderBId) return state;
+  const a = state.folders.find((f) => f.id === folderAId);
+  const b = state.folders.find((f) => f.id === folderBId);
+  if (!a || !b) return state;
+  return {
+    ...state,
+    folders: state.folders.map((folder) => {
+      // Break any prior link that involved A or B (other than the new pair).
+      if (folder.linkedFolderId === folderAId && folder.id !== folderBId) {
+        return { ...folder, linkedFolderId: undefined };
+      }
+      if (folder.linkedFolderId === folderBId && folder.id !== folderAId) {
+        return { ...folder, linkedFolderId: undefined };
+      }
+      if (folder.id === folderAId) return { ...folder, linkedFolderId: folderBId };
+      if (folder.id === folderBId) return { ...folder, linkedFolderId: folderAId };
+      return folder;
+    }),
+  };
+}
+
+/**
+ * Remove the link from a folder (and its partner) so they diverge again.
+ */
+export function unlinkFolder(state: PollingAssetFolderState, folderId: string): PollingAssetFolderState {
+  const folder = state.folders.find((f) => f.id === folderId);
+  const partnerId = folder?.linkedFolderId;
+  return {
+    ...state,
+    folders: state.folders.map((f) => {
+      if (f.id === folderId || f.id === partnerId) {
+        return { ...f, linkedFolderId: undefined };
+      }
+      return f;
+    }),
+  };
+}
+
+/**
+ * Resolve the *effective* shared content for a folder. If the folder is
+ * linked to a partner, return values from the partner that the partner has
+ * authored (so the operator only edits in one place). Falls back to the
+ * folder's own values when nothing is shared. Pure read — never mutates.
+ */
+export function resolveLinkedFolder(state: PollingAssetFolderState, folderId: string): PollingAssetFolder | null {
+  const folder = state.folders.find((f) => f.id === folderId);
+  if (!folder) return null;
+  if (!folder.linkedFolderId) return folder;
+  const partner = state.folders.find((f) => f.id === folder.linkedFolderId);
+  if (!partner) return folder;
+  // Pick whichever folder has actually authored the shared content; the
+  // operator usually edits one side, the other inherits. Falling back to
+  // the partner first means a freshly-cloned folder shows the source's
+  // settings until the operator overrides.
+  return {
+    ...folder,
+    slateText: folder.slateText ?? partner.slateText,
+    slateImage: folder.slateImage ?? partner.slateImage,
+    slateSublineText: folder.slateSublineText ?? partner.slateSublineText,
+    bgColor: folder.bgColor ?? partner.bgColor,
+    bgImage: folder.bgImage ?? partner.bgImage,
+    questionText: folder.questionText ?? partner.questionText,
+    slug: folder.slug || partner.slug,
   };
 }
 
