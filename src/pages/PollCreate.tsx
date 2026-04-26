@@ -1066,7 +1066,14 @@ export default function PollCreate() {
       localStorage.setItem(ASSET_STATE_STORAGE_KEY, JSON.stringify(assetState));
     } catch { /* ignore */ }
   }, [assetState]);
-  const enabledAssets = activeFolder?.assetIds ?? SEEDED_ASSETS;
+  // Filter out inactive assets so downstream surfaces (scenes, voter
+  // previews, output snapshot) treat them as absent. Inactive assets
+  // remain in the folder list as a dimmed card so the operator can
+  // re-activate them without losing position/inspector state.
+  const inactiveAssetIds = activeFolder?.inactiveAssetIds ?? [];
+  const enabledAssets = (activeFolder?.assetIds ?? SEEDED_ASSETS).filter(
+    (id) => !inactiveAssetIds.includes(id),
+  );
   // Mirror the Program Preview to any open Output window in real time.
   // Whenever the operator's program-preview state (poll content, scene,
   // assets, transforms, colors, wordmark) changes, push it to the Output
