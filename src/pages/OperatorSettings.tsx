@@ -1,17 +1,37 @@
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { AUTOSAVE_MINUTE_OPTIONS, DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes, saveAutosaveMinutes } from '@/lib/operator-settings';
-import { Settings2 } from 'lucide-react';
+import { useColorSwatches, MAX_SWATCHES } from '@/lib/color-swatches';
+import { Palette, Plus, Settings2, Trash2 } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 
 export default function OperatorSettings() {
   const [autosaveMinutes, setAutosaveMinutes] = useState(loadAutosaveMinutes());
+  const { swatches, addSwatch, renameSwatch, updateSwatchValue, removeSwatch, clearSwatches } = useColorSwatches();
+  const [newName, setNewName] = useState('');
+  const [newValue, setNewValue] = useState('#3B82F6');
 
   const handleSelect = (minutes: number) => {
     setAutosaveMinutes(minutes);
     saveAutosaveMinutes(minutes);
     toast.success(`Autosave set to every ${minutes} minute${minutes === 1 ? '' : 's'}`);
+  };
+
+  const handleCreate = () => {
+    const value = newValue.trim();
+    if (!value) {
+      toast.error('Enter a color value (hex, rgb, or hsl).');
+      return;
+    }
+    if (swatches.length >= MAX_SWATCHES) {
+      toast.error(`Swatch limit reached (${MAX_SWATCHES}). Delete one to add another.`);
+      return;
+    }
+    addSwatch(value, newName.trim() || undefined);
+    setNewName('');
+    toast.success('Swatch saved');
   };
 
   return (
@@ -59,6 +79,150 @@ export default function OperatorSettings() {
               <p className="text-xs text-muted-foreground">
                 Default timing is {DEFAULT_AUTOSAVE_MINUTES} minutes for new operator sessions.
               </p>
+            </div>
+          </section>
+
+          {/* ── Swatch Manager ───────────────────────────────────────────
+              Operator's personal color palette. Available everywhere the
+              "Use Swatch" dropdown appears (QR fill, backgrounds, voter
+              buttons, answer bars, text). Stored locally on this device.
+          */}
+          <section className="rounded-lg border border-border bg-card/40 p-6">
+            <div className="flex flex-col gap-5">
+              <div className="flex items-start justify-between gap-3">
+                <div className="space-y-1">
+                  <div className="flex items-center gap-2 text-foreground">
+                    <Palette className="h-4 w-4" />
+                    <h2 className="text-sm font-medium">Color swatches</h2>
+                  </div>
+                  <p className="text-sm text-muted-foreground">
+                    Saved swatches are available in every color field's "Use Swatch" dropdown across the workspace.
+                  </p>
+                </div>
+                <span className="shrink-0 rounded-md border border-border bg-background/50 px-2 py-1 text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                  {swatches.length} / {MAX_SWATCHES}
+                </span>
+              </div>
+
+              {/* Create row */}
+              <div className="flex flex-wrap items-end gap-2 rounded-md border border-border/60 bg-background/40 p-3">
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Color</label>
+                  <div className="flex items-center gap-2">
+                    <input
+                      type="color"
+                      value={/^#[0-9a-fA-F]{6}$/.test(newValue) ? newValue : '#3B82F6'}
+                      onChange={(e) => setNewValue(e.target.value)}
+                      className="h-9 w-12 cursor-pointer rounded border border-border bg-transparent p-0"
+                      aria-label="Pick color"
+                    />
+                    <Input
+                      value={newValue}
+                      onChange={(e) => setNewValue(e.target.value)}
+                      placeholder="#3B82F6 or hsl(217 91% 60%)"
+                      className="h-9 w-56 font-mono text-xs"
+                    />
+                  </div>
+                </div>
+                <div className="flex flex-col gap-1">
+                  <label className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">Name</label>
+                  <Input
+                    value={newName}
+                    onChange={(e) => setNewName(e.target.value)}
+                    placeholder="Brand Blue"
+                    className="h-9 w-56 text-xs"
+                    onKeyDown={(e) => { if (e.key === 'Enter') handleCreate(); }}
+                  />
+                </div>
+                <Button type="button" size="sm" className="h-9 gap-1.5" onClick={handleCreate}>
+                  <Plus className="h-3.5 w-3.5" />
+                  Add swatch
+                </Button>
+              </div>
+
+              {/* List */}
+              {swatches.length === 0 ? (
+                <p className="text-sm text-muted-foreground">No swatches yet. Add one above or save a color from the workspace.</p>
+              ) : (
+                <ul className="space-y-2">
+                  {swatches.map((sw) => (
+                    <li
+                      key={sw.id}
+                      className="flex flex-wrap items-center gap-2 rounded-md border border-border/60 bg-background/40 p-2.5"
+                    >
+                      <span
+                        className="h-9 w-9 shrink-0 rounded-md border border-border/70"
+                        style={{ background: sw.value }}
+                        title={sw.value}
+                      />
+                      <Input
+                        value={sw.name}
+                        onChange={(e) => renameSwatch(sw.id, e.target.value)}
+                        placeholder="Untitled swatch"
+                        className="h-8 w-48 text-xs"
+                        aria-label="Swatch name"
+                      />
+                      <Input
+                        value={sw.value}
+                        onChange={(e) => updateSwatchValue(sw.id, e.target.value)}
+                        placeholder="#000000"
+                        className="h-8 w-48 font-mono text-xs"
+                        aria-label="Swatch value"
+                      />
+                      <input
+                        type="color"
+                        value={/^#[0-9a-fA-F]{6}$/.test(sw.value) ? sw.value : '#000000'}
+                        onChange={(e) => updateSwatchValue(sw.id, e.target.value)}
+                        className="h-8 w-10 cursor-pointer rounded border border-border bg-transparent p-0"
+                        aria-label="Pick color for swatch"
+                      />
+                      <div className="ml-auto flex items-center gap-1">
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="ghost"
+                          className="h-8 gap-1 px-2 text-[11px] text-muted-foreground"
+                          onClick={() => {
+                            navigator.clipboard?.writeText(sw.value).catch(() => {});
+                            toast.success(`Copied ${sw.value}`);
+                          }}
+                        >
+                          Copy
+                        </Button>
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="ghost"
+                          className="h-8 w-8 text-muted-foreground hover:text-destructive"
+                          onClick={() => removeSwatch(sw.id)}
+                          aria-label={`Delete ${sw.name || 'swatch'}`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </Button>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+
+              {swatches.length > 0 && (
+                <div className="flex justify-end">
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="sm"
+                    className="text-[11px] text-muted-foreground hover:text-destructive"
+                    onClick={() => {
+                      if (window.confirm('Delete all saved swatches? This cannot be undone.')) {
+                        clearSwatches();
+                        toast.success('All swatches cleared');
+                      }
+                    }}
+                  >
+                    Clear all swatches
+                  </Button>
+                </div>
+              )}
             </div>
           </section>
         </div>
