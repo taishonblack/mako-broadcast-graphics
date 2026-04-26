@@ -1236,7 +1236,7 @@ export default function PollCreate() {
       project_id: projectId,
       voting_state: 'closed',
       live_poll_snapshot: null,
-      output_state: liveState === 'live' ? 'live_output' : 'preview',
+      output_state: liveState === 'live' ? 'program_live' : 'preview',
     } as never);
     if (error) toast.error(`Viewer close sync failed: ${error.message}`);
   }, [liveState, projectId]);
@@ -1257,7 +1257,7 @@ export default function PollCreate() {
         project_id: projectId,
         voting_state: 'closed',
         live_poll_snapshot: null,
-        output_state: liveState === 'live' ? 'live_output' : 'preview',
+        output_state: liveState === 'live' ? 'program_live' : 'preview',
       } as never);
       if (error) toast.error(`Slate stop sync failed: ${error.message}`);
       return;
@@ -1322,7 +1322,7 @@ export default function PollCreate() {
       live_folder_id: folderState.activeFolderId ?? null,
       live_poll_snapshot: snapshot as never,
       voting_state: 'closed',
-      output_state: liveState === 'live' ? 'live_output' : 'preview',
+      output_state: liveState === 'live' ? 'program_live' : 'preview',
     } as never);
     if (error) toast.error(`Slate sync failed: ${error.message}`);
   }, [assetColors, assetState, assetTransforms, brandingPosition, currentWorkspacePoll, enabledAssets, folderState.activeFolderId, liveState, previewOptions, previewScene, projectId, projectPolls, qrSize, showBranding, slugForUrl]);
