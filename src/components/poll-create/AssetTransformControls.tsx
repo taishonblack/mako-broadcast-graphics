@@ -400,6 +400,50 @@ function ColorInput({
             <Plus className="h-3 w-3" />
           </Button>
         )}
+        {/* "Use Swatch" dropdown — pick any saved swatch and apply it to
+            this exact field (QR fill, background, voter button bg, etc.).
+            Keeps brand colors consistent across asset types without manually
+            re-typing the HSL/hex value. */}
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              variant="ghost"
+              size="sm"
+              className="h-7 gap-1 px-1.5 text-[10px] text-muted-foreground"
+              title="Apply a saved swatch to this field"
+              disabled={!swatches || swatches.length === 0}
+            >
+              <Palette className="h-3 w-3" />
+              <ChevronDown className="h-2.5 w-2.5 opacity-60" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end" className="w-48">
+            <DropdownMenuLabel className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+              Use Swatch
+            </DropdownMenuLabel>
+            <DropdownMenuSeparator />
+            {swatches && swatches.length > 0 ? (
+              swatches.map((c) => (
+                <DropdownMenuItem
+                  key={c}
+                  onSelect={() => onChange(c)}
+                  className="gap-2 text-[11px] font-mono"
+                >
+                  <span
+                    className="h-3.5 w-3.5 shrink-0 rounded border border-border/60"
+                    style={{ background: c }}
+                  />
+                  <span className="truncate">{c}</span>
+                </DropdownMenuItem>
+              ))
+            ) : (
+              <DropdownMenuItem disabled className="text-[10px] text-muted-foreground">
+                No swatches saved yet
+              </DropdownMenuItem>
+            )}
+          </DropdownMenuContent>
+        </DropdownMenu>
         <Button type="button" variant="ghost" size="sm" className="h-7 px-2 text-[10px] text-muted-foreground" onClick={onReset}>
           Reset
         </Button>
