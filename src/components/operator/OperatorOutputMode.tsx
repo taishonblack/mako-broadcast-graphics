@@ -639,6 +639,7 @@ export function OperatorOutputMode({
                     subheadline={currentPoll.subheadline}
                     slug={currentPoll.slug}
                     assetColors={assetColors}
+                    transforms={assetTransforms}
                   />
                 </div>
               </div>
@@ -668,6 +669,7 @@ export function OperatorOutputMode({
                 subheadline={currentPoll.subheadline}
                 slug={currentPoll.slug}
                 assetColors={assetColors}
+                transforms={assetTransforms}
               />
             </div>
           )}
