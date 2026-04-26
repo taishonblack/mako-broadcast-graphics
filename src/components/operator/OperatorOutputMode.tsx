@@ -1055,7 +1055,6 @@ export function OperatorOutputMode({
                 <Switch checked={testViewerView} onCheckedChange={setTestViewerView} />
               </div>
             </div>
-            </div>
 
             {/* Polling Slate */}
             <div className="space-y-2 rounded-md border border-border/60 p-2">
