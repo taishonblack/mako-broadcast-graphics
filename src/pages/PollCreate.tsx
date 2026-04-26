@@ -2145,6 +2145,9 @@ export default function PollCreate() {
                           };
                         });
                       }}
+                      onConvertAnswerTypeToBars={() => {
+                        if (folderState.activeFolderId) handleConvertAnswerTypeToBars(folderState.activeFolderId);
+                      }}
                     />
                   </Pane>
                 </ResizablePanel>
