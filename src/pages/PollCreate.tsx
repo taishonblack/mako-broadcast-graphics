@@ -51,6 +51,7 @@ import {
   DEFAULT_TALLY_INTERVAL_SECONDS,
   DEFAULT_TALLY_MODE,
   TallyMode,
+  duplicateFolder,
   findAssetFolder,
   getFolderById,
   loadProjectPollingAssetFolders,
