@@ -1235,6 +1235,7 @@ export default function PollCreate() {
     const { error } = await supabase.from('project_live_state').upsert({
       project_id: projectId,
       voting_state: 'closed',
+      live_poll_snapshot: null,
       output_state: liveState === 'live' ? 'live_output' : 'preview',
     } as never);
     if (error) toast.error(`Viewer close sync failed: ${error.message}`);
@@ -2230,7 +2231,7 @@ export default function PollCreate() {
               setVotingState('closed');
               void syncViewerVotingClosed();
             }}
-            onSlateActiveChange={(active) => { void syncViewerSlate(active); }}
+            onSlateActiveChange={(active, slate) => { void syncViewerSlate(active, slate); }}
             testVoteRunning={testVoteRunning}
             onStartTestVotes={handleStartTestVotes}
             onStopTestVotes={handleStopTestVotes}
