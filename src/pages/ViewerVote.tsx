@@ -45,7 +45,9 @@ interface ViewerSnapshot {
   poll?: {
     id?: string;
     projectId?: string;
+    project_id?: string;
     slug?: string;
+    viewer_slug?: string;
     question?: string;
     subheadline?: string;
     bgColor?: string;
@@ -54,9 +56,22 @@ interface ViewerSnapshot {
     showThankYou?: boolean;
     showFinalResults?: boolean;
     postVoteDelayMs?: number;
-    options?: Array<{ id: string; text?: string; shortLabel?: string; votes?: number; order?: number }>;
+    slateText?: string;
+    slate_text?: string;
+    slateSublineText?: string;
+    slate_subline_text?: string;
+    slateImage?: string | null;
+    slate_image?: string | null;
+    options?: Array<{ id: string; text?: string; label?: string; shortLabel?: string; short_label?: string; votes?: number; live_votes?: number; order?: number; sort_order?: number }>;
+    answers?: Array<{ id: string; text?: string; label?: string; shortLabel?: string; short_label?: string; votes?: number; live_votes?: number; order?: number; sort_order?: number }>;
   };
   assets?: ViewerSnapshotAssets;
+  slateText?: string;
+  slate_text?: string;
+  slateSublineText?: string;
+  slate_subline_text?: string;
+  slateImage?: string | null;
+  slate_image?: string | null;
   /** Operator pressed "Polling Slate" — viewer should render the slate
    *  text/image instead of the MakoVote branding or the "Closed" screen. */
   slateActive?: boolean;
@@ -70,21 +85,22 @@ type LiveStateRow = {
 };
 
 function answersFromSnapshot(snapshotPoll?: ViewerSnapshot['poll']): ViewerAnswer[] {
-  return (snapshotPoll?.options ?? []).map((option, index) => ({
+  return (snapshotPoll?.options ?? snapshotPoll?.answers ?? []).map((option, index) => ({
     id: option.id,
-    label: option.text || `Answer ${index + 1}`,
-    short_label: option.shortLabel || '',
-    sort_order: option.order ?? index,
-    live_votes: option.votes ?? 0,
+    label: option.text || option.label || `Answer ${index + 1}`,
+    short_label: option.shortLabel || option.short_label || '',
+    sort_order: option.order ?? option.sort_order ?? index,
+    live_votes: option.votes ?? option.live_votes ?? 0,
   }));
 }
 
-function pollFromLiveSnapshot(row: LiveStateRow, slug: string): ViewerPoll | null {
-  const snapshotPoll = row.live_poll_snapshot?.poll;
-  if (!snapshotPoll || snapshotPoll.slug !== slug) return null;
+function pollFromLiveSnapshot(row: LiveStateRow, routeSlug: string): ViewerPoll | null {
+  const liveSnapshot = row.live_poll_snapshot;
+  const snapshotPoll = liveSnapshot?.poll;
+  if (!snapshotPoll) return null;
   return {
-    id: row.active_poll_id || snapshotPoll.id || `snapshot-${slug}`,
-    project_id: row.project_id || snapshotPoll.projectId || null,
+    id: row.active_poll_id || snapshotPoll.id || `snapshot-${snapshotPoll.viewer_slug || snapshotPoll.slug || routeSlug || 'viewer'}`,
+    project_id: row.project_id || snapshotPoll.projectId || snapshotPoll.project_id || null,
     question: snapshotPoll.question || 'Cast your vote',
     subheadline: snapshotPoll.subheadline || '',
     bg_color: snapshotPoll.bgColor || 'hsl(220, 20%, 7%)',
@@ -92,11 +108,15 @@ function pollFromLiveSnapshot(row: LiveStateRow, slug: string): ViewerPoll | nul
     show_live_results: snapshotPoll.showLiveResults ?? true,
     show_thank_you: snapshotPoll.showThankYou ?? true,
     show_final_results: snapshotPoll.showFinalResults ?? true,
-    slate_text: 'Polling will open soon',
-    slate_subline_text: '',
-    slate_image: null,
+    slate_text: liveSnapshot.slateText || liveSnapshot.slate_text || snapshotPoll.slateText || snapshotPoll.slate_text || 'Polling will open soon',
+    slate_subline_text: liveSnapshot.slateSublineText || liveSnapshot.slate_subline_text || snapshotPoll.slateSublineText || snapshotPoll.slate_subline_text || '',
+    slate_image: liveSnapshot.slateImage || liveSnapshot.slate_image || snapshotPoll.slateImage || snapshotPoll.slate_image || null,
     post_vote_delay_ms: snapshotPoll.postVoteDelayMs ?? 1500,
   };
+}
+
+function snapshotSlug(snapshot?: ViewerSnapshot | null) {
+  return snapshot?.poll?.viewer_slug || snapshot?.poll?.slug || '';
 }
 
 export default function ViewerVote() {
