@@ -88,6 +88,9 @@ interface OperatorOutputModeProps {
   onOpenVoting: () => void;
   onCloseVoting: () => void;
   onRescanPolls?: () => void;
+  /** Notify parent when the operator toggles the Polling Slate on/off so it
+   *  can broadcast the slate state to public viewers (mobile/desktop). */
+  onSlateActiveChange?: (active: boolean) => void;
   onQrSizeChange: (size: number) => void;
   onQrPositionChange: (position: QRPosition) => void;
   onShowBrandingChange: (show: boolean) => void;
