@@ -240,6 +240,35 @@ export default function ViewerVote() {
     return () => { supabase.removeChannel(channel); };
   }, [projectId, pollId, slug]);
 
+  // Discovery subscription: when the viewer has not yet matched a project
+  // (e.g. the operator hasn't pressed Go Live / Polling Slate for the first
+  // time on this slug), listen broadly to project_live_state INSERT/UPDATE
+  // and re-run the initial loader to pick up the snapshot. This keeps the
+  // scoped subscriptions above noise-free during normal operation.
+  useEffect(() => {
+    if (projectId) return; // already scoped — skip discovery
+    const channel = supabase
+      .channel(`viewer-discover-${slug || 'default'}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'project_live_state' },
+        (payload) => {
+          const row = payload.new as LiveStateRow | undefined;
+          const snap = row?.live_poll_snapshot ?? null;
+          if (!snap) return;
+          // Only act if this row could be ours (slug matches or no slug yet).
+          const snapSlug = snapshotSlug(snap);
+          if (slug && snapSlug && snapSlug !== slug) return;
+          setSnapshot(snap);
+          setPoll(pollFromLiveSnapshot(row as LiveStateRow, slug));
+          setAnswers(answersFromSnapshot(snap.poll));
+          setStatus(row?.voting_state === 'open' ? 'open' : 'closed');
+        },
+      )
+      .subscribe();
+    return () => { supabase.removeChannel(channel); };
+  }, [projectId, slug]);
+
   const handleVote = (optionId: string) => {
     setSelectedOption(optionId);
     setPostVoteStage('received');
