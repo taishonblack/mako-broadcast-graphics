@@ -6,60 +6,8 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AssetColorConfig, AssetColorMap, AssetId, AssetTransformMap, DEFAULT_ASSET_COLORS, TransformField, TransformViewport } from '@/components/poll-create/polling-assets/types';
-import { useEffect, useState } from 'react';
-
-// LocalStorage-backed swatch palette. Operators save colors they're using
-// in the Colors pane and recall them with a single click — useful for keeping
-// brand HSLs handy across answer bars, QR, voter buttons, etc.
-const SWATCH_STORAGE_KEY = 'mako-color-swatches-v1';
-const MAX_SWATCHES = 24;
-
-function loadSwatches(): string[] {
-  try {
-    const raw = localStorage.getItem(SWATCH_STORAGE_KEY);
-    if (!raw) return [];
-    const parsed = JSON.parse(raw);
-    return Array.isArray(parsed) ? parsed.filter((v): v is string => typeof v === 'string') : [];
-  } catch {
-    return [];
-  }
-}
-
-function saveSwatches(swatches: string[]) {
-  try {
-    localStorage.setItem(SWATCH_STORAGE_KEY, JSON.stringify(swatches));
-  } catch { /* ignore */ }
-}
-
-function useColorSwatches() {
-  const [swatches, setSwatches] = useState<string[]>(() => loadSwatches());
-  // Sync across multiple inspector instances / tabs.
-  useEffect(() => {
-    const handler = (e: StorageEvent) => {
-      if (e.key === SWATCH_STORAGE_KEY) setSwatches(loadSwatches());
-    };
-    window.addEventListener('storage', handler);
-    return () => window.removeEventListener('storage', handler);
-  }, []);
-  const addSwatch = (color: string) => {
-    if (!color) return;
-    setSwatches((prev) => {
-      const next = [color, ...prev.filter((c) => c.toLowerCase() !== color.toLowerCase())].slice(0, MAX_SWATCHES);
-      saveSwatches(next);
-      window.dispatchEvent(new StorageEvent('storage', { key: SWATCH_STORAGE_KEY }));
-      return next;
-    });
-  };
-  const removeSwatch = (color: string) => {
-    setSwatches((prev) => {
-      const next = prev.filter((c) => c !== color);
-      saveSwatches(next);
-      window.dispatchEvent(new StorageEvent('storage', { key: SWATCH_STORAGE_KEY }));
-      return next;
-    });
-  };
-  return { swatches, addSwatch, removeSwatch };
-}
+import { useState } from 'react';
+import { ColorSwatch, MAX_SWATCHES, useColorSwatches } from '@/lib/color-swatches';
 
 interface AssetTransformControlsProps {
   assetId: AssetId | null;
