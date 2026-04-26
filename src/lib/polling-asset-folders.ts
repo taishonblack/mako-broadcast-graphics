@@ -55,6 +55,47 @@ export function createFolderName(index: number) {
   return `Folder ${index}`;
 }
 
+/**
+ * Deep-clone a folder for the "Duplicate Folder" action. The copy is inserted
+ * directly below the source folder (same Block letter), gets a new id, and is
+ * named "<source> (copy)" / "<source> (copy 2)" etc. so the operator can tell
+ * the duplicate apart at a glance. Asset selection, tally pacing, slug, and
+ * background are all carried over verbatim — the operator typically duplicates
+ * because they want a near-identical folder with one tweak (e.g. flipping the
+ * answer asset to bars-only after Go Live closes voting).
+ */
+export function duplicateFolder(state: PollingAssetFolderState, folderId: string): PollingAssetFolderState {
+  const sourceIndex = state.folders.findIndex((folder) => folder.id === folderId);
+  if (sourceIndex < 0) return state;
+  const source = state.folders[sourceIndex];
+
+  // Find a unique "(copy)" / "(copy 2)" suffix so multiple duplicates don't
+  // collide.
+  const existingNames = new Set(state.folders.map((f) => f.name));
+  let copyName = `${source.name} (copy)`;
+  let counter = 2;
+  while (existingNames.has(copyName)) {
+    copyName = `${source.name} (copy ${counter})`;
+    counter += 1;
+  }
+
+  const clone: PollingAssetFolder = {
+    ...source,
+    id: createFolderId(),
+    name: copyName,
+    collapsed: false,
+    assetIds: [...source.assetIds],
+  };
+
+  const nextFolders = [...state.folders];
+  nextFolders.splice(sourceIndex + 1, 0, clone);
+
+  return {
+    folders: nextFolders,
+    activeFolderId: clone.id,
+  };
+}
+
 export function createDefaultFolderState(initialQuestionText = '', initialBgColor = '#1a1a2e'): PollingAssetFolderState {
   const id = createFolderId();
   return {
