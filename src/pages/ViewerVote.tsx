@@ -84,6 +84,7 @@ type LiveStateRow = {
   voting_state?: string;
   active_poll_id?: string | null;
   live_poll_snapshot?: ViewerSnapshot | null;
+  updated_at?: string;
 };
 
 function answersFromSnapshot(snapshotPoll?: ViewerSnapshot['poll']): ViewerAnswer[] {
@@ -122,12 +123,13 @@ function snapshotSlug(snapshot?: ViewerSnapshot | null) {
 }
 
 function selectLiveStateRow(rows: LiveStateRow[], currentProjectId: string | null, routeSlug: string): LiveStateRow | null {
+  const newestRows = [...rows].sort((a, b) => Date.parse(b.updated_at ?? '') - Date.parse(a.updated_at ?? ''));
   if (currentProjectId) {
-    const currentProjectRow = rows.find((row) => row.project_id === currentProjectId);
+    const currentProjectRow = newestRows.find((row) => row.project_id === currentProjectId);
     if (currentProjectRow) return currentProjectRow;
   }
 
-  const rowsWithSnapshot = rows.filter((row) => Boolean(row.live_poll_snapshot));
+  const rowsWithSnapshot = newestRows.filter((row) => Boolean(row.live_poll_snapshot));
   const normalizedRouteSlug = routeSlug.trim().toLowerCase();
   if (normalizedRouteSlug) {
     const slugMatch = rowsWithSnapshot.find((row) => {
