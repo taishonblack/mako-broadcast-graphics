@@ -688,6 +688,7 @@ export type Database = {
           show_final_results: boolean
           show_live_results: boolean
           show_thank_you: boolean
+          slate_image: string
           slate_subline_text: string
           slate_text: string
           subheadline: string
