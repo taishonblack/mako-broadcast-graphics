@@ -17,6 +17,7 @@ import {
   DEFAULT_SLATE_SUBLINE_TEXT,
 } from '@/components/broadcast/preview/ViewerSlatePreview';
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from '@/components/ui/collapsible';
+import { MediaPicker } from '@/components/poll-create/MediaPicker';
 import {
   AlertDialog,
   AlertDialogAction,
