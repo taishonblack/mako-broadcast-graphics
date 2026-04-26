@@ -1988,6 +1988,7 @@ export default function PollCreate() {
                   onSetFolderBlock={handleSetFolderBlock}
                   onDeleteFolder={(folderId) => setDeleteFolderTargetId(folderId)}
                   onToggleFolderCollapse={handleToggleFolderCollapse}
+                  onDuplicateFolder={handleDuplicateFolder}
                   blockLetter={blockLetter}
                   onBlockLetterChange={handleBlockLetterChange}
                 question={question} setQuestion={handleFolderQuestionChange}
