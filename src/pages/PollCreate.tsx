@@ -2086,6 +2086,8 @@ export default function PollCreate() {
                   onDeleteFolder={(folderId) => setDeleteFolderTargetId(folderId)}
                   onToggleFolderCollapse={handleToggleFolderCollapse}
                   onDuplicateFolder={handleDuplicateFolder}
+                  onLinkFolders={handleLinkFolders}
+                  onUnlinkFolder={handleUnlinkFolder}
                   onToggleAssetInactive={handleToggleAssetInactive}
                   blockLetter={blockLetter}
                   onBlockLetterChange={handleBlockLetterChange}
