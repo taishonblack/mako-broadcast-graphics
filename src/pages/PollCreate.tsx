@@ -1683,6 +1683,14 @@ export default function PollCreate() {
     toast.success('Converted to Answer Bars — QR muted');
   };
 
+  /** Reverse: swap an `answers` asset back to `answerType` and re-activate
+   *  any muted QR so the folder collects votes again. */
+  const handleConvertAnswerBarsToAnswerType = (folderId: string) => {
+    updateFolderState((current) => convertAnswerBarsToAnswerType(current, folderId));
+    setSelectedAssetId('answerType');
+    toast.success('Converted to Answer Type — QR re-activated');
+  };
+
   const handleAddAnswer = () => {
     if (answerType === 'yes-no' || answers.length >= 4) return;
     // Add the new bar and re-equalize so all bars share 100% evenly.
