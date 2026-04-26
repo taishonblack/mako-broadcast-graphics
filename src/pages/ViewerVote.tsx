@@ -84,6 +84,7 @@ type LiveStateRow = {
   voting_state?: string;
   active_poll_id?: string | null;
   live_poll_snapshot?: ViewerSnapshot | null;
+  updated_at?: string;
 };
 
 function answersFromSnapshot(snapshotPoll?: ViewerSnapshot['poll']): ViewerAnswer[] {
@@ -121,6 +122,28 @@ function snapshotSlug(snapshot?: ViewerSnapshot | null) {
   return snapshot?.poll?.viewer_slug || snapshot?.poll?.slug || '';
 }
 
+function selectLiveStateRow(rows: LiveStateRow[], currentProjectId: string | null, routeSlug: string): LiveStateRow | null {
+  const newestRows = [...rows].sort((a, b) => Date.parse(b.updated_at ?? '') - Date.parse(a.updated_at ?? ''));
+  if (currentProjectId) {
+    const currentProjectRow = newestRows.find((row) => row.project_id === currentProjectId);
+    if (currentProjectRow) return currentProjectRow;
+  }
+
+  const rowsWithSnapshot = newestRows.filter((row) => Boolean(row.live_poll_snapshot));
+  const normalizedRouteSlug = routeSlug.trim().toLowerCase();
+  if (normalizedRouteSlug) {
+    const slugMatch = rowsWithSnapshot.find((row) => {
+      const poll = row.live_poll_snapshot?.poll;
+      return [poll?.viewer_slug, poll?.slug]
+        .filter(Boolean)
+        .some((value) => String(value).trim().toLowerCase() === normalizedRouteSlug);
+    });
+    if (slugMatch) return slugMatch;
+  }
+
+  return rowsWithSnapshot[0] ?? null;
+}
+
 export default function ViewerVote() {
   const { slug = '' } = useParams<{ slug: string }>();
   const [status, setStatus] = useState<ViewerStatus>('loading');
@@ -156,6 +179,12 @@ export default function ViewerVote() {
     setStatus(voting_state === 'open' ? 'open' : 'closed');
   }, [slug]);
 
+  const projectId = poll?.project_id ?? null;
+  const pollId = poll?.id ?? null;
+  const applyFetchedLiveRows = useCallback((rows: LiveStateRow[]) => {
+    applyLiveStateRow(selectLiveStateRow(rows, projectId, slug));
+  }, [applyLiveStateRow, projectId, slug]);
+
   // Manual refetch — voters on flaky networks can tap this to force a
   // re-pull of project_live_state and immediately rerun the slate/open
   // decision without waiting for the 2s polling tick or realtime event.
@@ -164,51 +193,45 @@ export default function ViewerVote() {
     try {
       const { data: liveRows } = await supabase
         .from('project_live_state')
-        .select('project_id, voting_state, active_poll_id, live_poll_snapshot')
+        .select('project_id, voting_state, active_poll_id, live_poll_snapshot, updated_at')
         .in('voting_state', ['open', 'closed']);
-      const rows = (liveRows ?? []) as LiveStateRow[];
-      const liveMatch = rows.find((row) => Boolean(row.live_poll_snapshot));
-      applyLiveStateRow(liveMatch ?? null);
+      applyFetchedLiveRows((liveRows ?? []) as LiveStateRow[]);
     } finally {
       setRefreshing(false);
     }
-  }, [applyLiveStateRow]);
+  }, [applyFetchedLiveRows]);
 
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
       const { data: liveRows } = await supabase
         .from('project_live_state')
-        .select('project_id, voting_state, active_poll_id, live_poll_snapshot')
+        .select('project_id, voting_state, active_poll_id, live_poll_snapshot, updated_at')
         .in('voting_state', ['open', 'closed']);
       if (cancelled) return;
 
-      const rows = (liveRows ?? []) as LiveStateRow[];
-      const liveMatch = rows.find((row) => Boolean(row.live_poll_snapshot));
-      applyLiveStateRow(liveMatch ?? null);
+      applyFetchedLiveRows((liveRows ?? []) as LiveStateRow[]);
     };
     load();
     return () => { cancelled = true; };
-  }, [applyLiveStateRow]);
+  }, [applyFetchedLiveRows]);
 
   // Safari/mobile realtime can drop silently. Poll project_live_state every
-  // 2s as a deterministic fallback so the viewer always converges to the
+  // 1.5s as a deterministic fallback so the viewer always converges to the
   // current snapshot regardless of websocket health.
   useEffect(() => {
     let cancelled = false;
     const tick = async () => {
       const { data: liveRows } = await supabase
         .from('project_live_state')
-        .select('project_id, voting_state, active_poll_id, live_poll_snapshot')
+        .select('project_id, voting_state, active_poll_id, live_poll_snapshot, updated_at')
         .in('voting_state', ['open', 'closed']);
       if (cancelled) return;
-      const rows = (liveRows ?? []) as LiveStateRow[];
-      const liveMatch = rows.find((row) => Boolean(row.live_poll_snapshot));
-      applyLiveStateRow(liveMatch ?? null);
+      applyFetchedLiveRows((liveRows ?? []) as LiveStateRow[]);
     };
-    const id = window.setInterval(tick, 2000);
+    const id = window.setInterval(tick, 1500);
     return () => { cancelled = true; window.clearInterval(id); };
-  }, [applyLiveStateRow]);
+  }, [applyFetchedLiveRows]);
 
   // Realtime: stream live vote totals + voting state changes so the viewer
   // reflects open/close transitions and tally updates without refresh.
@@ -218,8 +241,6 @@ export default function ViewerVote() {
   //  - poll_answers filtered by the current poll_id
   // This avoids cross-poll noise when multiple viewer tabs (different slugs
   // / different projects) are open in the same browser session.
-  const projectId = poll?.project_id ?? null;
-  const pollId = poll?.id ?? null;
   useEffect(() => {
     if (!projectId && !pollId) return;
 
@@ -315,16 +336,13 @@ export default function ViewerVote() {
   const hasSnapshot = Boolean(snapshot);
   const isSlate = Boolean(snapshot?.slateActive);
   const isOpen = status === 'open';
-  const isMirror = snapshot?.viewerMode === 'mirror';
-  const decision = isSlate
-    ? 'PollingSlate'
-    : hasSnapshot && isOpen && !isMirror
-      ? 'AnswerButtons'
-      : hasSnapshot && isOpen && isMirror
-        ? 'Mirror'
-        : 'MakoVoteBranding';
+  const decision = hasSnapshot && isOpen
+    ? 'answers'
+    : hasSnapshot && isSlate
+      ? 'slate'
+      : 'branding';
 
-  console.log('Viewer render decision', {
+  console.log('Viewer decision', {
     votingState: status,
     hasSnapshot,
     slateActive: snapshot?.slateActive,
@@ -335,7 +353,7 @@ export default function ViewerVote() {
   });
 
   // ---- Polling Slate broadcast ----
-  if (decision === 'PollingSlate') {
+  if (decision === 'slate') {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
         <RefreshButton onClick={refreshNow} busy={refreshing} />
@@ -359,7 +377,7 @@ export default function ViewerVote() {
   }
 
   // ---- No snapshot: MakoVote branding ----
-  if (decision === 'MakoVoteBranding' || decision === 'Mirror') {
+  if (decision === 'branding') {
     return (
       <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
         <RefreshButton onClick={refreshNow} busy={refreshing} />
