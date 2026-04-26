@@ -135,65 +135,37 @@ export default function ViewerVote() {
   useEffect(() => {
     let cancelled = false;
     const load = async () => {
-      if (!slug) { setStatus('not_found'); return; }
-      // Public viewers cannot SELECT directly from `polls` anymore — that
-      // table is locked down to its owner. Instead we call a SECURITY
-      // DEFINER RPC that returns ONLY the safe viewer-facing columns for
-      // the requested slug. Prevents enumeration of other operators' polls.
-      const { data: rpcRows } = await supabase
-        .rpc('get_viewer_poll_by_slug', { _slug: slug });
-      const pollRow = Array.isArray(rpcRows) ? rpcRows[0] : null;
+      const { data: liveRows } = await supabase
+        .from('project_live_state')
+        .select('project_id, voting_state, active_poll_id, live_poll_snapshot')
+        .in('voting_state', ['open', 'closed']);
       if (cancelled) return;
-      if (!pollRow) {
-        const { data: liveRows } = await supabase
-          .from('project_live_state')
-          .select('project_id, voting_state, active_poll_id, live_poll_snapshot')
-          .in('voting_state', ['open', 'closed']);
-        if (cancelled) return;
-        const liveMatch = ((liveRows ?? []) as LiveStateRow[]).find((row) => row.live_poll_snapshot?.poll?.slug === slug);
-        const snapshotPoll = liveMatch?.live_poll_snapshot?.poll;
-        const fallbackPoll = liveMatch ? pollFromLiveSnapshot(liveMatch, slug) : null;
-        if (!liveMatch || !fallbackPoll) { setStatus('not_found'); return; }
-        setPoll(fallbackPoll);
-        setSnapshot(liveMatch.live_poll_snapshot ?? null);
-        setAnswers(answersFromSnapshot(snapshotPoll));
-        setStatus(liveMatch.voting_state === 'closed' ? 'closed' : 'open');
+
+      const rows = (liveRows ?? []) as LiveStateRow[];
+      const exactMatch = rows.find((row) => snapshotSlug(row.live_poll_snapshot) === slug);
+      const liveMatch = exactMatch ?? rows.find((row) => Boolean(row.live_poll_snapshot));
+      const voting_state = liveMatch?.voting_state ?? 'not_open';
+      const live_poll_snapshot = liveMatch?.live_poll_snapshot ?? null;
+      console.log('Viewer live state', {
+        voting_state,
+        hasSnapshot: Boolean(live_poll_snapshot),
+        slateActive: live_poll_snapshot?.slateActive,
+        snapshotSlug: live_poll_snapshot?.poll?.viewer_slug || live_poll_snapshot?.poll?.slug,
+        routeSlug: slug,
+      });
+
+      if (!liveMatch || !live_poll_snapshot) {
+        setSnapshot(null);
+        setPoll(null);
+        setAnswers([]);
+        setStatus('not_open');
         return;
       }
-      setPoll(pollRow as ViewerPoll);
 
-      const [{ data: answerRows }, liveStateRes] = await Promise.all([
-        supabase
-          .from('poll_answers')
-          .select('id, label, short_label, sort_order, live_votes')
-          .eq('poll_id', pollRow.id)
-          .order('sort_order', { ascending: true }),
-        pollRow.project_id
-          ? supabase
-              .from('project_live_state')
-              .select('voting_state, active_poll_id, live_poll_snapshot')
-              .eq('project_id', pollRow.project_id)
-              .maybeSingle()
-          : Promise.resolve({ data: null } as { data: null }),
-      ]);
-      if (cancelled) return;
-
-      setAnswers((answerRows ?? []) as ViewerAnswer[]);
-
-      const live = (liveStateRes as { data: { voting_state?: string; active_poll_id?: string | null; live_poll_snapshot?: ViewerSnapshot | null } | null }).data;
-      const votingState = live?.voting_state ?? 'not_open';
-      const liveSnapshot = live?.live_poll_snapshot;
-      const snapshotPoll = liveSnapshot?.poll;
-      const snapshotMatchesSlug = snapshotPoll?.slug === slug;
-      const isThisPollLive = !live || live.active_poll_id === pollRow.id || snapshotMatchesSlug;
-      if (live?.live_poll_snapshot) setSnapshot(live.live_poll_snapshot);
-      if ((answerRows ?? []).length === 0 && snapshotPoll?.options?.length) {
-        setAnswers(answersFromSnapshot(snapshotPoll));
-      }
-
-      if (votingState === 'open' && isThisPollLive) setStatus('open');
-      else if (votingState === 'closed' && isThisPollLive) setStatus('closed');
-      else setStatus('not_open');
+      setSnapshot(live_poll_snapshot);
+      setPoll(pollFromLiveSnapshot(liveMatch, slug));
+      setAnswers(answersFromSnapshot(live_poll_snapshot.poll));
+      setStatus(voting_state === 'open' ? 'open' : 'closed');
     };
     load();
     return () => { cancelled = true; };
