@@ -621,6 +621,42 @@ export type Database = {
           },
         ]
       }
+      public_viewer_state: {
+        Row: {
+          id: string
+          poll_snapshot: Json | null
+          project_id: string
+          slate_text: string
+          state: string
+          updated_at: string
+          updated_by: string | null
+          version: number
+          viewer_slug: string
+        }
+        Insert: {
+          id?: string
+          poll_snapshot?: Json | null
+          project_id: string
+          slate_text?: string
+          state?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+          viewer_slug: string
+        }
+        Update: {
+          id?: string
+          poll_snapshot?: Json | null
+          project_id?: string
+          slate_text?: string
+          state?: string
+          updated_at?: string
+          updated_by?: string | null
+          version?: number
+          viewer_slug?: string
+        }
+        Relationships: []
+      }
       workspace_preferences: {
         Row: {
           center_pane_height: number | null

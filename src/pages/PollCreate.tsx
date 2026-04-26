@@ -38,6 +38,7 @@ import { TemplateName, Poll, PollOption, QRPosition, VotingState, LiveState } fr
 import { SceneType } from '@/lib/scenes';
 import { broadcastOutputHeartbeat, broadcastOutputLock, broadcastOutputState } from '@/lib/output-state';
 import { supabase } from '@/integrations/supabase/client';
+import { writePublicViewerState, type PublicViewerPollSnapshot } from '@/lib/public-viewer-state';
 import { EQUAL_BASE, equalShareAnswers } from '@/lib/answer-percents';
 import { FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Monitor, Radio, Undo2, Redo2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
@@ -806,6 +807,30 @@ export default function PollCreate() {
       if (error) {
         toast.error(`Go Live viewer sync failed: ${error.message}`);
       }
+      // Write to public_viewer_state — the audience-only source of truth.
+      const audienceSnapshot: PublicViewerPollSnapshot = {
+        id: isUuid(livePoll.id) ? livePoll.id : undefined,
+        question: snapshotPoll.question,
+        subheadline: snapshotPoll.subheadline,
+        bgColor: snapshotPoll.bgColor,
+        bgImage: snapshotPoll.bgImage,
+        answers: (snapshotPoll.options ?? []).map((o, i) => ({
+          id: o.id,
+          label: o.text || `Answer ${i + 1}`,
+          shortLabel: o.shortLabel,
+          sortOrder: i,
+        })),
+        showLiveResults: snapshotPoll.showLiveResults,
+        showThankYou: snapshotPoll.showThankYou,
+        assetColors,
+      };
+      const audience = await writePublicViewerState({
+        projectId,
+        viewerSlug: livePoll.slug,
+        state: 'voting',
+        pollSnapshot: audienceSnapshot,
+      });
+      if (audience.error) toast.error(`Viewer Go Live sync failed: ${audience.error}`);
     }
     // Open Output fullscreen window if not already open, and open voting so
     // the slate/voting flow begins simultaneously with the on-air push.
@@ -828,6 +853,13 @@ export default function PollCreate() {
         voting_state: 'closed',
         output_state: 'preview',
       } as never);
+      // Audience returns to MakoVote branding.
+      void writePublicViewerState({
+        projectId,
+        viewerSlug: currentWorkspacePoll.slug,
+        state: 'branding',
+        pollSnapshot: null,
+      });
     }
   };
 
@@ -1260,6 +1292,12 @@ export default function PollCreate() {
         output_state: liveState === 'live' ? 'program_live' : 'preview',
       } as never);
       if (error) toast.error(`Slate stop sync failed: ${error.message}`);
+      void writePublicViewerState({
+        projectId,
+        viewerSlug: currentWorkspacePoll.slug,
+        state: 'branding',
+        pollSnapshot: null,
+      });
       return;
     }
     const savedMatch = !isUuid(currentWorkspacePoll.id)
@@ -1325,6 +1363,29 @@ export default function PollCreate() {
       output_state: liveState === 'live' ? 'program_live' : 'preview',
     } as never);
     if (error) toast.error(`Slate sync failed: ${error.message}`);
+    // Audience-facing slate write.
+    const audienceSnapshot: PublicViewerPollSnapshot = {
+      id: isUuid(livePoll.id) ? livePoll.id : undefined,
+      question: snapshotPoll.question,
+      subheadline: snapshotPoll.subheadline,
+      bgColor: snapshotPoll.bgColor,
+      bgImage: snapshotPoll.bgImage,
+      answers: (snapshotPoll.options ?? []).map((o, i) => ({
+        id: o.id,
+        label: o.text || `Answer ${i + 1}`,
+        shortLabel: o.shortLabel,
+        sortOrder: i,
+      })),
+      assetColors,
+    };
+    const audience = await writePublicViewerState({
+      projectId,
+      viewerSlug: livePoll.slug,
+      state: 'slate',
+      pollSnapshot: audienceSnapshot,
+      slateText: slateTextValue,
+    });
+    if (audience.error) toast.error(`Viewer slate sync failed: ${audience.error}`);
   }, [assetColors, assetState, assetTransforms, brandingPosition, currentWorkspacePoll, enabledAssets, folderState.activeFolderId, liveState, previewOptions, previewScene, projectId, projectPolls, qrSize, showBranding, slugForUrl]);
 
   // Mirror the Program Preview to any open Output window in real time.
