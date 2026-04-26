@@ -300,11 +300,11 @@ export function OperatorOutputMode({
     }, 500);
     return () => window.clearTimeout(handle);
   }, [slateHydrated, currentPoll.id, slateText, slateImage, slateTextStyle, slateSublineText, slateSublineStyle]);
-  // "Test viewer view" — when ON the Program monitor renders the viewer
-  // (mobile or desktop) instead of the broadcast composition so the operator
-  // can sanity-check what voters will see before going on-air.
+  // "Test viewer view" — when ON, the Mobile / Desktop preview forces the
+  // slate render (instead of the live answer-type voting UI) so the operator
+  // can QA the slate copy/image without actually starting the slate on-air.
+  // Has no effect in Program mode.
   const [testViewerView, setTestViewerView] = useState(false);
-  const [testViewerMode, setTestViewerMode] = useState<'mobile' | 'desktop'>('mobile');
 
   // Tracks whether the operator has opened the fullscreen Output window.
   // Drives the green "ACTIVE" state on the Open Output quick action so
@@ -611,67 +611,28 @@ export function OperatorOutputMode({
           </div>
 
           {previewMode === 'program' ? (
-            testViewerView ? (
-              <div className="space-y-2">
-                <div className="flex items-center justify-end gap-1 px-1">
-                  {(['mobile', 'desktop'] as const).map((m) => (
-                    <button
-                      key={m}
-                      type="button"
-                      onClick={() => setTestViewerMode(m)}
-                      className={`flex items-center gap-1 px-2 py-1 rounded-md text-[10px] font-medium border transition-all ${
-                        testViewerMode === m
-                          ? 'border-primary/40 bg-primary/15 text-primary'
-                          : 'border-border bg-transparent text-muted-foreground hover:bg-accent/30'
-                      }`}
-                    >
-                      {m === 'mobile' ? <Smartphone className="h-3 w-3" /> : <Globe className="h-3 w-3" />}
-                      {m === 'mobile' ? 'Mobile' : 'Desktop'}
-                    </button>
-                  ))}
-                </div>
-                <div className="flex justify-center">
-                  <ViewerSlatePreview
-                    mode={testViewerMode}
-                    bgImage={currentPoll.bgImage}
-                    bgColor={currentPoll.bgColor}
-                    slateActive={slateActive}
-                    slateText={slateText}
-                    slateImage={slateImage}
-                    textStyle={slateTextStyle}
-                    sublineText={slateSublineText}
-                    sublineStyle={slateSublineStyle}
-                    votingOpen={votingState === 'open'}
-                    question={currentPoll.question}
-                    options={currentPoll.options}
-                    enabledAssetIds={enabledAssetIds}
-                    subheadline={currentPoll.subheadline}
-                    slug={currentPoll.slug}
-                    assetColors={assetColorSet?.[testViewerMode] ?? assetColors}
-                    transforms={assetTransformSet?.[testViewerMode] ?? assetTransforms}
-                  />
-                </div>
-              </div>
-            ) : (
-              <MonitorContainer variant="operator">
-                <PreviewWithOverlays showLabel label="1920×1080">
-                  {previewNode}
-                </PreviewWithOverlays>
-              </MonitorContainer>
-            )
+            <MonitorContainer variant="operator">
+              <PreviewWithOverlays showLabel label="1920×1080">
+                {previewNode}
+              </PreviewWithOverlays>
+            </MonitorContainer>
           ) : (
             <div className="flex justify-center">
               <ViewerSlatePreview
                 mode={previewMode}
                 bgImage={currentPoll.bgImage}
                 bgColor={currentPoll.bgColor}
-                slateActive={slateActive}
+                /* Test Viewer View forces the slate render so the operator
+                 * can preview slate copy/image without actually starting
+                 * the slate on-air. When OFF, behaviour follows the real
+                 * slate/voting state (answer types when voting is open). */
+                slateActive={slateActive || testViewerView}
                 slateText={slateText}
                 slateImage={slateImage}
                 textStyle={slateTextStyle}
                 sublineText={slateSublineText}
                 sublineStyle={slateSublineStyle}
-                votingOpen={votingState === 'open'}
+                votingOpen={votingState === 'open' && !testViewerView}
                 question={currentPoll.question}
                 options={currentPoll.options}
                 enabledAssetIds={enabledAssetIds}
@@ -1032,15 +993,18 @@ export function OperatorOutputMode({
               )}
             </div>
 
-            {/* Test viewer view — swap the Program monitor between the
-                broadcast composition and a viewer-eye render so the operator
-                can QA exactly what mobile / desktop voters will see before
-                going on-air. */}
+            {/* Test viewer view — when ON, the Mobile / Desktop preview
+                forces the slate render instead of the live answer-type
+                voting UI, so the operator can QA the slate copy/image
+                without actually starting the slate on-air. No effect in
+                Program mode. */}
             <div className="flex items-center justify-between rounded-md border border-border/60 bg-background/40 px-2 py-1.5">
               <div className="min-w-0">
                 <p className="text-[10px] font-mono uppercase text-muted-foreground">Test viewer view</p>
                 <p className="text-[10px] text-muted-foreground/70 leading-snug">
-                  {testViewerView ? `Program monitor → ${testViewerMode}` : 'Program monitor shows broadcast'}
+                  {testViewerView
+                    ? 'Mobile / Desktop preview shows the slate'
+                    : 'Mobile / Desktop preview shows the live voting UI'}
                 </p>
               </div>
               <Switch checked={testViewerView} onCheckedChange={setTestViewerView} />
