@@ -1,87 +1,57 @@
+# Plan — Slate flow, viewer states, and folder linking
+_Drafted 2026-04-26 — awaiting approval before any code lands._
 
+## Bug being addressed
+On Go Live the viewer phone (QR scan) stays on the MakoVote splash instead of switching to the live multiple-choice question. Root cause is suspected to be the viewer page reading from `project_live_state.voting_state` but the Go Live action not transitioning that row to `'open'` (or not including the new active poll's `viewer_slug`). Will be confirmed in Milestone 1.
 
-# MakoVote — Broadcast Live Polling Graphics System
+---
 
-## Vision
-A dual-surface live audience graphics system for broadcast sports/TV — not a generic poll app. Three surfaces: Operator Control, Program Display (1080p on-air output), and Viewer Voting.
+## Milestone 1 — Fix Go Live → viewer transition (bug only)
+**Goal:** Pressing Go Live flips the scanned phone from MakoVote slate → the live question.
 
-## Design Language
-- **Dark broadcast control-room aesthetic** — charcoal, graphite, deep navy, steel gray, icy whites
-- **Inter** for UI text, **JetBrains Mono** for technical labels/timers/counts
-- **Orange accent** from the Mako brand identity (shark fin logo embedded as asset)
-- Rounded-xl cards, clean borders, soft shadows, restrained motion
-- Feels like Ross/Viz/EVS companion software
+- Trace operator Go Live path: confirm it sets `project_live_state.voting_state = 'open'` and `active_poll_id`.
+- Confirm `ViewerVote.tsx` subscribes to `project_live_state` realtime and re-routes when state flips.
+- Verify RLS — `poll_is_publicly_live(active_poll_id)` returns true and `poll_answers` are readable to `anon` once live.
+- Add a viewer-side log trail (dev only) to confirm transition.
+- **No new features in this milestone.**
 
-## Login Screen
-- Split layout: illustration (shark fin + bars) on left, glass-panel login form on right
-- "Mako Systems" top-left in JetBrains Mono, "MakoVote v0.1" bottom-left
-- Subtle vertical divider, gradient overlay on illustration side
-- Orange button + focus states, polished inputs
+## Milestone 2 — Viewer state machine (3 screens)
+Per-poll content already lives on `polls` (slate_text, slate_subline_text, slate_image, post_vote_delay_ms, show_thank_you, show_final_results). No schema change.
 
-## Surface 1: Operator Control Display
+- **Pre-vote (slate):** voting_state = `not_open` → render `slate_image` + `slate_text` + `slate_subline_text`. Falls back to MakoVote brand if blank.
+- **Voting:** voting_state = `open` → render question + answer buttons.
+- **Post-vote (thank you):** local "I voted" flag → render "Thank you for voting" (operator-overridable copy in a later pass; v1 hardcoded string).
+- **Closed:** voting_state = `closed` + `show_final_results` → final tally; otherwise show thank you.
 
-### Screen 1 — Dashboard (`/dashboard`)
-- **Top bar**: MakoVote logo, poll status chip, program display status chip, 1920×1080 chip, Open Output Window, Go Live, Close Poll
-- **3-column grid**:
-  - Left: Active Poll panel (question, answers with live counts/bars/percentages, votes/sec, timer)
-  - Center: 16:9 broadcast preview frame with optional safe-area guide overlays
-  - Right: Quick Actions (New/Load/Duplicate Poll, Open/Close Voting, Reset, Show/Hide QR, template/theme dropdowns)
-- **Bottom**: Recent Polls table (name, date, template, votes, state, edit/reopen buttons)
+## Milestone 3 — Slate editor in operator UI
+- New "Slate" section in poll Build mode: text + subline inputs (already wired to `polls.slate_text`/`slate_subline_text`), image picker (gallery + upload, reusing `MediaPicker` and the `images` bucket).
+- Save updates `polls.slate_image` (already in schema).
+- Live-preview slate inside Draft Preview Monitor.
 
-### Screen 2 — Create/Edit Poll (`/polls/new`, `/polls/:id/edit`)
-- 2-column layout with sticky right summary panel
-- Left form: Poll Details, Answer Setup (2–4 draggable answer cards), Poll Logic (thresholds, auto-close, scheduling), Viewer Experience toggles
-- Right panel: live mini summary, QR preview, selected template/theme
-- Sticky action bar: Save Draft / Save Ready / Go Live
+## Milestone 4 — Program Preview: Mobile/Desktop reflects slate
+Today the operator's Mobile/Desktop preview mirrors the build canvas. New rule: when previewing on `/output` Program Preview with Mobile or Desktop selected, **and** voting is `not_open`, render the viewer-side slate (not the build canvas). Test Viewer View toggle should also display the slate. This is the only place build-mobile/desktop and viewer-mobile/desktop intentionally diverge.
 
-### Screen 3 — Graphics Editor (`/graphics/:id`)
-- **Left rail**: Template selector cards (Horizontal Bar, Vertical Bar, Pie/Donut, Progress Bar, Puck Slider, Fullscreen Hero, Lower Third)
-- **Center**: Large 16:9 broadcast preview with dark studio surround, optional safe-area overlays
-- **Right rail**: Collapsible theme controls — Background (upload/fit/position/dim/blur/tint), Colors (12+ color pickers), Data Display, Animation, Output Controls
+## Milestone 5 — Folder linking (two strategies)
+**A. Clone-and-convert (auto-link):**
+- "Duplicate folder as results" action on a folder with answer-type assets.
+- Creates a sibling folder with bar/results assets, copies answer set, sets `linked_folder_id` on both rows.
+- UI shows a chain-link badge on coupled folders.
 
-### Screen 4 — Output Control (integrated into dashboard/graphics)
-- Open Output Window, fullscreen guidance, connection status, fallback content selection
+**B. Explicit link picker:**
+- In folder settings, "Link to another folder" → picker scoped to the **currently open project** only.
+- Stores `linked_folder_id` (single nullable FK on the folder row).
+- When two folders are linked, they share the same vote tally — voting in either is aggregated and rendered in either.
 
-## Surface 2: Viewer Voting (`/vote/:slug`)
-- Mobile-first, extremely simple
-- State 1: Large question + big tap-target answer buttons
-- State 2: "Vote received" with optional live percentages
-- State 3: "Voting has ended" with optional final results
+**Schema change required:** add `linked_folder_id uuid` (nullable, self-FK) to whichever table holds folders. Folders are not a Supabase table today (queues live in mock data); will need to introduce a `poll_folders` table OR extend `polls` with grouping metadata. Will scope this in Milestone 5 kickoff.
 
-## Surface 3: Program Display (`/output/:id`)
-- Clean 1920×1080 fullscreen output — zero UI chrome
-- Layered composition: background image → overlay/tint → question → chart → labels → QR → bug
-- Graceful states: Live poll, Poll closed, Standby slate
-- Designed for second monitor → HDMI → SDI workflow
+## Milestone 6 — Hardening
+- Realtime topic check: anonymous users on `viewer-poll-{slug}` only receive their poll.
+- Run security audit page; fix any new findings introduced by Milestones 2–5.
 
-## Chart/Template Components
-- **Horizontal Bar** — fast reads, track + fill colors
-- **Vertical Bar** — 3–4 answer polls, per-bar colors
-- **Pie/Donut** — full-frame analysis, custom slice colors
-- **Progress Bar** — simple fill visualization
-- **Puck Slider** — hockey-native, sleek puck on ice track
-- **Fullscreen Hero** — large question with chart
-- **Lower Third** — compact studio-safe strip
+---
 
-## Reusable Components
-PollStatusChip, OutputStatusChip, BroadcastPreviewFrame, SafeAreaOverlay, TemplateCard, ThemeControlPanel, PollResultsList, QRPreviewCard, OutputWindowLauncher, ViewerAnswerButton
-
-## Demo Data (Mock/Local State for MVP)
-- 3 sample polls: "Was that a penalty?", "Who wins tonight?", "What matters more tonight?"
-- Realistic vote counts and percentages
-- 3 theme presets: Broadcast Clean, Dark Ice, Silver/Team Neutral
-- Smooth animated transitions on all chart data
-
-## Data Model (Local state, Supabase-ready structure)
-- Polls, PollOptions, Votes, Themes, Templates — all typed and structured for future realtime backend
-- Theme fields include all 15+ color/background/animation properties
-
-## Routing
-- `/` → Login
-- `/dashboard` → Operator dashboard
-- `/polls/new` → Create poll
-- `/polls/:id/edit` → Edit poll
-- `/graphics/:id` → Graphics editor
-- `/output/:id` → Clean program display
-- `/vote/:slug` → Viewer voting
-
+## Order of operations
+1. M1 (bug) — small, ship first.
+2. M2 + M3 + M4 together — they share the slate rendering code.
+3. M5 — separate session, larger schema work.
+4. M6 — close out.
