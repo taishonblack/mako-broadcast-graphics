@@ -41,7 +41,7 @@ export interface OutputAssets {
   qrUrlVisible?: boolean;
   showBranding: boolean;
   brandingPosition: QRPosition;
-  enabledAssetIds?: Array<'question' | 'answers' | 'subheadline' | 'background' | 'qr' | 'logo' | 'voterTally' | 'image'>;
+  enabledAssetIds?: AssetId[];
   transforms?: AssetTransformMap;
   assetColors?: AssetColorMap;
   wordmarkWeight?: AssetState['wordmarkWeight'];
