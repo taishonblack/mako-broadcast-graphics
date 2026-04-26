@@ -67,6 +67,24 @@ import { DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes } from '@/lib/operator-se
 
 type OperatorMode = 'build' | 'output';
 
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
+
+function isUuid(value?: string) {
+  return Boolean(value && UUID_RE.test(value));
+}
+
+function savedPollOptions(poll?: SavedPoll): PollOption[] {
+  return (poll?.answers ?? [])
+    .filter((answer) => answer.text.trim().length > 0)
+    .map((answer, index) => ({
+      id: answer.id,
+      text: answer.text,
+      shortLabel: answer.shortLabel || undefined,
+      votes: answer.testVotes ?? 0,
+      order: index,
+    }));
+}
+
 /* ---------- Workspace layout persistence ---------- */
 
 const WORKSPACE_LAYOUT_KEY = 'mako-draft-workspace-layout-v1';
@@ -718,7 +736,24 @@ export default function PollCreate() {
     });
   };
 
-  const handleGoLive = () => {
+  const handleGoLive = async () => {
+    let livePoll = currentWorkspacePoll;
+    if (!isUuid(livePoll.id) && projectId) {
+      const match = projectPolls.find((poll) => poll.projectId === projectId && poll.slug === slugForUrl);
+      if (match) {
+        livePoll = {
+          ...livePoll,
+          id: match.id,
+          projectId: match.projectId,
+          options: savedPollOptions(match),
+          question: livePoll.question || match.question,
+          subheadline: livePoll.subheadline || match.subheadline,
+          bgColor: livePoll.bgColor || match.bgColor,
+          bgImage: livePoll.bgImage || match.bgImage,
+        };
+      }
+    }
+
     setLiveState('live');
     // Build the canonical Program payload for the lock snapshot. We push it
     // through handleTake() (so existing listeners + DB sync stay in sync) AND
@@ -726,7 +761,7 @@ export default function PollCreate() {
     handleTake();
     const folder = getFolderById(folderState, folderState.activeFolderId);
     const snapshot = {
-      poll: currentWorkspacePoll,
+      poll: livePoll,
       scene: previewScene,
       layers: [],
       assets: {
@@ -752,15 +787,18 @@ export default function PollCreate() {
     // (mobile/desktop on /vote/:slug) can read the operator's color
     // assignments and enabled-asset list and render in parity with Program.
     if (projectId) {
-      void supabase.from('project_live_state').upsert({
+      const { error } = await supabase.from('project_live_state').upsert({
         project_id: projectId,
-        active_poll_id: currentWorkspacePoll.id,
+        active_poll_id: isUuid(livePoll.id) ? livePoll.id : null,
         active_folder_id: folderState.activeFolderId ?? null,
         live_folder_id: folderState.activeFolderId ?? null,
         live_poll_snapshot: snapshot as never,
         voting_state: 'open',
         output_state: 'live_output',
       } as never);
+      if (error) {
+        toast.error(`Go Live viewer sync failed: ${error.message}`);
+      }
     }
     // Open Output fullscreen window if not already open, and open voting so
     // the slate/voting flow begins simultaneously with the on-air push.
@@ -1127,6 +1165,67 @@ export default function PollCreate() {
   const enabledAssets = (activeFolder?.assetIds ?? SEEDED_ASSETS).filter(
     (id) => !inactiveAssetIds.includes(id),
   );
+  const syncViewerVotingOpen = useCallback(async () => {
+    if (!projectId) return;
+    const savedMatch = !isUuid(currentWorkspacePoll.id)
+      ? projectPolls.find((poll) => poll.projectId === projectId && poll.slug === slugForUrl)
+      : undefined;
+    const livePoll: Poll = savedMatch
+      ? {
+          ...currentWorkspacePoll,
+          id: savedMatch.id,
+          projectId: savedMatch.projectId,
+          options: savedPollOptions(savedMatch),
+          question: currentWorkspacePoll.question || savedMatch.question,
+          subheadline: currentWorkspacePoll.subheadline || savedMatch.subheadline,
+          bgColor: currentWorkspacePoll.bgColor || savedMatch.bgColor,
+          bgImage: currentWorkspacePoll.bgImage || savedMatch.bgImage,
+        }
+      : currentWorkspacePoll;
+    const snapshot = {
+      poll: livePoll,
+      scene: previewScene,
+      layers: [],
+      assets: {
+        qrSize,
+        qrPosition: assetState.qrPosition,
+        qrVisible: assetState.qrVisible,
+        qrUrlVisible: assetState.qrUrlVisible,
+        showBranding,
+        brandingPosition,
+        enabledAssetIds: enabledAssets,
+        transforms: assetTransforms,
+        assetColors,
+        wordmarkWeight: assetState.wordmarkWeight,
+        wordmarkTracking: assetState.wordmarkTracking,
+        wordmarkScale: assetState.wordmarkScale,
+        wordmarkShowGuides: assetState.wordmarkShowGuides,
+        tallyMode: activeFolder?.tallyMode ?? DEFAULT_TALLY_MODE,
+        tallyIntervalSeconds: activeFolder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
+      },
+    };
+    const { error } = await supabase.from('project_live_state').upsert({
+      project_id: projectId,
+      active_poll_id: isUuid(livePoll.id) ? livePoll.id : null,
+      active_folder_id: folderState.activeFolderId ?? null,
+      live_folder_id: folderState.activeFolderId ?? null,
+      live_poll_snapshot: snapshot as never,
+      voting_state: 'open',
+      output_state: liveState === 'live' ? 'live_output' : 'preview',
+    } as never);
+    if (error) toast.error(`Viewer sync failed: ${error.message}`);
+  }, [activeFolder, assetColors, assetState, assetTransforms, brandingPosition, currentWorkspacePoll, enabledAssets, folderState.activeFolderId, liveState, previewScene, projectId, projectPolls, qrSize, showBranding, slugForUrl]);
+
+  const syncViewerVotingClosed = useCallback(async () => {
+    if (!projectId) return;
+    const { error } = await supabase.from('project_live_state').upsert({
+      project_id: projectId,
+      voting_state: 'closed',
+      output_state: liveState === 'live' ? 'live_output' : 'preview',
+    } as never);
+    if (error) toast.error(`Viewer close sync failed: ${error.message}`);
+  }, [liveState, projectId]);
+
   // Mirror the Program Preview to any open Output window in real time.
   // Whenever the operator's program-preview state (poll content, scene,
   // assets, transforms, colors, wordmark) changes, push it to the Output
@@ -2023,8 +2122,14 @@ export default function PollCreate() {
             onOpenOutput={() => window.open(`/output/${currentWorkspacePoll.id}`, 'mako-output', 'width=1920,height=1080') ?? null}
             onGoLive={handleGoLive}
             onEndPoll={handleEndPoll}
-            onOpenVoting={() => setVotingState('open')}
-            onCloseVoting={() => setVotingState('closed')}
+            onOpenVoting={() => {
+              setVotingState('open');
+              void syncViewerVotingOpen();
+            }}
+            onCloseVoting={() => {
+              setVotingState('closed');
+              void syncViewerVotingClosed();
+            }}
             testVoteRunning={testVoteRunning}
             onStartTestVotes={handleStartTestVotes}
             onStopTestVotes={handleStopTestVotes}

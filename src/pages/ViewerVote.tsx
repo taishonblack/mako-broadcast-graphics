@@ -44,12 +44,56 @@ interface ViewerSnapshotAssets {
 interface ViewerSnapshot {
   poll?: {
     id?: string;
+    projectId?: string;
     slug?: string;
     question?: string;
     subheadline?: string;
+    bgColor?: string;
+    bgImage?: string;
+    showLiveResults?: boolean;
+    showThankYou?: boolean;
+    showFinalResults?: boolean;
+    postVoteDelayMs?: number;
     options?: Array<{ id: string; text?: string; shortLabel?: string; votes?: number; order?: number }>;
   };
   assets?: ViewerSnapshotAssets;
+}
+
+type LiveStateRow = {
+  project_id?: string | null;
+  voting_state?: string;
+  active_poll_id?: string | null;
+  live_poll_snapshot?: ViewerSnapshot | null;
+};
+
+function answersFromSnapshot(snapshotPoll?: ViewerSnapshot['poll']): ViewerAnswer[] {
+  return (snapshotPoll?.options ?? []).map((option, index) => ({
+    id: option.id,
+    label: option.text || `Answer ${index + 1}`,
+    short_label: option.shortLabel || '',
+    sort_order: option.order ?? index,
+    live_votes: option.votes ?? 0,
+  }));
+}
+
+function pollFromLiveSnapshot(row: LiveStateRow, slug: string): ViewerPoll | null {
+  const snapshotPoll = row.live_poll_snapshot?.poll;
+  if (!snapshotPoll || snapshotPoll.slug !== slug) return null;
+  return {
+    id: row.active_poll_id || snapshotPoll.id || `snapshot-${slug}`,
+    project_id: row.project_id || snapshotPoll.projectId || null,
+    question: snapshotPoll.question || 'Cast your vote',
+    subheadline: snapshotPoll.subheadline || '',
+    bg_color: snapshotPoll.bgColor || 'hsl(220, 20%, 7%)',
+    bg_image: snapshotPoll.bgImage || null,
+    show_live_results: snapshotPoll.showLiveResults ?? true,
+    show_thank_you: snapshotPoll.showThankYou ?? true,
+    show_final_results: snapshotPoll.showFinalResults ?? true,
+    slate_text: 'Polling will open soon',
+    slate_subline_text: '',
+    slate_image: null,
+    post_vote_delay_ms: snapshotPoll.postVoteDelayMs ?? 1500,
+  };
 }
 
 export default function ViewerVote() {
@@ -77,7 +121,22 @@ export default function ViewerVote() {
         .rpc('get_viewer_poll_by_slug', { _slug: slug });
       const pollRow = Array.isArray(rpcRows) ? rpcRows[0] : null;
       if (cancelled) return;
-      if (!pollRow) { setStatus('not_found'); return; }
+      if (!pollRow) {
+        const { data: liveRows } = await supabase
+          .from('project_live_state')
+          .select('project_id, voting_state, active_poll_id, live_poll_snapshot')
+          .in('voting_state', ['open', 'closed']);
+        if (cancelled) return;
+        const liveMatch = ((liveRows ?? []) as LiveStateRow[]).find((row) => row.live_poll_snapshot?.poll?.slug === slug);
+        const snapshotPoll = liveMatch?.live_poll_snapshot?.poll;
+        const fallbackPoll = liveMatch ? pollFromLiveSnapshot(liveMatch, slug) : null;
+        if (!liveMatch || !fallbackPoll) { setStatus('not_found'); return; }
+        setPoll(fallbackPoll);
+        setSnapshot(liveMatch.live_poll_snapshot ?? null);
+        setAnswers(answersFromSnapshot(snapshotPoll));
+        setStatus(liveMatch.voting_state === 'closed' ? 'closed' : 'open');
+        return;
+      }
       setPoll(pollRow as ViewerPoll);
 
       const [{ data: answerRows }, liveStateRes] = await Promise.all([
@@ -106,13 +165,7 @@ export default function ViewerVote() {
       const isThisPollLive = !live || live.active_poll_id === pollRow.id || snapshotMatchesSlug;
       if (live?.live_poll_snapshot) setSnapshot(live.live_poll_snapshot);
       if ((answerRows ?? []).length === 0 && snapshotPoll?.options?.length) {
-        setAnswers(snapshotPoll.options.map((option, index) => ({
-          id: option.id,
-          label: option.text || `Answer ${index + 1}`,
-          short_label: option.shortLabel || '',
-          sort_order: option.order ?? index,
-          live_votes: option.votes ?? 0,
-        })));
+        setAnswers(answersFromSnapshot(snapshotPoll));
       }
 
       if (votingState === 'open' && isThisPollLive) setStatus('open');
@@ -138,16 +191,15 @@ export default function ViewerVote() {
         const row = payload.new as { voting_state?: string; active_poll_id?: string | null; live_poll_snapshot?: ViewerSnapshot | null } | undefined;
         if (!row) return;
         const snapshotPoll = row.live_poll_snapshot?.poll;
-        const isThisPollLive = !row.active_poll_id || row.active_poll_id === poll.id || snapshotPoll?.slug === slug;
+        const snapshotMatchesSlug = snapshotPoll?.slug === slug;
+        const isThisPollLive = !row.active_poll_id || row.active_poll_id === poll.id || snapshotMatchesSlug;
         if (row.live_poll_snapshot !== undefined) setSnapshot(row.live_poll_snapshot ?? null);
+        if (snapshotMatchesSlug) {
+          const snapshotPollRow = pollFromLiveSnapshot(row, slug);
+          if (snapshotPollRow) setPoll((current) => ({ ...snapshotPollRow, ...current, id: snapshotPollRow.id }));
+        }
         if (snapshotPoll?.options?.length) {
-          setAnswers(snapshotPoll.options.map((option, index) => ({
-            id: option.id,
-            label: option.text || `Answer ${index + 1}`,
-            short_label: option.shortLabel || '',
-            sort_order: option.order ?? index,
-            live_votes: option.votes ?? 0,
-          })));
+          setAnswers(answersFromSnapshot(snapshotPoll));
         }
         if (row.voting_state === 'open' && isThisPollLive) setStatus('open');
         else if (row.voting_state === 'closed' && isThisPollLive) setStatus('closed');
