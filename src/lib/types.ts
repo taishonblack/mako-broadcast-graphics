@@ -1,5 +1,5 @@
 export type PollState = 'draft' | 'ready' | 'live' | 'closed' | 'archived';
-export type OutputState = 'standby' | 'previewing' | 'live_output' | 'disconnected';
+export type OutputState = 'standby' | 'previewing' | 'live_output' | 'program_live' | 'disconnected';
 export type TemplateName = 'horizontal-bar' | 'vertical-bar' | 'pie-donut' | 'progress-bar' | 'puck-slider' | 'fullscreen-hero' | 'lower-third';
 export type BackgroundFit = 'cover' | 'contain' | 'stretch';
 export type BackgroundPosition = 'center' | 'top' | 'bottom';
