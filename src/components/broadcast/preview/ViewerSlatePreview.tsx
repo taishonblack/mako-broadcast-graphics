@@ -159,7 +159,15 @@ export function ViewerSlatePreview({
   // folder with only `answers` (bars graphic) is "results display only" and
   // should fall through to the MakoVote wordmark.
   const folderCollectsVotes = folderHasQR || folderHasAnswerType;
-  const showVoting = (votingOpen || folderCollectsVotes) && folderCollectsVotes && options && options.length > 0;
+  // Slate always wins. When the operator forces the slate (Test Viewer View
+  // or "Start Slate Now"), hide the answer-types entirely so mobile/desktop
+  // mirror what voters would actually see during a slate hold.
+  const showVoting =
+    !slateActive &&
+    (votingOpen || folderCollectsVotes) &&
+    folderCollectsVotes &&
+    options &&
+    options.length > 0;
 
   // Resolve colors from the active viewport's asset color map. Falls back to
   // the previous hard-coded white / light-gray values so existing previews

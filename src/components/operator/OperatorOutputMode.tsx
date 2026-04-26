@@ -305,6 +305,30 @@ export function OperatorOutputMode({
   // can QA the slate copy/image without actually starting the slate on-air.
   // Has no effect in Program mode.
   const [testViewerView, setTestViewerView] = useState(false);
+  // QA flip: briefly toggles the preview between slate and live answer-types
+  // so the operator can confirm the transition cleanly before Go Live. Runs
+  // a short scripted sequence (slate → live → slate → restore) on whichever
+  // viewport (mobile/desktop) is currently being previewed.
+  const [qaFlipping, setQaFlipping] = useState(false);
+  const qaTimersRef = useRef<number[]>([]);
+  useEffect(() => () => {
+    qaTimersRef.current.forEach((id) => window.clearTimeout(id));
+  }, []);
+  const handleQaFlip = () => {
+    if (qaFlipping) return;
+    qaTimersRef.current.forEach((id) => window.clearTimeout(id));
+    qaTimersRef.current = [];
+    const restore = testViewerView;
+    setQaFlipping(true);
+    // Sequence: slate (1.2s) → live (1.2s) → slate (1.2s) → restore.
+    setTestViewerView(true);
+    qaTimersRef.current.push(window.setTimeout(() => setTestViewerView(false), 1200));
+    qaTimersRef.current.push(window.setTimeout(() => setTestViewerView(true), 2400));
+    qaTimersRef.current.push(window.setTimeout(() => {
+      setTestViewerView(restore);
+      setQaFlipping(false);
+    }, 3600));
+  };
 
   // Tracks whether the operator has opened the fullscreen Output window.
   // Drives the green "ACTIVE" state on the Open Output quick action so
@@ -1007,7 +1031,29 @@ export function OperatorOutputMode({
                     : 'Mobile / Desktop preview shows the live voting UI'}
                 </p>
               </div>
-              <Switch checked={testViewerView} onCheckedChange={setTestViewerView} />
+              <div className="flex items-center gap-2">
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      size="sm"
+                      variant="outline"
+                      className="h-7 gap-1 px-2 text-[10px]"
+                      onClick={handleQaFlip}
+                      disabled={qaFlipping || previewMode === 'program'}
+                    >
+                      <RefreshCw className={`h-3 w-3 ${qaFlipping ? 'animate-spin' : ''}`} />
+                      QA Flip
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent side="bottom">
+                    Briefly cycles slate ↔ live answer-types on the current
+                    Mobile / Desktop preview so you can confirm the transition
+                    before Go Live.
+                  </TooltipContent>
+                </Tooltip>
+                <Switch checked={testViewerView} onCheckedChange={setTestViewerView} />
+              </div>
             </div>
 
             {/* Polling Slate */}
