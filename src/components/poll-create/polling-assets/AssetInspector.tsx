@@ -51,6 +51,10 @@ interface AssetInspectorProps {
   /** Fires the Convert-to-Bars action on the active folder. Shown only on
    *  the Answer Type asset panel. */
   onConvertAnswerTypeToBars?: () => void;
+  /** Fires the reverse Convert-to-Answer-Type action. Shown only on the
+   *  Answer Bars asset panel so the operator can flip back to vote-input
+   *  mode without rebuilding the folder. */
+  onConvertAnswerBarsToAnswerType?: () => void;
 }
 
 export function AssetInspector(p: AssetInspectorProps) {
