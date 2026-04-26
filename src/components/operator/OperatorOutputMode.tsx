@@ -470,6 +470,15 @@ export function OperatorOutputMode({
     });
   };
 
+  // When voting opens (Go Live), force the polling slate off so viewers
+  // immediately see the answer types instead of the holding screen.
+  useEffect(() => {
+    if (votingState === 'open' && slateActive) {
+      setSlateActive(false);
+      onSlateActiveChange?.(false);
+    }
+  }, [votingState, slateActive, onSlateActiveChange]);
+
   const handleOpenOutputClick = () => {
     const win = onOpenOutput();
     if (win && typeof win === 'object') {
