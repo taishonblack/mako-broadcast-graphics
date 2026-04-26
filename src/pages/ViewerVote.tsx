@@ -184,11 +184,13 @@ export default function ViewerVote() {
   const subColor = colors?.subheadline?.textSecondary;
   const barColors = colors?.answers?.barColors;
 
-  // QR-only / no-answers folders mirror the Program composition: show the
-  // question text + a QR (the same slug the viewer is already on) without
-  // any vote UI. Useful for "tease the question" segments.
+  // Results-only folders mirror the Program composition: if the live folder
+  // has answer bars but no viewer answer type / QR entry point, show a mirror
+  // slate instead of vote buttons. Folders with `answerType` or `qr` collect
+  // votes and must render the answer UI when voting is open.
   const enabled = snapshot?.assets?.enabledAssetIds;
-  const isMirrorMode = Array.isArray(enabled) && !enabled.includes('answers');
+  const folderCollectsVotes = Array.isArray(enabled) && (enabled.includes('answerType') || enabled.includes('qr'));
+  const isMirrorMode = Array.isArray(enabled) && !folderCollectsVotes;
 
   const bgStyle: React.CSSProperties = poll?.bg_image
     ? { backgroundImage: `url(${poll.bg_image})`, backgroundSize: 'cover', backgroundPosition: 'center' }
