@@ -1499,9 +1499,8 @@ export function OperatorOutputMode({
                 if (goLivePending) return;
                 setGoLivePending(true);
                 try {
-                  // Going live also raises the polling slate so voters see
-                  // the holding screen the instant the show goes on-air.
-                  setSlateActive(true);
+                  // Going live releases the polling slate so voters see answer types.
+                  setSlateActive(false);
                   // Reflect the current Program Preview onto the fullscreen
                   // Output surface (opens the popup if not already open).
                   handleOpenOutputClick();
