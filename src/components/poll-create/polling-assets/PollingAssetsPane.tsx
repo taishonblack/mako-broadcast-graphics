@@ -38,7 +38,7 @@ export const ASSET_REGISTRY: Record<AssetId, AssetMeta> = {
 export const SEEDED_ASSETS: AssetId[] = [];
 
 interface PollingAssetsPaneProps {
-  folders: { id: string; name: string; blockLetter: BlockLetter; collapsed?: boolean; assetIds: AssetId[]; inactiveAssetIds?: AssetId[] }[];
+  folders: { id: string; name: string; blockLetter: BlockLetter; collapsed?: boolean; assetIds: AssetId[]; inactiveAssetIds?: AssetId[]; linkedFolderId?: string }[];
   activeFolderId: string;
   enabledAssets: AssetId[];
   onEnabledAssetsChange: (next: AssetId[]) => void;
@@ -53,6 +53,10 @@ interface PollingAssetsPaneProps {
   onToggleFolderCollapse: (folderId: string) => void;
   /** Clone the folder (assets, slug, tally, background) and select it. */
   onDuplicateFolder?: (folderId: string) => void;
+  /** Mutually link two folders so they share slate / background / slug. */
+  onLinkFolders?: (folderAId: string, folderBId: string) => void;
+  /** Break the link on a folder (and its partner). */
+  onUnlinkFolder?: (folderId: string) => void;
   /** Toggle an asset's inactive flag. Used by the "Reactivate" button on
    *  the dimmed QR card after a Convert-to-Bars action. */
   onToggleAssetInactive?: (folderId: string, assetId: AssetId, inactive: boolean) => void;
