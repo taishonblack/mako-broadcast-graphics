@@ -807,6 +807,30 @@ export default function PollCreate() {
       if (error) {
         toast.error(`Go Live viewer sync failed: ${error.message}`);
       }
+      // Write to public_viewer_state — the audience-only source of truth.
+      const audienceSnapshot: PublicViewerPollSnapshot = {
+        id: isUuid(livePoll.id) ? livePoll.id : undefined,
+        question: snapshotPoll.question,
+        subheadline: snapshotPoll.subheadline,
+        bgColor: snapshotPoll.bgColor,
+        bgImage: snapshotPoll.bgImage,
+        answers: (snapshotPoll.options ?? []).map((o, i) => ({
+          id: o.id,
+          label: o.text || `Answer ${i + 1}`,
+          shortLabel: o.shortLabel,
+          sortOrder: i,
+        })),
+        showLiveResults: snapshotPoll.showLiveResults,
+        showThankYou: snapshotPoll.showThankYou,
+        assetColors,
+      };
+      const audience = await writePublicViewerState({
+        projectId,
+        viewerSlug: livePoll.slug,
+        state: 'voting',
+        pollSnapshot: audienceSnapshot,
+      });
+      if (audience.error) toast.error(`Viewer Go Live sync failed: ${audience.error}`);
     }
     // Open Output fullscreen window if not already open, and open voting so
     // the slate/voting flow begins simultaneously with the on-air push.
@@ -829,6 +853,13 @@ export default function PollCreate() {
         voting_state: 'closed',
         output_state: 'preview',
       } as never);
+      // Audience returns to MakoVote branding.
+      void writePublicViewerState({
+        projectId,
+        viewerSlug: currentWorkspacePoll.slug,
+        state: 'branding',
+        pollSnapshot: null,
+      });
     }
   };
 
