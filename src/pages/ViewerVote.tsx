@@ -193,7 +193,7 @@ export default function ViewerVote() {
     try {
       const { data: liveRows } = await supabase
         .from('project_live_state')
-        .select('project_id, voting_state, active_poll_id, live_poll_snapshot')
+        .select('project_id, voting_state, active_poll_id, live_poll_snapshot, updated_at')
         .in('voting_state', ['open', 'closed']);
       applyFetchedLiveRows((liveRows ?? []) as LiveStateRow[]);
     } finally {
@@ -206,7 +206,7 @@ export default function ViewerVote() {
     const load = async () => {
       const { data: liveRows } = await supabase
         .from('project_live_state')
-        .select('project_id, voting_state, active_poll_id, live_poll_snapshot')
+        .select('project_id, voting_state, active_poll_id, live_poll_snapshot, updated_at')
         .in('voting_state', ['open', 'closed']);
       if (cancelled) return;
 
@@ -224,7 +224,7 @@ export default function ViewerVote() {
     const tick = async () => {
       const { data: liveRows } = await supabase
         .from('project_live_state')
-        .select('project_id, voting_state, active_poll_id, live_poll_snapshot')
+        .select('project_id, voting_state, active_poll_id, live_poll_snapshot, updated_at')
         .in('voting_state', ['open', 'closed']);
       if (cancelled) return;
       applyFetchedLiveRows((liveRows ?? []) as LiveStateRow[]);
