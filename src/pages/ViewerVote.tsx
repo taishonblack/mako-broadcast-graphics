@@ -208,16 +208,14 @@ export default function ViewerVote() {
         .in('voting_state', ['open', 'closed']);
       if (cancelled) return;
 
-      const rows = (liveRows ?? []) as LiveStateRow[];
-      const liveMatch = rows.find((row) => Boolean(row.live_poll_snapshot));
-      applyLiveStateRow(liveMatch ?? null);
+      applyFetchedLiveRows((liveRows ?? []) as LiveStateRow[]);
     };
     load();
     return () => { cancelled = true; };
-  }, [applyLiveStateRow]);
+  }, [applyFetchedLiveRows]);
 
   // Safari/mobile realtime can drop silently. Poll project_live_state every
-  // 2s as a deterministic fallback so the viewer always converges to the
+  // 1.5s as a deterministic fallback so the viewer always converges to the
   // current snapshot regardless of websocket health.
   useEffect(() => {
     let cancelled = false;
@@ -227,13 +225,11 @@ export default function ViewerVote() {
         .select('project_id, voting_state, active_poll_id, live_poll_snapshot')
         .in('voting_state', ['open', 'closed']);
       if (cancelled) return;
-      const rows = (liveRows ?? []) as LiveStateRow[];
-      const liveMatch = rows.find((row) => Boolean(row.live_poll_snapshot));
-      applyLiveStateRow(liveMatch ?? null);
+      applyFetchedLiveRows((liveRows ?? []) as LiveStateRow[]);
     };
-    const id = window.setInterval(tick, 2000);
+    const id = window.setInterval(tick, 1500);
     return () => { cancelled = true; window.clearInterval(id); };
-  }, [applyLiveStateRow]);
+  }, [applyFetchedLiveRows]);
 
   // Realtime: stream live vote totals + voting state changes so the viewer
   // reflects open/close transitions and tally updates without refresh.
@@ -243,8 +239,6 @@ export default function ViewerVote() {
   //  - poll_answers filtered by the current poll_id
   // This avoids cross-poll noise when multiple viewer tabs (different slugs
   // / different projects) are open in the same browser session.
-  const projectId = poll?.project_id ?? null;
-  const pollId = poll?.id ?? null;
   useEffect(() => {
     if (!projectId && !pollId) return;
 
