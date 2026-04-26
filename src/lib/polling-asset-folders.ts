@@ -35,6 +35,14 @@ export interface PollingAssetFolder {
   tallyMode?: TallyMode;
   tallyIntervalSeconds?: number;
   assetIds: AssetId[];
+  /**
+   * Assets present in `assetIds` but currently muted — they show in the
+   * folder list as a dimmed "inactive" card and don't render in any preview.
+   * Used by Convert-to-Bars: when an `answerType` asset becomes `answers`,
+   * we mark the QR as inactive (operator can re-activate or delete it
+   * without losing its placement).
+   */
+  inactiveAssetIds?: AssetId[];
 }
 
 export interface PollingAssetFolderState {
@@ -42,7 +50,7 @@ export interface PollingAssetFolderState {
   activeFolderId: string;
 }
 
-const VALID_ASSETS: AssetId[] = ['question', 'answers', 'subheadline', 'background', 'qr', 'logo', 'voterTally', 'image'];
+const VALID_ASSETS: AssetId[] = ['question', 'answers', 'answerType', 'subheadline', 'background', 'qr', 'logo', 'voterTally', 'image'];
 const DEFAULT_BLOCK: BlockLetter = 'A';
 
 const isRecord = (value: unknown): value is Record<string, unknown> => typeof value === 'object' && value !== null && !Array.isArray(value);
@@ -157,6 +165,9 @@ export function normalizeFolderState(input: unknown): PollingAssetFolderState {
           ? Math.min(TALLY_INTERVAL_MAX, Math.max(TALLY_INTERVAL_MIN, Math.round(folder.tallyIntervalSeconds)))
           : DEFAULT_TALLY_INTERVAL_SECONDS,
         assetIds: Array.from(new Set(assetIds)),
+        inactiveAssetIds: Array.isArray(folder.inactiveAssetIds)
+          ? Array.from(new Set(folder.inactiveAssetIds.filter((id): id is AssetId => VALID_ASSETS.includes(id as AssetId))))
+          : [],
       };
     })
     .filter((folder) => folder.assetIds.length > 0 || folder.name.length > 0);
