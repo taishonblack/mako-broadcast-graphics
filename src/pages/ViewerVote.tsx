@@ -172,17 +172,42 @@ export default function ViewerVote() {
 
   // Realtime: stream live vote totals + voting state changes so the viewer
   // reflects open/close transitions and tally updates without refresh.
+  //
+  // Scope each subscription to the row that actually drives this viewer:
+  //  - project_live_state filtered by the current project_id
+  //  - poll_answers filtered by the current poll_id
+  // This avoids cross-poll noise when multiple viewer tabs (different slugs
+  // / different projects) are open in the same browser session.
+  const projectId = poll?.project_id ?? null;
+  const pollId = poll?.id ?? null;
   useEffect(() => {
-    const channel = supabase
-      .channel(`viewer-live-${slug || 'default'}`)
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'poll_answers' }, (payload) => {
-        const row = payload.new as Partial<ViewerAnswer> | undefined;
-        if (!row?.id || (poll?.id && (row as Partial<ViewerAnswer> & { poll_id?: string }).poll_id !== poll.id)) return;
-        setAnswers((current) => current.map((a) => a.id === row.id ? { ...a, live_votes: row.live_votes ?? a.live_votes } : a));
-      })
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'project_live_state' }, (payload) => {
-        const row = payload.new as LiveStateRow | undefined;
-        if (!row) return;
+    if (!projectId && !pollId) return;
+
+    const channel = supabase.channel(
+      `viewer-live-${projectId ?? 'noproj'}-${pollId ?? 'nopoll'}`,
+    );
+
+    if (pollId) {
+      channel.on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'poll_answers', filter: `poll_id=eq.${pollId}` },
+        (payload) => {
+          const row = payload.new as Partial<ViewerAnswer> | undefined;
+          if (!row?.id) return;
+          setAnswers((current) =>
+            current.map((a) => (a.id === row.id ? { ...a, live_votes: row.live_votes ?? a.live_votes } : a)),
+          );
+        },
+      );
+    }
+
+    if (projectId) {
+      channel.on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'project_live_state', filter: `project_id=eq.${projectId}` },
+        (payload) => {
+          const row = payload.new as LiveStateRow | undefined;
+          if (!row) return;
         const live_poll_snapshot = row.live_poll_snapshot ?? null;
         console.log('Viewer live state', {
           voting_state: row.voting_state ?? 'not_open',
@@ -207,10 +232,13 @@ export default function ViewerVote() {
         setPoll(pollFromLiveSnapshot(row, slug));
         setAnswers(answersFromSnapshot(live_poll_snapshot.poll));
         setStatus(row.voting_state === 'open' ? 'open' : 'closed');
-      })
-      .subscribe();
+        },
+      );
+    }
+
+    channel.subscribe();
     return () => { supabase.removeChannel(channel); };
-  }, [poll?.id, slug]);
+  }, [projectId, pollId, slug]);
 
   const handleVote = (optionId: string) => {
     setSelectedOption(optionId);
