@@ -54,6 +54,7 @@ import {
   duplicateFolder,
   setAssetInactive,
   convertAnswerTypeToBars,
+  convertAnswerBarsToAnswerType,
   findAssetFolder,
   getFolderById,
   loadProjectPollingAssetFolders,
