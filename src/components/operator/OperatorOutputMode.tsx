@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { MonitorContainer } from '@/components/broadcast/BroadcastPreviewFrame';
 import { PreviewWithOverlays } from '@/components/broadcast/preview/PreviewWithOverlays';
+import { SceneSelector } from '@/components/broadcast/SceneSelector';
 import { LiveStatusIndicator } from '@/components/broadcast/LiveStatusIndicator';
 import { PollStatusChip } from '@/components/broadcast/PollStatusChip';
 import { Button } from '@/components/ui/button';
@@ -188,9 +189,8 @@ export function OperatorOutputMode({
   const navigate = useNavigate();
   // Suppress unused-prop warnings until those features come back. Kept in the
   // signature for parent compatibility.
-  void previewScene; void programScene; void qrSize; void qrPosition;
+  void qrSize; void qrPosition;
   void showBranding; void brandingPosition;
-  void onSceneChange; void onTake; void onCut;
   void onQrSizeChange; void onQrPositionChange;
   void onShowBrandingChange; void onBrandingPositionChange;
 
