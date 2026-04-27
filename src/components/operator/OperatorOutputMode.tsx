@@ -204,13 +204,11 @@ export function OperatorOutputMode({
   void showBranding; void brandingPosition;
   void onQrSizeChange; void onQrPositionChange;
   void onShowBrandingChange; void onBrandingPositionChange;
+  // onSelectPoll + pollsByBlock are no longer surfaced — the right-rail
+  // panel now lists Scenes (not polls) within the active block.
+  void onSelectPoll;
 
-  const pollsByBlock = BLOCK_LETTERS.reduce<Record<BlockLetter, SavedPoll[]>>((acc, letter) => {
-    acc[letter] = projectPolls
-      .filter((poll) => (poll.blockLetter ?? 'A') === letter)
-      .sort((a, b) => (a.blockPosition ?? 999) - (b.blockPosition ?? 999));
-    return acc;
-  }, { A: [], B: [], C: [], D: [], E: [] });
+  // (pollsByBlock removed — Scenes panel replaces the per-block polls list.)
 
   // Map a poll → its folder name (folders define what the operator sees as the
   // organizational label for each block, e.g. "1st Com"). Folder names are looked
