@@ -322,6 +322,9 @@ export default function PollCreate() {
   const [qrSize, setQrSize] = useState(120);
   const [showBranding, setShowBranding] = useState(true);
   const [brandingPosition, setBrandingPosition] = useState<QRPosition>('bottom-left');
+  /** Bumped by the operator's "Replay Reveal" button to re-trigger the
+   *  Results scene's animated bar reveal without changing vote data. */
+  const [resultsReplayKey, setResultsReplayKey] = useState(0);
   const theme = themePresets[0];
 
   // Load existing poll if visiting /polls/:id
