@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AssetColorConfig, AssetColorMap, AssetId, AssetTransformMap, DEFAULT_ASSET_COLORS, TransformField, TransformViewport } from '@/components/poll-create/polling-assets/types';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ColorSwatch, MAX_SWATCHES, useColorSwatches } from '@/lib/color-swatches';
 import { Link as RouterLink } from 'react-router-dom';
 
@@ -192,7 +192,15 @@ export function AssetTransformControls({ assetId, assetLabel, folderLabel, folde
                         <div className="flex items-center justify-between gap-2">
                           <Label className="text-[10px] text-muted-foreground">{control.label}</Label>
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-mono text-muted-foreground">{control.format ? control.format(Number(value)) : value}</span>
+                            <TransformValueInput
+                              field={control.field}
+                              value={Number(value)}
+                              min={control.min}
+                              max={control.max}
+                              step={control.step}
+                              disabled={locked}
+                              onCommit={(next) => onChange(section.id, control.field, next)}
+                            />
                             <Button
                               type="button"
                               size="icon"
@@ -435,6 +443,105 @@ function getAssetLabel(assetId: AssetId) {
     case 'logo': return 'Logo';
     case 'voterTally': return 'Voter Tally';
   }
+}
+
+/**
+ * Editable numeric value for a transform field. Displays the formatted
+ * value (e.g. "120px", "85%", "30°") and on focus reveals the raw
+ * numeric editor. Commits on Enter / blur, clamping to [min, max] and
+ * snapping to `step` precision so an Enter press leaves a valid value.
+ * Decimal step (e.g. 0.01 for scale) is converted to a percentage in the
+ * editor so an operator can type "85" to mean 85% scale.
+ */
+function TransformValueInput({
+  field,
+  value,
+  min,
+  max,
+  step,
+  disabled,
+  onCommit,
+}: {
+  field: TransformField;
+  value: number;
+  min: number;
+  max: number;
+  step: number;
+  disabled?: boolean;
+  onCommit: (value: number) => void;
+}) {
+  // Fields whose model value is 0..1 but feel natural to type as 0..100.
+  const isPercent =
+    field === 'scale' ||
+    field === 'opacity' ||
+    field === 'cropLeft' ||
+    field === 'cropRight' ||
+    field === 'cropTop' ||
+    field === 'cropBottom';
+  const suffix =
+    field === 'rotation' ? '°'
+    : isPercent ? '%'
+    : 'px';
+
+  const toEditorValue = (v: number) => {
+    const raw = isPercent ? v * 100 : v;
+    // Round to a sensible precision so the input doesn't show
+    // long floats (0.27000000000000003) when a slider lands.
+    return isPercent ? Math.round(raw * 10) / 10 : Math.round(raw);
+  };
+
+  const [draft, setDraft] = useState<string>(() => String(toEditorValue(value)));
+  const [editing, setEditing] = useState(false);
+
+  // Sync external value into the input when the operator isn't typing.
+  useEffect(() => {
+    if (!editing) setDraft(String(toEditorValue(value)));
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [value, editing]);
+
+  const commit = (raw: string) => {
+    const parsed = parseFloat(raw.replace(',', '.'));
+    if (Number.isNaN(parsed)) {
+      setDraft(String(toEditorValue(value)));
+      return;
+    }
+    const modelValue = isPercent ? parsed / 100 : parsed;
+    const clamped = Math.min(max, Math.max(min, modelValue));
+    // Snap to step precision (avoids 0.27000000000000003 drift).
+    const snapped = Math.round(clamped / step) * step;
+    onCommit(snapped);
+    setDraft(String(toEditorValue(snapped)));
+  };
+
+  return (
+    <div className="relative">
+      <Input
+        type="number"
+        inputMode="decimal"
+        value={draft}
+        disabled={disabled}
+        onChange={(e) => setDraft(e.target.value)}
+        onFocus={(e) => { setEditing(true); e.currentTarget.select(); }}
+        onBlur={(e) => { setEditing(false); commit(e.currentTarget.value); }}
+        onKeyDown={(e) => {
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            (e.currentTarget as HTMLInputElement).blur();
+          } else if (e.key === 'Escape') {
+            e.preventDefault();
+            setDraft(String(toEditorValue(value)));
+            (e.currentTarget as HTMLInputElement).blur();
+          }
+        }}
+        // Hide native spinner for a tighter look; arrow keys still work.
+        className="h-6 w-[68px] bg-background/60 px-1.5 pr-5 text-right text-[10px] font-mono [appearance:textfield] [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+        aria-label={`${field} value`}
+      />
+      <span className="pointer-events-none absolute right-1.5 top-1/2 -translate-y-1/2 text-[9px] font-mono text-muted-foreground/70">
+        {suffix}
+      </span>
+    </div>
+  );
 }
 
 function getTemplateBarColor(index: number) {
