@@ -1,0 +1,1 @@
+UPDATE public.polls SET question = '' WHERE id = '3bf72f48-fad3-445c-a2c5-e7638a789a4c';

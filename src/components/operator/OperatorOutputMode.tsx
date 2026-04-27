@@ -33,12 +33,13 @@ import { useEffect, useRef, useState } from 'react';
 import { BLOCK_LETTERS, BlockLetter, DEFAULT_BLOCK_LABELS, SavedPoll } from '@/lib/poll-persistence';
 import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { broadcastSceneFromSceneType, getBroadcastScene } from '@/lib/scene-presets';
 import { ChevronDown, ChevronRight, Clock, Eye, EyeOff, FlaskConical, Globe, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Smartphone, Square, StopCircle, Type as TypeIcon, Vote, XCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { percentsFromAnswers, rebalancePercents, answersFromPercents, AnswerLite } from '@/lib/answer-percents';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { PollScene } from '@/lib/poll-scenes';
+import { Layers } from 'lucide-react';
 
 export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
 
@@ -79,6 +80,12 @@ interface OperatorOutputModeProps {
   onSelectBlock: (block: BlockLetter) => void;
   onSelectPoll: (pollId: string) => void;
   onSceneChange: (scene: SceneType) => void;
+  /** Scenes belonging to the active folder/poll — listed under the
+   *  "Scenes Output" panel so operators can see (and pick) which scene
+   *  is staged for air. */
+  scenes?: PollScene[];
+  activeSceneId?: string | null;
+  onSelectScene?: (sceneId: string) => void;
   onTake: () => void;
   onCut: () => void;
   /** Returning the popup window lets us watch for `closed` so the ACTIVE
@@ -159,6 +166,9 @@ export function OperatorOutputMode({
   onSelectBlock,
   onSelectPoll,
   onSceneChange,
+  scenes = [],
+  activeSceneId = null,
+  onSelectScene,
   onTake,
   onCut,
   onOpenOutput,
@@ -194,21 +204,12 @@ export function OperatorOutputMode({
   void showBranding; void brandingPosition;
   void onQrSizeChange; void onQrPositionChange;
   void onShowBrandingChange; void onBrandingPositionChange;
+  // onSelectPoll + pollsByBlock are no longer surfaced — the right-rail
+  // panel now lists Scenes (not polls) within the active block.
+  void onSelectPoll; void projectPolls;
 
-  const pollsByBlock = BLOCK_LETTERS.reduce<Record<BlockLetter, SavedPoll[]>>((acc, letter) => {
-    acc[letter] = projectPolls
-      .filter((poll) => (poll.blockLetter ?? 'A') === letter)
-      .sort((a, b) => (a.blockPosition ?? 999) - (b.blockPosition ?? 999));
-    return acc;
-  }, { A: [], B: [], C: [], D: [], E: [] });
+  // (pollsByBlock removed — Scenes panel replaces the per-block polls list.)
 
-  // Map a poll → its folder name (folders define what the operator sees as the
-  // organizational label for each block, e.g. "1st Com"). Folder names are looked
-  // up by blockLetter; if multiple folders share a block, the first one wins.
-  const folderNameByBlock = folders.reduce<Record<BlockLetter, string | undefined>>((acc, f) => {
-    if (!acc[f.blockLetter]) acc[f.blockLetter] = f.name;
-    return acc;
-  }, { A: undefined, B: undefined, C: undefined, D: undefined, E: undefined });
 
   // Group folders by block so they appear in the output even when no polls
   // have been created yet. This is what the operator sees as the "block
@@ -660,42 +661,46 @@ export function OperatorOutputMode({
             </div>
           </div>
 
-          {/* Polls list — selecting a poll loads it into Preview. Scenes
-              control on-air visibility, not folders. Folder-as-scene UI
-              has been removed; the underlying DB fields stay intact so
-              older saved layouts still load. */}
+          {/* Scenes Output — lists scenes inside the folder/poll that
+              aligns with the currently selected Block above. Selecting a
+              scene stages it for air. */}
           <div className="mako-panel p-3 space-y-2">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold font-mono uppercase text-foreground">Block {activeBlock} · Polls</h2>
-              <span className="text-[10px] font-mono text-muted-foreground">{pollsByBlock[activeBlock].length}</span>
+              <h2 className="text-xs font-semibold font-mono uppercase text-foreground flex items-center gap-1.5">
+                <Layers className="w-3 h-3 text-muted-foreground" />
+                Scenes Output
+              </h2>
+              <span className="text-[10px] font-mono text-muted-foreground">{scenes.length}</span>
             </div>
             <div className="space-y-1.5">
-              {pollsByBlock[activeBlock].length === 0 ? (
-                <p className="text-[11px] italic text-muted-foreground">No polls in this block yet.</p>
+              {scenes.length === 0 ? (
+                <p className="text-[11px] italic text-muted-foreground">
+                  No scenes in this folder yet. Add one in Build Mode.
+                </p>
               ) : (
-                pollsByBlock[activeBlock].map((poll) => {
-                  const isCurrent = poll.id === currentPoll.id;
+                scenes.map((scene) => {
+                  const isActive = scene.id === activeSceneId;
                   return (
                     <button
-                      key={poll.id}
+                      key={scene.id}
                       type="button"
-                      onClick={() => onSelectPoll(poll.id)}
+                      onClick={() => onSelectScene?.(scene.id)}
                       className={`w-full rounded-lg border p-2.5 text-left transition-colors ${
-                        isCurrent
+                        isActive
                           ? 'border-primary/40 bg-primary/10'
                           : 'border-border/60 bg-accent/10 hover:bg-accent/25'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className={`truncate text-xs font-medium ${isCurrent ? 'text-primary' : 'text-foreground'}`}>
-                            {poll.internalName || poll.question || 'Untitled poll'}
+                          <p className={`truncate text-xs font-medium ${isActive ? 'text-primary' : 'text-foreground'}`}>
+                            {scene.name}
                           </p>
-                          <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
-                            {isCurrent ? 'Loaded in Preview' : 'Click to load into Preview'}
+                          <p className="mt-0.5 truncate text-[10px] text-muted-foreground capitalize">
+                            {scene.preset.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}
                           </p>
                         </div>
-                        <span className="mako-chip bg-muted text-[9px] text-muted-foreground">POLL</span>
+                        <span className="mako-chip bg-muted text-[9px] text-muted-foreground uppercase">Scene</span>
                       </div>
                     </button>
                   );
@@ -760,8 +765,6 @@ export function OperatorOutputMode({
               </div>
               <MonitorContainer variant="operator">
                 {(() => {
-                  const previewBroadcast = getBroadcastScene(broadcastSceneFromSceneType(previewScene));
-                  const programBroadcast = getBroadcastScene(broadcastSceneFromSceneType(programScene));
                   const live = previewScene === programScene;
                   // Ring = current state of this canvas. Red when what
                   // you see IS on air; blue when you're staging a change.
@@ -773,18 +776,6 @@ export function OperatorOutputMode({
                       <PreviewWithOverlays showLabel label="1920×1080">
                         {previewNode}
                       </PreviewWithOverlays>
-                      {/* Program label (always shown — what's actually on air) */}
-                      <div className="absolute top-2 left-2 z-50 flex flex-col gap-1 pointer-events-none">
-                        <span className="mako-chip bg-mako-live/20 border border-mako-live/50 text-[hsl(var(--mako-live))] text-[10px] font-mono uppercase">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--mako-live))] animate-live-pulse mr-1 inline-block" />
-                          Live · {programBroadcast.label}
-                        </span>
-                        {!live && (
-                          <span className="mako-chip bg-primary/20 border border-primary/50 text-primary text-[10px] font-mono uppercase">
-                            Preview · {previewBroadcast.label}
-                          </span>
-                        )}
-                      </div>
                     </div>
                   );
                 })()}

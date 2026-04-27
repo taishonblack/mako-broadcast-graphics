@@ -2316,6 +2316,9 @@ export default function PollCreate() {
               if (selectedId === currentWorkspacePoll.id) return;
               navigate(`/polls/${selectedId}?mode=output`);
             }}
+            scenes={sceneController.scenes}
+            activeSceneId={sceneController.activeSceneId}
+            onSelectScene={(sceneId) => sceneController.setActiveSceneId(sceneId)}
             onSceneChange={(scene) => {
               setPreviewScene(scene);
               if (projectId) void dbSetPreviewScene(projectId, scene as unknown as SceneName);
