@@ -363,6 +363,15 @@ export default function ProgramOutput() {
         {isFullscreen ? <Minimize className="h-3 w-3" /> : <Maximize className="h-3 w-3" />}
         {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
       </button>
+      <button
+        type="button"
+        onClick={handleSyncNow}
+        aria-label="Sync output now"
+        className={`fixed top-12 left-3 z-[100] inline-flex items-center gap-1.5 rounded-md border border-white/15 bg-black/60 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-widest text-white backdrop-blur-sm transition-opacity duration-300 hover:bg-black/80 ${controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      >
+        <RefreshCw className="h-3 w-3" />
+        Sync Now
+      </button>
       {/* Sync status pill — always visible (small, low-contrast) so the
           operator can confirm at a glance that the popup is mirroring.
           Click to open the full diagnostics overlay. */}
