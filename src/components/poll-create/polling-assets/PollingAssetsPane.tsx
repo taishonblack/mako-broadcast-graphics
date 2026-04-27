@@ -725,7 +725,7 @@ function SceneAddButton({
 }
 
 function AssetCard({
-  meta, isSelected, onSelect, onRemove,
+  meta, isSelected, groupSelected = false, onSelect, onRemove,
   onDragStart, onDragOver, onDrop, children,
   inactive = false,
   onToggleInactive,
@@ -733,6 +733,10 @@ function AssetCard({
 }: {
   meta: AssetMeta;
   isSelected: boolean;
+  /** True when the parent folder is selected as a whole — every asset
+   *  card in the folder shows a soft group highlight so the operator sees
+   *  what "select folder" encompasses. */
+  groupSelected?: boolean;
   onSelect: () => void;
   onRemove: () => void;
   onDragStart: () => void;
@@ -758,7 +762,9 @@ function AssetCard({
       className={`group rounded-lg border transition-all overflow-hidden cursor-pointer ${inactive ? 'opacity-50' : ''} ${
         isSelected
           ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/20'
-          : 'border-border/60 bg-card/40 hover:border-border'
+          : groupSelected
+            ? 'border-primary/30 bg-primary/[0.03] ring-1 ring-primary/10 hover:border-primary/40'
+            : 'border-border/60 bg-card/40 hover:border-border'
       }`}
     >
       <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-border/40 bg-background/30">
