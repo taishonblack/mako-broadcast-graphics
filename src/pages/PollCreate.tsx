@@ -722,58 +722,6 @@ export default function PollCreate() {
     return <div className="absolute inset-0" style={bgStyle}>{scene}</div>;
   };
 
-  const getProgramOutputPayload = useCallback((poll: Poll = currentWorkspacePoll) => {
-    const programTransforms = assetTransformSet.program;
-    const programAssetColors = assetColorSet.program;
-    const folder = getFolderById(folderState, folderState.activeFolderId);
-    const sceneEnabled = filterAssetsForScene(
-      enabledAssets,
-      broadcastSceneFromSceneType(previewScene),
-    );
-
-    return {
-      poll: {
-        ...poll,
-        options: poll.options?.length ? poll.options : previewOptions,
-      },
-      scene: previewScene,
-      layers: [],
-      assets: {
-        qrSize,
-        qrPosition: assetState.qrPosition,
-        qrVisible: assetState.qrVisible,
-        qrUrlVisible: assetState.qrUrlVisible,
-        showBranding,
-        brandingPosition,
-        enabledAssetIds: sceneEnabled,
-        transforms: programTransforms,
-        assetColors: programAssetColors,
-        wordmarkWeight: assetState.wordmarkWeight,
-        wordmarkTracking: assetState.wordmarkTracking,
-        wordmarkScale: assetState.wordmarkScale,
-        wordmarkShowGuides: assetState.wordmarkShowGuides,
-        tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
-        tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
-        resultsMode: folder?.resultsMode ?? DEFAULT_RESULTS_MODE,
-        resultsAnimationMs: folder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
-        resultsReplayKey,
-      },
-    };
-  }, [
-    assetColorSet,
-    assetState,
-    assetTransformSet,
-    brandingPosition,
-    currentWorkspacePoll,
-    enabledAssets,
-    folderState.activeFolderId,
-    previewOptions,
-    previewScene,
-    qrSize,
-    resultsReplayKey,
-    showBranding,
-  ]);
-
   const setWorkspaceMode = (nextMode: OperatorMode) => {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set('mode', nextMode);
