@@ -696,6 +696,10 @@ export default function PollCreate() {
     setProgramScene(previewScene);
     if (projectId) void takeToProgram(projectId, previewScene as unknown as SceneName);
     const folder = getFolderById(folderState, folderState.activeFolderId);
+    const sceneEnabled = filterAssetsForScene(
+      enabledAssets,
+      broadcastSceneFromSceneType(previewScene),
+    );
     broadcastOutputState({
       poll: currentWorkspacePoll,
       scene: previewScene,
@@ -707,7 +711,7 @@ export default function PollCreate() {
         qrUrlVisible: assetState.qrUrlVisible,
         showBranding,
         brandingPosition,
-        enabledAssetIds: enabledAssets,
+        enabledAssetIds: sceneEnabled,
         transforms: assetTransforms,
         assetColors,
         wordmarkWeight: assetState.wordmarkWeight,
@@ -724,6 +728,10 @@ export default function PollCreate() {
     setProgramScene(previewScene);
     if (projectId) void cutToProgram(projectId, previewScene as unknown as SceneName);
     const folder = getFolderById(folderState, folderState.activeFolderId);
+    const sceneEnabled = filterAssetsForScene(
+      enabledAssets,
+      broadcastSceneFromSceneType(previewScene),
+    );
     broadcastOutputState({
       poll: currentWorkspacePoll,
       scene: previewScene,
@@ -735,7 +743,7 @@ export default function PollCreate() {
         qrUrlVisible: assetState.qrUrlVisible,
         showBranding,
         brandingPosition,
-        enabledAssetIds: enabledAssets,
+        enabledAssetIds: sceneEnabled,
         transforms: assetTransforms,
         assetColors,
         wordmarkWeight: assetState.wordmarkWeight,
