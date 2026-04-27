@@ -1555,10 +1555,15 @@ export default function PollCreate() {
     let ch: BroadcastChannel | null = null;
     try {
       ch = new BroadcastChannel(OUTPUT_REQUEST_CHANNEL);
-      ch.onmessage = () => setSnapshotRequestNonce((n) => n + 1);
+      ch.onmessage = () => {
+        if (liveState !== 'live') broadcastOutputLock({ locked: false });
+        else broadcastOutputLock({ locked: true, snapshot: getProgramOutputPayload(), lockedAt: Date.now() });
+        broadcastOutputState(getProgramOutputPayload());
+        setSnapshotRequestNonce((n) => n + 1);
+      };
     } catch { /* ignore */ }
     return () => { try { ch?.close(); } catch { /* ignore */ } };
-  }, []);
+  }, [liveState, currentWorkspacePoll, previewScene, qrSize, assetState, showBranding, brandingPosition, sceneFilteredEnabled, assetTransformSet, assetColorSet, activeFolder?.tallyMode, activeFolder?.tallyIntervalSeconds, activeFolder?.resultsMode, activeFolder?.resultsAnimationMs, previewOptions, resultsReplayKey]);
 
   // Mirror the Program Preview to any open Output window in real time.
   // Whenever the operator's program-preview state (poll content, scene,
