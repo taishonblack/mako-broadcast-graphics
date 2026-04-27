@@ -1418,6 +1418,13 @@ export default function PollCreate() {
     // is being broadcast to the on-air output window.
     const programTransforms = assetTransformSet.program;
     const programAssetColors = assetColorSet.program;
+    // Apply scene visibility — the broadcast mirror must already reflect
+    // the operator's selected scene, otherwise Output would render every
+    // enabled asset regardless of which scene is staged.
+    const sceneEnabled = filterAssetsForScene(
+      enabledAssets,
+      broadcastSceneFromSceneType(previewScene),
+    );
     broadcastOutputState({
       poll: currentWorkspacePoll,
       // Mirror Program Preview directly: the Full Screen Output is meant to
@@ -1431,7 +1438,7 @@ export default function PollCreate() {
         qrUrlVisible: assetState.qrUrlVisible,
         showBranding,
         brandingPosition,
-        enabledAssetIds: enabledAssets,
+        enabledAssetIds: sceneEnabled,
         transforms: programTransforms,
         assetColors: programAssetColors,
         wordmarkWeight: assetState.wordmarkWeight,
