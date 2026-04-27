@@ -547,6 +547,7 @@ export function PollingAssetsPane({
                                         key={id}
                                         meta={ASSET_REGISTRY[id]}
                                         isSelected={selectedAssetId === id}
+                                        groupSelected={isActiveFolder && selectedAssetId === null}
                                         inactive={(folder.inactiveAssetIds ?? []).includes(id)}
                                         onToggleInactive={
                                           onToggleAssetInactive
