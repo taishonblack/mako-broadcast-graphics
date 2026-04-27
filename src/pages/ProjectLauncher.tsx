@@ -513,7 +513,7 @@ export default function ProjectLauncher() {
                   setNewProjectName(event.target.value);
                   setNameError(null);
                 }}
-                placeholder="Friday Night Show"
+                placeholder="Project or Show"
                 autoFocus
               />
               <p className="text-[11px] text-muted-foreground">Up to 80 characters.</p>
@@ -529,7 +529,7 @@ export default function ProjectLauncher() {
                     setNewTag(event.target.value);
                     setTagError(null);
                   }}
-                  placeholder="Morning show"
+                  placeholder="tag name"
                   onKeyDown={(event) => {
                     if (event.key === 'Enter') {
                       event.preventDefault();
