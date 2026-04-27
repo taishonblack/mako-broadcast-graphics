@@ -39,7 +39,7 @@ import { themePresets } from '@/lib/themes';
 import { TemplateName, Poll, PollOption, QRPosition, VotingState, LiveState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
 import { broadcastSceneFromSceneType, filterAssetsForScene } from '@/lib/scene-presets';
-import { broadcastOutputHeartbeat, broadcastOutputLock, broadcastOutputState } from '@/lib/output-state';
+import { broadcastOutputHeartbeat, broadcastOutputLock, broadcastOutputState, OUTPUT_REQUEST_CHANNEL } from '@/lib/output-state';
 import { supabase } from '@/integrations/supabase/client';
 import { writePublicViewerState, type PublicViewerPollSnapshot } from '@/lib/public-viewer-state';
 import { EQUAL_BASE, equalShareAnswers } from '@/lib/answer-percents';
