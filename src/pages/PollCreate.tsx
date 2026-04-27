@@ -1638,6 +1638,9 @@ export default function PollCreate() {
     assetColorSet,
     activeFolder?.tallyMode,
     activeFolder?.tallyIntervalSeconds,
+    activeFolder?.resultsMode,
+    activeFolder?.resultsAnimationMs,
+    snapshotRequestNonce,
   ]);
   // Presence heartbeat — pings open Output windows once per second so the
   // Output page can show "Mirroring: Live" and detect stalls even when
