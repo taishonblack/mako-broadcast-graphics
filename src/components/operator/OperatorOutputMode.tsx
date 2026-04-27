@@ -660,42 +660,46 @@ export function OperatorOutputMode({
             </div>
           </div>
 
+          {/* Polls list — selecting a poll loads it into Preview. Scenes
+              control on-air visibility, not folders. Folder-as-scene UI
+              has been removed; the underlying DB fields stay intact so
+              older saved layouts still load. */}
           <div className="mako-panel p-3 space-y-2">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold font-mono uppercase text-foreground">Block {activeBlock}</h2>
-              <span className="text-[10px] font-mono text-muted-foreground">{blockEntryCount(activeBlock)} entries</span>
+              <h2 className="text-xs font-semibold font-mono uppercase text-foreground">Block {activeBlock} · Polls</h2>
+              <span className="text-[10px] font-mono text-muted-foreground">{pollsByBlock[activeBlock].length}</span>
             </div>
             <div className="space-y-1.5">
-              {foldersByBlock[activeBlock].length === 0 ? (
-                <p className="text-[11px] italic text-muted-foreground">No folders assigned to this block.</p>
+              {pollsByBlock[activeBlock].length === 0 ? (
+                <p className="text-[11px] italic text-muted-foreground">No polls in this block yet.</p>
               ) : (
-                <>
-                  {/* Block pane only lists folders assigned to this block.
-                      Polls live inside folders and are not surfaced here. */}
-                  {foldersByBlock[activeBlock].map((folder) => (
+                pollsByBlock[activeBlock].map((poll) => {
+                  const isCurrent = poll.id === currentPoll.id;
+                  return (
                     <button
-                      key={folder.id}
+                      key={poll.id}
                       type="button"
-                      onClick={() => onSelectFolder?.(folder.id)}
-                      disabled={!onSelectFolder}
+                      onClick={() => onSelectPoll(poll.id)}
                       className={`w-full rounded-lg border p-2.5 text-left transition-colors ${
-                        activeFolderId === folder.id
+                        isCurrent
                           ? 'border-primary/40 bg-primary/10'
-                          : 'border-dashed border-border/60 bg-accent/10 hover:bg-accent/25'
-                      } ${onSelectFolder ? '' : 'cursor-default'}`}
+                          : 'border-border/60 bg-accent/10 hover:bg-accent/25'
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className={`truncate text-xs font-medium ${activeFolderId === folder.id ? 'text-primary' : 'text-foreground'}`}>{folder.name}</p>
+                          <p className={`truncate text-xs font-medium ${isCurrent ? 'text-primary' : 'text-foreground'}`}>
+                            {poll.internalName || poll.question || 'Untitled poll'}
+                          </p>
                           <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
-                            {activeFolderId === folder.id ? 'On Air · Folder' : 'Folder · Block ' + activeBlock}
+                            {isCurrent ? 'Loaded in Preview' : 'Click to load into Preview'}
                           </p>
                         </div>
-                        <span className="mako-chip bg-muted text-[9px] text-muted-foreground">FOLDER</span>
+                        <span className="mako-chip bg-muted text-[9px] text-muted-foreground">POLL</span>
                       </div>
                     </button>
-                  ))}
-                </>
+                  );
+                })
               )}
             </div>
           </div>
