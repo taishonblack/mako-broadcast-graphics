@@ -28,6 +28,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LoadPollDialog } from '@/components/poll-create/LoadPollDialog';
 import { ImportErrorDialog } from '@/components/poll-create/ImportErrorDialog';
+import { SceneTabs } from '@/components/poll-create/SceneTabs';
+import { usePollScenes } from '@/hooks/usePollScenes';
 import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
 import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
 import { QRScene } from '@/components/broadcast/scenes/QRScene';
