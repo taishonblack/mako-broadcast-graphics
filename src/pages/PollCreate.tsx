@@ -1666,23 +1666,6 @@ export default function PollCreate() {
     const id = window.setInterval(broadcastOutputHeartbeat, 1000);
     return () => window.clearInterval(id);
   }, []);
-  // Snapshot-request handshake — when an Output window mounts (or refreshes)
-  // it posts on OUTPUT_REQUEST_CHANNEL asking us to re-broadcast our current
-  // Program Preview. We bump `snapshotRequestNonce`, which is wired into the
-  // mirror effect's deps so it fires immediately. Without this the popup
-  // can hang on stale `localStorage` (or the mock fallback) when it was
-  // opened before any state changed.
-  const [snapshotRequestNonce, setSnapshotRequestNonce] = useState(0);
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    if (typeof BroadcastChannel === 'undefined') return;
-    let ch: BroadcastChannel | null = null;
-    try {
-      ch = new BroadcastChannel(OUTPUT_REQUEST_CHANNEL);
-      ch.onmessage = () => setSnapshotRequestNonce((n) => n + 1);
-    } catch { /* ignore */ }
-    return () => { try { ch?.close(); } catch { /* ignore */ } };
-  }, []);
   // Show MakoVote branding when the folder has no assets, or when no question
   // text or answer bars have been authored yet.
   const hasContent =
