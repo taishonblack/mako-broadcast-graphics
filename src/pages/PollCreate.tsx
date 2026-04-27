@@ -70,6 +70,7 @@ import {
   loadProjectPollingAssetFolders,
   PollingAssetFolderState,
   saveProjectPollingAssetFolders,
+  normalizeFolderState,
 } from '@/lib/polling-asset-folders';
 import { DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes } from '@/lib/operator-settings';
 
