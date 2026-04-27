@@ -645,7 +645,7 @@ export default function PollCreate() {
     // narrows the poll's enabled assets down to what should appear on
     // air (e.g. Question+QR hides answer bars; Lower Third hides QR).
     const sceneEnabled = filterAssetsForScene(
-      enabledAssets,
+      sceneFilteredEnabled,
       broadcastSceneFromSceneType(previewScene),
     );
     const sharedAssets = {
