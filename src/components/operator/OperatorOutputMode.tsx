@@ -206,17 +206,10 @@ export function OperatorOutputMode({
   void onShowBrandingChange; void onBrandingPositionChange;
   // onSelectPoll + pollsByBlock are no longer surfaced — the right-rail
   // panel now lists Scenes (not polls) within the active block.
-  void onSelectPoll;
+  void onSelectPoll; void projectPolls;
 
   // (pollsByBlock removed — Scenes panel replaces the per-block polls list.)
 
-  // Map a poll → its folder name (folders define what the operator sees as the
-  // organizational label for each block, e.g. "1st Com"). Folder names are looked
-  // up by blockLetter; if multiple folders share a block, the first one wins.
-  const folderNameByBlock = folders.reduce<Record<BlockLetter, string | undefined>>((acc, f) => {
-    if (!acc[f.blockLetter]) acc[f.blockLetter] = f.name;
-    return acc;
-  }, { A: undefined, B: undefined, C: undefined, D: undefined, E: undefined });
 
   // Group folders by block so they appear in the output even when no polls
   // have been created yet. This is what the operator sees as the "block
