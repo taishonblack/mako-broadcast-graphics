@@ -268,6 +268,10 @@ export default function PollCreate() {
 
   const [pollId, setPollId] = useState<string | undefined>(routeId);
   const [loadingExisting, setLoadingExisting] = useState(!!routeId);
+  // Scene management — Project > Block > Folder/Poll > Scene > Assets.
+  // When a poll has zero scenes, the assets pane is greyed out until the
+  // operator creates one.
+  const sceneController = usePollScenes(pollId);
   const [saving, setSaving] = useState<'draft' | 'project' | null>(null);
   const [projectId, setProjectId] = useState<string | undefined>(undefined);
   const [projectName, setProjectName] = useState<string | undefined>(undefined);
