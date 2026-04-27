@@ -192,7 +192,15 @@ export function AssetTransformControls({ assetId, assetLabel, folderLabel, folde
                         <div className="flex items-center justify-between gap-2">
                           <Label className="text-[10px] text-muted-foreground">{control.label}</Label>
                           <div className="flex items-center gap-2">
-                            <span className="text-[10px] font-mono text-muted-foreground">{control.format ? control.format(Number(value)) : value}</span>
+                            <TransformValueInput
+                              field={control.field}
+                              value={Number(value)}
+                              min={control.min}
+                              max={control.max}
+                              step={control.step}
+                              disabled={locked}
+                              onCommit={(next) => onChange(section.id, control.field, next)}
+                            />
                             <Button
                               type="button"
                               size="icon"
