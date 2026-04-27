@@ -15,7 +15,6 @@ import type { SceneType } from './scenes';
 export type BroadcastSceneId =
   | 'questionQr'
   | 'liveResults'
-  | 'finalResults'
   | 'lowerThird';
 
 export interface BroadcastScene {
@@ -29,6 +28,9 @@ export interface BroadcastScene {
    *  intersects this with the poll's enabled assets, so an asset that
    *  isn't part of the poll never shows up even if a scene allows it. */
   visibleAssets: AssetId[];
+  /** When true, the scene appears in the bar but is not yet wired up.
+   *  The selector renders it greyed out and ignores clicks. */
+  disabled?: boolean;
 }
 
 const BASE: AssetId[] = ['question', 'subheadline', 'background', 'logo'];
@@ -47,18 +49,11 @@ export const BROADCAST_SCENES: BroadcastScene[] = [
   },
   {
     id: 'liveResults',
-    label: 'Live Results',
-    shortLabel: 'Live Results',
+    label: 'Results',
+    shortLabel: 'Results',
     sceneType: 'results',
     // QR stays visible — voting is still open during live results.
     visibleAssets: [...BASE, 'qr', 'answers', 'voterTally', 'answerType'],
-  },
-  {
-    id: 'finalResults',
-    label: 'Final Results',
-    shortLabel: 'Final',
-    sceneType: 'results',
-    visibleAssets: [...BASE, 'answers', 'voterTally', 'answerType'],
   },
   {
     id: 'lowerThird',
@@ -66,6 +61,7 @@ export const BROADCAST_SCENES: BroadcastScene[] = [
     shortLabel: 'L3',
     sceneType: 'lowerThird',
     visibleAssets: [...BASE],
+    disabled: true,
   },
 ];
 

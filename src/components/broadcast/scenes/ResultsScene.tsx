@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { ThemePreset, PollOption, QRPosition } from '@/lib/types';
 import { AssetOverlay } from '@/components/broadcast/AssetOverlay';
 import { AssetColorMap, AssetTransformMap, AssetId } from '@/components/poll-create/polling-assets/types';
@@ -41,24 +40,7 @@ export function ResultsScene({
   transforms,
   assetColors,
 }: ResultsSceneProps) {
-  const [animProgress, setAnimProgress] = useState(0);
   const visibleAssets = new Set(enabledAssetIds ?? ['question', 'answers', 'logo']);
-
-  useEffect(() => {
-    setAnimProgress(0);
-    const start = performance.now();
-    const duration = 1200;
-    const tick = () => {
-      const elapsed = performance.now() - start;
-      const t = Math.min(elapsed / duration, 1);
-      const eased = 1 - Math.pow(1 - t, 3);
-      setAnimProgress(eased);
-      if (t < 1) requestAnimationFrame(tick);
-    };
-    requestAnimationFrame(tick);
-  }, [totalVotes]);
-
-  const maxVotes = Math.max(...options.map((o) => o.votes));
 
   return (
     <div
@@ -89,9 +71,7 @@ export function ResultsScene({
         <div className="w-full space-y-10" style={getAssetTransformStyle(transforms?.answers)}>
           {options.map((option, i) => {
             const pct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
-            const isWinner = option.votes === maxVotes;
             const color = colors[i % colors.length];
-            const animatedPct = pct * animProgress;
 
             return (
               <div key={option.id} className="flex flex-col gap-3">
@@ -101,17 +81,12 @@ export function ResultsScene({
                     style={{ color: assetColors?.answers?.textPrimary ?? theme.textPrimary, fontSize: '44px' }}
                   >
                     {option.text}
-                    {isWinner && (
-                      <span className="ml-6 font-mono" style={{ color: colors[0], fontSize: '24px' }}>
-                        ★ WINNER
-                      </span>
-                    )}
                   </span>
                   <span
                     className="font-bold font-mono tabular-nums"
                     style={{ color, fontSize: '72px' }}
                   >
-                    {Math.round(animatedPct)}%
+                    {Math.round(pct)}%
                   </span>
                 </div>
                 <div
@@ -121,10 +96,9 @@ export function ResultsScene({
                   <div
                     className="h-full rounded-full"
                     style={{
-                      width: `${animatedPct}%`,
+                      width: `${pct}%`,
                       backgroundColor: color,
-                      boxShadow: isWinner ? `0 0 32px ${color}` : 'none',
-                      transition: 'box-shadow 0.3s ease',
+                      boxShadow: 'none',
                     }}
                   />
                 </div>
@@ -132,7 +106,7 @@ export function ResultsScene({
                   className="font-mono"
                   style={{ color: assetColors?.answers?.textSecondary ?? theme.textSecondary, fontSize: '22px' }}
                 >
-                  {Math.round(option.votes * animProgress).toLocaleString()} votes
+                  {option.votes.toLocaleString()} votes
                 </span>
               </div>
             );
