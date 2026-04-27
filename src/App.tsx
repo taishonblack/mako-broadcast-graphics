@@ -21,13 +21,13 @@ const queryClient = new QueryClient();
 const LegacyGraphicsRedirect = () => {
   const { id } = useParams<{ id: string }>();
 
-  return <Navigate to={id ? `/polls/${id}?mode=build` : "/polls/new?mode=build"} replace />;
+  return <Navigate to={id ? `/polls/${id}?mode=build` : "/workspace?mode=build"} replace />;
 };
 
 const LegacyPollEditRedirect = () => {
   const { id } = useParams<{ id: string }>();
 
-  return <Navigate to={id ? `/polls/${id}?mode=build` : "/polls/new?mode=build"} replace />;
+  return <Navigate to={id ? `/polls/${id}?mode=build` : "/workspace?mode=build"} replace />;
 };
 
 const App = () => (
@@ -39,13 +39,13 @@ const App = () => (
         <Routes>
           <Route path="/" element={<Login />} />
           <Route path="/projects" element={<ProjectLauncher />} />
-          <Route path="/dashboard" element={<Navigate to="/polls/new?mode=build" replace />} />
+          <Route path="/dashboard" element={<Navigate to="/workspace?mode=build" replace />} />
           <Route path="/blocks" element={<ProtectedRoute><Blocks /></ProtectedRoute>} />
           <Route path="/backgrounds" element={<ProtectedRoute><BackgroundGallery /></ProtectedRoute>} />
           <Route path="/statistics" element={<ProtectedRoute><Statistics /></ProtectedRoute>} />
           <Route path="/settings" element={<ProtectedRoute><OperatorSettings /></ProtectedRoute>} />
           <Route path="/settings/security-audit" element={<ProtectedRoute><SecurityAudit /></ProtectedRoute>} />
-          <Route path="/polls/new" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
+          <Route path="/polls/new" element={<Navigate to="/workspace?mode=build" replace />} />
           <Route path="/workspace" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
           <Route path="/polls/:id" element={<ProtectedRoute><PollCreate /></ProtectedRoute>} />
           <Route path="/polls/:id/edit" element={<ProtectedRoute><LegacyPollEditRedirect /></ProtectedRoute>} />
