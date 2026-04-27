@@ -184,8 +184,21 @@ export function PollingAssetsPane({
 
           return (
             <div key={folder.id} className={`rounded-lg border overflow-hidden transition-colors ${isActiveFolder ? 'border-primary/40 bg-primary/5' : 'border-border/60 bg-card/40'}`}>
-            <div className="flex items-center gap-2 px-2.5 py-2 border-b border-border/40 bg-background/30">
-              <button type="button" onClick={() => onSelectFolder(folder.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+            <div className={`flex items-center gap-2 px-2.5 py-2 border-b border-border/40 bg-background/30 ${
+              isActiveFolder && selectedAssetId === null ? 'ring-1 ring-inset ring-primary/40 bg-primary/10' : ''
+            }`}>
+              <button
+                type="button"
+                onClick={() => {
+                  // Folder-level select: activate the folder AND clear any
+                  // single-asset selection so the Inspector shows folder
+                  // properties and every asset card highlights as a group.
+                  onSelectFolder(folder.id);
+                  onSelectAsset(null);
+                }}
+                className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                title="Select folder (selects all assets inside)"
+              >
                 <FolderOpen className={`w-3.5 h-3.5 shrink-0 ${isActiveFolder ? 'text-primary' : 'text-muted-foreground'}`} />
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-medium text-foreground truncate flex items-center gap-1">
@@ -534,6 +547,7 @@ export function PollingAssetsPane({
                                         key={id}
                                         meta={ASSET_REGISTRY[id]}
                                         isSelected={selectedAssetId === id}
+                                        groupSelected={isActiveFolder && selectedAssetId === null}
                                         inactive={(folder.inactiveAssetIds ?? []).includes(id)}
                                         onToggleInactive={
                                           onToggleAssetInactive
@@ -711,7 +725,7 @@ function SceneAddButton({
 }
 
 function AssetCard({
-  meta, isSelected, onSelect, onRemove,
+  meta, isSelected, groupSelected = false, onSelect, onRemove,
   onDragStart, onDragOver, onDrop, children,
   inactive = false,
   onToggleInactive,
@@ -719,6 +733,10 @@ function AssetCard({
 }: {
   meta: AssetMeta;
   isSelected: boolean;
+  /** True when the parent folder is selected as a whole — every asset
+   *  card in the folder shows a soft group highlight so the operator sees
+   *  what "select folder" encompasses. */
+  groupSelected?: boolean;
   onSelect: () => void;
   onRemove: () => void;
   onDragStart: () => void;
@@ -744,7 +762,9 @@ function AssetCard({
       className={`group rounded-lg border transition-all overflow-hidden cursor-pointer ${inactive ? 'opacity-50' : ''} ${
         isSelected
           ? 'border-primary/50 bg-primary/5 ring-1 ring-primary/20'
-          : 'border-border/60 bg-card/40 hover:border-border'
+          : groupSelected
+            ? 'border-primary/30 bg-primary/[0.03] ring-1 ring-primary/10 hover:border-primary/40'
+            : 'border-border/60 bg-card/40 hover:border-border'
       }`}
     >
       <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-border/40 bg-background/30">
