@@ -1030,18 +1030,62 @@ export default function PollCreate() {
   // independent. `assetTransforms` continues to be the live map every scene
   // and the inspector reads from, while writes flow through `setAssetTransforms`
   // and only mutate the active viewport's slice.
-  const [assetTransformSet, setAssetTransformSet] = useState<AssetTransformSet>(() => createDefaultTransformSet());
+  // Per-scene transform sets. Each scene gets its own AssetTransformSet so
+  // moving / scaling the QR (or any asset) in Scene 1 does NOT bleed into
+  // Scene 2. We key by sceneId; when no scene is active we fall back to a
+  // shared bucket so the inspector still works on poll-level edits.
+  const NO_SCENE_KEY = '__no_scene__';
   const [transformViewport, setTransformViewport] = useState<TransformViewport>('program');
+  const [sceneTransformSets, setSceneTransformSets] = useState<Record<string, AssetTransformSet>>(
+    () => ({ [NO_SCENE_KEY]: createDefaultTransformSet() }),
+  );
+  const activeTransformKey = sceneController.activeSceneId ?? NO_SCENE_KEY;
+  // Lazily seed a transform set for a newly-active scene by copying from
+  // the previously-active scene (or the no-scene bucket). This keeps "new
+  // scene inherits current scene transforms" behavior without needing to
+  // hook the create flow directly.
+  const lastActiveKeyRef = useRef<string>(activeTransformKey);
+  useEffect(() => {
+    setSceneTransformSets((current) => {
+      if (current[activeTransformKey]) {
+        lastActiveKeyRef.current = activeTransformKey;
+        return current;
+      }
+      const seedFrom = current[lastActiveKeyRef.current] ?? current[NO_SCENE_KEY] ?? createDefaultTransformSet();
+      // Deep clone so subsequent edits in the new scene don't mutate the source.
+      const cloned: AssetTransformSet = JSON.parse(JSON.stringify(seedFrom));
+      lastActiveKeyRef.current = activeTransformKey;
+      return { ...current, [activeTransformKey]: cloned };
+    });
+  }, [activeTransformKey]);
+  const assetTransformSet: AssetTransformSet =
+    sceneTransformSets[activeTransformKey] ?? sceneTransformSets[NO_SCENE_KEY];
   const assetTransforms: AssetTransformMap = assetTransformSet[transformViewport];
+  const setAssetTransformSet = useCallback(
+    (updater: AssetTransformSet | ((current: AssetTransformSet) => AssetTransformSet)) => {
+      setSceneTransformSets((all) => {
+        const key = lastActiveKeyRef.current;
+        const slice = all[key] ?? createDefaultTransformSet();
+        const next = typeof updater === 'function'
+          ? (updater as (c: AssetTransformSet) => AssetTransformSet)(slice)
+          : updater;
+        if (next === slice) return all;
+        return { ...all, [key]: next };
+      });
+    },
+    [],
+  );
   const setAssetTransforms = useCallback(
     (updater: AssetTransformMap | ((current: AssetTransformMap) => AssetTransformMap)) => {
-      setAssetTransformSet((current) => {
-        const slice = current[transformViewport];
+      setSceneTransformSets((all) => {
+        const key = lastActiveKeyRef.current;
+        const set = all[key] ?? createDefaultTransformSet();
+        const slice = set[transformViewport];
         const next = typeof updater === 'function'
           ? (updater as (c: AssetTransformMap) => AssetTransformMap)(slice)
           : updater;
-        if (next === slice) return current;
-        return { ...current, [transformViewport]: next };
+        if (next === slice) return all;
+        return { ...all, [key]: { ...set, [transformViewport]: next } };
       });
     },
     [transformViewport],
@@ -1643,7 +1687,7 @@ export default function PollCreate() {
         nextState.activeFolderId = savedActiveFolderId;
       }
       setFolderState(nextState);
-      setAssetTransformSet(createDefaultTransformSet());
+      setSceneTransformSets({ [NO_SCENE_KEY]: createDefaultTransformSet() });
       setAssetColorSet(createDefaultColorSet());
       return;
     }
@@ -1656,7 +1700,7 @@ export default function PollCreate() {
           nextState.activeFolderId = savedActiveFolderId;
         }
         setFolderState(nextState);
-        setAssetTransformSet(createDefaultTransformSet());
+        setSceneTransformSets({ [NO_SCENE_KEY]: createDefaultTransformSet() });
         setAssetColorSet(createDefaultColorSet());
         setFoldersLoadedForProject(projectId);
       })
@@ -1667,7 +1711,7 @@ export default function PollCreate() {
           nextState.activeFolderId = savedActiveFolderId;
         }
         setFolderState(nextState);
-        setAssetTransformSet(createDefaultTransformSet());
+        setSceneTransformSets({ [NO_SCENE_KEY]: createDefaultTransformSet() });
         setAssetColorSet(createDefaultColorSet());
         setFoldersLoadedForProject(projectId);
       });
