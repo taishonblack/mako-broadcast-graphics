@@ -1,0 +1,424 @@
+import { useEffect, useMemo, useState } from 'react';
+import { OperatorLayout } from '@/components/layout/OperatorLayout';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { supabase } from '@/integrations/supabase/client';
+import { useAuth } from '@/hooks/useAuth';
+import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from 'recharts';
+
+interface AnalyticsRow {
+  id: string;
+  project_id: string;
+  poll_id: string;
+  answer_id: string | null;
+  device_type: string;
+  browser: string;
+  os: string;
+  country: string;
+  region: string;
+  created_at: string;
+}
+
+interface PollLite {
+  id: string;
+  question: string;
+  internal_name: string;
+  answers: Array<{ id: string; label: string }>;
+}
+
+interface LiveStateLite {
+  active_poll_id: string | null;
+  voting_state: string;
+  project_id: string;
+}
+
+const REFRESH_MS = 2500;
+
+export default function Statistics() {
+  const { user } = useAuth();
+  const [rows, setRows] = useState<AnalyticsRow[]>([]);
+  const [polls, setPolls] = useState<Record<string, PollLite>>({});
+  const [live, setLive] = useState<LiveStateLite | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+
+    const load = async () => {
+      const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+      const [{ data: aRows }, { data: pollRows }, { data: liveRows }] = await Promise.all([
+        supabase
+          .from('vote_analytics' as never)
+          .select('*')
+          .gte('created_at', since)
+          .order('created_at', { ascending: false })
+          .limit(5000),
+        supabase
+          .from('polls')
+          .select('id, question, internal_name, answers')
+          .eq('user_id', user.id)
+          .order('updated_at', { ascending: false })
+          .limit(200),
+        supabase
+          .from('project_live_state')
+          .select('active_poll_id, voting_state, project_id')
+          .order('updated_at', { ascending: false })
+          .limit(1),
+      ]);
+      if (cancelled) return;
+      setRows((aRows ?? []) as unknown as AnalyticsRow[]);
+      const pmap: Record<string, PollLite> = {};
+      (pollRows ?? []).forEach((p: any) => {
+        pmap[p.id] = {
+          id: p.id,
+          question: p.question,
+          internal_name: p.internal_name,
+          answers: Array.isArray(p.answers) ? p.answers : [],
+        };
+      });
+      setPolls(pmap);
+      setLive((liveRows?.[0] as LiveStateLite) ?? null);
+      setLoading(false);
+    };
+
+    void load();
+    const id = window.setInterval(load, REFRESH_MS);
+    return () => {
+      cancelled = true;
+      window.clearInterval(id);
+    };
+  }, [user]);
+
+  const activePollId = live?.active_poll_id ?? null;
+  const isLive = live?.voting_state === 'open';
+  const activePoll = activePollId ? polls[activePollId] : null;
+
+  const liveRows = useMemo(
+    () => (activePollId ? rows.filter((r) => r.poll_id === activePollId) : []),
+    [rows, activePollId],
+  );
+
+  const totalVotes = liveRows.length;
+
+  const votesPerMinute = useMemo(() => {
+    const cutoff = Date.now() - 60_000;
+    return liveRows.filter((r) => new Date(r.created_at).getTime() >= cutoff).length;
+  }, [liveRows]);
+
+  const answerBreakdown = useMemo(() => {
+    const counts = new Map<string, number>();
+    liveRows.forEach((r) => {
+      if (!r.answer_id) return;
+      counts.set(r.answer_id, (counts.get(r.answer_id) ?? 0) + 1);
+    });
+    const items = (activePoll?.answers ?? []).map((a) => ({
+      id: a.id,
+      label: a.label || 'Untitled',
+      votes: counts.get(a.id) ?? 0,
+    }));
+    const max = Math.max(1, ...items.map((i) => i.votes));
+    const total = items.reduce((s, i) => s + i.votes, 0) || 1;
+    return items
+      .map((i) => ({ ...i, pct: (i.votes / total) * 100, rel: (i.votes / max) * 100 }))
+      .sort((a, b) => b.votes - a.votes);
+  }, [liveRows, activePoll]);
+
+  const leading = answerBreakdown[0]?.votes ? answerBreakdown[0] : null;
+
+  // Audience breakdown across the entire 24h window (not just active poll)
+  const audience = useMemo(() => {
+    const tally = (key: keyof AnalyticsRow) => {
+      const map = new Map<string, number>();
+      rows.forEach((r) => {
+        const k = String(r[key] ?? 'Unknown') || 'Unknown';
+        map.set(k, (map.get(k) ?? 0) + 1);
+      });
+      const entries = Array.from(map.entries()).sort((a, b) => b[1] - a[1]);
+      const total = entries.reduce((s, [, v]) => s + v, 0) || 1;
+      return entries.map(([label, count]) => ({ label, count, pct: (count / total) * 100 }));
+    };
+    return {
+      device: tally('device_type'),
+      browser: tally('browser'),
+      os: tally('os'),
+      country: tally('country').slice(0, 5),
+      region: tally('region').slice(0, 5),
+      total: rows.length,
+    };
+  }, [rows]);
+
+  // Timeline: bucket active poll votes into 1-minute slots over last 30 minutes
+  const timeline = useMemo(() => {
+    const now = Date.now();
+    const buckets: { t: number; votes: number; label: string }[] = [];
+    for (let i = 29; i >= 0; i--) {
+      const t = now - i * 60_000;
+      const d = new Date(t);
+      buckets.push({
+        t,
+        votes: 0,
+        label: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+      });
+    }
+    liveRows.forEach((r) => {
+      const ts = new Date(r.created_at).getTime();
+      const idx = 29 - Math.floor((now - ts) / 60_000);
+      if (idx >= 0 && idx < 30) buckets[idx].votes += 1;
+    });
+    return buckets;
+  }, [liveRows]);
+
+  const peak = useMemo(() => Math.max(0, ...timeline.map((b) => b.votes)), [timeline]);
+
+  // History — group rows by poll
+  const history = useMemo(() => {
+    const map = new Map<string, { pollId: string; total: number; latest: string }>();
+    rows.forEach((r) => {
+      const cur = map.get(r.poll_id);
+      if (cur) {
+        cur.total += 1;
+        if (r.created_at > cur.latest) cur.latest = r.created_at;
+      } else {
+        map.set(r.poll_id, { pollId: r.poll_id, total: 1, latest: r.created_at });
+      }
+    });
+    return Array.from(map.values())
+      .sort((a, b) => (a.latest < b.latest ? 1 : -1))
+      .slice(0, 25);
+  }, [rows]);
+
+  return (
+    <OperatorLayout>
+      <div className="flex-1 overflow-auto p-6 space-y-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h1 className="text-2xl font-bold text-foreground">Statistics</h1>
+            <p className="text-xs text-muted-foreground mt-1 font-mono">
+              Anonymous analytics · retained for 24 hours and automatically deleted.
+            </p>
+          </div>
+          {isLive && (
+            <Badge className="bg-mako-error/20 text-mako-error border-mako-error/30 gap-1.5">
+              <span className="w-1.5 h-1.5 rounded-full bg-mako-error animate-pulse" />
+              LIVE
+            </Badge>
+          )}
+        </div>
+
+        {/* Live Voting */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground font-mono">
+              Live Voting
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {!activePoll ? (
+              <div className="text-sm text-muted-foreground py-8 text-center">
+                {loading ? 'Loading…' : 'No active poll. Open voting on a poll to see live metrics.'}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 lg:grid-cols-[auto,1fr] gap-6">
+                <div className="grid grid-cols-3 gap-6 lg:gap-8 lg:border-r lg:border-border lg:pr-8">
+                  <Stat label="Total Votes" value={totalVotes.toLocaleString()} big />
+                  <Stat label="Per Minute" value={votesPerMinute.toLocaleString()} />
+                  <Stat
+                    label="Leading"
+                    value={leading ? `${Math.round(leading.pct)}%` : '—'}
+                    sub={leading?.label}
+                  />
+                </div>
+                <div className="space-y-2">
+                  {answerBreakdown.length === 0 ? (
+                    <div className="text-sm text-muted-foreground">Waiting for votes…</div>
+                  ) : (
+                    answerBreakdown.map((a) => (
+                      <div key={a.id} className="space-y-1">
+                        <div className="flex justify-between text-xs">
+                          <span className="text-foreground truncate pr-2">{a.label}</span>
+                          <span className="font-mono text-muted-foreground">
+                            {a.votes} · {Math.round(a.pct)}%
+                          </span>
+                        </div>
+                        <div className="h-2 bg-muted/40 rounded-full overflow-hidden">
+                          <div
+                            className="h-full bg-primary transition-[width] duration-500"
+                            style={{ width: `${Math.max(2, a.rel)}%` }}
+                          />
+                        </div>
+                      </div>
+                    ))
+                  )}
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Audience Breakdown */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground font-mono">
+              Audience Breakdown
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {audience.total === 0 ? (
+              <div className="text-sm text-muted-foreground py-8 text-center">
+                No audience data in the last 24 hours.
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                <BreakdownList title="Device" items={audience.device} />
+                <BreakdownList title="Browser" items={audience.browser} />
+                <BreakdownList title="OS" items={audience.os} />
+                <div className="space-y-3">
+                  <BreakdownList title="Country" items={audience.country} />
+                  <p className="text-[10px] uppercase tracking-wider text-muted-foreground/70 font-mono">
+                    Approximate audience location
+                  </p>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {/* Timeline */}
+        <Card>
+          <CardHeader className="pb-3 flex flex-row items-center justify-between">
+            <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground font-mono">
+              Voting Timeline · Last 30 min
+            </CardTitle>
+            <span className="text-xs font-mono text-muted-foreground">Peak {peak}/min</span>
+          </CardHeader>
+          <CardContent>
+            <div className="h-[220px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={timeline}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" opacity={0.3} />
+                  <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} interval={4} />
+                  <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} width={28} />
+                  <Tooltip
+                    contentStyle={{
+                      background: 'hsl(var(--background))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: 8,
+                      fontSize: 12,
+                    }}
+                  />
+                  <Line
+                    type="monotone"
+                    dataKey="votes"
+                    stroke="hsl(var(--primary))"
+                    strokeWidth={2}
+                    dot={false}
+                    isAnimationActive={false}
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Poll History */}
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground font-mono">
+              Poll History · Last 24h
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            {history.length === 0 ? (
+              <div className="text-sm text-muted-foreground py-6 text-center">
+                No polls received votes in the last 24 hours.
+              </div>
+            ) : (
+              <div className="overflow-hidden rounded-md border border-border">
+                <table className="w-full text-sm">
+                  <thead className="bg-muted/30">
+                    <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground font-mono">
+                      <th className="px-3 py-2">Poll</th>
+                      <th className="px-3 py-2 w-[100px]">Votes</th>
+                      <th className="px-3 py-2 w-[100px]">Status</th>
+                      <th className="px-3 py-2 w-[160px]">Last vote</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {history.map((h) => {
+                      const p = polls[h.pollId];
+                      const status = activePollId === h.pollId && isLive ? 'open' : 'closed';
+                      return (
+                        <tr key={h.pollId} className="border-t border-border/50">
+                          <td className="px-3 py-2 text-foreground truncate max-w-[420px]">
+                            {p?.internal_name || p?.question || h.pollId.slice(0, 8)}
+                          </td>
+                          <td className="px-3 py-2 font-mono">{h.total}</td>
+                          <td className="px-3 py-2">
+                            <Badge
+                              variant="outline"
+                              className={
+                                status === 'open'
+                                  ? 'border-mako-error/40 text-mako-error'
+                                  : 'border-border text-muted-foreground'
+                              }
+                            >
+                              {status}
+                            </Badge>
+                          </td>
+                          <td className="px-3 py-2 text-muted-foreground font-mono text-xs">
+                            {new Date(h.latest).toLocaleTimeString()}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            )}
+            <p className="mt-3 text-xs text-muted-foreground">
+              CSV export coming in the next iteration.
+            </p>
+          </CardContent>
+        </Card>
+      </div>
+    </OperatorLayout>
+  );
+}
+
+function Stat({ label, value, sub, big }: { label: string; value: string; sub?: string; big?: boolean }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">{label}</div>
+      <div className={big ? 'text-4xl font-bold tabular-nums text-foreground' : 'text-2xl font-semibold tabular-nums text-foreground'}>
+        {value}
+      </div>
+      {sub && <div className="text-xs text-muted-foreground truncate max-w-[180px]">{sub}</div>}
+    </div>
+  );
+}
+
+function BreakdownList({ title, items }: { title: string; items: { label: string; count: number; pct: number }[] }) {
+  return (
+    <div>
+      <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono mb-2">{title}</div>
+      <div className="space-y-1.5">
+        {items.length === 0 ? (
+          <div className="text-xs text-muted-foreground">—</div>
+        ) : (
+          items.map((i) => (
+            <div key={i.label} className="space-y-1">
+              <div className="flex justify-between text-xs">
+                <span className="text-foreground truncate pr-2">{i.label}</span>
+                <span className="font-mono text-muted-foreground">{Math.round(i.pct)}%</span>
+              </div>
+              <div className="h-1 bg-muted/40 rounded-full overflow-hidden">
+                <div className="h-full bg-primary/70" style={{ width: `${Math.max(2, i.pct)}%` }} />
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+    </div>
+  );
+}

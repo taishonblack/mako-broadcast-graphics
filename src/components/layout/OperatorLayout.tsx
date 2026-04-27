@@ -1,12 +1,13 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
-import { PlusCircle, Settings, FolderOpen, Grid3x3, Image as ImageIcon } from 'lucide-react';
+import { PlusCircle, Settings, FolderOpen, Grid3x3, Image as ImageIcon, BarChart3 } from 'lucide-react';
 
 const navItems = [
   { icon: FolderOpen, label: 'Projects', path: '/projects' },
   { icon: PlusCircle, label: 'Workspace', path: '/workspace' },
   { icon: Grid3x3, label: 'Blocks', path: '/blocks' },
   { icon: ImageIcon, label: 'Background Gallery', path: '/backgrounds' },
+  { icon: BarChart3, label: 'Statistics', path: '/statistics' },
 ];
 
 export function OperatorLayout({ children }: { children: ReactNode }) {

@@ -666,6 +666,48 @@ export type Database = {
         }
         Relationships: []
       }
+      vote_analytics: {
+        Row: {
+          answer_id: string | null
+          browser: string
+          country: string
+          created_at: string
+          device_type: string
+          id: string
+          os: string
+          poll_id: string
+          project_id: string
+          region: string
+          session_id: string
+        }
+        Insert: {
+          answer_id?: string | null
+          browser?: string
+          country?: string
+          created_at?: string
+          device_type?: string
+          id?: string
+          os?: string
+          poll_id: string
+          project_id: string
+          region?: string
+          session_id: string
+        }
+        Update: {
+          answer_id?: string | null
+          browser?: string
+          country?: string
+          created_at?: string
+          device_type?: string
+          id?: string
+          os?: string
+          poll_id?: string
+          project_id?: string
+          region?: string
+          session_id?: string
+        }
+        Relationships: []
+      }
       workspace_preferences: {
         Row: {
           center_pane_height: number | null
@@ -721,6 +763,7 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      cleanup_vote_analytics: { Args: never; Returns: undefined }
       get_viewer_poll_by_slug: {
         Args: { _slug: string }
         Returns: {
