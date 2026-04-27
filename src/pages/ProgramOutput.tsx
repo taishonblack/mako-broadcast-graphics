@@ -19,6 +19,7 @@ import {
   OutputStatePayload,
   readOutputState,
   readOutputLock,
+  requestOutputSnapshot,
 } from '@/lib/output-state';
 import { Poll } from '@/lib/types';
 import { DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/types';
@@ -105,6 +106,19 @@ export default function ProgramOutput() {
   useEffect(() => { pushLog(`mount id=${id ?? '∅'} initialPoll=${initialEffective?.poll?.id ?? 'fallback'} scene=${initialEffective?.scene ?? 'fullscreen'} locked=${Boolean(initialLock?.locked)}`); }, []); // eslint-disable-line react-hooks/exhaustive-deps
   useEffect(() => { pushLog(`scene → ${scene}`); }, [scene]);
   useEffect(() => { pushLog(`poll → id=${poll.id} q="${(poll.question || '∅').slice(0, 40)}" opts=${poll.options.length}`); }, [poll]);
+
+  // Ask the operator workspace to push us a fresh Program Preview snapshot.
+  // Without this handshake, opening the Output popup AFTER the operator made
+  // changes leaves us rendering whatever was last written to localStorage —
+  // or the mockPolls fallback when localStorage is empty. We retry a few
+  // times in case the operator window hasn't subscribed yet.
+  useEffect(() => {
+    pushLog('requesting snapshot from operator…');
+    requestOutputSnapshot();
+    const t1 = window.setTimeout(() => requestOutputSnapshot(), 250);
+    const t2 = window.setTimeout(() => requestOutputSnapshot(), 1000);
+    return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Auto-open the overlay when the frame would otherwise be blank
   // (no question + no layers + no branding). Operators can dismiss with "?".
