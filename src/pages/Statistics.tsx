@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from 'recharts';
@@ -33,6 +35,44 @@ interface LiveStateLite {
 }
 
 const REFRESH_MS = 2500;
+
+function downloadCSV(filename: string, rows: AnalyticsRow[], pollLookup: Record<string, PollLite>) {
+  const header = ['timestamp', 'poll_id', 'poll_name', 'answer_id', 'answer_label', 'device_type', 'browser', 'os', 'country', 'region'];
+  const escape = (v: string) => {
+    const s = String(v ?? '');
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [header.join(',')];
+  rows.forEach((r) => {
+    const poll = pollLookup[r.poll_id];
+    const answerLabel = poll?.answers.find((a) => a.id === r.answer_id)?.label ?? '';
+    lines.push(
+      [
+        r.created_at,
+        r.poll_id,
+        poll?.internal_name || poll?.question || '',
+        r.answer_id ?? '',
+        answerLabel,
+        r.device_type,
+        r.browser,
+        r.os,
+        r.country,
+        r.region,
+      ]
+        .map(escape)
+        .join(','),
+    );
+  });
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 export default function Statistics() {
   const { user } = useAuth();
@@ -151,7 +191,7 @@ export default function Statistics() {
   // Timeline: bucket active poll votes into 1-minute slots over last 30 minutes
   const timeline = useMemo(() => {
     const now = Date.now();
-    const buckets: { t: number; votes: number; label: string }[] = [];
+    const buckets: { t: number; votes: number; label: string; iso: string }[] = [];
     for (let i = 29; i >= 0; i--) {
       const t = now - i * 60_000;
       const d = new Date(t);
@@ -159,6 +199,7 @@ export default function Statistics() {
         t,
         votes: 0,
         label: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+        iso: d.toISOString(),
       });
     }
     liveRows.forEach((r) => {
@@ -170,6 +211,8 @@ export default function Statistics() {
   }, [liveRows]);
 
   const peak = useMemo(() => Math.max(0, ...timeline.map((b) => b.votes)), [timeline]);
+  const windowStart = timeline[0]?.label ?? '';
+  const windowEnd = timeline[timeline.length - 1]?.label ?? '';
 
   // History — group rows by poll
   const history = useMemo(() => {
@@ -198,12 +241,45 @@ export default function Statistics() {
               Anonymous analytics · retained for 24 hours and automatically deleted.
             </p>
           </div>
-          {isLive && (
-            <Badge className="bg-mako-error/20 text-mako-error border-mako-error/30 gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-mako-error animate-pulse" />
-              LIVE
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {isLive && (
+              <Badge className="bg-mako-error/20 text-mako-error border-mako-error/30 gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-mako-error animate-pulse" />
+                LIVE
+              </Badge>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={rows.length === 0}
+              onClick={() =>
+                downloadCSV(
+                  `vote-analytics-24h-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.csv`,
+                  rows,
+                  polls,
+                )
+              }
+            >
+              <Download className="h-4 w-4" />
+              Export 24h CSV
+            </Button>
+            {activePoll && liveRows.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  downloadCSV(
+                    `vote-analytics-${(activePoll.internal_name || activePoll.question || activePoll.id).replace(/[^a-z0-9]+/gi, '-').slice(0, 40)}-30min.csv`,
+                    liveRows.filter((r) => Date.now() - new Date(r.created_at).getTime() <= 30 * 60_000),
+                    polls,
+                  )
+                }
+              >
+                <Download className="h-4 w-4" />
+                Export Active 30min
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Live Voting */}
@@ -287,9 +363,14 @@ export default function Statistics() {
         {/* Timeline */}
         <Card>
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground font-mono">
-              Voting Timeline · Last 30 min
-            </CardTitle>
+            <div className="space-y-1">
+              <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground font-mono">
+                Voting Timeline · Last 30 min
+              </CardTitle>
+              <p className="text-[11px] font-mono text-muted-foreground">
+                Window {windowStart} → {windowEnd}
+              </p>
+            </div>
             <span className="text-xs font-mono text-muted-foreground">Peak {peak}/min</span>
           </CardHeader>
           <CardContent>
@@ -300,11 +381,19 @@ export default function Statistics() {
                   <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} interval={4} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} width={28} />
                   <Tooltip
-                    contentStyle={{
-                      background: 'hsl(var(--background))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: 8,
-                      fontSize: 12,
+                    cursor={{ stroke: 'hsl(var(--border))' }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const p = payload[0].payload as { t: number; votes: number };
+                      const d = new Date(p.t);
+                      const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                      const date = d.toLocaleDateString();
+                      return (
+                        <div className="rounded-md border border-border bg-background px-3 py-2 text-xs shadow-md">
+                          <div className="font-mono text-muted-foreground">{date} · {time}</div>
+                          <div className="text-foreground font-semibold">{p.votes} vote{p.votes === 1 ? '' : 's'}/min</div>
+                        </div>
+                      );
                     }}
                   />
                   <Line
@@ -342,6 +431,7 @@ export default function Statistics() {
                       <th className="px-3 py-2 w-[100px]">Votes</th>
                       <th className="px-3 py-2 w-[100px]">Status</th>
                       <th className="px-3 py-2 w-[160px]">Last vote</th>
+                      <th className="px-3 py-2 w-[110px] text-right">Export</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -369,6 +459,23 @@ export default function Statistics() {
                           <td className="px-3 py-2 text-muted-foreground font-mono text-xs">
                             {new Date(h.latest).toLocaleTimeString()}
                           </td>
+                          <td className="px-3 py-2 text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2"
+                              onClick={() =>
+                                downloadCSV(
+                                  `vote-analytics-${(p?.internal_name || p?.question || h.pollId).replace(/[^a-z0-9]+/gi, '-').slice(0, 40)}.csv`,
+                                  rows.filter((r) => r.poll_id === h.pollId),
+                                  polls,
+                                )
+                              }
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              CSV
+                            </Button>
+                          </td>
                         </tr>
                       );
                     })}
@@ -377,7 +484,7 @@ export default function Statistics() {
               </div>
             )}
             <p className="mt-3 text-xs text-muted-foreground">
-              CSV export coming in the next iteration.
+              CSV exports include only anonymous metadata: timestamp, poll, answer, device, browser, OS, and approximate region.
             </p>
           </CardContent>
         </Card>
