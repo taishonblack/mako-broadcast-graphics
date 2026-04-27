@@ -270,24 +270,10 @@ export default function ProgramOutput() {
     setTotal(poll.totalVotes);
   }, [poll]);
 
-  // Simulate live vote updates
-  useEffect(() => {
-    // Don't simulate votes for an empty/placeholder poll — keeps the
-    // MakoVote wordmark visible on fullscreen until the operator adds a
-    // real question.
-    if (!poll.question.trim()) return;
-    const interval = setInterval(() => {
-      setLiveVotes(prev => {
-        const next = prev.map(v => v + Math.floor(Math.random() * 5));
-        setTotal(next.reduce((a, b) => a + b, 0));
-        return next;
-      });
-    }, 1500);
-    return () => clearInterval(interval);
-  }, [poll.question]);
-
   const liveOptions = poll.options.map((o, i) => ({ ...o, votes: displayVotes[i] ?? 0 }));
-  const colors = [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
+  const colors = assets.assetColors?.answers?.barColors?.length
+    ? assets.assetColors.answers.barColors
+    : [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
 
   const renderScene = () => {
     const sharedAssets = {
@@ -300,11 +286,13 @@ export default function ProgramOutput() {
       brandingPosition: assets.brandingPosition,
       enabledAssetIds: assets.enabledAssetIds,
       transforms: assets.transforms,
+      assetColors: assets.assetColors,
       wordmarkWeight: assets.wordmarkWeight,
       wordmarkTracking: assets.wordmarkTracking,
       wordmarkScale: assets.wordmarkScale,
       resultsMode: assets.resultsMode,
       resultsAnimationMs: assets.resultsAnimationMs,
+      resultsReplayKey: assets.resultsReplayKey,
     };
     const baseProps = {
       question: poll.question, options: liveOptions, totalVotes: displayTotal,
@@ -321,7 +309,7 @@ export default function ProgramOutput() {
     switch (scene) {
       case 'lowerThird': inner = <LowerThirdScene {...baseProps} />; break;
       case 'qr':
-        inner = <QRScene slug={poll.slug} theme={theme} enabledAssetIds={assets.enabledAssetIds} transforms={assets.transforms} qrVisible={assets.qrVisible} qrUrlVisible={assets.qrUrlVisible} debugVoteUrl={`https://makovote.app/vote/${poll.slug}`} />;
+        inner = <QRScene slug={poll.slug} theme={theme} enabledAssetIds={assets.enabledAssetIds} transforms={assets.transforms} assetColors={assets.assetColors} qrVisible={assets.qrVisible} qrUrlVisible={assets.qrUrlVisible} debugVoteUrl={`https://makovote.app/vote/${poll.slug}`} />;
         break;
       case 'results': inner = <ResultsScene {...baseProps} />; break;
       case 'fullscreen':

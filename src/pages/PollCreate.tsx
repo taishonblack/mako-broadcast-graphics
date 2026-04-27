@@ -722,6 +722,39 @@ export default function PollCreate() {
     return <div className="absolute inset-0" style={bgStyle}>{scene}</div>;
   };
 
+  function getProgramOutputPayload(poll: Poll = currentWorkspacePoll) {
+    const programTransforms = assetTransformSet.program;
+    const programAssetColors = assetColorSet.program;
+    const folder = getFolderById(folderState, folderState.activeFolderId);
+    const sceneEnabled = filterAssetsForScene(enabledAssets, broadcastSceneFromSceneType(previewScene));
+
+    return {
+      poll: { ...poll, options: poll.options?.length ? poll.options : previewOptions },
+      scene: previewScene,
+      layers: [],
+      assets: {
+        qrSize,
+        qrPosition: assetState.qrPosition,
+        qrVisible: assetState.qrVisible,
+        qrUrlVisible: assetState.qrUrlVisible,
+        showBranding,
+        brandingPosition,
+        enabledAssetIds: sceneEnabled,
+        transforms: programTransforms,
+        assetColors: programAssetColors,
+        wordmarkWeight: assetState.wordmarkWeight,
+        wordmarkTracking: assetState.wordmarkTracking,
+        wordmarkScale: assetState.wordmarkScale,
+        wordmarkShowGuides: assetState.wordmarkShowGuides,
+        tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
+        tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
+        resultsMode: folder?.resultsMode ?? DEFAULT_RESULTS_MODE,
+        resultsAnimationMs: folder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
+        resultsReplayKey,
+      },
+    };
+  }
+
   const setWorkspaceMode = (nextMode: OperatorMode) => {
     const nextParams = new URLSearchParams(searchParams);
     nextParams.set('mode', nextMode);
@@ -732,69 +765,13 @@ export default function PollCreate() {
   const handleTake = () => {
     setProgramScene(previewScene);
     if (projectId) void takeToProgram(projectId, previewScene as unknown as SceneName);
-    const folder = getFolderById(folderState, folderState.activeFolderId);
-    const sceneEnabled = filterAssetsForScene(
-      enabledAssets,
-      broadcastSceneFromSceneType(previewScene),
-    );
-    broadcastOutputState({
-      poll: currentWorkspacePoll,
-      scene: previewScene,
-      layers: [],
-      assets: {
-        qrSize,
-        qrPosition: assetState.qrPosition,
-        qrVisible: assetState.qrVisible,
-        qrUrlVisible: assetState.qrUrlVisible,
-        showBranding,
-        brandingPosition,
-        enabledAssetIds: sceneEnabled,
-        transforms: assetTransforms,
-        assetColors,
-        wordmarkWeight: assetState.wordmarkWeight,
-        wordmarkTracking: assetState.wordmarkTracking,
-        wordmarkScale: assetState.wordmarkScale,
-        wordmarkShowGuides: assetState.wordmarkShowGuides,
-        tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
-        tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
-        resultsMode: folder?.resultsMode ?? DEFAULT_RESULTS_MODE,
-        resultsAnimationMs: folder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
-      },
-    });
+    broadcastOutputState(getProgramOutputPayload());
   };
 
   const handleCut = () => {
     setProgramScene(previewScene);
     if (projectId) void cutToProgram(projectId, previewScene as unknown as SceneName);
-    const folder = getFolderById(folderState, folderState.activeFolderId);
-    const sceneEnabled = filterAssetsForScene(
-      enabledAssets,
-      broadcastSceneFromSceneType(previewScene),
-    );
-    broadcastOutputState({
-      poll: currentWorkspacePoll,
-      scene: previewScene,
-      layers: [],
-      assets: {
-        qrSize,
-        qrPosition: assetState.qrPosition,
-        qrVisible: assetState.qrVisible,
-        qrUrlVisible: assetState.qrUrlVisible,
-        showBranding,
-        brandingPosition,
-        enabledAssetIds: sceneEnabled,
-        transforms: assetTransforms,
-        assetColors,
-        wordmarkWeight: assetState.wordmarkWeight,
-        wordmarkTracking: assetState.wordmarkTracking,
-        wordmarkScale: assetState.wordmarkScale,
-        wordmarkShowGuides: assetState.wordmarkShowGuides,
-        tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
-        tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
-        resultsMode: folder?.resultsMode ?? DEFAULT_RESULTS_MODE,
-        resultsAnimationMs: folder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
-      },
-    });
+    broadcastOutputState(getProgramOutputPayload());
   };
 
   const handleGoLive = async () => {
@@ -827,31 +804,7 @@ export default function PollCreate() {
       options: livePoll.options?.length ? livePoll.options : previewOptions,
       answers: livePoll.options?.length ? livePoll.options : previewOptions,
     };
-    const snapshot = {
-      poll: snapshotPoll,
-      scene: previewScene,
-      layers: [],
-      slateActive: false,
-      assets: {
-        qrSize,
-        qrPosition: assetState.qrPosition,
-        qrVisible: assetState.qrVisible,
-        qrUrlVisible: assetState.qrUrlVisible,
-        showBranding,
-        brandingPosition,
-        enabledAssetIds: enabledAssets,
-        transforms: assetTransforms,
-        assetColors,
-        wordmarkWeight: assetState.wordmarkWeight,
-        wordmarkTracking: assetState.wordmarkTracking,
-        wordmarkScale: assetState.wordmarkScale,
-        wordmarkShowGuides: assetState.wordmarkShowGuides,
-        tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
-        tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
-        resultsMode: folder?.resultsMode ?? DEFAULT_RESULTS_MODE,
-        resultsAnimationMs: folder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
-      },
-    };
+    const snapshot = { ...getProgramOutputPayload(snapshotPoll), slateActive: false };
     broadcastOutputLock({ locked: true, snapshot, lockedAt: Date.now() });
     // Persist the snapshot to project_live_state so cross-network viewers
     // (mobile/desktop on /vote/:slug) can read the operator's color
@@ -1361,6 +1314,7 @@ export default function PollCreate() {
   const sceneFilteredEnabled = activeSceneVisible
     ? enabledAssets.filter((id) => activeSceneVisible.has(id as AssetId))
     : enabledAssets;
+
   const syncViewerVotingOpen = useCallback(async () => {
     if (!projectId) return;
     const savedMatch = !isUuid(currentWorkspacePoll.id)
@@ -1604,44 +1558,7 @@ export default function PollCreate() {
   // fullscreen surface so it stays in lockstep without requiring a manual
   // Take/Cut for purely cosmetic edits.
   useEffect(() => {
-    // Always mirror the PROGRAM viewport's transforms to Full Screen Output —
-    // switching the in-app preview tab to Mobile/Desktop must NOT alter what
-    // is being broadcast to the on-air output window.
-    const programTransforms = assetTransformSet.program;
-    const programAssetColors = assetColorSet.program;
-    // Apply scene visibility — the broadcast mirror must already reflect
-    // the operator's selected scene, otherwise Output would render every
-    // enabled asset regardless of which scene is staged.
-    const sceneEnabled = filterAssetsForScene(
-      enabledAssets,
-      broadcastSceneFromSceneType(previewScene),
-    );
-    broadcastOutputState({
-      poll: currentWorkspacePoll,
-      // Mirror Program Preview directly: the Full Screen Output is meant to
-      // be a live reflection of what the operator is composing in Preview.
-      scene: previewScene,
-      layers: [],
-      assets: {
-        qrSize,
-        qrPosition: assetState.qrPosition,
-        qrVisible: assetState.qrVisible,
-        qrUrlVisible: assetState.qrUrlVisible,
-        showBranding,
-        brandingPosition,
-        enabledAssetIds: sceneEnabled,
-        transforms: programTransforms,
-        assetColors: programAssetColors,
-        wordmarkWeight: assetState.wordmarkWeight,
-        wordmarkTracking: assetState.wordmarkTracking,
-        wordmarkScale: assetState.wordmarkScale,
-        wordmarkShowGuides: assetState.wordmarkShowGuides,
-        tallyMode: activeFolder?.tallyMode ?? DEFAULT_TALLY_MODE,
-        tallyIntervalSeconds: activeFolder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
-        resultsMode: activeFolder?.resultsMode ?? DEFAULT_RESULTS_MODE,
-        resultsAnimationMs: activeFolder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
-      },
-    });
+    broadcastOutputState(getProgramOutputPayload());
   }, [
     currentWorkspacePoll,
     previewScene,
@@ -1656,6 +1573,8 @@ export default function PollCreate() {
     activeFolder?.tallyIntervalSeconds,
     activeFolder?.resultsMode,
     activeFolder?.resultsAnimationMs,
+    previewOptions,
+    resultsReplayKey,
     snapshotRequestNonce,
   ]);
   // Presence heartbeat — pings open Output windows once per second so the
