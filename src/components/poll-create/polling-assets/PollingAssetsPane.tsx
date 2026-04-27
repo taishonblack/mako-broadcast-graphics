@@ -174,13 +174,13 @@ export function PollingAssetsPane({
       <div className="flex-1 overflow-y-auto p-3 space-y-3 relative">
         {folders.map((folder) => {
           const folderAssets = folder.assetIds;
-          // 'image' stays available even after it's been added so operators can
-          // re-open the inspector / swap pictures without it disappearing from
-          // the menu like other singletons.
-          const folderAvailableAssets = (Object.keys(ASSET_REGISTRY) as AssetId[])
-            .filter((assetId) => assetId === 'image' || !folderAssets.includes(assetId));
           const isActiveFolder = folder.id === activeFolderId;
           const isCollapsed = Boolean(folder.collapsed);
+          // Scene-aware: show every asset in the menu, but mark which ones
+          // are already visible in the active scene so the operator can
+          // toggle multiple assets in/out of the same scene.
+          const activeScene = scenes.find((s) => s.id === activeSceneId) ?? null;
+          const allAssetIds = Object.keys(ASSET_REGISTRY) as AssetId[];
 
           return (
             <div key={folder.id} className={`rounded-lg border overflow-hidden transition-colors ${isActiveFolder ? 'border-primary/40 bg-primary/5' : 'border-border/60 bg-card/40'}`}>
