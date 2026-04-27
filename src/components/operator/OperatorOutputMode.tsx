@@ -670,42 +670,46 @@ export function OperatorOutputMode({
             </div>
           </div>
 
-          {/* Polls list — selecting a poll loads it into Preview. Scenes
-              control on-air visibility, not folders. Folder-as-scene UI
-              has been removed; the underlying DB fields stay intact so
-              older saved layouts still load. */}
+          {/* Scenes Output — lists scenes inside the folder/poll that
+              aligns with the currently selected Block above. Selecting a
+              scene stages it for air. */}
           <div className="mako-panel p-3 space-y-2">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold font-mono uppercase text-foreground">Block {activeBlock} · Polls</h2>
-              <span className="text-[10px] font-mono text-muted-foreground">{pollsByBlock[activeBlock].length}</span>
+              <h2 className="text-xs font-semibold font-mono uppercase text-foreground flex items-center gap-1.5">
+                <Layers className="w-3 h-3 text-muted-foreground" />
+                Scenes Output
+              </h2>
+              <span className="text-[10px] font-mono text-muted-foreground">{scenes.length}</span>
             </div>
             <div className="space-y-1.5">
-              {pollsByBlock[activeBlock].length === 0 ? (
-                <p className="text-[11px] italic text-muted-foreground">No polls in this block yet.</p>
+              {scenes.length === 0 ? (
+                <p className="text-[11px] italic text-muted-foreground">
+                  No scenes in this folder yet. Add one in Build Mode.
+                </p>
               ) : (
-                pollsByBlock[activeBlock].map((poll) => {
-                  const isCurrent = poll.id === currentPoll.id;
+                scenes.map((scene) => {
+                  const isActive = scene.id === activeSceneId;
                   return (
                     <button
-                      key={poll.id}
+                      key={scene.id}
                       type="button"
-                      onClick={() => onSelectPoll(poll.id)}
+                      onClick={() => onSelectScene?.(scene.id)}
                       className={`w-full rounded-lg border p-2.5 text-left transition-colors ${
-                        isCurrent
+                        isActive
                           ? 'border-primary/40 bg-primary/10'
                           : 'border-border/60 bg-accent/10 hover:bg-accent/25'
                       }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className={`truncate text-xs font-medium ${isCurrent ? 'text-primary' : 'text-foreground'}`}>
-                            {poll.internalName || poll.question || 'Untitled poll'}
+                          <p className={`truncate text-xs font-medium ${isActive ? 'text-primary' : 'text-foreground'}`}>
+                            {scene.name}
                           </p>
-                          <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
-                            {isCurrent ? 'Loaded in Preview' : 'Click to load into Preview'}
+                          <p className="mt-0.5 truncate text-[10px] text-muted-foreground capitalize">
+                            {scene.preset.replace(/([A-Z])/g, ' $1').trim().toLowerCase()}
                           </p>
                         </div>
-                        <span className="mako-chip bg-muted text-[9px] text-muted-foreground">POLL</span>
+                        <span className="mako-chip bg-muted text-[9px] text-muted-foreground uppercase">Scene</span>
                       </div>
                     </button>
                   );
