@@ -9,6 +9,24 @@ export const DEFAULT_TALLY_INTERVAL_SECONDS = 5;
 export const TALLY_INTERVAL_MIN = 1;
 export const TALLY_INTERVAL_MAX = 30;
 
+/**
+ * Results scene playback mode.
+ *  - `animated`  → bars + percentages animate from 0 up to their final value
+ *                  over `resultsAnimationMs` whenever the scene mounts (or
+ *                  the operator re-triggers it).
+ *  - `static`    → bars render at their final value immediately, no motion.
+ *
+ * This is independent from `tallyMode`, which controls how *incoming votes*
+ * are paced (live tick vs stop-motion snapshot). The Results scene reveals
+ * a frozen tally; this setting controls how that reveal plays.
+ */
+export type ResultsMode = 'animated' | 'static';
+export const DEFAULT_RESULTS_MODE: ResultsMode = 'animated';
+/** How long the Results animated reveal takes, end-to-end. */
+export const DEFAULT_RESULTS_ANIMATION_MS = 1200;
+export const RESULTS_ANIMATION_MIN_MS = 200;
+export const RESULTS_ANIMATION_MAX_MS = 6000;
+
 export interface PollingAssetFolder {
   id: string;
   name: string;
@@ -34,6 +52,12 @@ export interface PollingAssetFolder {
    */
   tallyMode?: TallyMode;
   tallyIntervalSeconds?: number;
+  /**
+   * Results scene playback. See `ResultsMode`. Independent of tally pacing.
+   */
+  resultsMode?: ResultsMode;
+  /** Duration (ms) of the Results animated reveal when `resultsMode` is `animated`. */
+  resultsAnimationMs?: number;
   assetIds: AssetId[];
   /**
    * Assets present in `assetIds` but currently muted — they show in the
