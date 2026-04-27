@@ -17,11 +17,12 @@ import {
 import {
   Type, ListChecks, AlignLeft, Image as ImageIcon, QrCode,
   Sparkles, Users, Plus, X, GripVertical, ChevronDown, MoreVertical, FolderOpen,
-  Trash2, Camera, Link2, Copy, MessageCircleQuestion,
+  Trash2, Camera, Link2, Copy, MessageCircleQuestion, Layers, Pencil,
 } from 'lucide-react';
 import { AnswerType, MCLabelStyle } from '@/components/poll-create/ContentPanel';
 import { AssetId, AssetMeta } from './types';
 import { BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-persistence';
+import { SCENE_PRESETS, type ScenePreset, type PollScene, getScenePreset } from '@/lib/poll-scenes';
 
 export const ASSET_REGISTRY: Record<AssetId, AssetMeta> = {
   question:    { id: 'question',    label: 'Text',          icon: Type,        description: 'On-air text — question, prompt, lower-third, etc.' },
@@ -69,6 +70,15 @@ interface PollingAssetsPaneProps {
    */
   noScenes?: boolean;
 
+  /* ---------- Scenes (per-folder) ---------- */
+  scenes: PollScene[];
+  activeSceneId: string | null;
+  onSelectScene: (sceneId: string) => void;
+  onAddScene: (preset: ScenePreset) => void;
+  onRenameScene: (sceneId: string, name: string) => void;
+  onDuplicateScene: (sceneId: string) => void;
+  onRemoveScene: (sceneId: string) => void;
+
   // Underlying poll state (passed in)
   question: string; setQuestion: (v: string) => void;
   subheadline: string; setSubheadline: (v: string) => void;
@@ -99,6 +109,13 @@ export function PollingAssetsPane({
   onToggleAssetInactive,
   blockLetter, onBlockLetterChange,
   noScenes = false,
+  scenes,
+  activeSceneId,
+  onSelectScene,
+  onAddScene,
+  onRenameScene,
+  onDuplicateScene,
+  onRemoveScene,
   question, setQuestion,
   subheadline, setSubheadline,
   internalName, setInternalName,
@@ -110,6 +127,7 @@ export function PollingAssetsPane({
 }: PollingAssetsPaneProps) {
   const [draggedId, setDraggedId] = useState<AssetId | null>(null);
   const [pendingRemoval, setPendingRemoval] = useState<{ folderId: string; assetId: AssetId } | null>(null);
+  const [pendingSceneDelete, setPendingSceneDelete] = useState<PollScene | null>(null);
 
   const confirmRemoval = () => {
     if (!pendingRemoval) return;
@@ -142,28 +160,12 @@ export function PollingAssetsPane({
             {enabledAssets.length} asset{enabledAssets.length === 1 ? '' : 's'}
           </span>
           <p className="text-[10px] text-muted-foreground/70 mt-0.5">
-            Assets live inside block folders.
+            Folders contain scenes. Scenes contain assets.
           </p>
         </div>
       </div>
 
-      {noScenes && (
-        <div className="px-3 py-2 border-b border-primary/30 bg-primary/5">
-          <p className="text-[10px] font-mono uppercase tracking-wider text-primary mb-0.5">
-            Scene required
-          </p>
-          <p className="text-[10px] text-muted-foreground">
-            Create a scene above to begin editing assets in this folder.
-          </p>
-        </div>
-      )}
-
-      <div
-        className={`flex-1 overflow-y-auto p-3 space-y-3 relative ${
-          noScenes ? 'opacity-40 pointer-events-none select-none' : ''
-        }`}
-        aria-disabled={noScenes}
-      >
+      <div className="flex-1 overflow-y-auto p-3 space-y-3 relative">
         {folders.map((folder) => {
           const folderAssets = folder.assetIds;
           // 'image' stays available even after it's been added so operators can
