@@ -39,7 +39,7 @@ import { themePresets } from '@/lib/themes';
 import { TemplateName, Poll, PollOption, QRPosition, VotingState, LiveState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
 import { broadcastSceneFromSceneType, filterAssetsForScene } from '@/lib/scene-presets';
-import { broadcastOutputHeartbeat, broadcastOutputLock, broadcastOutputState } from '@/lib/output-state';
+import { broadcastOutputHeartbeat, broadcastOutputLock, broadcastOutputState, OUTPUT_REQUEST_CHANNEL } from '@/lib/output-state';
 import { supabase } from '@/integrations/supabase/client';
 import { writePublicViewerState, type PublicViewerPollSnapshot } from '@/lib/public-viewer-state';
 import { EQUAL_BASE, equalShareAnswers } from '@/lib/answer-percents';
@@ -1582,6 +1582,22 @@ export default function PollCreate() {
     if (audience.error) toast.error(`Viewer slate sync failed: ${audience.error}`);
   }, [assetColors, assetState, assetTransforms, brandingPosition, currentWorkspacePoll, enabledAssets, folderState.activeFolderId, liveState, previewOptions, previewScene, projectId, projectPolls, qrSize, showBranding, slugForUrl]);
 
+  // Snapshot-request handshake — declared above the mirror effect so its
+  // nonce can be a dep. When an Output window mounts (or refreshes) it
+  // posts on OUTPUT_REQUEST_CHANNEL asking us to re-broadcast the current
+  // Program Preview. Without this the popup can hang on stale state.
+  const [snapshotRequestNonce, setSnapshotRequestNonce] = useState(0);
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (typeof BroadcastChannel === 'undefined') return;
+    let ch: BroadcastChannel | null = null;
+    try {
+      ch = new BroadcastChannel(OUTPUT_REQUEST_CHANNEL);
+      ch.onmessage = () => setSnapshotRequestNonce((n) => n + 1);
+    } catch { /* ignore */ }
+    return () => { try { ch?.close(); } catch { /* ignore */ } };
+  }, []);
+
   // Mirror the Program Preview to any open Output window in real time.
   // Whenever the operator's program-preview state (poll content, scene,
   // assets, transforms, colors, wordmark) changes, push it to the Output
@@ -1638,6 +1654,9 @@ export default function PollCreate() {
     assetColorSet,
     activeFolder?.tallyMode,
     activeFolder?.tallyIntervalSeconds,
+    activeFolder?.resultsMode,
+    activeFolder?.resultsAnimationMs,
+    snapshotRequestNonce,
   ]);
   // Presence heartbeat — pings open Output windows once per second so the
   // Output page can show "Mirroring: Live" and detect stalls even when
