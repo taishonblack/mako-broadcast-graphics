@@ -159,6 +159,26 @@ export async function deletePollScene(sceneId: string) {
   if (error) throw error;
 }
 
+/**
+ * Toggle whether an asset is visible inside a given scene. Upserts a row
+ * into `poll_scene_assets` — multiple assets can be visible per scene.
+ * Drafts (sceneId starting with `draft-scene-`) are handled in-memory by
+ * the hook and skip the DB call.
+ */
+export async function setPollSceneAssetVisible(
+  sceneId: string,
+  assetId: AssetId,
+  visible: boolean,
+) {
+  const { error } = await supabase
+    .from('poll_scene_assets')
+    .upsert(
+      { scene_id: sceneId, asset_id: assetId, visible } as never,
+      { onConflict: 'scene_id,asset_id' } as never,
+    );
+  if (error) throw error;
+}
+
 export async function duplicatePollScene(scene: PollScene, sortOrder: number): Promise<PollScene> {
   const { data, error } = await supabase
     .from('poll_scenes')
