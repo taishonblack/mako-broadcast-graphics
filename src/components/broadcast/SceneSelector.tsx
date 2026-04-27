@@ -5,12 +5,11 @@ import {
   BroadcastSceneId,
   broadcastSceneFromSceneType,
 } from '@/lib/scene-presets';
-import { QrCode, BarChart3, Trophy, Columns2 } from 'lucide-react';
+import { QrCode, BarChart3, Columns2 } from 'lucide-react';
 
 const sceneIcons: Record<BroadcastSceneId, React.ElementType> = {
   questionQr: QrCode,
   liveResults: BarChart3,
-  finalResults: Trophy,
   lowerThird: Columns2,
 };
 
@@ -50,12 +49,17 @@ export function SceneSelector({ previewScene, programScene, onSceneChange, onTak
             const Icon = sceneIcons[scene.id];
             const isProgram = programId === scene.id;
             const isPreview = previewId === scene.id;
+            const isDisabled = scene.disabled;
             return (
               <button
                 key={scene.id}
-                onClick={() => onSceneChange(scene.sceneType)}
+                onClick={() => !isDisabled && onSceneChange(scene.sceneType)}
+                disabled={isDisabled}
+                title={isDisabled ? 'Not available yet' : undefined}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 border relative ${
-                  isProgram && isPreview
+                  isDisabled
+                    ? 'bg-accent/10 border-border/30 text-muted-foreground/40 cursor-not-allowed opacity-50'
+                    : isProgram && isPreview
                     ? 'bg-mako-live/15 border-mako-live/60 text-[hsl(var(--mako-live))] shadow-[0_0_16px_-2px_hsl(var(--mako-live)/0.4)]'
                     : isProgram
                     ? 'bg-mako-live/10 border-mako-live/50 text-[hsl(var(--mako-live))]'
