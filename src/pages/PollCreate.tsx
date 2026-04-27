@@ -1419,6 +1419,33 @@ export default function PollCreate() {
       output_state: liveState === 'live' ? 'program_live' : 'preview',
     } as never);
     if (error) toast.error(`Viewer sync failed: ${error.message}`);
+    // Audience-facing write: switch /vote/:slug to the voting state so
+    // mobile + desktop voters actually see answer buttons. Without this
+    // the public_viewer_state row stays on its previous state and the
+    // audience UI never transitions out of branding/slate.
+    const audienceSnapshot: PublicViewerPollSnapshot = {
+      id: isUuid(livePoll.id) ? livePoll.id : undefined,
+      question: snapshotPoll.question,
+      subheadline: snapshotPoll.subheadline,
+      bgColor: snapshotPoll.bgColor,
+      bgImage: snapshotPoll.bgImage,
+      answers: (snapshotPoll.options ?? []).map((o, i) => ({
+        id: o.id,
+        label: o.text || `Answer ${i + 1}`,
+        shortLabel: o.shortLabel,
+        sortOrder: i,
+      })),
+      showLiveResults: livePoll.showLiveResults,
+      showThankYou: livePoll.showThankYou,
+      assetColors,
+    };
+    const audience = await writePublicViewerState({
+      projectId,
+      viewerSlug: livePoll.slug,
+      state: 'voting',
+      pollSnapshot: audienceSnapshot,
+    });
+    if (audience.error) toast.error(`Viewer voting sync failed: ${audience.error}`);
   }, [activeFolder, assetColors, assetState, assetTransforms, brandingPosition, currentWorkspacePoll, enabledAssets, folderState.activeFolderId, liveState, previewOptions, previewScene, projectId, projectPolls, qrSize, showBranding, slugForUrl]);
 
   const syncViewerVotingClosed = useCallback(async () => {
@@ -1430,7 +1457,15 @@ export default function PollCreate() {
       output_state: liveState === 'live' ? 'program_live' : 'preview',
     } as never);
     if (error) toast.error(`Viewer close sync failed: ${error.message}`);
-  }, [liveState, projectId]);
+    // Audience returns to MakoVote branding when voting closes from
+    // the operator side (mirrors handleEndPoll behavior).
+    void writePublicViewerState({
+      projectId,
+      viewerSlug: currentWorkspacePoll.slug,
+      state: 'branding',
+      pollSnapshot: null,
+    });
+  }, [liveState, projectId, currentWorkspacePoll.slug]);
 
   // Broadcast the Polling Slate state to public viewers. When `active` is
   // true we publish a `voting_state='closed'` row WITH the live snapshot and
