@@ -96,6 +96,31 @@ export default function ProgramOutput() {
   const [diagLog, setDiagLog] = useState<string[]>([]);
   const pushLog = (line: string) =>
     setDiagLog((prev) => [...prev.slice(-19), `${new Date().toLocaleTimeString()}  ${line}`]);
+
+  // Sync status — tracks the most recent snapshot timestamp and which
+  // transport delivered it (BroadcastChannel vs storage event vs initial
+  // localStorage read). Surfaces in a small always-visible pill so the
+  // operator can confirm the popup is mirroring at a glance.
+  type SyncTransport = 'broadcastchannel' | 'storage' | 'localstorage' | 'none';
+  const bcSupported = typeof window !== 'undefined' && typeof BroadcastChannel !== 'undefined';
+  const lsSupported = typeof window !== 'undefined' && (() => { try { window.localStorage.setItem('__mako_probe', '1'); window.localStorage.removeItem('__mako_probe'); return true; } catch { return false; } })();
+  const [lastSyncAt, setLastSyncAt] = useState<number | null>(initialEffective ? Date.now() : null);
+  const [lastTransport, setLastTransport] = useState<SyncTransport>(initialEffective ? 'localstorage' : 'none');
+  const [bcOk, setBcOk] = useState(false);
+  const [storageOk, setStorageOk] = useState(false);
+  const markSync = (transport: SyncTransport) => {
+    setLastSyncAt(Date.now());
+    setLastTransport(transport);
+    if (transport === 'broadcastchannel') setBcOk(true);
+    if (transport === 'storage') setStorageOk(true);
+  };
+  // Re-render the "x s ago" label every second.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const t = window.setInterval(() => setTick((n) => n + 1), 1000);
+    return () => window.clearInterval(t);
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === '?' || (e.key === '/' && e.shiftKey)) setDiagOpen((v) => !v);
