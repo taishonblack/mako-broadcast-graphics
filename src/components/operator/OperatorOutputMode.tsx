@@ -760,8 +760,6 @@ export function OperatorOutputMode({
               </div>
               <MonitorContainer variant="operator">
                 {(() => {
-                  const previewBroadcast = getBroadcastScene(broadcastSceneFromSceneType(previewScene));
-                  const programBroadcast = getBroadcastScene(broadcastSceneFromSceneType(programScene));
                   const live = previewScene === programScene;
                   // Ring = current state of this canvas. Red when what
                   // you see IS on air; blue when you're staging a change.
