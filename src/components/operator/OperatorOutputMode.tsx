@@ -125,6 +125,14 @@ interface OperatorOutputModeProps {
   tallyIntervalSeconds?: number;
   onTallyModeChange?: (mode: 'live' | 'stopMotion') => void;
   onTallyIntervalChange?: (seconds: number) => void;
+  /** Results scene playback — `animated` reveals bars from 0 over
+   *  `resultsAnimationMs`; `static` paints the final state immediately. */
+  resultsMode?: 'animated' | 'static';
+  resultsAnimationMs?: number;
+  onResultsModeChange?: (mode: 'animated' | 'static') => void;
+  onResultsAnimationMsChange?: (ms: number) => void;
+  /** Re-trigger the animated reveal without changing vote data. */
+  onReplayResults?: () => void;
   /** Per-asset color overrides authored in Build (active viewport). Passed
    *  into the mobile/desktop ViewerSlatePreview so question / subheadline /
    *  answer text colors match what the operator picked, instead of always
