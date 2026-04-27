@@ -184,8 +184,21 @@ export function PollingAssetsPane({
 
           return (
             <div key={folder.id} className={`rounded-lg border overflow-hidden transition-colors ${isActiveFolder ? 'border-primary/40 bg-primary/5' : 'border-border/60 bg-card/40'}`}>
-            <div className="flex items-center gap-2 px-2.5 py-2 border-b border-border/40 bg-background/30">
-              <button type="button" onClick={() => onSelectFolder(folder.id)} className="flex min-w-0 flex-1 items-center gap-2 text-left">
+            <div className={`flex items-center gap-2 px-2.5 py-2 border-b border-border/40 bg-background/30 ${
+              isActiveFolder && selectedAssetId === null ? 'ring-1 ring-inset ring-primary/40 bg-primary/10' : ''
+            }`}>
+              <button
+                type="button"
+                onClick={() => {
+                  // Folder-level select: activate the folder AND clear any
+                  // single-asset selection so the Inspector shows folder
+                  // properties and every asset card highlights as a group.
+                  onSelectFolder(folder.id);
+                  onSelectAsset(null);
+                }}
+                className="flex min-w-0 flex-1 items-center gap-2 text-left"
+                title="Select folder (selects all assets inside)"
+              >
                 <FolderOpen className={`w-3.5 h-3.5 shrink-0 ${isActiveFolder ? 'text-primary' : 'text-muted-foreground'}`} />
                 <div className="min-w-0 flex-1">
                   <p className="text-[11px] font-medium text-foreground truncate flex items-center gap-1">
