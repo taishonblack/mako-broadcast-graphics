@@ -39,7 +39,11 @@ export const BROADCAST_SCENES: BroadcastScene[] = [
     label: 'Question + QR',
     shortLabel: 'Q + QR',
     sceneType: 'fullscreen',
-    visibleAssets: [...BASE, 'qr', 'answerType'],
+    // Show the full scene frame (including answer bars + voter tally).
+    // Operators who want a stripped-down Q+QR-only layout should build
+    // a dedicated scene with those assets disabled instead of having
+    // the preset hide them silently.
+    visibleAssets: [...BASE, 'qr', 'answerType', 'answers', 'voterTally'],
   },
   {
     id: 'liveResults',
