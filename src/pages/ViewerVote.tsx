@@ -16,6 +16,20 @@ interface ViewerStateRow {
 
 type LocalStage = 'idle' | 'received' | 'thank_you';
 
+function getOrCreateSessionId(): string {
+  try {
+    const k = 'mako-vote-sid';
+    let v = localStorage.getItem(k);
+    if (!v) {
+      v = (crypto.randomUUID?.() ?? Math.random().toString(36).slice(2)) + Date.now().toString(36);
+      localStorage.setItem(k, v);
+    }
+    return v;
+  } catch {
+    return Math.random().toString(36).slice(2) + Date.now().toString(36);
+  }
+}
+
 /** Audience-only viewer page. Renders solely from `public_viewer_state` —
  *  never infers from project_live_state, enabledAssets, mirror mode, or slug
  *  matching beyond the initial fetch. */
@@ -88,6 +102,22 @@ export default function ViewerVote() {
   const handleVote = (answerId: string) => {
     setSelectedAnswerId(answerId);
     setLocalStage('received');
+    const projectId = row?.project_id;
+    const pollId = snapshot?.id;
+    if (projectId && pollId) {
+      const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/record-vote`;
+      fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          project_id: projectId,
+          poll_id: pollId,
+          answer_id: answerId,
+          session_id: getOrCreateSessionId(),
+        }),
+        keepalive: true,
+      }).catch(() => {});
+    }
   };
 
   // After a vote: hold the highlighted selection for 3s, then thank you.
