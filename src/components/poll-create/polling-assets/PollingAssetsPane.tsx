@@ -774,8 +774,7 @@ function AssetCard({
         >
           <ChevronDown className={`w-3 h-3 transition-transform ${collapsed ? '-rotate-90' : ''}`} />
         </button>
-        {!meta.required && (
-          onHideFromScene && (
+        {!meta.required && onHideFromScene && (
           <button
             onClick={(e) => { e.stopPropagation(); onHideFromScene(); }}
             className="text-muted-foreground/50 hover:text-foreground transition-colors p-0.5 opacity-0 group-hover:opacity-100"
@@ -783,7 +782,6 @@ function AssetCard({
           >
             <EyeOff className="w-3 h-3" />
           </button>
-          )
         )}
         {!meta.required && (
           <button
