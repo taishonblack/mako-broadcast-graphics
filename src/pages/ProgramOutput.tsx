@@ -204,6 +204,8 @@ export default function ProgramOutput() {
       wordmarkWeight: assets.wordmarkWeight,
       wordmarkTracking: assets.wordmarkTracking,
       wordmarkScale: assets.wordmarkScale,
+      resultsMode: assets.resultsMode,
+      resultsAnimationMs: assets.resultsAnimationMs,
     };
     const baseProps = {
       question: poll.question, options: liveOptions, totalVotes: displayTotal,
