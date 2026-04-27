@@ -411,6 +411,12 @@ export default function ProgramOutput() {
             <div><span className="text-white/50">slug:</span> {poll.slug || <span className="text-yellow-300">none</span>}</div>
             <div><span className="text-white/50">locked:</span> {String(locked)}</div>
             <div><span className="text-white/50">bgImage:</span> {poll.bgImage ? '✓' : '—'} • <span className="text-white/50">bgColor:</span> {poll.bgColor || '—'}</div>
+            <div className="mt-2 rounded border border-white/10 bg-white/5 p-2">
+              <div className="mb-1 text-[9px] uppercase tracking-widest text-white/40">Sync transports</div>
+              <div><span className="text-white/50">last sync:</span> {lastSyncAt ? new Date(lastSyncAt).toLocaleTimeString() : <span className="text-red-300">never</span>} <span className="text-white/40">via {lastTransport}</span></div>
+              <div><span className="text-white/50">BroadcastChannel:</span> {bcSupported ? (bcOk ? <span className="text-emerald-300">ok</span> : <span className="text-yellow-300">idle</span>) : <span className="text-red-300">unsupported</span>}</div>
+              <div><span className="text-white/50">localStorage:</span> {lsSupported ? (storageOk ? <span className="text-emerald-300">ok</span> : <span className="text-yellow-300">idle</span>) : <span className="text-red-300">unsupported</span>}</div>
+            </div>
             {wouldRenderBlank && (
               <div className="mt-2 rounded border border-yellow-500/40 bg-yellow-500/10 p-2 text-yellow-200">
                 ⚠ Would render blank: no question, no layers, branding off. The operator may not have pushed a snapshot to this window yet.
