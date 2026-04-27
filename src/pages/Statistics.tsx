@@ -241,12 +241,45 @@ export default function Statistics() {
               Anonymous analytics · retained for 24 hours and automatically deleted.
             </p>
           </div>
-          {isLive && (
-            <Badge className="bg-mako-error/20 text-mako-error border-mako-error/30 gap-1.5">
-              <span className="w-1.5 h-1.5 rounded-full bg-mako-error animate-pulse" />
-              LIVE
-            </Badge>
-          )}
+          <div className="flex items-center gap-2">
+            {isLive && (
+              <Badge className="bg-mako-error/20 text-mako-error border-mako-error/30 gap-1.5">
+                <span className="w-1.5 h-1.5 rounded-full bg-mako-error animate-pulse" />
+                LIVE
+              </Badge>
+            )}
+            <Button
+              variant="outline"
+              size="sm"
+              disabled={rows.length === 0}
+              onClick={() =>
+                downloadCSV(
+                  `vote-analytics-24h-${new Date().toISOString().slice(0, 19).replace(/[:T]/g, '-')}.csv`,
+                  rows,
+                  polls,
+                )
+              }
+            >
+              <Download className="h-4 w-4" />
+              Export 24h CSV
+            </Button>
+            {activePoll && liveRows.length > 0 && (
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() =>
+                  downloadCSV(
+                    `vote-analytics-${(activePoll.internal_name || activePoll.question || activePoll.id).replace(/[^a-z0-9]+/gi, '-').slice(0, 40)}-30min.csv`,
+                    liveRows.filter((r) => Date.now() - new Date(r.created_at).getTime() <= 30 * 60_000),
+                    polls,
+                  )
+                }
+              >
+                <Download className="h-4 w-4" />
+                Export Active 30min
+              </Button>
+            )}
+          </div>
         </div>
 
         {/* Live Voting */}
