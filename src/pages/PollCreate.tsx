@@ -669,6 +669,9 @@ export default function PollCreate() {
     // from Build → Output until they revisited Build's Program tab.)
     const programTransforms = assetTransformSet.program;
     const programAssetColors = assetColorSet.program;
+    const programColors = programAssetColors.answers.barColors?.length
+      ? programAssetColors.answers.barColors
+      : [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
     // Scene-driven visibility: the operator picks a scene, the scene
     // narrows the poll's enabled assets down to what should appear on
     // air (e.g. Question+QR hides answer bars; Lower Third hides QR).
@@ -700,7 +703,7 @@ export default function PollCreate() {
       subheadline,
       options: currentWorkspacePoll.options,
       totalVotes: currentWorkspacePoll.totalVotes,
-      colors: previewColors,
+      colors: programColors,
       theme,
       template: selectedTemplate,
       ...sharedAssets,
@@ -726,10 +729,15 @@ export default function PollCreate() {
     const programTransforms = assetTransformSet.program;
     const programAssetColors = assetColorSet.program;
     const folder = getFolderById(folderState, folderState.activeFolderId);
-    const sceneEnabled = filterAssetsForScene(enabledAssets, broadcastSceneFromSceneType(previewScene));
+    const sceneEnabled = filterAssetsForScene(sceneFilteredEnabled, broadcastSceneFromSceneType(previewScene));
 
     return {
-      poll: { ...poll, options: poll.options?.length ? poll.options : previewOptions },
+      poll: {
+        ...poll,
+        question: poll.question || previewQuestion,
+        options: poll.options?.length ? poll.options : previewOptions,
+        totalVotes: poll.options?.length ? poll.totalVotes : previewTotal,
+      },
       scene: previewScene,
       layers: [],
       assets: {
