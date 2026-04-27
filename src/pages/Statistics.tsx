@@ -330,9 +330,14 @@ export default function Statistics() {
         {/* Timeline */}
         <Card>
           <CardHeader className="pb-3 flex flex-row items-center justify-between">
-            <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground font-mono">
-              Voting Timeline · Last 30 min
-            </CardTitle>
+            <div className="space-y-1">
+              <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground font-mono">
+                Voting Timeline · Last 30 min
+              </CardTitle>
+              <p className="text-[11px] font-mono text-muted-foreground">
+                Window {windowStart} → {windowEnd}
+              </p>
+            </div>
             <span className="text-xs font-mono text-muted-foreground">Peak {peak}/min</span>
           </CardHeader>
           <CardContent>
@@ -343,11 +348,19 @@ export default function Statistics() {
                   <XAxis dataKey="label" tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} interval={4} />
                   <YAxis allowDecimals={false} tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }} width={28} />
                   <Tooltip
-                    contentStyle={{
-                      background: 'hsl(var(--background))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: 8,
-                      fontSize: 12,
+                    cursor={{ stroke: 'hsl(var(--border))' }}
+                    content={({ active, payload }) => {
+                      if (!active || !payload?.length) return null;
+                      const p = payload[0].payload as { t: number; votes: number };
+                      const d = new Date(p.t);
+                      const time = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+                      const date = d.toLocaleDateString();
+                      return (
+                        <div className="rounded-md border border-border bg-background px-3 py-2 text-xs shadow-md">
+                          <div className="font-mono text-muted-foreground">{date} · {time}</div>
+                          <div className="text-foreground font-semibold">{p.votes} vote{p.votes === 1 ? '' : 's'}/min</div>
+                        </div>
+                      );
                     }}
                   />
                   <Line
