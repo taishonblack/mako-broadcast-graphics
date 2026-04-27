@@ -854,7 +854,7 @@ function AssetEditor(props: {
         <Input
           value={props.question}
           onChange={(e) => props.setQuestion(e.target.value)}
-          placeholder="On-air question…"
+          placeholder="Write question here"
           className="bg-background/50 h-8 text-xs"
         />
         <span className="text-[9px] text-muted-foreground font-mono">
