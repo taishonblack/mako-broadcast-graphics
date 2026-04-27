@@ -182,10 +182,15 @@ export function PollingAssetsPane({
           const activeScene = scenes.find((s) => s.id === activeSceneId) ?? null;
           const allAssetIds = Object.keys(ASSET_REGISTRY) as AssetId[];
 
+          // Folder shows the orange "active" treatment ONLY when the folder
+          // itself is the current selection (no individual asset selected).
+          // Once the operator clicks into an asset card, the folder reverts
+          // to neutral so the highlight tracks exactly what is being edited.
+          const folderIsTheSelection = isActiveFolder && selectedAssetId === null;
           return (
-            <div key={folder.id} className={`rounded-lg border overflow-hidden transition-colors ${isActiveFolder ? 'border-primary/40 bg-primary/5' : 'border-border/60 bg-card/40'}`}>
+            <div key={folder.id} className={`rounded-lg border overflow-hidden transition-colors ${folderIsTheSelection ? 'border-primary/40 bg-primary/5' : 'border-border/60 bg-card/40'}`}>
             <div className={`flex items-center gap-2 px-2.5 py-2 border-b border-border/40 bg-background/30 ${
-              isActiveFolder && selectedAssetId === null ? 'ring-1 ring-inset ring-primary/40 bg-primary/10' : ''
+              folderIsTheSelection ? 'ring-1 ring-inset ring-primary/40 bg-primary/10' : ''
             }`}>
               <button
                 type="button"
