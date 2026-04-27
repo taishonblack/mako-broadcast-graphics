@@ -552,6 +552,9 @@ export function PollingAssetsPane({
                                         onRemove={() =>
                                           setPendingRemoval({ folderId: folder.id, assetId: id })
                                         }
+                                        onHideFromScene={() =>
+                                          onSetSceneAssetVisible(scene.id, id, false)
+                                        }
                                         onDragStart={() => setDraggedId(id)}
                                         onDragOver={(e) => {
                                           e.preventDefault();
