@@ -2471,6 +2471,28 @@ export default function PollCreate() {
                 ),
               }));
             }}
+            resultsMode={getFolderById(folderState, folderState.activeFolderId)?.resultsMode ?? DEFAULT_RESULTS_MODE}
+            resultsAnimationMs={getFolderById(folderState, folderState.activeFolderId)?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS}
+            onResultsModeChange={(mode: ResultsMode) => {
+              setFolderState((current) => ({
+                ...current,
+                folders: current.folders.map((f) =>
+                  f.id === current.activeFolderId ? { ...f, resultsMode: mode } : f
+                ),
+              }));
+              // Bump the replay key so the change takes effect immediately
+              // when flipping back to Animated mid-show.
+              setResultsReplayKey((k) => k + 1);
+            }}
+            onResultsAnimationMsChange={(ms: number) => {
+              setFolderState((current) => ({
+                ...current,
+                folders: current.folders.map((f) =>
+                  f.id === current.activeFolderId ? { ...f, resultsAnimationMs: ms } : f
+                ),
+              }));
+            }}
+            onReplayResults={() => setResultsReplayKey((k) => k + 1)}
           />
         </div>
       ) : (
