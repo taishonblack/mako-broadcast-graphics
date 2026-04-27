@@ -4,7 +4,6 @@ import {
   BROADCAST_SCENES,
   BroadcastSceneId,
   broadcastSceneFromSceneType,
-  getBroadcastScene,
 } from '@/lib/scene-presets';
 import { QrCode, BarChart3, Trophy, Columns2 } from 'lucide-react';
 
