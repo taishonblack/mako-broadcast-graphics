@@ -135,6 +135,26 @@ function loadPersistedAssetState(): AssetState {
 
 const buildActiveFolderStorageKey = (projectId?: string) => `mako-active-folder:${projectId ?? 'draft'}`;
 
+/**
+ * Draft folder state persistence — used when the operator is editing in
+ * the workspace WITHOUT having opened a project. Without this, navigating
+ * away (e.g. to /projects) and back to /workspace remounts PollCreate and
+ * wipes the in-memory folder list, losing all assets/folders the operator
+ * had built up. With this, the draft round-trips through localStorage so
+ * the workspace acts as a persistent scratchpad until a project is opened.
+ */
+const DRAFT_FOLDER_STATE_KEY = 'mako-draft-folder-state-v1';
+
+function loadDraftFolderState(): PollingAssetFolderState | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_FOLDER_STATE_KEY);
+    if (!raw) return null;
+    return normalizeFolderState(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
+
 interface WorkspaceLayout {
   hSizes: [number, number, number]; // left / center / right
   rightVSizes: [number, number];     // Template / Inspector
