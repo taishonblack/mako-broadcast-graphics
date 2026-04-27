@@ -62,6 +62,12 @@ interface PollingAssetsPaneProps {
   onToggleAssetInactive?: (folderId: string, assetId: AssetId, inactive: boolean) => void;
   blockLetter: BlockLetter;
   onBlockLetterChange: (next: BlockLetter) => void;
+  /**
+   * When true, the assets pane is greyed out and asset add/edit controls
+   * are blocked. Set when the active folder/poll has zero scenes — the
+   * operator must create a scene before assets become editable.
+   */
+  noScenes?: boolean;
 
   // Underlying poll state (passed in)
   question: string; setQuestion: (v: string) => void;
@@ -92,6 +98,7 @@ export function PollingAssetsPane({
   onUnlinkFolder,
   onToggleAssetInactive,
   blockLetter, onBlockLetterChange,
+  noScenes = false,
   question, setQuestion,
   subheadline, setSubheadline,
   internalName, setInternalName,
