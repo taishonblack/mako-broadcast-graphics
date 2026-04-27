@@ -1687,7 +1687,7 @@ export default function PollCreate() {
         nextState.activeFolderId = savedActiveFolderId;
       }
       setFolderState(nextState);
-      setAssetTransformSet(createDefaultTransformSet());
+      setSceneTransformSets({ [NO_SCENE_KEY]: createDefaultTransformSet() });
       setAssetColorSet(createDefaultColorSet());
       return;
     }
@@ -1700,7 +1700,7 @@ export default function PollCreate() {
           nextState.activeFolderId = savedActiveFolderId;
         }
         setFolderState(nextState);
-        setAssetTransformSet(createDefaultTransformSet());
+        setSceneTransformSets({ [NO_SCENE_KEY]: createDefaultTransformSet() });
         setAssetColorSet(createDefaultColorSet());
         setFoldersLoadedForProject(projectId);
       })
@@ -1711,7 +1711,7 @@ export default function PollCreate() {
           nextState.activeFolderId = savedActiveFolderId;
         }
         setFolderState(nextState);
-        setAssetTransformSet(createDefaultTransformSet());
+        setSceneTransformSets({ [NO_SCENE_KEY]: createDefaultTransformSet() });
         setAssetColorSet(createDefaultColorSet());
         setFoldersLoadedForProject(projectId);
       });
