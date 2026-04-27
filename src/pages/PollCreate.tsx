@@ -645,7 +645,7 @@ export default function PollCreate() {
     // narrows the poll's enabled assets down to what should appear on
     // air (e.g. Question+QR hides answer bars; Lower Third hides QR).
     const sceneEnabled = filterAssetsForScene(
-      enabledAssets,
+      sceneFilteredEnabled,
       broadcastSceneFromSceneType(previewScene),
     );
     const sharedAssets = {
@@ -1228,6 +1228,14 @@ export default function PollCreate() {
   const enabledAssets = (activeFolder?.assetIds ?? SEEDED_ASSETS).filter(
     (id) => !inactiveAssetIds.includes(id),
   );
+  // When a scene is active, narrow the visible assets in BOTH Build and
+  // Output previews to the scene's `visibleAssetIds`. This is what makes
+  // "select scene → see scene contents on preview" work end-to-end.
+  // Falls back to the full folder asset list when no scene exists yet.
+  const activeSceneVisible = sceneController.activeScene?.visibleAssetIds;
+  const sceneFilteredEnabled = activeSceneVisible
+    ? enabledAssets.filter((id) => activeSceneVisible.has(id as AssetId))
+    : enabledAssets;
   const syncViewerVotingOpen = useCallback(async () => {
     if (!projectId) return;
     const savedMatch = !isUuid(currentWorkspacePoll.id)
@@ -2302,8 +2310,8 @@ export default function PollCreate() {
             showBranding={showBranding}
             brandingPosition={brandingPosition}
             previewNode={renderOutputScene()}
-            hasAnswerBars={enabledAssets.includes('answers')}
-            enabledAssetIds={enabledAssets}
+            hasAnswerBars={sceneFilteredEnabled.includes('answers')}
+            enabledAssetIds={sceneFilteredEnabled}
             assetColors={assetColors}
             assetTransforms={assetTransforms}
             assetColorSet={assetColorSet}
@@ -2458,7 +2466,7 @@ export default function PollCreate() {
                   qrUrlVisible={assetState.qrUrlVisible}
                   showBranding={showBranding}
                   brandingPosition={brandingPosition}
-                  enabledAssetIds={enabledAssets}
+                  enabledAssetIds={sceneFilteredEnabled}
                   transforms={assetTransforms}
                     assetColors={assetColors}
                     previewMode={transformViewport}

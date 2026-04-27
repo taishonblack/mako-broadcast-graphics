@@ -4,7 +4,6 @@ import {
   BROADCAST_SCENES,
   BroadcastSceneId,
   broadcastSceneFromSceneType,
-  getBroadcastScene,
 } from '@/lib/scene-presets';
 import { QrCode, BarChart3, Trophy, Columns2 } from 'lucide-react';
 
@@ -44,23 +43,6 @@ export function SceneSelector({ previewScene, programScene, onSceneChange, onTak
 
   return (
     <div className="flex flex-col gap-2 w-full">
-      {/* Status row — operator must instantly know what's staged vs on-air. */}
-      <div className="flex items-center gap-2 text-[10px] font-mono uppercase">
-        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-primary/15 border border-primary/40 text-primary">
-          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
-          Preview · {getBroadcastScene(previewId).label}
-        </span>
-        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-mako-live/15 border border-mako-live/50 text-[hsl(var(--mako-live))]">
-          <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--mako-live))] animate-live-pulse" />
-          Live · {getBroadcastScene(programId).label}
-        </span>
-        {dirty && (
-          <span className="text-[9px] font-mono text-muted-foreground">
-            ↳ press TAKE to commit
-          </span>
-        )}
-      </div>
-
       <div className="flex items-center gap-3 w-full">
         {/* Scene buttons — broadcast scene presets */}
         <div className="flex items-center gap-1.5">

@@ -213,11 +213,15 @@ export function AssetInspector(p: AssetInspectorProps) {
                 {(['yes-no', 'multiple-choice', 'custom'] as AnswerType[]).map((t) => (
                   <button
                     key={t}
-                    onClick={() => p.setAnswerType(t)}
+                    onClick={() => { if (t !== 'custom') p.setAnswerType(t); }}
+                    disabled={t === 'custom'}
+                    title={t === 'custom' ? 'Coming soon — reserved for future customization.' : undefined}
                     className={`p-1.5 rounded-md text-[10px] font-medium transition-all border ${
-                      p.answerType === t
-                        ? 'bg-primary/10 border-primary/30 text-primary'
-                        : 'bg-accent/30 border-border/50 text-muted-foreground hover:bg-accent/50'
+                      t === 'custom'
+                        ? 'bg-muted/30 border-border/40 text-muted-foreground/40 cursor-not-allowed'
+                        : p.answerType === t
+                          ? 'bg-primary/10 border-primary/30 text-primary'
+                          : 'bg-accent/30 border-border/50 text-muted-foreground hover:bg-accent/50'
                     }`}
                   >
                     {t === 'yes-no' ? 'Y/N' : t === 'multiple-choice' ? 'MC' : 'Custom'}
@@ -233,11 +237,15 @@ export function AssetInspector(p: AssetInspectorProps) {
                   {(['letters', 'numbers', 'custom'] as MCLabelStyle[]).map((s) => (
                     <button
                       key={s}
-                      onClick={() => p.setMcLabelStyle(s)}
+                      onClick={() => { if (s !== 'custom') p.setMcLabelStyle(s); }}
+                      disabled={s === 'custom'}
+                      title={s === 'custom' ? 'Coming soon — reserved for future customization.' : undefined}
                       className={`p-1.5 rounded-md text-[10px] font-medium transition-all border ${
-                        p.mcLabelStyle === s
-                          ? 'bg-primary/10 border-primary/30 text-primary'
-                          : 'bg-accent/30 border-border/50 text-muted-foreground hover:bg-accent/50'
+                        s === 'custom'
+                          ? 'bg-muted/30 border-border/40 text-muted-foreground/40 cursor-not-allowed'
+                          : p.mcLabelStyle === s
+                            ? 'bg-primary/10 border-primary/30 text-primary'
+                            : 'bg-accent/30 border-border/50 text-muted-foreground hover:bg-accent/50'
                       }`}
                     >
                       {s === 'letters' ? 'A/B/C' : s === 'numbers' ? '1/2/3' : 'Custom'}
