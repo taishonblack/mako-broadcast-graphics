@@ -431,6 +431,7 @@ export default function Statistics() {
                       <th className="px-3 py-2 w-[100px]">Votes</th>
                       <th className="px-3 py-2 w-[100px]">Status</th>
                       <th className="px-3 py-2 w-[160px]">Last vote</th>
+                      <th className="px-3 py-2 w-[110px] text-right">Export</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -458,6 +459,23 @@ export default function Statistics() {
                           <td className="px-3 py-2 text-muted-foreground font-mono text-xs">
                             {new Date(h.latest).toLocaleTimeString()}
                           </td>
+                          <td className="px-3 py-2 text-right">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="h-7 px-2"
+                              onClick={() =>
+                                downloadCSV(
+                                  `vote-analytics-${(p?.internal_name || p?.question || h.pollId).replace(/[^a-z0-9]+/gi, '-').slice(0, 40)}.csv`,
+                                  rows.filter((r) => r.poll_id === h.pollId),
+                                  polls,
+                                )
+                              }
+                            >
+                              <Download className="h-3.5 w-3.5" />
+                              CSV
+                            </Button>
+                          </td>
                         </tr>
                       );
                     })}
@@ -466,7 +484,7 @@ export default function Statistics() {
               </div>
             )}
             <p className="mt-3 text-xs text-muted-foreground">
-              CSV export coming in the next iteration.
+              CSV exports include only anonymous metadata: timestamp, poll, answer, device, browser, OS, and approximate region.
             </p>
           </CardContent>
         </Card>
