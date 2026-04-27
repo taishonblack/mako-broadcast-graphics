@@ -2466,7 +2466,7 @@ export default function PollCreate() {
                   qrUrlVisible={assetState.qrUrlVisible}
                   showBranding={showBranding}
                   brandingPosition={brandingPosition}
-                  enabledAssetIds={enabledAssets}
+                  enabledAssetIds={sceneFilteredEnabled}
                   transforms={assetTransforms}
                     assetColors={assetColors}
                     previewMode={transformViewport}
