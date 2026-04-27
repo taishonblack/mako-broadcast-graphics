@@ -335,7 +335,7 @@ export default function PollCreate() {
       .then((p) => {
         if (!p) {
           toast.error('Poll not found');
-          navigate('/polls/new', { replace: true });
+          navigate('/workspace', { replace: true });
           return;
         }
         setPollId(p.id);
