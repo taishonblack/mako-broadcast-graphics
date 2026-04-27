@@ -23,7 +23,7 @@ import {
 } from '@/lib/output-state';
 import { Poll } from '@/lib/types';
 import { DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/types';
-import { Maximize, Minimize } from 'lucide-react';
+import { Maximize, Minimize, RefreshCw } from 'lucide-react';
 import { useTallyDisplay } from '@/hooks/useTallyDisplay';
 import React from 'react';
 
@@ -179,6 +179,33 @@ export default function ProgramOutput() {
     const t = window.setTimeout(() => setControlsVisible(false), 2500);
     return () => window.clearTimeout(t);
   }, [controlsVisible]);
+  const applyPayload = (next: Partial<OutputStatePayload>, forceRemount = false) => {
+    if (next.poll) setPoll(next.poll);
+    if (next.scene) setScene(next.scene);
+    setLayers(Array.isArray(next.layers) ? cloneLayers(next.layers) : cloneLayers(DEFAULT_LAYERS));
+    if (next.assets) setAssets(next.assets);
+    if (forceRemount) setSceneKey((k) => k + 1);
+  };
+  const hydrateLatestSnapshot = (transport: SyncTransport, forceRemount = false) => {
+    const latestLock = readOutputLock();
+    const latest = latestLock?.locked && latestLock.snapshot ? latestLock.snapshot : readOutputState();
+    if (!latest) return false;
+    applyPayload(latest, forceRemount);
+    markSync(transport);
+    return true;
+  };
+  const handleSyncNow = () => {
+    pushLog('manual sync now → requesting Full Frame snapshot');
+    requestOutputSnapshot();
+    const appliedNow = hydrateLatestSnapshot('localstorage', true);
+    if (appliedNow) pushLog('manual sync now → applied cached snapshot');
+    window.setTimeout(() => {
+      if (hydrateLatestSnapshot('localstorage', true)) pushLog('manual sync now → applied refreshed snapshot');
+    }, 150);
+    window.setTimeout(() => {
+      if (hydrateLatestSnapshot('localstorage', true)) pushLog('manual sync now → verified latest snapshot');
+    }, 500);
+  };
   const toggleFullscreen = async () => {
     try {
       if (document.fullscreenElement) {
@@ -191,16 +218,9 @@ export default function ProgramOutput() {
 
   // Listen for scene/state changes from dashboard
   useEffect(() => {
-    const applyPayload = (next: Partial<OutputStatePayload>) => {
-      if (next.poll) setPoll(next.poll);
-      if (next.scene) setScene(next.scene);
-      setLayers(Array.isArray(next.layers) ? cloneLayers(next.layers) : cloneLayers(DEFAULT_LAYERS));
-      if (next.assets) setAssets(next.assets);
-    };
-
     const applyLock = (msg: OutputLockMessage | null) => {
       if (msg?.locked && msg.snapshot) {
-        applyPayload(msg.snapshot);
+        applyPayload(msg.snapshot, true);
         setLocked(true);
       } else {
         setLocked(false);
@@ -222,7 +242,7 @@ export default function ProgramOutput() {
           }>;
           // Discard payloads while locked — the snapshot is canonical.
           if (locked) return;
-          applyPayload(next);
+          applyPayload(next, true);
           markSync('storage');
         } catch {}
       }
@@ -248,7 +268,7 @@ export default function ProgramOutput() {
           if (!next) return;
           pushLog(`bc payload: poll=${next.poll?.id} scene=${next.scene} q="${(next.poll?.question || '∅').slice(0, 30)}"`);
           if (locked) return;
-          applyPayload(next);
+          applyPayload(next, true);
           markSync('broadcastchannel');
         };
         lockChannel = new BroadcastChannel(OUTPUT_LOCK_CHANNEL);
@@ -335,6 +355,15 @@ export default function ProgramOutput() {
       >
         {isFullscreen ? <Minimize className="h-3 w-3" /> : <Maximize className="h-3 w-3" />}
         {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
+      </button>
+      <button
+        type="button"
+        onClick={handleSyncNow}
+        aria-label="Sync fullscreen output now"
+        className={`fixed top-12 left-3 z-[100] inline-flex items-center gap-1.5 rounded-md border border-white/15 bg-black/60 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-widest text-white backdrop-blur-sm transition-opacity duration-300 hover:bg-black/80 ${controlsVisible ? 'opacity-100' : 'opacity-0 pointer-events-none'}`}
+      >
+        <RefreshCw className="h-3 w-3" />
+        Sync Now
       </button>
       {/* Sync status pill — always visible (small, low-contrast) so the
           operator can confirm at a glance that the popup is mirroring.
