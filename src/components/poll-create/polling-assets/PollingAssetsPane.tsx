@@ -231,14 +231,19 @@ export function PollingAssetsPane({
                     className="h-7 w-7"
                     onClick={() => onSelectFolder(folder.id)}
                     aria-label={`Open add asset menu for ${folder.name}`}
-                    title={`Add asset to ${folder.name}`}
+                    title={
+                      isActiveFolder && !activeSceneId
+                        ? 'Select a scene first'
+                        : `Add asset to ${folder.name}`
+                    }
+                    disabled={isActiveFolder && !activeSceneId}
                   >
                     <Plus className="w-3.5 h-3.5" />
                   </Button>
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-56" aria-label={`Add asset options for ${folder.name}`}>
                   <DropdownMenuLabel className="text-[10px] uppercase font-mono">
-                    Add Asset To Folder
+                    Add Asset To Scene
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
                   {folderAvailableAssets.length === 0 && (
