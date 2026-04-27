@@ -96,6 +96,31 @@ export default function ProgramOutput() {
   const [diagLog, setDiagLog] = useState<string[]>([]);
   const pushLog = (line: string) =>
     setDiagLog((prev) => [...prev.slice(-19), `${new Date().toLocaleTimeString()}  ${line}`]);
+
+  // Sync status — tracks the most recent snapshot timestamp and which
+  // transport delivered it (BroadcastChannel vs storage event vs initial
+  // localStorage read). Surfaces in a small always-visible pill so the
+  // operator can confirm the popup is mirroring at a glance.
+  type SyncTransport = 'broadcastchannel' | 'storage' | 'localstorage' | 'none';
+  const bcSupported = typeof window !== 'undefined' && typeof BroadcastChannel !== 'undefined';
+  const lsSupported = typeof window !== 'undefined' && (() => { try { window.localStorage.setItem('__mako_probe', '1'); window.localStorage.removeItem('__mako_probe'); return true; } catch { return false; } })();
+  const [lastSyncAt, setLastSyncAt] = useState<number | null>(initialEffective ? Date.now() : null);
+  const [lastTransport, setLastTransport] = useState<SyncTransport>(initialEffective ? 'localstorage' : 'none');
+  const [bcOk, setBcOk] = useState(false);
+  const [storageOk, setStorageOk] = useState(false);
+  const markSync = (transport: SyncTransport) => {
+    setLastSyncAt(Date.now());
+    setLastTransport(transport);
+    if (transport === 'broadcastchannel') setBcOk(true);
+    if (transport === 'storage') setStorageOk(true);
+  };
+  // Re-render the "x s ago" label every second.
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const t = window.setInterval(() => setTick((n) => n + 1), 1000);
+    return () => window.clearInterval(t);
+  }, []);
+
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
       if (e.key === '?' || (e.key === '/' && e.shiftKey)) setDiagOpen((v) => !v);
@@ -198,6 +223,7 @@ export default function ProgramOutput() {
           // Discard payloads while locked — the snapshot is canonical.
           if (locked) return;
           applyPayload(next);
+          markSync('storage');
         } catch {}
       }
 
@@ -223,6 +249,7 @@ export default function ProgramOutput() {
           pushLog(`bc payload: poll=${next.poll?.id} scene=${next.scene} q="${(next.poll?.question || '∅').slice(0, 30)}"`);
           if (locked) return;
           applyPayload(next);
+          markSync('broadcastchannel');
         };
         lockChannel = new BroadcastChannel(OUTPUT_LOCK_CHANNEL);
         lockChannel.onmessage = (ev) => {
@@ -321,6 +348,37 @@ export default function ProgramOutput() {
         {isFullscreen ? <Minimize className="h-3 w-3" /> : <Maximize className="h-3 w-3" />}
         {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
       </button>
+      {/* Sync status pill — always visible (small, low-contrast) so the
+          operator can confirm at a glance that the popup is mirroring.
+          Click to open the full diagnostics overlay. */}
+      {(() => {
+        const ageMs = lastSyncAt ? Date.now() - lastSyncAt : null;
+        const ageS = ageMs == null ? null : Math.floor(ageMs / 1000);
+        const stale = ageMs != null && ageMs > 5000;
+        const fresh = ageMs != null && ageMs < 2000;
+        const dotColor = lastSyncAt == null
+          ? 'bg-red-400'
+          : stale ? 'bg-yellow-400' : fresh ? 'bg-emerald-400' : 'bg-emerald-400/70';
+        const ageLabel = ageS == null ? 'no sync' : ageS < 1 ? 'just now' : ageS < 60 ? `${ageS}s ago` : `${Math.floor(ageS / 60)}m ago`;
+        const transportLabel = lastTransport === 'broadcastchannel' ? 'BC'
+          : lastTransport === 'storage' ? 'STORAGE'
+          : lastTransport === 'localstorage' ? 'LS-INIT'
+          : '—';
+        return (
+          <button
+            type="button"
+            onClick={() => setDiagOpen(true)}
+            aria-label="Sync status — open diagnostics"
+            title={`BroadcastChannel: ${bcSupported ? (bcOk ? 'ok' : 'idle') : 'unsupported'} · localStorage: ${lsSupported ? (storageOk ? 'ok' : 'idle') : 'unsupported'}`}
+            className={`fixed top-3 right-3 z-[100] inline-flex items-center gap-2 rounded-md border border-white/15 bg-black/60 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-widest text-white backdrop-blur-sm transition-opacity duration-300 hover:bg-black/80 ${controlsVisible ? 'opacity-100' : 'opacity-30'}`}
+          >
+            <span className={`inline-block h-2 w-2 rounded-full ${dotColor} ${fresh ? 'animate-pulse' : ''}`} />
+            <span className="text-white/80">SYNC</span>
+            <span className="text-white/50">{transportLabel}</span>
+            <span className="text-white/60">{ageLabel}</span>
+          </button>
+        );
+      })()}
       <div style={{ width: 'min(100vw, calc(100vh * 16 / 9))', maxWidth: '1920px' }} className="w-full">
         <BroadcastCanvas className="bg-background">
           <div
@@ -353,6 +411,12 @@ export default function ProgramOutput() {
             <div><span className="text-white/50">slug:</span> {poll.slug || <span className="text-yellow-300">none</span>}</div>
             <div><span className="text-white/50">locked:</span> {String(locked)}</div>
             <div><span className="text-white/50">bgImage:</span> {poll.bgImage ? '✓' : '—'} • <span className="text-white/50">bgColor:</span> {poll.bgColor || '—'}</div>
+            <div className="mt-2 rounded border border-white/10 bg-white/5 p-2">
+              <div className="mb-1 text-[9px] uppercase tracking-widest text-white/40">Sync transports</div>
+              <div><span className="text-white/50">last sync:</span> {lastSyncAt ? new Date(lastSyncAt).toLocaleTimeString() : <span className="text-red-300">never</span>} <span className="text-white/40">via {lastTransport}</span></div>
+              <div><span className="text-white/50">BroadcastChannel:</span> {bcSupported ? (bcOk ? <span className="text-emerald-300">ok</span> : <span className="text-yellow-300">idle</span>) : <span className="text-red-300">unsupported</span>}</div>
+              <div><span className="text-white/50">localStorage:</span> {lsSupported ? (storageOk ? <span className="text-emerald-300">ok</span> : <span className="text-yellow-300">idle</span>) : <span className="text-red-300">unsupported</span>}</div>
+            </div>
             {wouldRenderBlank && (
               <div className="mt-2 rounded border border-yellow-500/40 bg-yellow-500/10 p-2 text-yellow-200">
                 ⚠ Would render blank: no question, no layers, branding off. The operator may not have pushed a snapshot to this window yet.
