@@ -70,6 +70,7 @@ import {
   loadProjectPollingAssetFolders,
   PollingAssetFolderState,
   saveProjectPollingAssetFolders,
+  normalizeFolderState,
 } from '@/lib/polling-asset-folders';
 import { DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes } from '@/lib/operator-settings';
 
@@ -134,6 +135,26 @@ function loadPersistedAssetState(): AssetState {
 }
 
 const buildActiveFolderStorageKey = (projectId?: string) => `mako-active-folder:${projectId ?? 'draft'}`;
+
+/**
+ * Draft folder state persistence — used when the operator is editing in
+ * the workspace WITHOUT having opened a project. Without this, navigating
+ * away (e.g. to /projects) and back to /workspace remounts PollCreate and
+ * wipes the in-memory folder list, losing all assets/folders the operator
+ * had built up. With this, the draft round-trips through localStorage so
+ * the workspace acts as a persistent scratchpad until a project is opened.
+ */
+const DRAFT_FOLDER_STATE_KEY = 'mako-draft-folder-state-v1';
+
+function loadDraftFolderState(): PollingAssetFolderState | null {
+  try {
+    const raw = localStorage.getItem(DRAFT_FOLDER_STATE_KEY);
+    if (!raw) return null;
+    return normalizeFolderState(JSON.parse(raw));
+  } catch {
+    return null;
+  }
+}
 
 interface WorkspaceLayout {
   hSizes: [number, number, number]; // left / center / right
@@ -335,7 +356,7 @@ export default function PollCreate() {
       .then((p) => {
         if (!p) {
           toast.error('Poll not found');
-          navigate('/polls/new', { replace: true });
+          navigate('/workspace', { replace: true });
           return;
         }
         setPollId(p.id);
@@ -1745,7 +1766,11 @@ export default function PollCreate() {
   useEffect(() => {
     if (!user || !projectId) {
       setFoldersLoadedForProject(null);
-      const nextState = createDefaultFolderState(question, bgColor);
+      // Without a project, hydrate from the local draft so navigating away
+      // from /workspace and back doesn't wipe folders/assets the operator
+      // has built up.
+      const draft = loadDraftFolderState();
+      const nextState = draft ?? createDefaultFolderState(question, bgColor);
       const savedActiveFolderId = localStorage.getItem(buildActiveFolderStorageKey(projectId));
       if (savedActiveFolderId && nextState.folders.some((folder) => folder.id === savedActiveFolderId)) {
         nextState.activeFolderId = savedActiveFolderId;
@@ -1834,7 +1859,17 @@ export default function PollCreate() {
   }, [answers.length, selectedTemplate]);
 
   useEffect(() => {
-    if (!user || !projectId || foldersLoadedForProject !== projectId) return;
+    if (!user || !projectId) {
+      // Persist as a local draft so the workspace survives remounts when no
+      // project is open.
+      try {
+        localStorage.setItem(DRAFT_FOLDER_STATE_KEY, JSON.stringify(folderState));
+      } catch {
+        // ignore quota errors
+      }
+      return;
+    }
+    if (foldersLoadedForProject !== projectId) return;
     saveProjectPollingAssetFolders(projectId, user.id, folderState).catch(() => undefined);
   }, [folderState, foldersLoadedForProject, projectId, user]);
 

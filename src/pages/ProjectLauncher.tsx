@@ -155,7 +155,7 @@ export default function ProjectLauncher() {
     }
 
     localStorage.setItem('mako-active-project', project.id);
-    navigate('/polls/new?mode=build');
+    navigate('/workspace?mode=build');
   };
 
   /** Wraps an action with a "close current project?" confirmation when there
