@@ -771,31 +771,7 @@ export default function PollCreate() {
       options: livePoll.options?.length ? livePoll.options : previewOptions,
       answers: livePoll.options?.length ? livePoll.options : previewOptions,
     };
-    const snapshot = {
-      poll: snapshotPoll,
-      scene: previewScene,
-      layers: [],
-      slateActive: false,
-      assets: {
-        qrSize,
-        qrPosition: assetState.qrPosition,
-        qrVisible: assetState.qrVisible,
-        qrUrlVisible: assetState.qrUrlVisible,
-        showBranding,
-        brandingPosition,
-        enabledAssetIds: enabledAssets,
-        transforms: assetTransforms,
-        assetColors,
-        wordmarkWeight: assetState.wordmarkWeight,
-        wordmarkTracking: assetState.wordmarkTracking,
-        wordmarkScale: assetState.wordmarkScale,
-        wordmarkShowGuides: assetState.wordmarkShowGuides,
-        tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
-        tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
-        resultsMode: folder?.resultsMode ?? DEFAULT_RESULTS_MODE,
-        resultsAnimationMs: folder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
-      },
-    };
+    const snapshot = { ...getProgramOutputPayload(snapshotPoll), slateActive: false };
     broadcastOutputLock({ locked: true, snapshot, lockedAt: Date.now() });
     // Persist the snapshot to project_live_state so cross-network viewers
     // (mobile/desktop on /vote/:slug) can read the operator's color
