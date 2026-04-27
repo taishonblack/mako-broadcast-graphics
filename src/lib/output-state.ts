@@ -16,6 +16,25 @@ export const OUTPUT_LOCK_CHANNEL = 'mako-output-lock-channel';
  *  when no state change has occurred recently. */
 export const OUTPUT_HEARTBEAT_CHANNEL = 'mako-output-heartbeat';
 export const OUTPUT_HEARTBEAT_STORAGE_KEY = 'mako-output-heartbeat-ts';
+/** Request channel — Output windows post on this channel when they mount
+ *  (or remount after a route change) to ask the operator workspace to
+ *  immediately re-broadcast its current Program Preview snapshot. This
+ *  fixes the race where the popup is opened or refreshed AFTER the last
+ *  mirror push, leaving it stuck on stale `localStorage` (or the mock
+ *  fallback when `localStorage` was never written for this session). */
+export const OUTPUT_REQUEST_CHANNEL = 'mako-output-request';
+
+/** Output → Operator: "please re-send your current Program Preview." */
+export function requestOutputSnapshot() {
+  if (typeof window === 'undefined') return;
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      const ch = new BroadcastChannel(OUTPUT_REQUEST_CHANNEL);
+      ch.postMessage({ ts: Date.now() });
+      ch.close();
+    }
+  } catch { /* ignore */ }
+}
 
 /** Send a lightweight presence ping from the operator to any open Output
  *  windows. Safe to call frequently (cheap string write + postMessage). */
