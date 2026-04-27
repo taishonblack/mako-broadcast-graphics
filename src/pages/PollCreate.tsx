@@ -655,6 +655,7 @@ export default function PollCreate() {
       sceneFilteredEnabled,
       broadcastSceneFromSceneType(previewScene),
     );
+    const activeFolderForResults = getFolderById(folderState, folderState.activeFolderId);
     const sharedAssets = {
       slug: slugForUrl,
       qrSize,
@@ -669,6 +670,9 @@ export default function PollCreate() {
       wordmarkWeight: assetState.wordmarkWeight,
       wordmarkTracking: assetState.wordmarkTracking,
       wordmarkScale: assetState.wordmarkScale,
+      resultsMode: activeFolderForResults?.resultsMode ?? DEFAULT_RESULTS_MODE,
+      resultsAnimationMs: activeFolderForResults?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
+      resultsReplayKey,
     };
     const props = {
       question: currentWorkspacePoll.question || 'Your question here?',
