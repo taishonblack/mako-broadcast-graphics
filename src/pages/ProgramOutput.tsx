@@ -24,6 +24,37 @@ import { Poll } from '@/lib/types';
 import { DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/types';
 import { Maximize, Minimize } from 'lucide-react';
 import { useTallyDisplay } from '@/hooks/useTallyDisplay';
+import React from 'react';
+
+/**
+ * Diagnostic ErrorBoundary — when a scene throws during render the Output
+ * window would otherwise go blank. We catch + surface the error inline so
+ * operators can see what failed without opening devtools.
+ */
+class OutputErrorBoundary extends React.Component<
+  { children: React.ReactNode; onError: (msg: string) => void },
+  { error: Error | null }
+> {
+  state = { error: null as Error | null };
+  static getDerivedStateFromError(error: Error) { return { error }; }
+  componentDidCatch(error: Error) { this.props.onError(`${error.name}: ${error.message}`); }
+  render() {
+    if (this.state.error) {
+      return (
+        <div className="absolute inset-0 flex items-center justify-center bg-black/80 p-8">
+          <div className="max-w-2xl rounded-lg border border-red-500/40 bg-red-950/40 p-6 font-mono text-xs text-red-200">
+            <div className="mb-2 text-sm font-semibold text-red-300">Scene render error</div>
+            <div className="whitespace-pre-wrap break-words">{this.state.error.message}</div>
+            {this.state.error.stack && (
+              <pre className="mt-3 max-h-48 overflow-auto whitespace-pre-wrap text-[10px] text-red-200/70">{this.state.error.stack}</pre>
+            )}
+          </div>
+        </div>
+      );
+    }
+    return this.props.children;
+  }
+}
 
 const DEFAULT_ASSETS: OutputAssets = {
   qrSize: 120,
@@ -56,6 +87,32 @@ export default function ProgramOutput() {
    *  snapshot above is the canonical broadcast frame until End Live fires. */
   const [locked, setLocked] = useState<boolean>(Boolean(initialLock?.locked));
   const theme = themePresets.find((preset) => preset.id === poll.themeId) || themePresets[0];
+
+  // Diagnostic overlay state — toggled with the "?" key, default-on when
+  // there is nothing meaningful to render so operators always see *why*
+  // the output looks blank.
+  const [diagOpen, setDiagOpen] = useState(false);
+  const [diagLog, setDiagLog] = useState<string[]>([]);
+  const pushLog = (line: string) =>
+    setDiagLog((prev) => [...prev.slice(-19), `${new Date().toLocaleTimeString()}  ${line}`]);
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === '?' || (e.key === '/' && e.shiftKey)) setDiagOpen((v) => !v);
+    };
+    window.addEventListener('keydown', onKey);
+    return () => window.removeEventListener('keydown', onKey);
+  }, []);
+  useEffect(() => { pushLog(`mount id=${id ?? '∅'} initialPoll=${initialEffective?.poll?.id ?? 'fallback'} scene=${initialEffective?.scene ?? 'fullscreen'} locked=${Boolean(initialLock?.locked)}`); }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  useEffect(() => { pushLog(`scene → ${scene}`); }, [scene]);
+  useEffect(() => { pushLog(`poll → id=${poll.id} q="${(poll.question || '∅').slice(0, 40)}" opts=${poll.options.length}`); }, [poll]);
+
+  // Auto-open the overlay when the frame would otherwise be blank
+  // (no question + no layers + no branding). Operators can dismiss with "?".
+  const wouldRenderBlank =
+    !poll.question.trim() &&
+    (!layers || layers.length === 0) &&
+    !assets.showBranding;
+  useEffect(() => { if (wouldRenderBlank) setDiagOpen(true); }, [wouldRenderBlank]);
 
   // Apply Stop Motion / Live tally pacing on the display votes that scenes
   // render. The "true" liveVotes / total still tick in the background; this
@@ -256,10 +313,46 @@ export default function ProgramOutput() {
             className={`absolute inset-0 ${animClass}`}
             style={{ animationDuration: '300ms' }}
           >
-            {renderScene()}
+            <OutputErrorBoundary onError={(m) => pushLog(`render error: ${m}`)}>
+              {renderScene()}
+            </OutputErrorBoundary>
           </div>
         </BroadcastCanvas>
       </div>
+
+      {/* Diagnostic overlay — toggle with "?" key. Always opens automatically
+          when the frame would otherwise be blank. */}
+      {diagOpen && (
+        <div className="fixed bottom-3 right-3 z-[110] w-[420px] max-w-[90vw] rounded-md border border-white/15 bg-black/85 p-3 font-mono text-[10px] text-white backdrop-blur-sm shadow-2xl">
+          <div className="mb-2 flex items-center justify-between">
+            <span className="text-[11px] font-semibold uppercase tracking-widest text-orange-300">Output diagnostics</span>
+            <button onClick={() => setDiagOpen(false)} className="rounded border border-white/20 px-1.5 py-0.5 text-[9px] uppercase tracking-widest hover:bg-white/10">Close</button>
+          </div>
+          <div className="space-y-1 leading-relaxed">
+            <div><span className="text-white/50">route id:</span> {id ?? '∅'}</div>
+            <div><span className="text-white/50">poll id:</span> {poll.id} <span className="text-white/40">({poll === fallbackPoll ? 'fallback/mock' : 'live state'})</span></div>
+            <div><span className="text-white/50">question:</span> {poll.question.trim() ? `"${poll.question}"` : <span className="text-yellow-300">EMPTY</span>}</div>
+            <div><span className="text-white/50">scene:</span> {scene} <span className="text-white/40">key={sceneKey}</span></div>
+            <div><span className="text-white/50">layers:</span> {layers?.length ?? 0}</div>
+            <div><span className="text-white/50">options:</span> {poll.options.length} • total={total}</div>
+            <div><span className="text-white/50">slug:</span> {poll.slug || <span className="text-yellow-300">none</span>}</div>
+            <div><span className="text-white/50">locked:</span> {String(locked)}</div>
+            <div><span className="text-white/50">bgImage:</span> {poll.bgImage ? '✓' : '—'} • <span className="text-white/50">bgColor:</span> {poll.bgColor || '—'}</div>
+            {wouldRenderBlank && (
+              <div className="mt-2 rounded border border-yellow-500/40 bg-yellow-500/10 p-2 text-yellow-200">
+                ⚠ Would render blank: no question, no layers, branding off. The operator may not have pushed a snapshot to this window yet.
+              </div>
+            )}
+          </div>
+          <div className="mt-3 border-t border-white/10 pt-2">
+            <div className="mb-1 text-[9px] uppercase tracking-widest text-white/40">Event log</div>
+            <div className="max-h-40 space-y-0.5 overflow-auto text-white/70">
+              {diagLog.length === 0 ? <div className="text-white/30">no events</div> : diagLog.map((l, i) => <div key={i}>{l}</div>)}
+            </div>
+          </div>
+          <div className="mt-2 text-[9px] text-white/40">Press <kbd className="rounded border border-white/20 px-1">?</kbd> to toggle</div>
+        </div>
+      )}
     </div>
   );
 }
