@@ -715,6 +715,7 @@ function AssetCard({
   onDragStart, onDragOver, onDrop, children,
   inactive = false,
   onToggleInactive,
+  onHideFromScene,
 }: {
   meta: AssetMeta;
   isSelected: boolean;
@@ -726,6 +727,10 @@ function AssetCard({
   children: React.ReactNode;
   inactive?: boolean;
   onToggleInactive?: () => void;
+  /** Hide this asset from the current scene without removing it from the
+   *  poll. Lets the operator have, e.g., the QR visible in Scene 1 but not
+   *  Scene 3 while still keeping a single QR asset on the poll. */
+  onHideFromScene?: () => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const Icon = meta.icon;
@@ -769,6 +774,17 @@ function AssetCard({
         >
           <ChevronDown className={`w-3 h-3 transition-transform ${collapsed ? '-rotate-90' : ''}`} />
         </button>
+        {!meta.required && (
+          onHideFromScene && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onHideFromScene(); }}
+            className="text-muted-foreground/50 hover:text-foreground transition-colors p-0.5 opacity-0 group-hover:opacity-100"
+            title="Hide from this scene (keeps asset on the poll)"
+          >
+            <EyeOff className="w-3 h-3" />
+          </button>
+          )
+        )}
         {!meta.required && (
           <button
             onClick={(e) => { e.stopPropagation(); onRemove(); }}
