@@ -220,6 +220,7 @@ export default function ProgramOutput() {
         channel.onmessage = (ev) => {
           const next = ev.data as OutputStatePayload | undefined;
           if (!next) return;
+          pushLog(`bc payload: poll=${next.poll?.id} scene=${next.scene} q="${(next.poll?.question || '∅').slice(0, 30)}"`);
           if (locked) return;
           applyPayload(next);
         };
