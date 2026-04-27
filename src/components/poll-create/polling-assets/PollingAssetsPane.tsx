@@ -635,6 +635,54 @@ export function PollingAssetsPane({
 
 /* ---------- Asset Card chrome ---------- */
 
+/* ---------- Scene add button (presets dropdown) ---------- */
+
+function SceneAddButton({
+  onAddScene,
+  variant = 'outline',
+}: {
+  onAddScene: (preset: ScenePreset) => void;
+  variant?: 'default' | 'outline';
+}) {
+  return (
+    <DropdownMenu>
+      <DropdownMenuTrigger asChild>
+        <Button
+          type="button"
+          size="sm"
+          variant={variant}
+          className="w-full h-7 gap-1 text-[10px]"
+        >
+          <Plus className="w-3 h-3" /> Add Scene
+        </Button>
+      </DropdownMenuTrigger>
+      <DropdownMenuContent align="start" className="w-56">
+        <DropdownMenuLabel className="text-[10px] uppercase font-mono">
+          New Scene Preset
+        </DropdownMenuLabel>
+        <DropdownMenuSeparator />
+        {SCENE_PRESETS.map((p) => (
+          <DropdownMenuItem key={p.id} onClick={() => onAddScene(p.id)} className="gap-2">
+            <div className="flex flex-col">
+              <span className="text-xs">{p.label}</span>
+              <span className="text-[10px] text-muted-foreground line-clamp-1">
+                {p.description}
+              </span>
+            </div>
+          </DropdownMenuItem>
+        ))}
+        <DropdownMenuSeparator />
+        <DropdownMenuItem disabled className="gap-2 opacity-60">
+          <div className="flex flex-col">
+            <span className="text-xs">L3 (Lower Third)</span>
+            <span className="text-[10px] text-muted-foreground">Coming soon</span>
+          </div>
+        </DropdownMenuItem>
+      </DropdownMenuContent>
+    </DropdownMenu>
+  );
+}
+
 function AssetCard({
   meta, isSelected, onSelect, onRemove,
   onDragStart, onDragOver, onDrop, children,
