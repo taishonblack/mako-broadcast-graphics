@@ -270,6 +270,7 @@ export type Database = {
           created_at: string
           id: string
           scene_id: string
+          transform: Json
           updated_at: string
           visible: boolean
         }
@@ -278,6 +279,7 @@ export type Database = {
           created_at?: string
           id?: string
           scene_id: string
+          transform?: Json
           updated_at?: string
           visible?: boolean
         }
@@ -286,6 +288,7 @@ export type Database = {
           created_at?: string
           id?: string
           scene_id?: string
+          transform?: Json
           updated_at?: string
           visible?: boolean
         }
