@@ -131,7 +131,7 @@ export function AssetInspector(p: AssetInspectorProps) {
               value={p.question}
               onChange={(e) => p.setQuestion(e.target.value)}
               className={`bg-background/50 h-8 text-xs ${hl('question')}`}
-              placeholder="On-air question…"
+              placeholder="Write question here"
             />
             <Label className={`text-[10px] text-muted-foreground pt-1 ${p.highlightField === 'internalName' ? 'text-primary' : ''}`}>Internal Name</Label>
             <Input
