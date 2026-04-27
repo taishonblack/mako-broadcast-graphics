@@ -23,7 +23,7 @@ import {
 } from '@/lib/output-state';
 import { Poll } from '@/lib/types';
 import { DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/types';
-import { Maximize, Minimize } from 'lucide-react';
+import { Maximize, Minimize, RefreshCw } from 'lucide-react';
 import { useTallyDisplay } from '@/hooks/useTallyDisplay';
 import React from 'react';
 
@@ -191,19 +191,26 @@ export default function ProgramOutput() {
 
   // Listen for scene/state changes from dashboard
   useEffect(() => {
-    const applyPayload = (next: Partial<OutputStatePayload>) => {
+    const applyPayload = (next: Partial<OutputStatePayload>, forceRemount = false) => {
       if (next.poll) setPoll(next.poll);
       if (next.scene) setScene(next.scene);
       setLayers(Array.isArray(next.layers) ? cloneLayers(next.layers) : cloneLayers(DEFAULT_LAYERS));
       if (next.assets) setAssets(next.assets);
+      if (forceRemount) setSceneKey((k) => k + 1);
     };
 
     const applyLock = (msg: OutputLockMessage | null) => {
       if (msg?.locked && msg.snapshot) {
-        applyPayload(msg.snapshot);
+        applyPayload(msg.snapshot, true);
         setLocked(true);
       } else {
         setLocked(false);
+        const latest = readOutputState();
+        if (latest) {
+          applyPayload(latest, true);
+          markSync('localstorage');
+          pushLog(`unlock rehydrated: poll=${latest.poll.id} scene=${latest.scene}`);
+        }
       }
     };
 
