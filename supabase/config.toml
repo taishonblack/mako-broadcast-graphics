@@ -1,1 +1,4 @@
 project_id = "rgqkjaqbfdfyfqqeghor"
+
+[functions.record-vote]
+verify_jwt = false
