@@ -918,6 +918,75 @@ export function OperatorOutputMode({
             </div>
           )}
 
+          {/* Results playback — separate from Tally Pacing because it
+              controls the *reveal* of the Results scene (animated bars
+              vs static final), not how incoming votes are paced. Always
+              visible so the operator can flip mode / change speed /
+              re-trigger the reveal mid-show. */}
+          {(onResultsModeChange || onResultsAnimationMsChange || onReplayResults) && (
+            <div className="mako-panel p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase text-muted-foreground">
+                  Results Playback
+                </span>
+                <span className="text-[10px] font-mono text-muted-foreground uppercase">
+                  {resultsMode === 'animated' ? `Animated · ${(resultsAnimationMs / 1000).toFixed(1)}s` : 'Static'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10px] font-mono uppercase text-muted-foreground">Mode</p>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant={resultsMode === 'animated' ? 'default' : 'outline'}
+                    className="h-6 px-2 text-[10px]"
+                    onClick={() => onResultsModeChange?.('animated')}
+                  >Animated</Button>
+                  <Button
+                    size="sm"
+                    variant={resultsMode === 'static' ? 'default' : 'outline'}
+                    className="h-6 px-2 text-[10px]"
+                    onClick={() => onResultsModeChange?.('static')}
+                  >Static</Button>
+                </div>
+              </div>
+              {resultsMode === 'animated' && (
+                <>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase text-muted-foreground">Reveal Speed</span>
+                      <span className="text-[10px] font-mono text-foreground">{(resultsAnimationMs / 1000).toFixed(1)}s</span>
+                    </div>
+                    <Slider
+                      min={200}
+                      max={6000}
+                      step={100}
+                      value={[resultsAnimationMs]}
+                      onValueChange={(v) => onResultsAnimationMsChange?.(v[0] ?? resultsAnimationMs)}
+                    />
+                    <div className="flex items-center justify-between text-[9px] font-mono uppercase text-muted-foreground/70">
+                      <span>Fast</span>
+                      <span>Dramatic</span>
+                    </div>
+                  </div>
+                  {onReplayResults && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 w-full text-[10px]"
+                      onClick={onReplayResults}
+                    >
+                      Replay Reveal
+                    </Button>
+                  )}
+                </>
+              )}
+              <p className="text-[10px] text-muted-foreground">
+                Animated bars on entry; Static skips the reveal.
+              </p>
+            </div>
+          )}
+
           {/* Test-vote runner — inject N votes over T seconds and watch the
               bars + counters animate in the preview above. Useful for QA'ing
               the chart animation without opening a viewer browser. */}
