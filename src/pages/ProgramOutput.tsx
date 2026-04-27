@@ -309,7 +309,7 @@ export default function ProgramOutput() {
     switch (scene) {
       case 'lowerThird': inner = <LowerThirdScene {...baseProps} />; break;
       case 'qr':
-        inner = <QRScene slug={poll.slug} theme={theme} enabledAssetIds={assets.enabledAssetIds} transforms={assets.transforms} qrVisible={assets.qrVisible} qrUrlVisible={assets.qrUrlVisible} debugVoteUrl={`https://makovote.app/vote/${poll.slug}`} />;
+        inner = <QRScene slug={poll.slug} theme={theme} enabledAssetIds={assets.enabledAssetIds} transforms={assets.transforms} assetColors={assets.assetColors} qrVisible={assets.qrVisible} qrUrlVisible={assets.qrUrlVisible} debugVoteUrl={`https://makovote.app/vote/${poll.slug}`} />;
         break;
       case 'results': inner = <ResultsScene {...baseProps} />; break;
       case 'fullscreen':
