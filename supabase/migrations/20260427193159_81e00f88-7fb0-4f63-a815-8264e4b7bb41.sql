@@ -1,0 +1,1 @@
+UPDATE public.polls SET question = '' WHERE question = 'How many goals in game?';
