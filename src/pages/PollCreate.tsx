@@ -1859,7 +1859,17 @@ export default function PollCreate() {
   }, [answers.length, selectedTemplate]);
 
   useEffect(() => {
-    if (!user || !projectId || foldersLoadedForProject !== projectId) return;
+    if (!user || !projectId) {
+      // Persist as a local draft so the workspace survives remounts when no
+      // project is open.
+      try {
+        localStorage.setItem(DRAFT_FOLDER_STATE_KEY, JSON.stringify(folderState));
+      } catch {
+        // ignore quota errors
+      }
+      return;
+    }
+    if (foldersLoadedForProject !== projectId) return;
     saveProjectPollingAssetFolders(projectId, user.id, folderState).catch(() => undefined);
   }, [folderState, foldersLoadedForProject, projectId, user]);
 
