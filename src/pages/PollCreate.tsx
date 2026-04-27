@@ -44,6 +44,7 @@ import { FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, 
 import { useAuth } from '@/hooks/useAuth';
 import { loadPoll, savePoll, listPolls, listProjects, DraftPollPayload, SavedPoll, BlockLetter } from '@/lib/poll-persistence';
 import { OperatorOutputMode } from '@/components/operator/OperatorOutputMode';
+import { takeToProgram, cutToProgram, setPreviewScene as dbSetPreviewScene, type SceneName } from '@/lib/broadcast-state';
 import { toast } from 'sonner';
 import {
   createDefaultFolderState,
@@ -685,6 +686,7 @@ export default function PollCreate() {
 
   const handleTake = () => {
     setProgramScene(previewScene);
+    if (projectId) void takeToProgram(projectId, previewScene as unknown as SceneName);
     const folder = getFolderById(folderState, folderState.activeFolderId);
     broadcastOutputState({
       poll: currentWorkspacePoll,
@@ -712,6 +714,7 @@ export default function PollCreate() {
 
   const handleCut = () => {
     setProgramScene(previewScene);
+    if (projectId) void cutToProgram(projectId, previewScene as unknown as SceneName);
     const folder = getFolderById(folderState, folderState.activeFolderId);
     broadcastOutputState({
       poll: currentWorkspacePoll,
@@ -2278,7 +2281,10 @@ export default function PollCreate() {
               if (selectedId === currentWorkspacePoll.id) return;
               navigate(`/polls/${selectedId}?mode=output`);
             }}
-            onSceneChange={setPreviewScene}
+            onSceneChange={(scene) => {
+              setPreviewScene(scene);
+              if (projectId) void dbSetPreviewScene(projectId, scene as unknown as SceneName);
+            }}
             onTake={handleTake}
             onCut={handleCut}
             onOpenOutput={() => window.open(`/output/${currentWorkspacePoll.id}`, 'mako-output', 'width=1920,height=1080') ?? null}

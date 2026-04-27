@@ -1,6 +1,7 @@
 import { useNavigate } from 'react-router-dom';
 import { MonitorContainer } from '@/components/broadcast/BroadcastPreviewFrame';
 import { PreviewWithOverlays } from '@/components/broadcast/preview/PreviewWithOverlays';
+import { SceneSelector } from '@/components/broadcast/SceneSelector';
 import { LiveStatusIndicator } from '@/components/broadcast/LiveStatusIndicator';
 import { PollStatusChip } from '@/components/broadcast/PollStatusChip';
 import { Button } from '@/components/ui/button';
@@ -188,9 +189,8 @@ export function OperatorOutputMode({
   const navigate = useNavigate();
   // Suppress unused-prop warnings until those features come back. Kept in the
   // signature for parent compatibility.
-  void previewScene; void programScene; void qrSize; void qrPosition;
+  void qrSize; void qrPosition;
   void showBranding; void brandingPosition;
-  void onSceneChange; void onTake; void onCut;
   void onQrSizeChange; void onQrPositionChange;
   void onShowBrandingChange; void onBrandingPositionChange;
 
@@ -739,11 +739,26 @@ export function OperatorOutputMode({
           </div>
 
           {previewMode === 'program' ? (
-            <MonitorContainer variant="operator">
-              <PreviewWithOverlays showLabel label="1920×1080">
-                {previewNode}
-              </PreviewWithOverlays>
-            </MonitorContainer>
+            <>
+              {/* Broadcast switcher: stage a scene on Preview, then commit
+               *  to Program with TAKE (animated) or CUT (instant). Scene
+               *  changes never affect voting state — viewers keep voting
+               *  through scene transitions. */}
+              <div className="px-2 py-2 rounded-lg border border-border/50 bg-card/40">
+                <SceneSelector
+                  previewScene={previewScene}
+                  programScene={programScene}
+                  onSceneChange={onSceneChange}
+                  onTake={onTake}
+                  onCut={onCut}
+                />
+              </div>
+              <MonitorContainer variant="operator">
+                <PreviewWithOverlays showLabel label="1920×1080">
+                  {previewNode}
+                </PreviewWithOverlays>
+              </MonitorContainer>
+            </>
           ) : (
             <div className="flex justify-center">
               <ViewerSlatePreview
