@@ -1558,44 +1558,7 @@ export default function PollCreate() {
   // fullscreen surface so it stays in lockstep without requiring a manual
   // Take/Cut for purely cosmetic edits.
   useEffect(() => {
-    // Always mirror the PROGRAM viewport's transforms to Full Screen Output —
-    // switching the in-app preview tab to Mobile/Desktop must NOT alter what
-    // is being broadcast to the on-air output window.
-    const programTransforms = assetTransformSet.program;
-    const programAssetColors = assetColorSet.program;
-    // Apply scene visibility — the broadcast mirror must already reflect
-    // the operator's selected scene, otherwise Output would render every
-    // enabled asset regardless of which scene is staged.
-    const sceneEnabled = filterAssetsForScene(
-      enabledAssets,
-      broadcastSceneFromSceneType(previewScene),
-    );
-    broadcastOutputState({
-      poll: currentWorkspacePoll,
-      // Mirror Program Preview directly: the Full Screen Output is meant to
-      // be a live reflection of what the operator is composing in Preview.
-      scene: previewScene,
-      layers: [],
-      assets: {
-        qrSize,
-        qrPosition: assetState.qrPosition,
-        qrVisible: assetState.qrVisible,
-        qrUrlVisible: assetState.qrUrlVisible,
-        showBranding,
-        brandingPosition,
-        enabledAssetIds: sceneEnabled,
-        transforms: programTransforms,
-        assetColors: programAssetColors,
-        wordmarkWeight: assetState.wordmarkWeight,
-        wordmarkTracking: assetState.wordmarkTracking,
-        wordmarkScale: assetState.wordmarkScale,
-        wordmarkShowGuides: assetState.wordmarkShowGuides,
-        tallyMode: activeFolder?.tallyMode ?? DEFAULT_TALLY_MODE,
-        tallyIntervalSeconds: activeFolder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
-        resultsMode: activeFolder?.resultsMode ?? DEFAULT_RESULTS_MODE,
-        resultsAnimationMs: activeFolder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
-      },
-    });
+    broadcastOutputState(getProgramOutputPayload());
   }, [
     currentWorkspacePoll,
     previewScene,
@@ -1610,6 +1573,8 @@ export default function PollCreate() {
     activeFolder?.tallyIntervalSeconds,
     activeFolder?.resultsMode,
     activeFolder?.resultsAnimationMs,
+    previewOptions,
+    resultsReplayKey,
     snapshotRequestNonce,
   ]);
   // Presence heartbeat — pings open Output windows once per second so the
