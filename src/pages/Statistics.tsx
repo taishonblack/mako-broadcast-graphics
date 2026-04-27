@@ -191,7 +191,7 @@ export default function Statistics() {
   // Timeline: bucket active poll votes into 1-minute slots over last 30 minutes
   const timeline = useMemo(() => {
     const now = Date.now();
-    const buckets: { t: number; votes: number; label: string }[] = [];
+    const buckets: { t: number; votes: number; label: string; iso: string }[] = [];
     for (let i = 29; i >= 0; i--) {
       const t = now - i * 60_000;
       const d = new Date(t);
@@ -199,6 +199,7 @@ export default function Statistics() {
         t,
         votes: 0,
         label: `${String(d.getHours()).padStart(2, '0')}:${String(d.getMinutes()).padStart(2, '0')}`,
+        iso: d.toISOString(),
       });
     }
     liveRows.forEach((r) => {
@@ -210,6 +211,8 @@ export default function Statistics() {
   }, [liveRows]);
 
   const peak = useMemo(() => Math.max(0, ...timeline.map((b) => b.votes)), [timeline]);
+  const windowStart = timeline[0]?.label ?? '';
+  const windowEnd = timeline[timeline.length - 1]?.label ?? '';
 
   // History — group rows by poll
   const history = useMemo(() => {
