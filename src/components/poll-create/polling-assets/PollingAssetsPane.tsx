@@ -247,23 +247,41 @@ export function PollingAssetsPane({
                     <Plus className="w-3.5 h-3.5" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56" aria-label={`Add asset options for ${folder.name}`}>
+                <DropdownMenuContent align="end" className="w-64" aria-label={`Add asset options for ${folder.name}`}>
                   <DropdownMenuLabel className="text-[10px] uppercase font-mono">
-                    Add Asset To Scene
+                    {activeScene ? `Assets in ${activeScene.name}` : 'Add Asset To Scene'}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {folderAvailableAssets.length === 0 && (
+                  {!activeScene && (
                     <div className="px-2 py-2 text-[11px] text-muted-foreground italic">
-                      All assets added.
+                      Select a scene first.
                     </div>
                   )}
-                  {folderAvailableAssets.map((id) => {
+                  {activeScene && allAssetIds.map((id) => {
                     const meta = ASSET_REGISTRY[id];
                     const Icon = meta.icon;
+                    const inScene = activeScene.visibleAssetIds.has(id);
                     return (
-                      <DropdownMenuItem key={id} onClick={() => { onSelectFolder(folder.id); onAddAssetToFolder(folder.id, id); }} className="gap-2">
+                      <DropdownMenuItem
+                        key={id}
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          onSelectFolder(folder.id);
+                          if (!folderAssets.includes(id)) {
+                            // Adds to poll AND auto-marks visible in active scene.
+                            onAddAssetToFolder(folder.id, id);
+                          } else {
+                            // Already on poll — just toggle scene visibility.
+                            onSetSceneAssetVisible(activeScene.id, id, !inScene);
+                          }
+                        }}
+                        className="gap-2"
+                      >
+                        <span className="w-3.5 flex justify-center">
+                          {inScene ? <Check className="w-3.5 h-3.5 text-primary" /> : null}
+                        </span>
                         <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-                        <div className="flex flex-col">
+                        <div className="flex flex-col flex-1 min-w-0">
                           <span className="text-xs">{meta.label}</span>
                           <span className="text-[10px] text-muted-foreground line-clamp-1">{meta.description}</span>
                         </div>
