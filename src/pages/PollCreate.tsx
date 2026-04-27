@@ -732,69 +732,13 @@ export default function PollCreate() {
   const handleTake = () => {
     setProgramScene(previewScene);
     if (projectId) void takeToProgram(projectId, previewScene as unknown as SceneName);
-    const folder = getFolderById(folderState, folderState.activeFolderId);
-    const sceneEnabled = filterAssetsForScene(
-      enabledAssets,
-      broadcastSceneFromSceneType(previewScene),
-    );
-    broadcastOutputState({
-      poll: currentWorkspacePoll,
-      scene: previewScene,
-      layers: [],
-      assets: {
-        qrSize,
-        qrPosition: assetState.qrPosition,
-        qrVisible: assetState.qrVisible,
-        qrUrlVisible: assetState.qrUrlVisible,
-        showBranding,
-        brandingPosition,
-        enabledAssetIds: sceneEnabled,
-        transforms: assetTransforms,
-        assetColors,
-        wordmarkWeight: assetState.wordmarkWeight,
-        wordmarkTracking: assetState.wordmarkTracking,
-        wordmarkScale: assetState.wordmarkScale,
-        wordmarkShowGuides: assetState.wordmarkShowGuides,
-        tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
-        tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
-        resultsMode: folder?.resultsMode ?? DEFAULT_RESULTS_MODE,
-        resultsAnimationMs: folder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
-      },
-    });
+    broadcastOutputState(getProgramOutputPayload());
   };
 
   const handleCut = () => {
     setProgramScene(previewScene);
     if (projectId) void cutToProgram(projectId, previewScene as unknown as SceneName);
-    const folder = getFolderById(folderState, folderState.activeFolderId);
-    const sceneEnabled = filterAssetsForScene(
-      enabledAssets,
-      broadcastSceneFromSceneType(previewScene),
-    );
-    broadcastOutputState({
-      poll: currentWorkspacePoll,
-      scene: previewScene,
-      layers: [],
-      assets: {
-        qrSize,
-        qrPosition: assetState.qrPosition,
-        qrVisible: assetState.qrVisible,
-        qrUrlVisible: assetState.qrUrlVisible,
-        showBranding,
-        brandingPosition,
-        enabledAssetIds: sceneEnabled,
-        transforms: assetTransforms,
-        assetColors,
-        wordmarkWeight: assetState.wordmarkWeight,
-        wordmarkTracking: assetState.wordmarkTracking,
-        wordmarkScale: assetState.wordmarkScale,
-        wordmarkShowGuides: assetState.wordmarkShowGuides,
-        tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
-        tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
-        resultsMode: folder?.resultsMode ?? DEFAULT_RESULTS_MODE,
-        resultsAnimationMs: folder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
-      },
-    });
+    broadcastOutputState(getProgramOutputPayload());
   };
 
   const handleGoLive = async () => {
