@@ -188,6 +188,26 @@ export default function ProgramOutput() {
       }
     } catch { /* user denied or unsupported */ }
   };
+  const handleSyncNow = () => {
+    pushLog('manual sync requested');
+    requestOutputSnapshot();
+    const hydrate = () => {
+      const latest = readOutputState();
+      if (!latest) return false;
+      if (locked) setLocked(false);
+      setPoll(latest.poll);
+      setScene(latest.scene);
+      setLayers(Array.isArray(latest.layers) ? cloneLayers(latest.layers) : cloneLayers(DEFAULT_LAYERS));
+      if (latest.assets) setAssets(latest.assets);
+      setSceneKey((k) => k + 1);
+      markSync('localstorage');
+      pushLog(`manual hydrate: poll=${latest.poll.id} scene=${latest.scene}`);
+      return true;
+    };
+    hydrate();
+    window.setTimeout(hydrate, 150);
+    window.setTimeout(hydrate, 500);
+  };
 
   // Listen for scene/state changes from dashboard
   useEffect(() => {
