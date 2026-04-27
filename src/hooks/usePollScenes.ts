@@ -169,6 +169,32 @@ export function usePollScenes(pollId: string | undefined) {
     [],
   );
 
+  /**
+   * Persist the full per-asset transform map for a scene. Updates local
+   * state in lockstep so the next render of `scenes` already reflects the
+   * saved values. Drafts skip the network round-trip.
+   */
+  const saveSceneAssetTransforms = useCallback(
+    async (sceneId: string, transforms: AssetTransformMap) => {
+      setScenes((prev) =>
+        prev.map((s) => (s.id === sceneId ? { ...s, assetTransforms: { ...transforms } } : s)),
+      );
+      const isDraft = sceneId.startsWith('draft-scene-');
+      if (isDraft) {
+        draftScenesRef.current = draftScenesRef.current.map((s) =>
+          s.id === sceneId ? { ...s, assetTransforms: { ...transforms } } : s,
+        );
+        return;
+      }
+      try { await bulkSavePollSceneAssetTransforms(sceneId, transforms); }
+      catch (err) {
+        console.error('[usePollScenes] save transforms failed', err);
+        toast.error('Failed to save scene layout');
+      }
+    },
+    [],
+  );
+
   return {
     scenes,
     activeScene,
@@ -179,6 +205,7 @@ export function usePollScenes(pollId: string | undefined) {
     removeScene,
     duplicateScene,
     setSceneAssetVisible,
+    saveSceneAssetTransforms,
     loading,
     /** True when there are zero scenes — UI should grey out asset editing. */
     requiresScene: scenes.length === 0,
