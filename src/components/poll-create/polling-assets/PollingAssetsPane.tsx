@@ -395,37 +395,181 @@ export function PollingAssetsPane({
                     <p className="mt-1 text-[9px] text-muted-foreground/70">QR points here. Change per show (ASL, Beyond, DataCast…). When voting is closed viewers see the MakoVote slate.</p>
                   </div>
                 )}
-                 {folderAssets.length === 0 && (
-                  <div className="rounded-md border border-dashed border-border/60 bg-background/30 px-3 py-4 text-center">
-                     <p className="text-xs text-muted-foreground">Add only the assets you want shown for this folder.</p>
+                {/* Scenes list (only shown for the active folder; inactive
+                    folders just show their slug for context) */}
+                {isActiveFolder && (
+                  <div className="space-y-2">
+                    <div className="flex items-center gap-1.5 px-0.5">
+                      <Layers className="w-3 h-3 text-muted-foreground" />
+                      <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                        Scenes
+                      </span>
+                      <span className="text-[10px] text-muted-foreground/60 ml-auto">
+                        {scenes.length}
+                      </span>
+                    </div>
+
+                    {scenes.length === 0 ? (
+                      <div className="rounded-md border border-dashed border-border/60 bg-background/30 px-3 py-5 text-center">
+                        <p className="text-xs text-muted-foreground mb-2">
+                          Add a scene to begin building this poll.
+                        </p>
+                        <SceneAddButton onAddScene={onAddScene} variant="default" />
+                      </div>
+                    ) : (
+                      <>
+                        {scenes.map((scene) => {
+                          const isActiveScene = scene.id === activeSceneId;
+                          const preset = getScenePreset(scene.preset);
+                          // Assets shown in this scene = poll's enabled assets
+                          // intersected with the scene's visibility set.
+                          const sceneAssetIds = folderAssets.filter((id) =>
+                            scene.visibleAssetIds.has(id),
+                          );
+                          return (
+                            <div
+                              key={scene.id}
+                              className={`rounded-md border overflow-hidden transition-colors ${
+                                isActiveScene
+                                  ? 'border-primary/50 bg-primary/5'
+                                  : 'border-border/60 bg-card/30'
+                              }`}
+                            >
+                              <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-border/40 bg-background/30">
+                                <button
+                                  type="button"
+                                  onClick={() => onSelectScene(scene.id)}
+                                  className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
+                                  title={preset.description}
+                                >
+                                  <ChevronDown
+                                    className={`w-3 h-3 transition-transform ${
+                                      isActiveScene ? '' : '-rotate-90'
+                                    } ${isActiveScene ? 'text-primary' : 'text-muted-foreground'}`}
+                                  />
+                                  <span
+                                    className={`text-[11px] font-medium truncate ${
+                                      isActiveScene ? 'text-primary' : 'text-foreground'
+                                    }`}
+                                  >
+                                    {scene.name}
+                                  </span>
+                                  <span className="text-[8px] font-mono uppercase text-muted-foreground/70 px-1 py-0.5 rounded bg-muted/40 shrink-0">
+                                    {preset.label}
+                                  </span>
+                                </button>
+                                <DropdownMenu>
+                                  <DropdownMenuTrigger asChild>
+                                    <Button
+                                      size="icon"
+                                      variant="ghost"
+                                      className="h-6 w-6 opacity-60 hover:opacity-100"
+                                      aria-label={`Scene actions for ${scene.name}`}
+                                    >
+                                      <MoreVertical className="w-3 h-3" />
+                                    </Button>
+                                  </DropdownMenuTrigger>
+                                  <DropdownMenuContent align="end" className="w-44">
+                                    <DropdownMenuItem
+                                      className="gap-2"
+                                      onClick={() => {
+                                        const next = window.prompt('Rename scene', scene.name);
+                                        if (next && next.trim()) onRenameScene(scene.id, next.trim());
+                                      }}
+                                    >
+                                      <Pencil className="w-3.5 h-3.5 text-muted-foreground" /> Rename
+                                    </DropdownMenuItem>
+                                    <DropdownMenuItem
+                                      className="gap-2"
+                                      onClick={() => onDuplicateScene(scene.id)}
+                                    >
+                                      <Copy className="w-3.5 h-3.5 text-muted-foreground" /> Duplicate
+                                    </DropdownMenuItem>
+                                    <DropdownMenuSeparator />
+                                    <DropdownMenuItem
+                                      className="gap-2 text-destructive focus:text-destructive"
+                                      onClick={() => setPendingSceneDelete(scene)}
+                                    >
+                                      <Trash2 className="w-3.5 h-3.5" /> Delete
+                                    </DropdownMenuItem>
+                                  </DropdownMenuContent>
+                                </DropdownMenu>
+                              </div>
+
+                              {isActiveScene && (
+                                <div className="p-2 space-y-2">
+                                  {sceneAssetIds.length === 0 ? (
+                                    <div className="rounded-md border border-dashed border-border/60 bg-background/30 px-3 py-3 text-center">
+                                      <p className="text-[10px] text-muted-foreground">
+                                        No assets in this scene yet. Use <span className="font-mono">+</span> in the folder header to add one.
+                                      </p>
+                                    </div>
+                                  ) : (
+                                    sceneAssetIds.map((id) => (
+                                      <AssetCard
+                                        key={id}
+                                        meta={ASSET_REGISTRY[id]}
+                                        isSelected={selectedAssetId === id}
+                                        inactive={(folder.inactiveAssetIds ?? []).includes(id)}
+                                        onToggleInactive={
+                                          onToggleAssetInactive
+                                            ? () =>
+                                                onToggleAssetInactive(
+                                                  folder.id,
+                                                  id,
+                                                  !((folder.inactiveAssetIds ?? []).includes(id)),
+                                                )
+                                            : undefined
+                                        }
+                                        onSelect={() => {
+                                          onSelectFolder(folder.id);
+                                          onSelectAsset(id);
+                                        }}
+                                        onRemove={() =>
+                                          setPendingRemoval({ folderId: folder.id, assetId: id })
+                                        }
+                                        onDragStart={() => setDraggedId(id)}
+                                        onDragOver={(e) => {
+                                          e.preventDefault();
+                                        }}
+                                        onDrop={() => {
+                                          onSelectFolder(folder.id);
+                                          if (draggedId) reorder(draggedId, id);
+                                          setDraggedId(null);
+                                        }}
+                                      >
+                                        <AssetEditor
+                                          assetId={id}
+                                          question={question}
+                                          setQuestion={setQuestion}
+                                          subheadline={subheadline}
+                                          setSubheadline={setSubheadline}
+                                          internalName={internalName}
+                                          setInternalName={setInternalName}
+                                          slug={slug}
+                                          setSlug={setSlug}
+                                          answerType={answerType}
+                                          setAnswerType={setAnswerType}
+                                          mcLabelStyle={mcLabelStyle}
+                                          setMcLabelStyle={setMcLabelStyle}
+                                          answers={answers}
+                                          setAnswers={setAnswers}
+                                          onAddAnswer={onAddAnswer}
+                                        />
+                                      </AssetCard>
+                                    ))
+                                  )}
+                                </div>
+                              )}
+                            </div>
+                          );
+                        })}
+
+                        <SceneAddButton onAddScene={onAddScene} variant="outline" />
+                      </>
+                    )}
                   </div>
                 )}
-                {folderAssets.map((id) => (
-                  <AssetCard
-                    key={id}
-                    meta={ASSET_REGISTRY[id]}
-                    isSelected={isActiveFolder && selectedAssetId === id}
-                    inactive={(folder.inactiveAssetIds ?? []).includes(id)}
-                    onToggleInactive={onToggleAssetInactive ? () => onToggleAssetInactive(folder.id, id, !((folder.inactiveAssetIds ?? []).includes(id))) : undefined}
-                    onSelect={() => { onSelectFolder(folder.id); onSelectAsset(id); }}
-                    onRemove={() => setPendingRemoval({ folderId: folder.id, assetId: id })}
-                    onDragStart={() => setDraggedId(id)}
-                    onDragOver={(e) => { e.preventDefault(); }}
-                    onDrop={() => { onSelectFolder(folder.id); if (draggedId) reorder(draggedId, id); setDraggedId(null); }}
-                  >
-                    <AssetEditor
-                      assetId={id}
-                      question={question} setQuestion={setQuestion}
-                      subheadline={subheadline} setSubheadline={setSubheadline}
-                      internalName={internalName} setInternalName={setInternalName}
-                      slug={slug} setSlug={setSlug}
-                      answerType={answerType} setAnswerType={setAnswerType}
-                      mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
-                      answers={answers} setAnswers={setAnswers}
-                      onAddAnswer={onAddAnswer}
-                    />
-                  </AssetCard>
-                ))}
               </div>
             )}
             </div>
@@ -436,6 +580,34 @@ export function PollingAssetsPane({
           <Plus className="w-3.5 h-3.5" /> New Folder
         </Button>
       </div>
+      <AlertDialog
+        open={Boolean(pendingSceneDelete)}
+        onOpenChange={(open) => { if (!open) setPendingSceneDelete(null); }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete scene?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingSceneDelete
+                ? `Delete "${pendingSceneDelete.name}"? Assets in the poll are not removed — only this scene's visibility settings.`
+                : null}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                if (pendingSceneDelete) onRemoveScene(pendingSceneDelete.id);
+                setPendingSceneDelete(null);
+              }}
+            >
+              Delete
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
       <AlertDialog
         open={Boolean(pendingRemoval)}
         onOpenChange={(open) => { if (!open) setPendingRemoval(null); }}
