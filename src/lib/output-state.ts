@@ -78,6 +78,7 @@ export interface OutputAssets {
    *  `resultsAnimationMs`, `static` shows the final state immediately. */
   resultsMode?: 'animated' | 'static';
   resultsAnimationMs?: number;
+  resultsReplayKey?: number;
 }
 
 export interface OutputStatePayload {
