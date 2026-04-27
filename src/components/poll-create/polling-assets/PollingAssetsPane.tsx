@@ -147,7 +147,23 @@ export function PollingAssetsPane({
         </div>
       </div>
 
-      <div className="flex-1 overflow-y-auto p-3 space-y-3">
+      {noScenes && (
+        <div className="px-3 py-2 border-b border-primary/30 bg-primary/5">
+          <p className="text-[10px] font-mono uppercase tracking-wider text-primary mb-0.5">
+            Scene required
+          </p>
+          <p className="text-[10px] text-muted-foreground">
+            Create a scene above to begin editing assets in this folder.
+          </p>
+        </div>
+      )}
+
+      <div
+        className={`flex-1 overflow-y-auto p-3 space-y-3 relative ${
+          noScenes ? 'opacity-40 pointer-events-none select-none' : ''
+        }`}
+        aria-disabled={noScenes}
+      >
         {folders.map((folder) => {
           const folderAssets = folder.assetIds;
           // 'image' stays available even after it's been added so operators can
