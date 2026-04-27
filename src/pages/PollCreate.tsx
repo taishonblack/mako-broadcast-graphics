@@ -695,12 +695,15 @@ export default function PollCreate() {
       resultsAnimationMs: activeFolderForResults?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
       resultsReplayKey,
     };
+    const programColors = programAssetColors.answers.barColors?.length
+      ? programAssetColors.answers.barColors
+      : [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
     const props = {
       question: currentWorkspacePoll.question || 'Your question here?',
       subheadline,
       options: currentWorkspacePoll.options,
       totalVotes: currentWorkspacePoll.totalVotes,
-      colors: previewColors,
+      colors: programColors,
       theme,
       template: selectedTemplate,
       ...sharedAssets,
@@ -726,10 +729,10 @@ export default function PollCreate() {
     const programTransforms = assetTransformSet.program;
     const programAssetColors = assetColorSet.program;
     const folder = getFolderById(folderState, folderState.activeFolderId);
-    const sceneEnabled = filterAssetsForScene(enabledAssets, broadcastSceneFromSceneType(previewScene));
+    const sceneEnabled = filterAssetsForScene(sceneFilteredEnabled, broadcastSceneFromSceneType(previewScene));
 
     return {
-      poll: { ...poll, options: poll.options?.length ? poll.options : previewOptions },
+      poll: { ...poll, question: poll.question || 'Your question here?', options: poll.options?.length ? poll.options : previewOptions },
       scene: previewScene,
       layers: [],
       assets: {
