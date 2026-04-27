@@ -17,7 +17,7 @@ import {
 import {
   Type, ListChecks, AlignLeft, Image as ImageIcon, QrCode,
   Sparkles, Users, Plus, X, GripVertical, ChevronDown, MoreVertical, FolderOpen,
-  Trash2, Camera, Link2, Copy, MessageCircleQuestion, Layers, Pencil,
+  Trash2, Camera, Link2, Copy, MessageCircleQuestion, Layers, Pencil, Check, EyeOff,
 } from 'lucide-react';
 import { AnswerType, MCLabelStyle } from '@/components/poll-create/ContentPanel';
 import { AssetId, AssetMeta } from './types';
@@ -78,6 +78,11 @@ interface PollingAssetsPaneProps {
   onRenameScene: (sceneId: string, name: string) => void;
   onDuplicateScene: (sceneId: string) => void;
   onRemoveScene: (sceneId: string) => void;
+  /** Toggle whether an asset is visible inside a given scene. Called when
+   *  the operator (a) adds an asset that's already on the poll into the
+   *  active scene, or (b) hides an asset from a single scene without
+   *  removing it from the poll. */
+  onSetSceneAssetVisible: (sceneId: string, assetId: AssetId, visible: boolean) => void;
 
   // Underlying poll state (passed in)
   question: string; setQuestion: (v: string) => void;
@@ -116,6 +121,7 @@ export function PollingAssetsPane({
   onRenameScene,
   onDuplicateScene,
   onRemoveScene,
+  onSetSceneAssetVisible,
   question, setQuestion,
   subheadline, setSubheadline,
   internalName, setInternalName,
@@ -168,13 +174,13 @@ export function PollingAssetsPane({
       <div className="flex-1 overflow-y-auto p-3 space-y-3 relative">
         {folders.map((folder) => {
           const folderAssets = folder.assetIds;
-          // 'image' stays available even after it's been added so operators can
-          // re-open the inspector / swap pictures without it disappearing from
-          // the menu like other singletons.
-          const folderAvailableAssets = (Object.keys(ASSET_REGISTRY) as AssetId[])
-            .filter((assetId) => assetId === 'image' || !folderAssets.includes(assetId));
           const isActiveFolder = folder.id === activeFolderId;
           const isCollapsed = Boolean(folder.collapsed);
+          // Scene-aware: show every asset in the menu, but mark which ones
+          // are already visible in the active scene so the operator can
+          // toggle multiple assets in/out of the same scene.
+          const activeScene = scenes.find((s) => s.id === activeSceneId) ?? null;
+          const allAssetIds = Object.keys(ASSET_REGISTRY) as AssetId[];
 
           return (
             <div key={folder.id} className={`rounded-lg border overflow-hidden transition-colors ${isActiveFolder ? 'border-primary/40 bg-primary/5' : 'border-border/60 bg-card/40'}`}>
@@ -241,23 +247,41 @@ export function PollingAssetsPane({
                     <Plus className="w-3.5 h-3.5" />
                   </Button>
                 </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-56" aria-label={`Add asset options for ${folder.name}`}>
+                <DropdownMenuContent align="end" className="w-64" aria-label={`Add asset options for ${folder.name}`}>
                   <DropdownMenuLabel className="text-[10px] uppercase font-mono">
-                    Add Asset To Scene
+                    {activeScene ? `Assets in ${activeScene.name}` : 'Add Asset To Scene'}
                   </DropdownMenuLabel>
                   <DropdownMenuSeparator />
-                  {folderAvailableAssets.length === 0 && (
+                  {!activeScene && (
                     <div className="px-2 py-2 text-[11px] text-muted-foreground italic">
-                      All assets added.
+                      Select a scene first.
                     </div>
                   )}
-                  {folderAvailableAssets.map((id) => {
+                  {activeScene && allAssetIds.map((id) => {
                     const meta = ASSET_REGISTRY[id];
                     const Icon = meta.icon;
+                    const inScene = activeScene.visibleAssetIds.has(id);
                     return (
-                      <DropdownMenuItem key={id} onClick={() => { onSelectFolder(folder.id); onAddAssetToFolder(folder.id, id); }} className="gap-2">
+                      <DropdownMenuItem
+                        key={id}
+                        onSelect={(e) => {
+                          e.preventDefault();
+                          onSelectFolder(folder.id);
+                          if (!folderAssets.includes(id)) {
+                            // Adds to poll AND auto-marks visible in active scene.
+                            onAddAssetToFolder(folder.id, id);
+                          } else {
+                            // Already on poll — just toggle scene visibility.
+                            onSetSceneAssetVisible(activeScene.id, id, !inScene);
+                          }
+                        }}
+                        className="gap-2"
+                      >
+                        <span className="w-3.5 flex justify-center">
+                          {inScene ? <Check className="w-3.5 h-3.5 text-primary" /> : null}
+                        </span>
                         <Icon className="w-3.5 h-3.5 text-muted-foreground" />
-                        <div className="flex flex-col">
+                        <div className="flex flex-col flex-1 min-w-0">
                           <span className="text-xs">{meta.label}</span>
                           <span className="text-[10px] text-muted-foreground line-clamp-1">{meta.description}</span>
                         </div>
@@ -528,6 +552,9 @@ export function PollingAssetsPane({
                                         onRemove={() =>
                                           setPendingRemoval({ folderId: folder.id, assetId: id })
                                         }
+                                        onHideFromScene={() =>
+                                          onSetSceneAssetVisible(scene.id, id, false)
+                                        }
                                         onDragStart={() => setDraggedId(id)}
                                         onDragOver={(e) => {
                                           e.preventDefault();
@@ -688,6 +715,7 @@ function AssetCard({
   onDragStart, onDragOver, onDrop, children,
   inactive = false,
   onToggleInactive,
+  onHideFromScene,
 }: {
   meta: AssetMeta;
   isSelected: boolean;
@@ -699,6 +727,10 @@ function AssetCard({
   children: React.ReactNode;
   inactive?: boolean;
   onToggleInactive?: () => void;
+  /** Hide this asset from the current scene without removing it from the
+   *  poll. Lets the operator have, e.g., the QR visible in Scene 1 but not
+   *  Scene 3 while still keeping a single QR asset on the poll. */
+  onHideFromScene?: () => void;
 }) {
   const [collapsed, setCollapsed] = useState(false);
   const Icon = meta.icon;
@@ -742,6 +774,15 @@ function AssetCard({
         >
           <ChevronDown className={`w-3 h-3 transition-transform ${collapsed ? '-rotate-90' : ''}`} />
         </button>
+        {!meta.required && onHideFromScene && (
+          <button
+            onClick={(e) => { e.stopPropagation(); onHideFromScene(); }}
+            className="text-muted-foreground/50 hover:text-foreground transition-colors p-0.5 opacity-0 group-hover:opacity-100"
+            title="Hide from this scene (keeps asset on the poll)"
+          >
+            <EyeOff className="w-3 h-3" />
+          </button>
+        )}
         {!meta.required && (
           <button
             onClick={(e) => { e.stopPropagation(); onRemove(); }}

@@ -10,6 +10,7 @@ import {
   loadPollScenes,
   nextSceneName,
   renamePollScene,
+  setPollSceneAssetVisible,
 } from '@/lib/poll-scenes';
 import type { AssetId } from '@/components/poll-create/polling-assets/types';
 
@@ -133,6 +134,38 @@ export function usePollScenes(pollId: string | undefined) {
 
   const activeScene = scenes.find((s) => s.id === activeSceneId) ?? null;
 
+  /**
+   * Toggle a single asset's visibility within a scene. Updates local state
+   * immediately and persists to the DB when the scene is real (not a draft).
+   */
+  const setSceneAssetVisible = useCallback(
+    async (sceneId: string, assetId: AssetId, visible: boolean) => {
+      setScenes((prev) =>
+        prev.map((s) => {
+          if (s.id !== sceneId) return s;
+          const next = new Set(s.visibleAssetIds);
+          if (visible) next.add(assetId);
+          else next.delete(assetId);
+          return { ...s, visibleAssetIds: next };
+        }),
+      );
+      const isDraft = sceneId.startsWith('draft-scene-');
+      if (isDraft) {
+        draftScenesRef.current = draftScenesRef.current.map((s) => {
+          if (s.id !== sceneId) return s;
+          const next = new Set(s.visibleAssetIds);
+          if (visible) next.add(assetId);
+          else next.delete(assetId);
+          return { ...s, visibleAssetIds: next };
+        });
+        return;
+      }
+      try { await setPollSceneAssetVisible(sceneId, assetId, visible); }
+      catch (err) { console.error('[usePollScenes] toggle asset failed', err); toast.error('Failed to update scene asset'); }
+    },
+    [],
+  );
+
   return {
     scenes,
     activeScene,
@@ -142,6 +175,7 @@ export function usePollScenes(pollId: string | undefined) {
     renameScene,
     removeScene,
     duplicateScene,
+    setSceneAssetVisible,
     loading,
     /** True when there are zero scenes — UI should grey out asset editing. */
     requiresScene: scenes.length === 0,
