@@ -17,7 +17,7 @@ import {
 import {
   Type, ListChecks, AlignLeft, Image as ImageIcon, QrCode,
   Sparkles, Users, Plus, X, GripVertical, ChevronDown, MoreVertical, FolderOpen,
-  Trash2, Camera, Link2, Copy, MessageCircleQuestion, Layers, Pencil,
+  Trash2, Camera, Link2, Copy, MessageCircleQuestion, Layers, Pencil, Check, EyeOff,
 } from 'lucide-react';
 import { AnswerType, MCLabelStyle } from '@/components/poll-create/ContentPanel';
 import { AssetId, AssetMeta } from './types';
@@ -78,6 +78,11 @@ interface PollingAssetsPaneProps {
   onRenameScene: (sceneId: string, name: string) => void;
   onDuplicateScene: (sceneId: string) => void;
   onRemoveScene: (sceneId: string) => void;
+  /** Toggle whether an asset is visible inside a given scene. Called when
+   *  the operator (a) adds an asset that's already on the poll into the
+   *  active scene, or (b) hides an asset from a single scene without
+   *  removing it from the poll. */
+  onSetSceneAssetVisible: (sceneId: string, assetId: AssetId, visible: boolean) => void;
 
   // Underlying poll state (passed in)
   question: string; setQuestion: (v: string) => void;
@@ -116,6 +121,7 @@ export function PollingAssetsPane({
   onRenameScene,
   onDuplicateScene,
   onRemoveScene,
+  onSetSceneAssetVisible,
   question, setQuestion,
   subheadline, setSubheadline,
   internalName, setInternalName,
