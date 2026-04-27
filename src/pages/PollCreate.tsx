@@ -2391,6 +2391,7 @@ export default function PollCreate() {
                   onRenameScene={sceneController.renameScene}
                   onDuplicateScene={sceneController.duplicateScene}
                   onRemoveScene={sceneController.removeScene}
+                  onSetSceneAssetVisible={sceneController.setSceneAssetVisible}
                   folders={folderState.folders}
                   activeFolderId={folderState.activeFolderId}
                   enabledAssets={enabledAssets}
