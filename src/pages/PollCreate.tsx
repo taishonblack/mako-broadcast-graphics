@@ -736,6 +736,8 @@ export default function PollCreate() {
         wordmarkShowGuides: assetState.wordmarkShowGuides,
         tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
         tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
+        resultsMode: folder?.resultsMode ?? DEFAULT_RESULTS_MODE,
+        resultsAnimationMs: folder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
       },
     });
   };
@@ -768,6 +770,8 @@ export default function PollCreate() {
         wordmarkShowGuides: assetState.wordmarkShowGuides,
         tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
         tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
+        resultsMode: folder?.resultsMode ?? DEFAULT_RESULTS_MODE,
+        resultsAnimationMs: folder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
       },
     });
   };
@@ -823,6 +827,8 @@ export default function PollCreate() {
         wordmarkShowGuides: assetState.wordmarkShowGuides,
         tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
         tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
+        resultsMode: folder?.resultsMode ?? DEFAULT_RESULTS_MODE,
+        resultsAnimationMs: folder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
       },
     };
     broadcastOutputLock({ locked: true, snapshot, lockedAt: Date.now() });
@@ -1378,6 +1384,8 @@ export default function PollCreate() {
         wordmarkShowGuides: assetState.wordmarkShowGuides,
         tallyMode: activeFolder?.tallyMode ?? DEFAULT_TALLY_MODE,
         tallyIntervalSeconds: activeFolder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
+        resultsMode: activeFolder?.resultsMode ?? DEFAULT_RESULTS_MODE,
+        resultsAnimationMs: activeFolder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
       },
     };
     const { error } = await supabase.from('project_live_state').upsert({
@@ -1558,6 +1566,8 @@ export default function PollCreate() {
         wordmarkShowGuides: assetState.wordmarkShowGuides,
         tallyMode: activeFolder?.tallyMode ?? DEFAULT_TALLY_MODE,
         tallyIntervalSeconds: activeFolder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
+        resultsMode: activeFolder?.resultsMode ?? DEFAULT_RESULTS_MODE,
+        resultsAnimationMs: activeFolder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
       },
     });
   }, [
