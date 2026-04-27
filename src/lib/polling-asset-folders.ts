@@ -374,6 +374,10 @@ export function normalizeFolderState(input: unknown): PollingAssetFolderState {
         tallyIntervalSeconds: typeof folder.tallyIntervalSeconds === 'number' && Number.isFinite(folder.tallyIntervalSeconds)
           ? Math.min(TALLY_INTERVAL_MAX, Math.max(TALLY_INTERVAL_MIN, Math.round(folder.tallyIntervalSeconds)))
           : DEFAULT_TALLY_INTERVAL_SECONDS,
+        resultsMode: folder.resultsMode === 'static' ? 'static' : DEFAULT_RESULTS_MODE,
+        resultsAnimationMs: typeof folder.resultsAnimationMs === 'number' && Number.isFinite(folder.resultsAnimationMs)
+          ? Math.min(RESULTS_ANIMATION_MAX_MS, Math.max(RESULTS_ANIMATION_MIN_MS, Math.round(folder.resultsAnimationMs)))
+          : DEFAULT_RESULTS_ANIMATION_MS,
         assetIds: Array.from(new Set(assetIds)),
         inactiveAssetIds: Array.isArray(folder.inactiveAssetIds)
           ? Array.from(new Set(folder.inactiveAssetIds.filter((id): id is AssetId => VALID_ASSETS.includes(id as AssetId))))
