@@ -636,6 +636,13 @@ export default function PollCreate() {
     // from Build → Output until they revisited Build's Program tab.)
     const programTransforms = assetTransformSet.program;
     const programAssetColors = assetColorSet.program;
+    // Scene-driven visibility: the operator picks a scene, the scene
+    // narrows the poll's enabled assets down to what should appear on
+    // air (e.g. Question+QR hides answer bars; Lower Third hides QR).
+    const sceneEnabled = filterAssetsForScene(
+      enabledAssets,
+      broadcastSceneFromSceneType(previewScene),
+    );
     const sharedAssets = {
       slug: slugForUrl,
       qrSize,
@@ -644,7 +651,7 @@ export default function PollCreate() {
       qrUrlVisible: assetState.qrUrlVisible,
       showBranding,
       brandingPosition,
-      enabledAssetIds: enabledAssets,
+      enabledAssetIds: sceneEnabled,
       transforms: programTransforms,
       assetColors: programAssetColors,
       wordmarkWeight: assetState.wordmarkWeight,
