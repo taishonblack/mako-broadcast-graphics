@@ -28,6 +28,8 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { LoadPollDialog } from '@/components/poll-create/LoadPollDialog';
 import { ImportErrorDialog } from '@/components/poll-create/ImportErrorDialog';
+import { SceneTabs } from '@/components/poll-create/SceneTabs';
+import { usePollScenes } from '@/hooks/usePollScenes';
 import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
 import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
 import { QRScene } from '@/components/broadcast/scenes/QRScene';
@@ -266,6 +268,10 @@ export default function PollCreate() {
 
   const [pollId, setPollId] = useState<string | undefined>(routeId);
   const [loadingExisting, setLoadingExisting] = useState(!!routeId);
+  // Scene management — Project > Block > Folder/Poll > Scene > Assets.
+  // When a poll has zero scenes, the assets pane is greyed out until the
+  // operator creates one.
+  const sceneController = usePollScenes(pollId);
   const [saving, setSaving] = useState<'draft' | 'project' | null>(null);
   const [projectId, setProjectId] = useState<string | undefined>(undefined);
   const [projectName, setProjectName] = useState<string | undefined>(undefined);
@@ -2368,7 +2374,19 @@ export default function PollCreate() {
           >
             <ResizablePanel defaultSize={layout.hSizes[0]} minSize={18} maxSize={36}>
               <Pane title="Polling Assets" hint="Question · Answers · Logic" icon={FolderOpen}>
+                <div className="h-full flex flex-col min-h-0">
+                <SceneTabs
+                  scenes={sceneController.scenes}
+                  activeSceneId={sceneController.activeSceneId}
+                  onSelectScene={sceneController.setActiveSceneId}
+                  onAddScene={sceneController.addScene}
+                  onRenameScene={sceneController.renameScene}
+                  onDuplicateScene={sceneController.duplicateScene}
+                  onRemoveScene={sceneController.removeScene}
+                />
+                <div className="flex-1 min-h-0">
                 <PollingAssetsPane
+                  noScenes={sceneController.requiresScene}
                   folders={folderState.folders}
                   activeFolderId={folderState.activeFolderId}
                   enabledAssets={enabledAssets}
@@ -2397,6 +2415,8 @@ export default function PollCreate() {
                   answers={answers} setAnswers={setAnswers}
                   onAddAnswer={handleAddAnswer}
                 />
+                </div>
+                </div>
               </Pane>
             </ResizablePanel>
 

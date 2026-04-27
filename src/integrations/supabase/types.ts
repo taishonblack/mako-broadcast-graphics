@@ -264,6 +264,79 @@ export type Database = {
           },
         ]
       }
+      poll_scene_assets: {
+        Row: {
+          asset_id: string
+          created_at: string
+          id: string
+          scene_id: string
+          updated_at: string
+          visible: boolean
+        }
+        Insert: {
+          asset_id: string
+          created_at?: string
+          id?: string
+          scene_id: string
+          updated_at?: string
+          visible?: boolean
+        }
+        Update: {
+          asset_id?: string
+          created_at?: string
+          id?: string
+          scene_id?: string
+          updated_at?: string
+          visible?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_scene_assets_scene_id_fkey"
+            columns: ["scene_id"]
+            isOneToOne: false
+            referencedRelation: "poll_scenes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      poll_scenes: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          poll_id: string
+          preset: string
+          sort_order: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name?: string
+          poll_id: string
+          preset?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          poll_id?: string
+          preset?: string
+          sort_order?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "poll_scenes_poll_id_fkey"
+            columns: ["poll_id"]
+            isOneToOne: false
+            referencedRelation: "polls"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       poll_test_data: {
         Row: {
           mode: string
