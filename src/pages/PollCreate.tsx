@@ -1952,6 +1952,13 @@ export default function PollCreate() {
       )),
     }));
     setSelectedAssetId(assetId);
+    // Ensure the newly added asset is also visible in the currently active
+    // scene — scenes are visibility filters, so without this the new asset
+    // would be on the poll but invisible until the operator manually
+    // toggled it on per scene.
+    if (sceneController.activeSceneId) {
+      void sceneController.setSceneAssetVisible(sceneController.activeSceneId, assetId, true);
+    }
   };
 
   const handleToggleFolderCollapse = (folderId: string) => {
