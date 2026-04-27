@@ -326,6 +326,8 @@ export function createDefaultFolderState(initialQuestionText = '', initialBgColo
       slug: '',
       tallyMode: DEFAULT_TALLY_MODE,
       tallyIntervalSeconds: DEFAULT_TALLY_INTERVAL_SECONDS,
+      resultsMode: DEFAULT_RESULTS_MODE,
+      resultsAnimationMs: DEFAULT_RESULTS_ANIMATION_MS,
       assetIds: [],
     }],
   };
