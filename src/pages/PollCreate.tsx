@@ -1228,6 +1228,14 @@ export default function PollCreate() {
   const enabledAssets = (activeFolder?.assetIds ?? SEEDED_ASSETS).filter(
     (id) => !inactiveAssetIds.includes(id),
   );
+  // When a scene is active, narrow the visible assets in BOTH Build and
+  // Output previews to the scene's `visibleAssetIds`. This is what makes
+  // "select scene → see scene contents on preview" work end-to-end.
+  // Falls back to the full folder asset list when no scene exists yet.
+  const activeSceneVisible = sceneController.activeScene?.visibleAssetIds;
+  const sceneFilteredEnabled = activeSceneVisible
+    ? enabledAssets.filter((id) => activeSceneVisible.has(id as AssetId))
+    : enabledAssets;
   const syncViewerVotingOpen = useCallback(async () => {
     if (!projectId) return;
     const savedMatch = !isUuid(currentWorkspacePoll.id)
