@@ -33,6 +33,7 @@ import { useEffect, useRef, useState } from 'react';
 import { BLOCK_LETTERS, BlockLetter, DEFAULT_BLOCK_LABELS, SavedPoll } from '@/lib/poll-persistence';
 import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
+import { broadcastSceneFromSceneType, getBroadcastScene } from '@/lib/scene-presets';
 import { ChevronDown, ChevronRight, Clock, Eye, EyeOff, FlaskConical, Globe, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Smartphone, Square, StopCircle, Type as TypeIcon, Vote, XCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { percentsFromAnswers, rebalancePercents, answersFromPercents, AnswerLite } from '@/lib/answer-percents';
@@ -659,42 +660,46 @@ export function OperatorOutputMode({
             </div>
           </div>
 
+          {/* Polls list — selecting a poll loads it into Preview. Scenes
+              control on-air visibility, not folders. Folder-as-scene UI
+              has been removed; the underlying DB fields stay intact so
+              older saved layouts still load. */}
           <div className="mako-panel p-3 space-y-2">
             <div className="flex items-center justify-between">
-              <h2 className="text-xs font-semibold font-mono uppercase text-foreground">Block {activeBlock}</h2>
-              <span className="text-[10px] font-mono text-muted-foreground">{blockEntryCount(activeBlock)} entries</span>
+              <h2 className="text-xs font-semibold font-mono uppercase text-foreground">Block {activeBlock} · Polls</h2>
+              <span className="text-[10px] font-mono text-muted-foreground">{pollsByBlock[activeBlock].length}</span>
             </div>
             <div className="space-y-1.5">
-              {foldersByBlock[activeBlock].length === 0 ? (
-                <p className="text-[11px] italic text-muted-foreground">No folders assigned to this block.</p>
+              {pollsByBlock[activeBlock].length === 0 ? (
+                <p className="text-[11px] italic text-muted-foreground">No polls in this block yet.</p>
               ) : (
-                <>
-                  {/* Block pane only lists folders assigned to this block.
-                      Polls live inside folders and are not surfaced here. */}
-                  {foldersByBlock[activeBlock].map((folder) => (
+                pollsByBlock[activeBlock].map((poll) => {
+                  const isCurrent = poll.id === currentPoll.id;
+                  return (
                     <button
-                      key={folder.id}
+                      key={poll.id}
                       type="button"
-                      onClick={() => onSelectFolder?.(folder.id)}
-                      disabled={!onSelectFolder}
+                      onClick={() => onSelectPoll(poll.id)}
                       className={`w-full rounded-lg border p-2.5 text-left transition-colors ${
-                        activeFolderId === folder.id
+                        isCurrent
                           ? 'border-primary/40 bg-primary/10'
-                          : 'border-dashed border-border/60 bg-accent/10 hover:bg-accent/25'
-                      } ${onSelectFolder ? '' : 'cursor-default'}`}
+                          : 'border-border/60 bg-accent/10 hover:bg-accent/25'
+                      }`}
                     >
                       <div className="flex items-start justify-between gap-2">
                         <div className="min-w-0">
-                          <p className={`truncate text-xs font-medium ${activeFolderId === folder.id ? 'text-primary' : 'text-foreground'}`}>{folder.name}</p>
+                          <p className={`truncate text-xs font-medium ${isCurrent ? 'text-primary' : 'text-foreground'}`}>
+                            {poll.internalName || poll.question || 'Untitled poll'}
+                          </p>
                           <p className="mt-0.5 truncate text-[10px] text-muted-foreground">
-                            {activeFolderId === folder.id ? 'On Air · Folder' : 'Folder · Block ' + activeBlock}
+                            {isCurrent ? 'Loaded in Preview' : 'Click to load into Preview'}
                           </p>
                         </div>
-                        <span className="mako-chip bg-muted text-[9px] text-muted-foreground">FOLDER</span>
+                        <span className="mako-chip bg-muted text-[9px] text-muted-foreground">POLL</span>
                       </div>
                     </button>
-                  ))}
-                </>
+                  );
+                })
               )}
             </div>
           </div>
@@ -754,9 +759,35 @@ export function OperatorOutputMode({
                 />
               </div>
               <MonitorContainer variant="operator">
-                <PreviewWithOverlays showLabel label="1920×1080">
-                  {previewNode}
-                </PreviewWithOverlays>
+                {(() => {
+                  const previewBroadcast = getBroadcastScene(broadcastSceneFromSceneType(previewScene));
+                  const programBroadcast = getBroadcastScene(broadcastSceneFromSceneType(programScene));
+                  const live = previewScene === programScene;
+                  // Ring = current state of this canvas. Red when what
+                  // you see IS on air; blue when you're staging a change.
+                  const ringClass = live
+                    ? 'ring-2 ring-[hsl(var(--mako-live))]/70 shadow-[0_0_24px_-6px_hsl(var(--mako-live)/0.5)]'
+                    : 'ring-2 ring-primary/60 shadow-[0_0_24px_-6px_hsl(var(--primary)/0.5)]';
+                  return (
+                    <div className={`relative rounded-lg overflow-hidden ${ringClass}`}>
+                      <PreviewWithOverlays showLabel label="1920×1080">
+                        {previewNode}
+                      </PreviewWithOverlays>
+                      {/* Program label (always shown — what's actually on air) */}
+                      <div className="absolute top-2 left-2 z-50 flex flex-col gap-1 pointer-events-none">
+                        <span className="mako-chip bg-mako-live/20 border border-mako-live/50 text-[hsl(var(--mako-live))] text-[10px] font-mono uppercase">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--mako-live))] animate-live-pulse mr-1 inline-block" />
+                          Live · {programBroadcast.label}
+                        </span>
+                        {!live && (
+                          <span className="mako-chip bg-primary/20 border border-primary/50 text-primary text-[10px] font-mono uppercase">
+                            Preview · {previewBroadcast.label}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </MonitorContainer>
             </>
           ) : (

@@ -36,6 +36,7 @@ import { pollImportSchema, formatZodIssues, ImportIssue, ImportSection } from '@
 import { themePresets } from '@/lib/themes';
 import { TemplateName, Poll, PollOption, QRPosition, VotingState, LiveState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
+import { broadcastSceneFromSceneType, filterAssetsForScene } from '@/lib/scene-presets';
 import { broadcastOutputHeartbeat, broadcastOutputLock, broadcastOutputState } from '@/lib/output-state';
 import { supabase } from '@/integrations/supabase/client';
 import { writePublicViewerState, type PublicViewerPollSnapshot } from '@/lib/public-viewer-state';
@@ -635,6 +636,13 @@ export default function PollCreate() {
     // from Build → Output until they revisited Build's Program tab.)
     const programTransforms = assetTransformSet.program;
     const programAssetColors = assetColorSet.program;
+    // Scene-driven visibility: the operator picks a scene, the scene
+    // narrows the poll's enabled assets down to what should appear on
+    // air (e.g. Question+QR hides answer bars; Lower Third hides QR).
+    const sceneEnabled = filterAssetsForScene(
+      enabledAssets,
+      broadcastSceneFromSceneType(previewScene),
+    );
     const sharedAssets = {
       slug: slugForUrl,
       qrSize,
@@ -643,7 +651,7 @@ export default function PollCreate() {
       qrUrlVisible: assetState.qrUrlVisible,
       showBranding,
       brandingPosition,
-      enabledAssetIds: enabledAssets,
+      enabledAssetIds: sceneEnabled,
       transforms: programTransforms,
       assetColors: programAssetColors,
       wordmarkWeight: assetState.wordmarkWeight,
@@ -688,6 +696,10 @@ export default function PollCreate() {
     setProgramScene(previewScene);
     if (projectId) void takeToProgram(projectId, previewScene as unknown as SceneName);
     const folder = getFolderById(folderState, folderState.activeFolderId);
+    const sceneEnabled = filterAssetsForScene(
+      enabledAssets,
+      broadcastSceneFromSceneType(previewScene),
+    );
     broadcastOutputState({
       poll: currentWorkspacePoll,
       scene: previewScene,
@@ -699,7 +711,7 @@ export default function PollCreate() {
         qrUrlVisible: assetState.qrUrlVisible,
         showBranding,
         brandingPosition,
-        enabledAssetIds: enabledAssets,
+        enabledAssetIds: sceneEnabled,
         transforms: assetTransforms,
         assetColors,
         wordmarkWeight: assetState.wordmarkWeight,
@@ -716,6 +728,10 @@ export default function PollCreate() {
     setProgramScene(previewScene);
     if (projectId) void cutToProgram(projectId, previewScene as unknown as SceneName);
     const folder = getFolderById(folderState, folderState.activeFolderId);
+    const sceneEnabled = filterAssetsForScene(
+      enabledAssets,
+      broadcastSceneFromSceneType(previewScene),
+    );
     broadcastOutputState({
       poll: currentWorkspacePoll,
       scene: previewScene,
@@ -727,7 +743,7 @@ export default function PollCreate() {
         qrUrlVisible: assetState.qrUrlVisible,
         showBranding,
         brandingPosition,
-        enabledAssetIds: enabledAssets,
+        enabledAssetIds: sceneEnabled,
         transforms: assetTransforms,
         assetColors,
         wordmarkWeight: assetState.wordmarkWeight,
@@ -1402,6 +1418,13 @@ export default function PollCreate() {
     // is being broadcast to the on-air output window.
     const programTransforms = assetTransformSet.program;
     const programAssetColors = assetColorSet.program;
+    // Apply scene visibility — the broadcast mirror must already reflect
+    // the operator's selected scene, otherwise Output would render every
+    // enabled asset regardless of which scene is staged.
+    const sceneEnabled = filterAssetsForScene(
+      enabledAssets,
+      broadcastSceneFromSceneType(previewScene),
+    );
     broadcastOutputState({
       poll: currentWorkspacePoll,
       // Mirror Program Preview directly: the Full Screen Output is meant to
@@ -1415,7 +1438,7 @@ export default function PollCreate() {
         qrUrlVisible: assetState.qrUrlVisible,
         showBranding,
         brandingPosition,
-        enabledAssetIds: enabledAssets,
+        enabledAssetIds: sceneEnabled,
         transforms: programTransforms,
         assetColors: programAssetColors,
         wordmarkWeight: assetState.wordmarkWeight,

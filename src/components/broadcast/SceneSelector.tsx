@@ -1,11 +1,18 @@
-import { scenes, SceneType } from '@/lib/scenes';
-import { Monitor, Columns2, QrCode, Trophy } from 'lucide-react';
+import { useEffect } from 'react';
+import { SceneType } from '@/lib/scenes';
+import {
+  BROADCAST_SCENES,
+  BroadcastSceneId,
+  broadcastSceneFromSceneType,
+  getBroadcastScene,
+} from '@/lib/scene-presets';
+import { QrCode, BarChart3, Trophy, Columns2 } from 'lucide-react';
 
-const sceneIcons: Record<SceneType, React.ElementType> = {
-  fullscreen: Monitor,
+const sceneIcons: Record<BroadcastSceneId, React.ElementType> = {
+  questionQr: QrCode,
+  liveResults: BarChart3,
+  finalResults: Trophy,
   lowerThird: Columns2,
-  qr: QrCode,
-  results: Trophy,
 };
 
 interface SceneSelectorProps {
@@ -17,58 +24,101 @@ interface SceneSelectorProps {
 }
 
 export function SceneSelector({ previewScene, programScene, onSceneChange, onTake, onCut }: SceneSelectorProps) {
+  const previewId = broadcastSceneFromSceneType(previewScene);
+  const programId = broadcastSceneFromSceneType(programScene);
+  const dirty = previewId !== programId;
+
+  // SPACE = TAKE — broadcast operator standard. Ignored when typing in
+  // form fields so the spacebar still works in inputs/textareas.
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      if (e.code !== 'Space') return;
+      const t = e.target as HTMLElement | null;
+      if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      e.preventDefault();
+      onTake();
+    };
+    window.addEventListener('keydown', handler);
+    return () => window.removeEventListener('keydown', handler);
+  }, [onTake]);
+
   return (
-    <div className="flex items-center gap-3 w-full">
-      {/* Scene buttons */}
-      <div className="flex items-center gap-1.5">
-        {scenes.map((scene) => {
-          const Icon = sceneIcons[scene.id];
-          const isProgram = programScene === scene.id;
-          const isPreview = previewScene === scene.id;
-          return (
-            <button
-              key={scene.id}
-              onClick={() => onSceneChange(scene.id)}
-              className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 border relative ${
-                isProgram
-                  ? 'bg-mako-live/15 border-mako-live/50 text-[hsl(var(--mako-live))] shadow-[0_0_16px_-2px_hsl(var(--mako-live)/0.4)]'
-                  : isPreview
-                  ? 'bg-primary/15 border-primary/40 text-primary shadow-[0_0_12px_-2px_hsl(var(--primary)/0.3)]'
-                  : 'bg-accent/30 border-border/50 text-muted-foreground hover:bg-accent/60 hover:text-foreground'
-              }`}
-            >
-              {isProgram && (
-                <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[hsl(var(--mako-live))] animate-live-pulse" />
-              )}
-              <Icon className="w-3.5 h-3.5" />
-              {scene.shortLabel}
-            </button>
-          );
-        })}
+    <div className="flex flex-col gap-2 w-full">
+      {/* Status row — operator must instantly know what's staged vs on-air. */}
+      <div className="flex items-center gap-2 text-[10px] font-mono uppercase">
+        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-primary/15 border border-primary/40 text-primary">
+          <span className="w-1.5 h-1.5 rounded-full bg-primary" />
+          Preview · {getBroadcastScene(previewId).label}
+        </span>
+        <span className="flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-mako-live/15 border border-mako-live/50 text-[hsl(var(--mako-live))]">
+          <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--mako-live))] animate-live-pulse" />
+          Live · {getBroadcastScene(programId).label}
+        </span>
+        {dirty && (
+          <span className="text-[9px] font-mono text-muted-foreground">
+            ↳ press TAKE to commit
+          </span>
+        )}
       </div>
 
-      {/* Divider */}
-      <div className="w-px h-6 bg-border/50" />
+      <div className="flex items-center gap-3 w-full">
+        {/* Scene buttons — broadcast scene presets */}
+        <div className="flex items-center gap-1.5">
+          {BROADCAST_SCENES.map((scene) => {
+            const Icon = sceneIcons[scene.id];
+            const isProgram = programId === scene.id;
+            const isPreview = previewId === scene.id;
+            return (
+              <button
+                key={scene.id}
+                onClick={() => onSceneChange(scene.sceneType)}
+                className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 border relative ${
+                  isProgram && isPreview
+                    ? 'bg-mako-live/15 border-mako-live/60 text-[hsl(var(--mako-live))] shadow-[0_0_16px_-2px_hsl(var(--mako-live)/0.4)]'
+                    : isProgram
+                    ? 'bg-mako-live/10 border-mako-live/50 text-[hsl(var(--mako-live))]'
+                    : isPreview
+                    ? 'bg-primary/15 border-primary/50 text-primary shadow-[0_0_12px_-2px_hsl(var(--primary)/0.3)]'
+                    : 'bg-accent/30 border-border/50 text-muted-foreground hover:bg-accent/60 hover:text-foreground'
+                }`}
+              >
+                {isProgram && (
+                  <span className="absolute -top-1 -right-1 w-2 h-2 rounded-full bg-[hsl(var(--mako-live))] animate-live-pulse" />
+                )}
+                <Icon className="w-3.5 h-3.5" />
+                {scene.shortLabel}
+              </button>
+            );
+          })}
+        </div>
 
-      {/* Transition controls */}
-      <div className="flex items-center gap-1.5">
-        <button
-          onClick={onTake}
-          className="px-4 py-2 rounded-lg text-xs font-bold font-mono uppercase bg-mako-live/20 border border-mako-live/50 text-[hsl(var(--mako-live))] hover:bg-mako-live/30 transition-all duration-200 shadow-[0_0_12px_-4px_hsl(var(--mako-live)/0.3)] hover:shadow-[0_0_20px_-4px_hsl(var(--mako-live)/0.5)]"
-        >
-          TAKE
-        </button>
-        <button
-          onClick={onCut}
-          className="px-3 py-2 rounded-lg text-xs font-bold font-mono uppercase bg-accent/30 border border-border/50 text-muted-foreground hover:bg-accent/60 hover:text-foreground transition-all duration-200"
-        >
-          CUT
-        </button>
-      </div>
+        {/* Divider */}
+        <div className="w-px h-6 bg-border/50" />
 
-      {/* Hotkey hints */}
-      <div className="ml-auto flex items-center gap-2">
-        <span className="text-[9px] font-mono text-muted-foreground/50">1-4 scenes · SPACE take</span>
+        {/* Transition controls */}
+        <div className="flex items-center gap-1.5">
+          <button
+            onClick={onTake}
+            className={`px-4 py-2 rounded-lg text-xs font-bold font-mono uppercase border transition-all duration-200 ${
+              dirty
+                ? 'bg-mako-live/25 border-mako-live/70 text-[hsl(var(--mako-live))] shadow-[0_0_16px_-2px_hsl(var(--mako-live)/0.5)] hover:bg-mako-live/35'
+                : 'bg-mako-live/15 border-mako-live/40 text-[hsl(var(--mako-live))] hover:bg-mako-live/25'
+            }`}
+          >
+            TAKE
+          </button>
+          <button
+            onClick={onCut}
+            className="px-3 py-2 rounded-lg text-xs font-bold font-mono uppercase bg-accent/30 border border-border/50 text-muted-foreground hover:bg-accent/60 hover:text-foreground transition-all duration-200"
+          >
+            CUT
+          </button>
+        </div>
+
+        {/* Hotkey hints */}
+        <div className="ml-auto flex items-center gap-2">
+          <span className="text-[9px] font-mono text-muted-foreground/50">SPACE = TAKE</span>
+        </div>
       </div>
     </div>
   );
