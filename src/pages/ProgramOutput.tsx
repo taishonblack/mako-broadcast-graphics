@@ -348,6 +348,37 @@ export default function ProgramOutput() {
         {isFullscreen ? <Minimize className="h-3 w-3" /> : <Maximize className="h-3 w-3" />}
         {isFullscreen ? 'Exit Fullscreen' : 'Fullscreen'}
       </button>
+      {/* Sync status pill — always visible (small, low-contrast) so the
+          operator can confirm at a glance that the popup is mirroring.
+          Click to open the full diagnostics overlay. */}
+      {(() => {
+        const ageMs = lastSyncAt ? Date.now() - lastSyncAt : null;
+        const ageS = ageMs == null ? null : Math.floor(ageMs / 1000);
+        const stale = ageMs != null && ageMs > 5000;
+        const fresh = ageMs != null && ageMs < 2000;
+        const dotColor = lastSyncAt == null
+          ? 'bg-red-400'
+          : stale ? 'bg-yellow-400' : fresh ? 'bg-emerald-400' : 'bg-emerald-400/70';
+        const ageLabel = ageS == null ? 'no sync' : ageS < 1 ? 'just now' : ageS < 60 ? `${ageS}s ago` : `${Math.floor(ageS / 60)}m ago`;
+        const transportLabel = lastTransport === 'broadcastchannel' ? 'BC'
+          : lastTransport === 'storage' ? 'STORAGE'
+          : lastTransport === 'localstorage' ? 'LS-INIT'
+          : '—';
+        return (
+          <button
+            type="button"
+            onClick={() => setDiagOpen(true)}
+            aria-label="Sync status — open diagnostics"
+            title={`BroadcastChannel: ${bcSupported ? (bcOk ? 'ok' : 'idle') : 'unsupported'} · localStorage: ${lsSupported ? (storageOk ? 'ok' : 'idle') : 'unsupported'}`}
+            className={`fixed top-3 right-3 z-[100] inline-flex items-center gap-2 rounded-md border border-white/15 bg-black/60 px-2.5 py-1.5 font-mono text-[10px] uppercase tracking-widest text-white backdrop-blur-sm transition-opacity duration-300 hover:bg-black/80 ${controlsVisible ? 'opacity-100' : 'opacity-30'}`}
+          >
+            <span className={`inline-block h-2 w-2 rounded-full ${dotColor} ${fresh ? 'animate-pulse' : ''}`} />
+            <span className="text-white/80">SYNC</span>
+            <span className="text-white/50">{transportLabel}</span>
+            <span className="text-white/60">{ageLabel}</span>
+          </button>
+        );
+      })()}
       <div style={{ width: 'min(100vw, calc(100vh * 16 / 9))', maxWidth: '1920px' }} className="w-full">
         <BroadcastCanvas className="bg-background">
           <div
