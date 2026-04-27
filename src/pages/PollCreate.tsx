@@ -669,6 +669,9 @@ export default function PollCreate() {
     // from Build → Output until they revisited Build's Program tab.)
     const programTransforms = assetTransformSet.program;
     const programAssetColors = assetColorSet.program;
+    const programColors = programAssetColors.answers.barColors?.length
+      ? programAssetColors.answers.barColors
+      : [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
     // Scene-driven visibility: the operator picks a scene, the scene
     // narrows the poll's enabled assets down to what should appear on
     // air (e.g. Question+QR hides answer bars; Lower Third hides QR).
@@ -695,9 +698,6 @@ export default function PollCreate() {
       resultsAnimationMs: activeFolderForResults?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
       resultsReplayKey,
     };
-    const programColors = programAssetColors.answers.barColors?.length
-      ? programAssetColors.answers.barColors
-      : [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
     const props = {
       question: currentWorkspacePoll.question || 'Your question here?',
       subheadline,
@@ -732,7 +732,12 @@ export default function PollCreate() {
     const sceneEnabled = filterAssetsForScene(sceneFilteredEnabled, broadcastSceneFromSceneType(previewScene));
 
     return {
-      poll: { ...poll, question: poll.question || 'Your question here?', options: poll.options?.length ? poll.options : previewOptions },
+      poll: {
+        ...poll,
+        question: poll.question || previewQuestion,
+        options: poll.options?.length ? poll.options : previewOptions,
+        totalVotes: poll.options?.length ? poll.totalVotes : previewTotal,
+      },
       scene: previewScene,
       layers: [],
       assets: {
@@ -1550,10 +1555,15 @@ export default function PollCreate() {
     let ch: BroadcastChannel | null = null;
     try {
       ch = new BroadcastChannel(OUTPUT_REQUEST_CHANNEL);
-      ch.onmessage = () => setSnapshotRequestNonce((n) => n + 1);
+      ch.onmessage = () => {
+        if (liveState !== 'live') broadcastOutputLock({ locked: false });
+        else broadcastOutputLock({ locked: true, snapshot: getProgramOutputPayload(), lockedAt: Date.now() });
+        broadcastOutputState(getProgramOutputPayload());
+        setSnapshotRequestNonce((n) => n + 1);
+      };
     } catch { /* ignore */ }
     return () => { try { ch?.close(); } catch { /* ignore */ } };
-  }, []);
+  }, [liveState, currentWorkspacePoll, previewScene, qrSize, assetState, showBranding, brandingPosition, sceneFilteredEnabled, assetTransformSet, assetColorSet, activeFolder?.tallyMode, activeFolder?.tallyIntervalSeconds, activeFolder?.resultsMode, activeFolder?.resultsAnimationMs, previewOptions, resultsReplayKey]);
 
   // Mirror the Program Preview to any open Output window in real time.
   // Whenever the operator's program-preview state (poll content, scene,
