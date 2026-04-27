@@ -36,8 +36,8 @@ const BASE: AssetId[] = ['question', 'subheadline', 'background', 'logo'];
 export const BROADCAST_SCENES: BroadcastScene[] = [
   {
     id: 'questionQr',
-    label: 'Question + QR',
-    shortLabel: 'Q + QR',
+    label: 'Full Frame',
+    shortLabel: 'Full Frame',
     sceneType: 'fullscreen',
     // Show the full scene frame (including answer bars + voter tally).
     // Operators who want a stripped-down Q+QR-only layout should build
