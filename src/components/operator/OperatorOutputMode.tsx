@@ -773,18 +773,6 @@ export function OperatorOutputMode({
                       <PreviewWithOverlays showLabel label="1920×1080">
                         {previewNode}
                       </PreviewWithOverlays>
-                      {/* Program label (always shown — what's actually on air) */}
-                      <div className="absolute top-2 left-2 z-50 flex flex-col gap-1 pointer-events-none">
-                        <span className="mako-chip bg-mako-live/20 border border-mako-live/50 text-[hsl(var(--mako-live))] text-[10px] font-mono uppercase">
-                          <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--mako-live))] animate-live-pulse mr-1 inline-block" />
-                          Live · {programBroadcast.label}
-                        </span>
-                        {!live && (
-                          <span className="mako-chip bg-primary/20 border border-primary/50 text-primary text-[10px] font-mono uppercase">
-                            Preview · {previewBroadcast.label}
-                          </span>
-                        )}
-                      </div>
                     </div>
                   );
                 })()}
