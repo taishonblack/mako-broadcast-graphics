@@ -55,6 +55,10 @@ export interface OutputAssets {
    *  snap forward every N seconds (`stopMotion`). */
   tallyMode?: 'live' | 'stopMotion';
   tallyIntervalSeconds?: number;
+  /** Results scene playback — `animated` reveals bars from 0 over
+   *  `resultsAnimationMs`, `static` shows the final state immediately. */
+  resultsMode?: 'animated' | 'static';
+  resultsAnimationMs?: number;
 }
 
 export interface OutputStatePayload {

@@ -125,6 +125,14 @@ interface OperatorOutputModeProps {
   tallyIntervalSeconds?: number;
   onTallyModeChange?: (mode: 'live' | 'stopMotion') => void;
   onTallyIntervalChange?: (seconds: number) => void;
+  /** Results scene playback — `animated` reveals bars from 0 over
+   *  `resultsAnimationMs`; `static` paints the final state immediately. */
+  resultsMode?: 'animated' | 'static';
+  resultsAnimationMs?: number;
+  onResultsModeChange?: (mode: 'animated' | 'static') => void;
+  onResultsAnimationMsChange?: (ms: number) => void;
+  /** Re-trigger the animated reveal without changing vote data. */
+  onReplayResults?: () => void;
   /** Per-asset color overrides authored in Build (active viewport). Passed
    *  into the mobile/desktop ViewerSlatePreview so question / subheadline /
    *  answer text colors match what the operator picked, instead of always
@@ -192,6 +200,11 @@ export function OperatorOutputMode({
   tallyIntervalSeconds = 5,
   onTallyModeChange,
   onTallyIntervalChange,
+  resultsMode = 'animated',
+  resultsAnimationMs = 1200,
+  onResultsModeChange,
+  onResultsAnimationMsChange,
+  onReplayResults,
   assetColors,
   assetTransforms,
   assetColorSet,
@@ -901,6 +914,75 @@ export function OperatorOutputMode({
               )}
               <p className="text-[10px] text-muted-foreground">
                 Stays accessible while Go Live is engaged.
+              </p>
+            </div>
+          )}
+
+          {/* Results playback — separate from Tally Pacing because it
+              controls the *reveal* of the Results scene (animated bars
+              vs static final), not how incoming votes are paced. Always
+              visible so the operator can flip mode / change speed /
+              re-trigger the reveal mid-show. */}
+          {(onResultsModeChange || onResultsAnimationMsChange || onReplayResults) && (
+            <div className="mako-panel p-3 space-y-2">
+              <div className="flex items-center justify-between gap-2">
+                <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase text-muted-foreground">
+                  Results Playback
+                </span>
+                <span className="text-[10px] font-mono text-muted-foreground uppercase">
+                  {resultsMode === 'animated' ? `Animated · ${(resultsAnimationMs / 1000).toFixed(1)}s` : 'Static'}
+                </span>
+              </div>
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-[10px] font-mono uppercase text-muted-foreground">Mode</p>
+                <div className="flex gap-1">
+                  <Button
+                    size="sm"
+                    variant={resultsMode === 'animated' ? 'default' : 'outline'}
+                    className="h-6 px-2 text-[10px]"
+                    onClick={() => onResultsModeChange?.('animated')}
+                  >Animated</Button>
+                  <Button
+                    size="sm"
+                    variant={resultsMode === 'static' ? 'default' : 'outline'}
+                    className="h-6 px-2 text-[10px]"
+                    onClick={() => onResultsModeChange?.('static')}
+                  >Static</Button>
+                </div>
+              </div>
+              {resultsMode === 'animated' && (
+                <>
+                  <div className="space-y-1">
+                    <div className="flex items-center justify-between">
+                      <span className="text-[10px] uppercase text-muted-foreground">Reveal Speed</span>
+                      <span className="text-[10px] font-mono text-foreground">{(resultsAnimationMs / 1000).toFixed(1)}s</span>
+                    </div>
+                    <Slider
+                      min={200}
+                      max={6000}
+                      step={100}
+                      value={[resultsAnimationMs]}
+                      onValueChange={(v) => onResultsAnimationMsChange?.(v[0] ?? resultsAnimationMs)}
+                    />
+                    <div className="flex items-center justify-between text-[9px] font-mono uppercase text-muted-foreground/70">
+                      <span>Fast</span>
+                      <span>Dramatic</span>
+                    </div>
+                  </div>
+                  {onReplayResults && (
+                    <Button
+                      size="sm"
+                      variant="outline"
+                      className="h-6 w-full text-[10px]"
+                      onClick={onReplayResults}
+                    >
+                      Replay Reveal
+                    </Button>
+                  )}
+                </>
+              )}
+              <p className="text-[10px] text-muted-foreground">
+                Animated bars on entry; Static skips the reveal.
               </p>
             </div>
           )}

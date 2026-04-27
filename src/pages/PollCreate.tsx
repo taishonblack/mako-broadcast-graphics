@@ -56,6 +56,9 @@ import {
   DEFAULT_TALLY_INTERVAL_SECONDS,
   DEFAULT_TALLY_MODE,
   TallyMode,
+  DEFAULT_RESULTS_MODE,
+  DEFAULT_RESULTS_ANIMATION_MS,
+  ResultsMode,
   duplicateFolder,
   linkFolders,
   unlinkFolder,
@@ -319,6 +322,9 @@ export default function PollCreate() {
   const [qrSize, setQrSize] = useState(120);
   const [showBranding, setShowBranding] = useState(true);
   const [brandingPosition, setBrandingPosition] = useState<QRPosition>('bottom-left');
+  /** Bumped by the operator's "Replay Reveal" button to re-trigger the
+   *  Results scene's animated bar reveal without changing vote data. */
+  const [resultsReplayKey, setResultsReplayKey] = useState(0);
   const theme = themePresets[0];
 
   // Load existing poll if visiting /polls/:id
@@ -649,6 +655,7 @@ export default function PollCreate() {
       sceneFilteredEnabled,
       broadcastSceneFromSceneType(previewScene),
     );
+    const activeFolderForResults = getFolderById(folderState, folderState.activeFolderId);
     const sharedAssets = {
       slug: slugForUrl,
       qrSize,
@@ -663,6 +670,9 @@ export default function PollCreate() {
       wordmarkWeight: assetState.wordmarkWeight,
       wordmarkTracking: assetState.wordmarkTracking,
       wordmarkScale: assetState.wordmarkScale,
+      resultsMode: activeFolderForResults?.resultsMode ?? DEFAULT_RESULTS_MODE,
+      resultsAnimationMs: activeFolderForResults?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
+      resultsReplayKey,
     };
     const props = {
       question: currentWorkspacePoll.question || 'Your question here?',
@@ -726,6 +736,8 @@ export default function PollCreate() {
         wordmarkShowGuides: assetState.wordmarkShowGuides,
         tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
         tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
+        resultsMode: folder?.resultsMode ?? DEFAULT_RESULTS_MODE,
+        resultsAnimationMs: folder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
       },
     });
   };
@@ -758,6 +770,8 @@ export default function PollCreate() {
         wordmarkShowGuides: assetState.wordmarkShowGuides,
         tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
         tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
+        resultsMode: folder?.resultsMode ?? DEFAULT_RESULTS_MODE,
+        resultsAnimationMs: folder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
       },
     });
   };
@@ -813,6 +827,8 @@ export default function PollCreate() {
         wordmarkShowGuides: assetState.wordmarkShowGuides,
         tallyMode: folder?.tallyMode ?? DEFAULT_TALLY_MODE,
         tallyIntervalSeconds: folder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
+        resultsMode: folder?.resultsMode ?? DEFAULT_RESULTS_MODE,
+        resultsAnimationMs: folder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
       },
     };
     broadcastOutputLock({ locked: true, snapshot, lockedAt: Date.now() });
@@ -1368,6 +1384,8 @@ export default function PollCreate() {
         wordmarkShowGuides: assetState.wordmarkShowGuides,
         tallyMode: activeFolder?.tallyMode ?? DEFAULT_TALLY_MODE,
         tallyIntervalSeconds: activeFolder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
+        resultsMode: activeFolder?.resultsMode ?? DEFAULT_RESULTS_MODE,
+        resultsAnimationMs: activeFolder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
       },
     };
     const { error } = await supabase.from('project_live_state').upsert({
@@ -1548,6 +1566,8 @@ export default function PollCreate() {
         wordmarkShowGuides: assetState.wordmarkShowGuides,
         tallyMode: activeFolder?.tallyMode ?? DEFAULT_TALLY_MODE,
         tallyIntervalSeconds: activeFolder?.tallyIntervalSeconds ?? DEFAULT_TALLY_INTERVAL_SECONDS,
+        resultsMode: activeFolder?.resultsMode ?? DEFAULT_RESULTS_MODE,
+        resultsAnimationMs: activeFolder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS,
       },
     });
   }, [
@@ -2461,6 +2481,28 @@ export default function PollCreate() {
                 ),
               }));
             }}
+            resultsMode={getFolderById(folderState, folderState.activeFolderId)?.resultsMode ?? DEFAULT_RESULTS_MODE}
+            resultsAnimationMs={getFolderById(folderState, folderState.activeFolderId)?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS}
+            onResultsModeChange={(mode: ResultsMode) => {
+              setFolderState((current) => ({
+                ...current,
+                folders: current.folders.map((f) =>
+                  f.id === current.activeFolderId ? { ...f, resultsMode: mode } : f
+                ),
+              }));
+              // Bump the replay key so the change takes effect immediately
+              // when flipping back to Animated mid-show.
+              setResultsReplayKey((k) => k + 1);
+            }}
+            onResultsAnimationMsChange={(ms: number) => {
+              setFolderState((current) => ({
+                ...current,
+                folders: current.folders.map((f) =>
+                  f.id === current.activeFolderId ? { ...f, resultsAnimationMs: ms } : f
+                ),
+              }));
+            }}
+            onReplayResults={() => setResultsReplayKey((k) => k + 1)}
           />
         </div>
       ) : (
