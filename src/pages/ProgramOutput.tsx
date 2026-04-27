@@ -223,6 +223,7 @@ export default function ProgramOutput() {
           // Discard payloads while locked — the snapshot is canonical.
           if (locked) return;
           applyPayload(next);
+          markSync('storage');
         } catch {}
       }
 
@@ -248,6 +249,7 @@ export default function ProgramOutput() {
           pushLog(`bc payload: poll=${next.poll?.id} scene=${next.scene} q="${(next.poll?.question || '∅').slice(0, 30)}"`);
           if (locked) return;
           applyPayload(next);
+          markSync('broadcastchannel');
         };
         lockChannel = new BroadcastChannel(OUTPUT_LOCK_CHANNEL);
         lockChannel.onmessage = (ev) => {
