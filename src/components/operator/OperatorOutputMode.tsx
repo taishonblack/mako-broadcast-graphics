@@ -755,9 +755,35 @@ export function OperatorOutputMode({
                 />
               </div>
               <MonitorContainer variant="operator">
-                <PreviewWithOverlays showLabel label="1920×1080">
-                  {previewNode}
-                </PreviewWithOverlays>
+                {(() => {
+                  const previewBroadcast = getBroadcastScene(broadcastSceneFromSceneType(previewScene));
+                  const programBroadcast = getBroadcastScene(broadcastSceneFromSceneType(programScene));
+                  const live = previewScene === programScene;
+                  // Ring = current state of this canvas. Red when what
+                  // you see IS on air; blue when you're staging a change.
+                  const ringClass = live
+                    ? 'ring-2 ring-[hsl(var(--mako-live))]/70 shadow-[0_0_24px_-6px_hsl(var(--mako-live)/0.5)]'
+                    : 'ring-2 ring-primary/60 shadow-[0_0_24px_-6px_hsl(var(--primary)/0.5)]';
+                  return (
+                    <div className={`relative rounded-lg overflow-hidden ${ringClass}`}>
+                      <PreviewWithOverlays showLabel label="1920×1080">
+                        {previewNode}
+                      </PreviewWithOverlays>
+                      {/* Program label (always shown — what's actually on air) */}
+                      <div className="absolute top-2 left-2 z-50 flex flex-col gap-1 pointer-events-none">
+                        <span className="mako-chip bg-mako-live/20 border border-mako-live/50 text-[hsl(var(--mako-live))] text-[10px] font-mono uppercase">
+                          <span className="w-1.5 h-1.5 rounded-full bg-[hsl(var(--mako-live))] animate-live-pulse mr-1 inline-block" />
+                          Live · {programBroadcast.label}
+                        </span>
+                        {!live && (
+                          <span className="mako-chip bg-primary/20 border border-primary/50 text-primary text-[10px] font-mono uppercase">
+                            Preview · {previewBroadcast.label}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })()}
               </MonitorContainer>
             </>
           ) : (
