@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import {
   PollScene,
   ScenePreset,
+  bulkSavePollSceneAssetTransforms,
   createPollScene,
   deletePollScene,
   duplicatePollScene,
@@ -12,7 +13,7 @@ import {
   renamePollScene,
   setPollSceneAssetVisible,
 } from '@/lib/poll-scenes';
-import type { AssetId } from '@/components/poll-create/polling-assets/types';
+import type { AssetId, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
 
 /**
  * Hook for managing scenes attached to a single poll.
@@ -76,6 +77,7 @@ export function usePollScenes(pollId: string | undefined) {
         preset,
         sortOrder,
         visibleAssetIds: new Set<AssetId>(meta.defaultVisibleAssets),
+        assetTransforms: {},
       };
       const next = [...scenes, draft];
       draftScenesRef.current = next;
@@ -124,6 +126,7 @@ export function usePollScenes(pollId: string | undefined) {
         name: `${source.name} (copy)`,
         sortOrder,
         visibleAssetIds: new Set(source.visibleAssetIds),
+        assetTransforms: JSON.parse(JSON.stringify(source.assetTransforms ?? {})),
       };
       const next = [...scenes, draft];
       draftScenesRef.current = next;
@@ -166,6 +169,32 @@ export function usePollScenes(pollId: string | undefined) {
     [],
   );
 
+  /**
+   * Persist the full per-asset transform map for a scene. Updates local
+   * state in lockstep so the next render of `scenes` already reflects the
+   * saved values. Drafts skip the network round-trip.
+   */
+  const saveSceneAssetTransforms = useCallback(
+    async (sceneId: string, transforms: AssetTransformMap) => {
+      setScenes((prev) =>
+        prev.map((s) => (s.id === sceneId ? { ...s, assetTransforms: { ...transforms } } : s)),
+      );
+      const isDraft = sceneId.startsWith('draft-scene-');
+      if (isDraft) {
+        draftScenesRef.current = draftScenesRef.current.map((s) =>
+          s.id === sceneId ? { ...s, assetTransforms: { ...transforms } } : s,
+        );
+        return;
+      }
+      try { await bulkSavePollSceneAssetTransforms(sceneId, transforms); }
+      catch (err) {
+        console.error('[usePollScenes] save transforms failed', err);
+        toast.error('Failed to save scene layout');
+      }
+    },
+    [],
+  );
+
   return {
     scenes,
     activeScene,
@@ -176,6 +205,7 @@ export function usePollScenes(pollId: string | undefined) {
     removeScene,
     duplicateScene,
     setSceneAssetVisible,
+    saveSceneAssetTransforms,
     loading,
     /** True when there are zero scenes — UI should grey out asset editing. */
     requiresScene: scenes.length === 0,
