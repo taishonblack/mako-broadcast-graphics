@@ -6,7 +6,7 @@ import { Input } from '@/components/ui/input';
 import { Badge } from '@/components/ui/badge';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuLabel, DropdownMenuSeparator, DropdownMenuTrigger } from '@/components/ui/dropdown-menu';
 import { AssetColorConfig, AssetColorMap, AssetId, AssetTransformMap, DEFAULT_ASSET_COLORS, TransformField, TransformViewport } from '@/components/poll-create/polling-assets/types';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ColorSwatch, MAX_SWATCHES, useColorSwatches } from '@/lib/color-swatches';
 import { Link as RouterLink } from 'react-router-dom';
 
