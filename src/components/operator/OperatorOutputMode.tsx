@@ -38,6 +38,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { percentsFromAnswers, rebalancePercents, answersFromPercents, AnswerLite } from '@/lib/answer-percents';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
+import type { PollScene } from '@/lib/poll-scenes';
+import { Layers } from 'lucide-react';
 
 export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
 
@@ -78,6 +80,12 @@ interface OperatorOutputModeProps {
   onSelectBlock: (block: BlockLetter) => void;
   onSelectPoll: (pollId: string) => void;
   onSceneChange: (scene: SceneType) => void;
+  /** Scenes belonging to the active folder/poll — listed under the
+   *  "Scenes Output" panel so operators can see (and pick) which scene
+   *  is staged for air. */
+  scenes?: PollScene[];
+  activeSceneId?: string | null;
+  onSelectScene?: (sceneId: string) => void;
   onTake: () => void;
   onCut: () => void;
   /** Returning the popup window lets us watch for `closed` so the ACTIVE
@@ -158,6 +166,9 @@ export function OperatorOutputMode({
   onSelectBlock,
   onSelectPoll,
   onSceneChange,
+  scenes = [],
+  activeSceneId = null,
+  onSelectScene,
   onTake,
   onCut,
   onOpenOutput,
