@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { ThemePreset, PollOption, QRPosition } from '@/lib/types';
 import { AssetOverlay } from '@/components/broadcast/AssetOverlay';
 import { AssetColorMap, AssetTransformMap, AssetId } from '@/components/poll-create/polling-assets/types';
@@ -20,6 +21,13 @@ interface ResultsSceneProps {
   enabledAssetIds?: AssetId[];
   transforms?: AssetTransformMap;
   assetColors?: AssetColorMap;
+  /** `animated` (default) reveals bars/percentages from 0 over
+   *  `resultsAnimationMs`. `static` paints the final state immediately. */
+  resultsMode?: 'animated' | 'static';
+  resultsAnimationMs?: number;
+  /** Bumping this number re-triggers the animated reveal without changing
+   *  any vote data — used by the operator "Replay" button. */
+  resultsReplayKey?: number;
 }
 
 export function ResultsScene({
@@ -39,8 +47,41 @@ export function ResultsScene({
   enabledAssetIds,
   transforms,
   assetColors,
+  resultsMode = 'animated',
+  resultsAnimationMs = 1200,
+  resultsReplayKey = 0,
 }: ResultsSceneProps) {
   const visibleAssets = new Set(enabledAssetIds ?? ['question', 'answers', 'logo']);
+
+  // Animated reveal: drive a 0 → 1 progress value with rAF over the
+   // configured duration. We re-trigger whenever the scene mounts, the
+   // mode flips, the duration changes, or the operator presses "Replay"
+   // (which bumps `resultsReplayKey`). Vote data changes mid-reveal do
+   // NOT restart the animation — the bars simply slide toward the new
+   // target on the next frame, which feels right for live results.
+  const [progress, setProgress] = useState(resultsMode === 'static' ? 1 : 0);
+  const startRef = useRef<number | null>(null);
+  useEffect(() => {
+    if (resultsMode === 'static') {
+      setProgress(1);
+      return;
+    }
+    setProgress(0);
+    startRef.current = null;
+    const dur = Math.max(50, resultsAnimationMs);
+    let raf = 0;
+    const tick = (t: number) => {
+      if (startRef.current == null) startRef.current = t;
+      const elapsed = t - startRef.current;
+      const p = Math.min(1, elapsed / dur);
+      // easeOutCubic — quick rise, gentle settle (broadcast-friendly).
+      const eased = 1 - Math.pow(1 - p, 3);
+      setProgress(eased);
+      if (p < 1) raf = requestAnimationFrame(tick);
+    };
+    raf = requestAnimationFrame(tick);
+    return () => cancelAnimationFrame(raf);
+  }, [resultsMode, resultsAnimationMs, resultsReplayKey]);
 
   return (
     <div
@@ -70,7 +111,9 @@ export function ResultsScene({
         {visibleAssets.has('answers') && (
         <div className="w-full space-y-10" style={getAssetTransformStyle(transforms?.answers)}>
           {options.map((option, i) => {
-            const pct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
+            const finalPct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
+            const pct = finalPct * progress;
+            const displayVotes = Math.round(option.votes * progress);
             const color = colors[i % colors.length];
 
             return (
@@ -106,7 +149,7 @@ export function ResultsScene({
                   className="font-mono"
                   style={{ color: assetColors?.answers?.textSecondary ?? theme.textSecondary, fontSize: '22px' }}
                 >
-                  {option.votes.toLocaleString()} votes
+                  {displayVotes.toLocaleString()} votes
                 </span>
               </div>
             );
@@ -117,7 +160,7 @@ export function ResultsScene({
         {visibleAssets.has('voterTally') && (
           <div data-layer="votesText" className="mt-10 text-center" style={getAssetTransformStyle(transforms?.voterTally)}>
             <span className="font-mono" style={{ color: assetColors?.voterTally?.textSecondary ?? theme.textSecondary, fontSize: '28px' }}>
-              {totalVotes.toLocaleString()} total votes
+              {Math.round(totalVotes * progress).toLocaleString()} total votes
             </span>
           </div>
         )}
