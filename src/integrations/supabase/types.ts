@@ -509,7 +509,10 @@ export type Database = {
           live_poll_snapshot: Json | null
           output_state: string
           preview_poll_id: string | null
+          preview_scene: string
+          program_scene: string
           project_id: string
+          transition_state: string
           transition_type: string
           updated_at: string
           updated_by: string | null
@@ -522,7 +525,10 @@ export type Database = {
           live_poll_snapshot?: Json | null
           output_state?: string
           preview_poll_id?: string | null
+          preview_scene?: string
+          program_scene?: string
           project_id: string
+          transition_state?: string
           transition_type?: string
           updated_at?: string
           updated_by?: string | null
@@ -535,7 +541,10 @@ export type Database = {
           live_poll_snapshot?: Json | null
           output_state?: string
           preview_poll_id?: string | null
+          preview_scene?: string
+          program_scene?: string
           project_id?: string
+          transition_state?: string
           transition_type?: string
           updated_at?: string
           updated_by?: string | null
