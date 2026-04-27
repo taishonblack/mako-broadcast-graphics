@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from 'recharts';
@@ -33,6 +35,44 @@ interface LiveStateLite {
 }
 
 const REFRESH_MS = 2500;
+
+function downloadCSV(filename: string, rows: AnalyticsRow[], pollLookup: Record<string, PollLite>) {
+  const header = ['timestamp', 'poll_id', 'poll_name', 'answer_id', 'answer_label', 'device_type', 'browser', 'os', 'country', 'region'];
+  const escape = (v: string) => {
+    const s = String(v ?? '');
+    return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
+  };
+  const lines = [header.join(',')];
+  rows.forEach((r) => {
+    const poll = pollLookup[r.poll_id];
+    const answerLabel = poll?.answers.find((a) => a.id === r.answer_id)?.label ?? '';
+    lines.push(
+      [
+        r.created_at,
+        r.poll_id,
+        poll?.internal_name || poll?.question || '',
+        r.answer_id ?? '',
+        answerLabel,
+        r.device_type,
+        r.browser,
+        r.os,
+        r.country,
+        r.region,
+      ]
+        .map(escape)
+        .join(','),
+    );
+  });
+  const blob = new Blob([lines.join('\n')], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url;
+  a.download = filename;
+  document.body.appendChild(a);
+  a.click();
+  document.body.removeChild(a);
+  URL.revokeObjectURL(url);
+}
 
 export default function Statistics() {
   const { user } = useAuth();
