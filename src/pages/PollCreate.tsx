@@ -2310,8 +2310,8 @@ export default function PollCreate() {
             showBranding={showBranding}
             brandingPosition={brandingPosition}
             previewNode={renderOutputScene()}
-            hasAnswerBars={enabledAssets.includes('answers')}
-            enabledAssetIds={enabledAssets}
+            hasAnswerBars={sceneFilteredEnabled.includes('answers')}
+            enabledAssetIds={sceneFilteredEnabled}
             assetColors={assetColors}
             assetTransforms={assetTransforms}
             assetColorSet={assetColorSet}
