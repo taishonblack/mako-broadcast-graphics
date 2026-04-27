@@ -1766,7 +1766,11 @@ export default function PollCreate() {
   useEffect(() => {
     if (!user || !projectId) {
       setFoldersLoadedForProject(null);
-      const nextState = createDefaultFolderState(question, bgColor);
+      // Without a project, hydrate from the local draft so navigating away
+      // from /workspace and back doesn't wipe folders/assets the operator
+      // has built up.
+      const draft = loadDraftFolderState();
+      const nextState = draft ?? createDefaultFolderState(question, bgColor);
       const savedActiveFolderId = localStorage.getItem(buildActiveFolderStorageKey(projectId));
       if (savedActiveFolderId && nextState.folders.some((folder) => folder.id === savedActiveFolderId)) {
         nextState.activeFolderId = savedActiveFolderId;
