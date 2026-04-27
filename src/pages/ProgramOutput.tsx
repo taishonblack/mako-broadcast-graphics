@@ -218,16 +218,9 @@ export default function ProgramOutput() {
 
   // Listen for scene/state changes from dashboard
   useEffect(() => {
-    const applyPayload = (next: Partial<OutputStatePayload>) => {
-      if (next.poll) setPoll(next.poll);
-      if (next.scene) setScene(next.scene);
-      setLayers(Array.isArray(next.layers) ? cloneLayers(next.layers) : cloneLayers(DEFAULT_LAYERS));
-      if (next.assets) setAssets(next.assets);
-    };
-
     const applyLock = (msg: OutputLockMessage | null) => {
       if (msg?.locked && msg.snapshot) {
-        applyPayload(msg.snapshot);
+        applyPayload(msg.snapshot, true);
         setLocked(true);
       } else {
         setLocked(false);
@@ -249,7 +242,7 @@ export default function ProgramOutput() {
           }>;
           // Discard payloads while locked — the snapshot is canonical.
           if (locked) return;
-          applyPayload(next);
+          applyPayload(next, true);
           markSync('storage');
         } catch {}
       }
@@ -275,7 +268,7 @@ export default function ProgramOutput() {
           if (!next) return;
           pushLog(`bc payload: poll=${next.poll?.id} scene=${next.scene} q="${(next.poll?.question || '∅').slice(0, 30)}"`);
           if (locked) return;
-          applyPayload(next);
+          applyPayload(next, true);
           markSync('broadcastchannel');
         };
         lockChannel = new BroadcastChannel(OUTPUT_LOCK_CHANNEL);
