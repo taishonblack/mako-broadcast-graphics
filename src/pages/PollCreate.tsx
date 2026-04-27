@@ -2281,7 +2281,10 @@ export default function PollCreate() {
               if (selectedId === currentWorkspacePoll.id) return;
               navigate(`/polls/${selectedId}?mode=output`);
             }}
-            onSceneChange={setPreviewScene}
+            onSceneChange={(scene) => {
+              setPreviewScene(scene);
+              if (projectId) void dbSetPreviewScene(projectId, scene as unknown as SceneName);
+            }}
             onTake={handleTake}
             onCut={handleCut}
             onOpenOutput={() => window.open(`/output/${currentWorkspacePoll.id}`, 'mako-output', 'width=1920,height=1080') ?? null}
