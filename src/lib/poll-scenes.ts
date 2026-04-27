@@ -1,5 +1,6 @@
 import { supabase } from '@/integrations/supabase/client';
-import type { AssetId } from '@/components/poll-create/polling-assets/types';
+import type { AssetId, AssetTransformConfig, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
+import { DEFAULT_ASSET_TRANSFORMS } from '@/components/poll-create/polling-assets/types';
 
 /**
  * Scene presets — operator picks one of these when creating a scene inside
@@ -53,6 +54,12 @@ export interface PollScene {
   sortOrder: number;
   /** Set of asset_ids that are visible while this scene is on-air. */
   visibleAssetIds: Set<AssetId>;
+  /**
+   * Per-asset transforms (position / scale / rotation / opacity / crop)
+   * scoped to this scene. Only the broadcast (program) viewport is
+   * persisted — Mobile/Desktop overrides are still in-memory only.
+   */
+  assetTransforms: Partial<Record<AssetId, AssetTransformConfig>>;
 }
 
 /* ------------------------------------------------------------------ */
@@ -71,12 +78,19 @@ interface RawSceneAssetRow {
   scene_id: string;
   asset_id: string;
   visible: boolean;
+  transform: unknown;
 }
 
 function rowToScene(row: RawSceneRow, assets: RawSceneAssetRow[]): PollScene {
   const visible = new Set<AssetId>();
+  const transforms: Partial<Record<AssetId, AssetTransformConfig>> = {};
   for (const a of assets) {
-    if (a.scene_id === row.id && a.visible) visible.add(a.asset_id as AssetId);
+    if (a.scene_id !== row.id) continue;
+    if (a.visible) visible.add(a.asset_id as AssetId);
+    const t = a.transform;
+    if (t && typeof t === 'object' && Object.keys(t as object).length > 0) {
+      transforms[a.asset_id as AssetId] = t as AssetTransformConfig;
+    }
   }
   const preset: ScenePreset =
     row.preset === 'liveResults' || row.preset === 'final' ? row.preset : 'fullScreen';
@@ -87,6 +101,7 @@ function rowToScene(row: RawSceneRow, assets: RawSceneAssetRow[]): PollScene {
     preset,
     sortOrder: row.sort_order,
     visibleAssetIds: visible,
+    assetTransforms: transforms,
   };
 }
 
@@ -103,7 +118,7 @@ export async function loadPollScenes(pollId: string): Promise<PollScene[]> {
   const ids = scenes.map((s) => s.id);
   const { data: assetRows, error: assetErr } = await supabase
     .from('poll_scene_assets')
-    .select('scene_id, asset_id, visible')
+    .select('scene_id, asset_id, visible, transform')
     .in('scene_id', ids);
   if (assetErr) throw assetErr;
 
@@ -142,6 +157,7 @@ export async function createPollScene(
       scene_id: (data as RawSceneRow).id,
       asset_id,
       visible: true,
+      transform: {},
     })),
   );
 }
@@ -179,6 +195,60 @@ export async function setPollSceneAssetVisible(
   if (error) throw error;
 }
 
+/**
+ * Persist a single asset's transform within a scene. Upserts on
+ * (scene_id, asset_id) so we never duplicate rows. Defaults `visible`
+ * to true so an operator can position an asset before flipping it on.
+ */
+export async function setPollSceneAssetTransform(
+  sceneId: string,
+  assetId: AssetId,
+  transform: AssetTransformConfig,
+) {
+  const { error } = await supabase
+    .from('poll_scene_assets')
+    .upsert(
+      { scene_id: sceneId, asset_id: assetId, transform: transform as never } as never,
+      { onConflict: 'scene_id,asset_id' } as never,
+    );
+  if (error) throw error;
+}
+
+/**
+ * Bulk-write every asset transform for a scene. Used on autosave so we
+ * keep one network round-trip per scene rather than one per asset.
+ */
+export async function bulkSavePollSceneAssetTransforms(
+  sceneId: string,
+  transforms: AssetTransformMap,
+) {
+  const rows = (Object.keys(transforms) as AssetId[]).map((assetId) => ({
+    scene_id: sceneId,
+    asset_id: assetId,
+    transform: transforms[assetId] as never,
+  }));
+  if (rows.length === 0) return;
+  const { error } = await supabase
+    .from('poll_scene_assets')
+    .upsert(rows as never, { onConflict: 'scene_id,asset_id' } as never);
+  if (error) throw error;
+}
+
+/**
+ * Hydrate a partial per-asset transform map into a full AssetTransformMap,
+ * filling missing assets from defaults. Used when constructing the
+ * in-memory `sceneTransformSets` cache from the DB.
+ */
+export function hydrateSceneTransformMap(
+  partial: Partial<Record<AssetId, AssetTransformConfig>>,
+): AssetTransformMap {
+  const out: AssetTransformMap = JSON.parse(JSON.stringify(DEFAULT_ASSET_TRANSFORMS));
+  for (const [assetId, t] of Object.entries(partial)) {
+    if (t) out[assetId as AssetId] = t;
+  }
+  return out;
+}
+
 export async function duplicatePollScene(scene: PollScene, sortOrder: number): Promise<PollScene> {
   const { data, error } = await supabase
     .from('poll_scenes')
@@ -193,11 +263,18 @@ export async function duplicatePollScene(scene: PollScene, sortOrder: number): P
   if (error) throw error;
 
   const visibleArray = Array.from(scene.visibleAssetIds);
-  if (visibleArray.length > 0) {
-    const rows = visibleArray.map((asset_id) => ({
+  // Duplicate visibility AND per-asset transforms so the new scene starts
+  // identical to the source until the operator edits it.
+  const allAssetIds = new Set<AssetId>([
+    ...visibleArray,
+    ...(Object.keys(scene.assetTransforms) as AssetId[]),
+  ]);
+  if (allAssetIds.size > 0) {
+    const rows = Array.from(allAssetIds).map((asset_id) => ({
       scene_id: (data as RawSceneRow).id,
       asset_id,
-      visible: true,
+      visible: scene.visibleAssetIds.has(asset_id),
+      transform: (scene.assetTransforms[asset_id] ?? {}) as never,
     }));
     const { error: insErr } = await supabase
       .from('poll_scene_assets')
@@ -207,7 +284,12 @@ export async function duplicatePollScene(scene: PollScene, sortOrder: number): P
 
   return rowToScene(
     data as RawSceneRow,
-    visibleArray.map((asset_id) => ({ scene_id: (data as RawSceneRow).id, asset_id, visible: true })),
+    Array.from(allAssetIds).map((asset_id) => ({
+      scene_id: (data as RawSceneRow).id,
+      asset_id,
+      visible: scene.visibleAssetIds.has(asset_id),
+      transform: scene.assetTransforms[asset_id] ?? {},
+    })),
   );
 }
 
