@@ -1091,6 +1091,49 @@ export default function PollCreate() {
     },
     [transformViewport],
   );
+  // Seed sceneTransformSets from the DB whenever scenes load. We only
+  // overwrite buckets we haven't created yet locally, so an in-progress
+  // edit isn't clobbered if the operator is mid-drag when a refetch lands.
+  useEffect(() => {
+    if (sceneController.scenes.length === 0) return;
+    setSceneTransformSets((current) => {
+      let changed = false;
+      const next = { ...current };
+      for (const scene of sceneController.scenes) {
+        if (next[scene.id]) continue;
+        const programMap = hydrateSceneTransformMap(scene.assetTransforms ?? {});
+        next[scene.id] = {
+          program: programMap,
+          // Mobile/Desktop overrides aren't persisted yet — seed them
+          // from the program map so the operator's tweaks start from the
+          // same place they see on broadcast.
+          mobile: JSON.parse(JSON.stringify(programMap)),
+          desktop: JSON.parse(JSON.stringify(programMap)),
+        };
+        changed = true;
+      }
+      return changed ? next : current;
+    });
+  }, [sceneController.scenes]);
+  // Debounced persistence: whenever the program slice for the active scene
+  // changes, push it to the DB. Mobile/Desktop edits stay client-side.
+  const persistTransformsRef = useRef(sceneController.saveSceneAssetTransforms);
+  useEffect(() => { persistTransformsRef.current = sceneController.saveSceneAssetTransforms; });
+  const lastSavedTransformsRef = useRef<Record<string, string>>({});
+  useEffect(() => {
+    const sceneId = sceneController.activeSceneId;
+    if (!sceneId) return;
+    const set = sceneTransformSets[sceneId];
+    if (!set) return;
+    const programMap = set.program;
+    const serialized = JSON.stringify(programMap);
+    if (lastSavedTransformsRef.current[sceneId] === serialized) return;
+    const handle = window.setTimeout(() => {
+      lastSavedTransformsRef.current[sceneId] = serialized;
+      void persistTransformsRef.current(sceneId, programMap);
+    }, 600);
+    return () => window.clearTimeout(handle);
+  }, [sceneTransformSets, sceneController.activeSceneId]);
   // Per-viewport answer / text colors. The active slice is exposed as
   // `assetColors`; `setAssetColors` writes only into the active viewport's
   // slice, so changing colors on the Mobile tab does not affect Program or
