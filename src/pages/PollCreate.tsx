@@ -343,6 +343,11 @@ export default function PollCreate() {
   ));
   const [votingState, setVotingState] = useState<VotingState>('not_open');
   const [liveState, setLiveState] = useState<LiveState>('not_live');
+  // After Go Live syncs poll_answers, this maps each local option id (e.g.
+  // "1", "2") → the real poll_answers UUID. The operator's bar graph keys
+  // tallies by local id but useLiveVotes returns UUID-keyed counts, so we
+  // join them through this map. Cleared on End Live.
+  const [liveAnswerIdMap, setLiveAnswerIdMap] = useState<Record<string, string>>({});
   // Quick Switch (confirmationless TAKE/CUT). The mode preference is
   // remembered across sessions; the per-show "Bus Safe" arm switch is
   // session-only and auto-disarms on End Live so a forgotten arm state
