@@ -1584,6 +1584,7 @@ export default function PollCreate() {
   // Keep the ref in sync so effects declared earlier in the file (e.g. the
   // live-resync watcher) can read the latest value without violating TDZ.
   useEffect(() => { assetColorsRef.current = assetColors; }, [assetColors]);
+  useEffect(() => { answersRef.current = answers; }, [answers]);
   const setAssetColors = useCallback(
     (updater: AssetColorMap | ((current: AssetColorMap) => AssetColorMap)) => {
       setAssetColorSet((current) => {
