@@ -54,8 +54,21 @@ export function ResultsScene({
   resultsMode = 'animated',
   resultsAnimationMs = 1200,
   resultsReplayKey = 0,
+  layers,
 }: ResultsSceneProps) {
   const visibleAssets = new Set(enabledAssetIds ?? ['question', 'answers', 'logo']);
+
+  // Action-safe wrap: clamp the question width to the action-safe inset
+  // (5% on each side of 1920px → 1728px) so long text drops to a new line
+  // BEFORE touching the action-safe guide. Inspector "Width" shrinks it
+  // further; "Leading" controls wrapped-line spacing.
+  const questionLayer = layers?.find((l) => l.id === 'question');
+  const ACTION_SAFE_PX = 1728;
+  const questionMaxWidthPx = Math.min(
+    ACTION_SAFE_PX,
+    Math.round(((questionLayer?.textProps?.maxWidth ?? 84) / 100) * 1920),
+  );
+  const questionLineHeight = questionLayer?.textProps?.lineHeight ?? 1.1;
 
   // Animated reveal: drive a 0 → 1 progress value with rAF over the
    // configured duration. We re-trigger whenever the scene mounts, the
@@ -105,8 +118,16 @@ export function ResultsScene({
       <div className="relative z-20 flex flex-col items-center w-full px-32" style={{ maxWidth: '1600px' }}>
         {visibleAssets.has('question') && (
         <h1
-          className="font-bold mb-16 text-center leading-tight"
-          style={{ color: assetColors?.question?.textPrimary ?? theme.textPrimary, fontSize: '88px', ...getAssetTransformStyle(transforms?.question) }}
+          className="font-bold mb-16 text-center"
+          style={{
+            color: assetColors?.question?.textPrimary ?? theme.textPrimary,
+            fontSize: '88px',
+            maxWidth: `${questionMaxWidthPx}px`,
+            lineHeight: questionLineHeight,
+            overflowWrap: 'break-word',
+            wordBreak: 'normal',
+            ...getAssetTransformStyle(transforms?.question),
+          }}
         >
           {question}
         </h1>
