@@ -189,6 +189,8 @@ export function DraftPreviewMonitor({
             transforms={transforms}
             assetColors={assetColors}
             debugVoteUrl={voteUrl}
+            bgImage={bgImage}
+            bgColor={bgColor}
           />
         </div>
       );
@@ -229,6 +231,8 @@ export function DraftPreviewMonitor({
             transforms={transforms}
             assetColors={assetColors}
             debugVoteUrl={voteUrl}
+            bgImage={bgImage}
+            bgColor={bgColor}
           />
         )}
       </div>

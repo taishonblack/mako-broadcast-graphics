@@ -32,6 +32,8 @@ interface ResultsSceneProps {
   /** Per-layer text overrides so the inspector controls (line spacing,
    *  wrap width) feed through to the live composition. */
   layers?: GraphicLayer[];
+  bgImage?: string;
+  bgColor?: string;
 }
 
 export function ResultsScene({
@@ -55,6 +57,8 @@ export function ResultsScene({
   resultsAnimationMs = 1200,
   resultsReplayKey = 0,
   layers,
+  bgImage,
+  bgColor,
 }: ResultsSceneProps) {
   const visibleAssets = new Set(enabledAssetIds ?? ['question', 'answers', 'logo']);
 
@@ -104,7 +108,9 @@ export function ResultsScene({
     <div
       className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden"
       style={{
-        background: `linear-gradient(135deg, ${theme.tintColor}, hsl(220, 25%, 6%))`,
+        background: bgImage
+          ? 'transparent'
+          : `linear-gradient(135deg, ${bgColor || theme.tintColor}, hsl(220, 25%, 6%))`,
         ...getAssetTransformStyle(transforms?.background),
       }}
     >

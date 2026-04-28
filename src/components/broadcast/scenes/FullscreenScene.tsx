@@ -30,6 +30,11 @@ interface FullscreenSceneProps {
   wordmarkWeight?: AssetState['wordmarkWeight'];
   wordmarkTracking?: number;
   wordmarkScale?: number;
+  /** When provided, the scene root becomes transparent so a background
+   *  image set by the parent (DraftPreviewMonitor / ProgramOutput) shows
+   *  through instead of being covered by the theme tint gradient. */
+  bgImage?: string;
+  bgColor?: string;
 }
 
 /**
@@ -63,6 +68,8 @@ export function FullscreenScene({
   wordmarkTracking = 0,
   wordmarkScale = 1,
   layers,
+  bgImage,
+  bgColor,
 }: FullscreenSceneProps) {
   const useNativeChart = template === 'pie-donut' || template === 'puck-slider' || template === 'vertical-bar';
   const showWordmarkPlaceholder = !question.trim() && options.every((option) => !option.text.trim()) && totalVotes === 0;
@@ -86,7 +93,9 @@ export function FullscreenScene({
       data-layer="background"
       className="absolute inset-0 overflow-hidden"
       style={{
-        background: `linear-gradient(135deg, ${theme.tintColor}, hsl(220, 25%, 6%))`,
+        background: bgImage
+          ? 'transparent'
+          : `linear-gradient(135deg, ${bgColor || theme.tintColor}, hsl(220, 25%, 6%))`,
         ...getAssetTransformStyle(transforms?.background),
       }}
     >

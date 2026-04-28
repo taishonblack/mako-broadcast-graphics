@@ -23,6 +23,8 @@ interface LowerThirdSceneProps {
   enabledAssetIds?: AssetId[];
   transforms?: AssetTransformMap;
   assetColors?: AssetColorMap;
+  bgImage?: string;
+  bgColor?: string;
 }
 
 /**
@@ -50,6 +52,8 @@ export function LowerThirdScene({
   enabledAssetIds,
   transforms,
   assetColors,
+  bgImage,
+  bgColor,
 }: LowerThirdSceneProps) {
   // Clamp height to broadcast-safe range (20%-45%)
   const bannerHeight = Math.max(20, Math.min(45, height));
@@ -59,7 +63,9 @@ export function LowerThirdScene({
     <div
       className="absolute inset-0 overflow-hidden"
       style={{
-        background: `linear-gradient(135deg, ${theme.tintColor}, hsl(220, 25%, 6%))`,
+        background: bgImage
+          ? 'transparent'
+          : `linear-gradient(135deg, ${bgColor || theme.tintColor}, hsl(220, 25%, 6%))`,
         ...getAssetTransformStyle(transforms?.background),
       }}
     >

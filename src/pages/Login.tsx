@@ -21,7 +21,7 @@ export default function Login() {
       : await supabase.auth.signUp({
           email,
           password,
-          options: { emailRedirectTo: `${window.location.origin}/workspace?mode=output` },
+          options: { emailRedirectTo: `${window.location.origin}/projects` },
         });
 
     if (error) {
@@ -31,7 +31,7 @@ export default function Login() {
     }
 
     toast.success(mode === 'signin' ? 'Signed in successfully' : 'Account created');
-    navigate('/workspace?mode=output');
+    navigate('/projects');
   };
 
   return (

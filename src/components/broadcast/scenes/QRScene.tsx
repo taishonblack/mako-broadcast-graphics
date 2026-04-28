@@ -12,9 +12,11 @@ interface QRSceneProps {
   qrVisible?: boolean;
   qrUrlVisible?: boolean;
   debugVoteUrl?: string;
+  bgImage?: string;
+  bgColor?: string;
 }
 
-export function QRScene({ slug, theme, enabledAssetIds, transforms, assetColors, qrVisible = true, qrUrlVisible = true, debugVoteUrl }: QRSceneProps) {
+export function QRScene({ slug, theme, enabledAssetIds, transforms, assetColors, qrVisible = true, qrUrlVisible = true, debugVoteUrl, bgImage, bgColor }: QRSceneProps) {
   const url = debugVoteUrl ?? `https://makovote.app/vote/${slug}`;
   const visibleAssets = new Set(enabledAssetIds ?? ['question', 'answers', 'logo']);
 
@@ -22,7 +24,9 @@ export function QRScene({ slug, theme, enabledAssetIds, transforms, assetColors,
     <div
       className="absolute inset-0 flex flex-col items-center justify-center overflow-hidden"
       style={{
-        background: `linear-gradient(135deg, ${theme.tintColor}, hsl(220, 25%, 6%))`,
+        background: bgImage
+          ? 'transparent'
+          : `linear-gradient(135deg, ${bgColor || theme.tintColor}, hsl(220, 25%, 6%))`,
         ...getAssetTransformStyle(transforms?.background),
       }}
     >

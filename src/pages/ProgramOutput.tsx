@@ -323,7 +323,9 @@ export default function ProgramOutput() {
     };
     const baseProps = {
       question: poll.question, options: liveOptions, totalVotes: displayTotal,
-      colors, theme, template: poll.template, ...sharedAssets,
+      colors, theme, template: poll.template,
+      bgImage: poll.bgImage, bgColor: poll.bgColor,
+      ...sharedAssets,
     };
 
     const bgStyle: React.CSSProperties = poll.bgImage
@@ -336,7 +338,7 @@ export default function ProgramOutput() {
     switch (scene) {
       case 'lowerThird': inner = <LowerThirdScene {...baseProps} />; break;
       case 'qr':
-        inner = <QRScene slug={poll.slug} theme={theme} enabledAssetIds={assets.enabledAssetIds} transforms={assets.transforms} assetColors={assets.assetColors} qrVisible={assets.qrVisible} qrUrlVisible={assets.qrUrlVisible} debugVoteUrl={`https://makovote.app/vote/${poll.slug}`} />;
+        inner = <QRScene slug={poll.slug} theme={theme} enabledAssetIds={assets.enabledAssetIds} transforms={assets.transforms} assetColors={assets.assetColors} qrVisible={assets.qrVisible} qrUrlVisible={assets.qrUrlVisible} debugVoteUrl={`https://makovote.app/vote/${poll.slug}`} bgImage={poll.bgImage} bgColor={poll.bgColor} />;
         break;
       case 'results': inner = <ResultsScene {...baseProps} />; break;
       case 'fullscreen':
@@ -350,7 +352,19 @@ export default function ProgramOutput() {
   return (
     <div
       className="w-screen h-screen overflow-hidden relative bg-background flex items-center justify-center"
-      style={{ cursor: controlsVisible ? 'default' : 'none' }}
+      style={{
+        cursor: controlsVisible ? 'default' : 'none',
+        // In fullscreen, make the page background match the poll background so
+        // letterbox bars (on non-16:9 monitors) blend instead of showing the
+        // app shell color around the broadcast canvas.
+        ...(isFullscreen
+          ? poll.bgImage
+            ? { backgroundImage: `url(${poll.bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
+            : poll.bgColor
+              ? { background: `linear-gradient(135deg, ${poll.bgColor}, hsla(220, 20%, 8%, 0.95))` }
+              : {}
+          : {}),
+      }}
       onMouseMove={() => setControlsVisible(true)}
     >
       {/* Fullscreen toggle — reveals on mouse-move, auto-hides after 2.5s */}

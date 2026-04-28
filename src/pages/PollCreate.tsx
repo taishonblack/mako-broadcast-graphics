@@ -735,6 +735,8 @@ export default function PollCreate() {
       colors: programColors,
       theme,
       template: selectedTemplate,
+      bgImage,
+      bgColor,
       ...sharedAssets,
     };
 
@@ -747,7 +749,7 @@ export default function PollCreate() {
     let scene: React.ReactNode;
     switch (previewScene) {
       case 'lowerThird': scene = <LowerThirdScene {...props} />; break;
-      case 'qr': scene = <QRScene slug={slugForUrl} theme={theme} {...sharedAssets} />; break;
+      case 'qr': scene = <QRScene slug={slugForUrl} theme={theme} bgImage={bgImage} bgColor={bgColor} {...sharedAssets} />; break;
       case 'results': scene = <ResultsScene {...props} />; break;
       default: scene = <FullscreenScene {...props} layers={[]} />;
     }
