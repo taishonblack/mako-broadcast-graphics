@@ -36,6 +36,13 @@ export function SceneSelector({ previewScene, programScene, onSceneChange, onTak
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      // Don't hijack SPACE when a button/switch/role-checkbox has focus —
+      // the operator is interacting with that control, not staging a TAKE.
+      if (t && e.code === 'Space') {
+        const tag = t.tagName;
+        const role = t.getAttribute('role');
+        if (tag === 'BUTTON' || tag === 'SELECT' || role === 'switch' || role === 'checkbox' || role === 'menuitem' || role === 'option') return;
+      }
       const isTake = e.code === 'Space' || e.key === 't' || e.key === 'T';
       const isCut = e.key === 'c' || e.key === 'C';
       if (!isTake && !isCut) return;
