@@ -375,7 +375,7 @@ export default function ProgramOutput() {
       {/* Sync status pill — always visible (small, low-contrast) so the
           operator can confirm at a glance that the popup is mirroring.
           Click to open the full diagnostics overlay. */}
-      {(() => {
+      {!isFullscreen && (() => {
         const ageMs = lastSyncAt ? Date.now() - lastSyncAt : null;
         const ageS = ageMs == null ? null : Math.floor(ageMs / 1000);
         const stale = ageMs != null && ageMs > 5000;
