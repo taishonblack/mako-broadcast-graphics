@@ -6,6 +6,8 @@ import {
   broadcastSceneFromSceneType,
 } from '@/lib/scene-presets';
 import { QrCode, BarChart3, Columns2 } from 'lucide-react';
+import { useState } from 'react';
+import { loadHotkeys, formatHotkey, OperatorHotkeys } from '@/lib/operator-settings';
 
 const sceneIcons: Record<BroadcastSceneId, React.ElementType> = {
   questionQr: QrCode,
@@ -26,9 +28,19 @@ export function SceneSelector({ previewScene, programScene, onSceneChange, onTak
   const programId = broadcastSceneFromSceneType(programScene);
   const dirty = previewId !== programId;
 
-  // Broadcast hotkeys — operator standard.
-  //   SPACE / T  → TAKE (animated cut to program)
-  //   C          → CUT  (instant cut to program)
+  // Hotkeys are operator-remappable in Settings → live-refreshed via the
+  // 'mako:hotkeys-changed' window event so we don't need a remount.
+  const [hotkeys, setHotkeys] = useState<OperatorHotkeys>(() => loadHotkeys());
+  useEffect(() => {
+    const onChange = (e: Event) => {
+      const detail = (e as CustomEvent<OperatorHotkeys>).detail;
+      setHotkeys(detail ?? loadHotkeys());
+    };
+    window.addEventListener('mako:hotkeys-changed', onChange);
+    return () => window.removeEventListener('mako:hotkeys-changed', onChange);
+  }, []);
+
+  // Broadcast hotkeys — operator standard (defaults: T=TAKE, C=CUT, SPACE=TAKE).
   // Ignored when typing in form fields, with modifier keys, or when the
   // user has a dialog/menu open (Radix sets aria-hidden on body siblings).
   useEffect(() => {
@@ -36,15 +48,24 @@ export function SceneSelector({ previewScene, programScene, onSceneChange, onTak
       if (e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
-      // Don't hijack SPACE when a button/switch/role-checkbox has focus —
-      // the operator is interacting with that control, not staging a TAKE.
-      if (t && e.code === 'Space') {
+      // Match against remapped bindings. Single-char keys compare on the
+      // lowercased printable; 'Space' / 'Enter' use e.code / e.key.
+      const matches = (binding: string) => {
+        if (!binding) return false;
+        if (binding === 'Space') return e.code === 'Space';
+        if (binding === 'Enter') return e.key === 'Enter';
+        return e.key.toLowerCase() === binding;
+      };
+      const spaceOnFocusedToggle = hotkeys.spaceTakesOnFocusedToggle;
+      // SPACE on a focused interactive control is suppressed unless the
+      // operator opted in — protects accidental TAKE while toggling a switch.
+      if (t && e.code === 'Space' && !spaceOnFocusedToggle) {
         const tag = t.tagName;
         const role = t.getAttribute('role');
         if (tag === 'BUTTON' || tag === 'SELECT' || role === 'switch' || role === 'checkbox' || role === 'menuitem' || role === 'option') return;
       }
-      const isTake = e.code === 'Space' || e.key === 't' || e.key === 'T';
-      const isCut = e.key === 'c' || e.key === 'C';
+      const isTake = matches(hotkeys.takeKey);
+      const isCut = matches(hotkeys.cutKey);
       if (!isTake && !isCut) return;
       e.preventDefault();
       if (isTake) onTake();
@@ -52,7 +73,10 @@ export function SceneSelector({ previewScene, programScene, onSceneChange, onTak
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onTake, onCut]);
+  }, [onTake, onCut, hotkeys]);
+
+  const takeLabel = formatHotkey(hotkeys.takeKey);
+  const cutLabel = formatHotkey(hotkeys.cutKey);
 
   return (
     <div className="flex flex-col gap-2 w-full">
@@ -99,6 +123,8 @@ export function SceneSelector({ previewScene, programScene, onSceneChange, onTak
         <div className="flex items-center gap-1.5">
           <button
             onClick={onTake}
+            title={`TAKE — animated cut to program (Hotkey: ${takeLabel})`}
+            aria-label={`TAKE (hotkey ${takeLabel})`}
             className={`px-4 py-2 rounded-lg text-xs font-bold font-mono uppercase border transition-all duration-200 ${
               dirty
                 ? 'bg-mako-live/25 border-mako-live/70 text-[hsl(var(--mako-live))] shadow-[0_0_16px_-2px_hsl(var(--mako-live)/0.5)] hover:bg-mako-live/35'
@@ -109,6 +135,8 @@ export function SceneSelector({ previewScene, programScene, onSceneChange, onTak
           </button>
           <button
             onClick={onCut}
+            title={`CUT — instant cut to program (Hotkey: ${cutLabel})`}
+            aria-label={`CUT (hotkey ${cutLabel})`}
             className="px-3 py-2 rounded-lg text-xs font-bold font-mono uppercase bg-accent/30 border border-border/50 text-muted-foreground hover:bg-accent/60 hover:text-foreground transition-all duration-200"
           >
             CUT
@@ -117,7 +145,7 @@ export function SceneSelector({ previewScene, programScene, onSceneChange, onTak
 
         {/* Hotkey hints */}
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-[9px] font-mono text-muted-foreground/50">SPACE/T = TAKE · C = CUT</span>
+          <span className="text-[9px] font-mono text-muted-foreground/50">{takeLabel} = TAKE · {cutLabel} = CUT</span>
         </div>
       </div>
     </div>
