@@ -2616,6 +2616,7 @@ export default function PollCreate() {
               void syncViewerVotingClosed();
             }}
             onSlateActiveChange={(active, slate) => { void syncViewerSlate(active, slate); }}
+            onTestViewerViewChange={(active, slate) => { void syncViewerSlate(active, slate); }}
             testVoteRunning={testVoteRunning}
             onStartTestVotes={handleStartTestVotes}
             onStopTestVotes={handleStopTestVotes}
