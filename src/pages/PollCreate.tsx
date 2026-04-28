@@ -638,7 +638,10 @@ export default function PollCreate() {
       // Auto behavior: live votes when Go Live is engaged, test data otherwise.
       // `previewDataMode` still gates the test path so toggling away from
       // 'test' (e.g. for an empty rehearsal) keeps the bars at 0 pre-live.
-      const liveCount = liveVoteMap[a.id] ?? 0;
+      // Bridge local string ids → real poll_answers UUIDs so the bar graph
+      // actually receives the realtime counts after Go Live.
+      const uuidForAnswer = liveAnswerIdMap[String(a.id)] ?? a.id;
+      const liveCount = liveVoteMap[uuidForAnswer] ?? 0;
       const testCount = previewDataMode === 'test' ? (a.testVotes ?? 0) : 0;
       return {
         id: a.id,
@@ -647,7 +650,7 @@ export default function PollCreate() {
         votes: liveState === 'live' ? liveCount : testCount,
         order: i,
       };
-    }), [answers, previewDataMode, liveVoteMap, liveState]
+    }), [answers, previewDataMode, liveVoteMap, liveState, liveAnswerIdMap]
   );
   const previewTotal = previewOptions.reduce((sum, o) => sum + o.votes, 0);
   const previewQuestion = question || 'Your question here?';
