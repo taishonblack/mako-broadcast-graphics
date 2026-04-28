@@ -12,7 +12,6 @@ import {
   nextSceneName,
   renamePollScene,
   setPollSceneAssetVisible,
-  setPollSceneAssetTransform,
 } from '@/lib/poll-scenes';
 import type { AssetId, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
 
@@ -48,15 +47,18 @@ function deserializeScenes(raw: unknown): PollScene[] {
   if (!Array.isArray(raw)) return [];
   return raw
     .filter((scene): scene is StoredPollScene => Boolean(scene && typeof scene === 'object'))
-    .map((scene) => ({
-      id: typeof scene.id === 'string' ? scene.id : `draft-scene-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-      pollId: typeof scene.pollId === 'string' ? scene.pollId : 'draft',
-      name: typeof scene.name === 'string' && scene.name.trim() ? scene.name : 'Scene',
-      preset: scene.preset === 'liveResults' || scene.preset === 'final' ? scene.preset : 'fullScreen',
-      sortOrder: typeof scene.sortOrder === 'number' ? scene.sortOrder : 0,
-      visibleAssetIds: new Set(Array.isArray(scene.visibleAssetIds) ? scene.visibleAssetIds : []),
-      assetTransforms: scene.assetTransforms ?? {},
-    }))
+    .map((scene): PollScene => {
+      const preset: ScenePreset = scene.preset === 'liveResults' || scene.preset === 'final' ? scene.preset : 'fullScreen';
+      return {
+        id: typeof scene.id === 'string' ? scene.id : `draft-scene-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        pollId: typeof scene.pollId === 'string' ? scene.pollId : 'draft',
+        name: typeof scene.name === 'string' && scene.name.trim() ? scene.name : 'Scene',
+        preset,
+        sortOrder: typeof scene.sortOrder === 'number' ? scene.sortOrder : 0,
+        visibleAssetIds: new Set(Array.isArray(scene.visibleAssetIds) ? scene.visibleAssetIds : []),
+        assetTransforms: scene.assetTransforms ?? {},
+      };
+    })
     .sort((a, b) => a.sortOrder - b.sortOrder);
 }
 
