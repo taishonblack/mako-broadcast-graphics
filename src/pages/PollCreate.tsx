@@ -353,6 +353,9 @@ export default function PollCreate() {
   // the retry effect can't fire outside a live window.
   const liveResyncAttemptsRef = useRef<number>(0);
   const lastResyncAtRef = useRef<number>(0);
+  // Mirror of the latest assetColors so the live-resync effect (declared
+  // before assetColors) can read the current value without TDZ issues.
+  const assetColorsRef = useRef<AssetColorMap | null>(null);
   // Quick Switch (confirmationless TAKE/CUT). The mode preference is
   // remembered across sessions; the per-show "Bus Safe" arm switch is
   // session-only and auto-disarms on End Live so a forgotten arm state
