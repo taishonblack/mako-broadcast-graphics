@@ -515,6 +515,68 @@ export default function PollCreate() {
       .catch(() => undefined);
   }, [projectId]);
 
+  // Persist live session locally so navigation between operator pages does
+  // not silently drop Go Live / Voting / answer-id-map state.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (liveState === 'live') {
+        sessionStorage.setItem(
+          LIVE_SESSION_KEY,
+          JSON.stringify({ liveState, votingState, liveAnswerIdMap }),
+        );
+      } else {
+        sessionStorage.removeItem(LIVE_SESSION_KEY);
+      }
+    } catch { /* ignore quota / private mode */ }
+  }, [liveState, votingState, liveAnswerIdMap]);
+
+  // Reconcile live state from the DB on mount / when projectId resolves.
+  // If the operator went Live then navigated away, project_live_state is
+  // still `program_live` + voting `open` — rehydrate those flags so the
+  // Go Live / Open Voting pills light up correctly without forcing the
+  // operator to click again. Only End Live (which writes output_state =
+  // 'preview') flips us back to not_live.
+  useEffect(() => {
+    if (!projectId) return;
+    let cancelled = false;
+    void supabase
+      .from('project_live_state')
+      .select('output_state, voting_state, active_poll_id, live_poll_snapshot')
+      .eq('project_id', projectId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        const dbLive = data.output_state === 'program_live';
+        const dbVoting = data.voting_state as VotingState | null;
+        if (dbLive) setLiveState('live');
+        else if (data.output_state) setLiveState('not_live');
+        if (dbVoting === 'open' || dbVoting === 'closed' || dbVoting === 'not_open') {
+          setVotingState(dbVoting);
+        }
+        // Rebuild the local→UUID answer-id bridge from the persisted
+        // audience snapshot. Keys come from polls.answers (local ids),
+        // values come from public_viewer_state.answers[].id (the synced
+        // poll_answers UUID).
+        if (dbLive) {
+          try {
+            const snap = (data.live_poll_snapshot ?? null) as { poll?: { options?: Array<{ id: string }>; answers?: Array<{ id: string }> } } | null;
+            const poll = snap?.poll;
+            const opts = poll?.options ?? poll?.answers ?? [];
+            if (opts.length) {
+              const map: Record<string, string> = {};
+              for (const o of opts) {
+                const id = String(o.id);
+                if (id) map[id] = id;
+              }
+              setLiveAnswerIdMap((prev) => (Object.keys(prev).length ? prev : map));
+            }
+          } catch { /* ignore */ }
+        }
+      });
+    return () => { cancelled = true; };
+  }, [projectId]);
+
   useEffect(() => {
     setAutosaveMinutes(loadAutosaveMinutes());
 
