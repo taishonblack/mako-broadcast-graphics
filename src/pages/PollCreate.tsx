@@ -804,13 +804,23 @@ export default function PollCreate() {
   const handleTake = () => {
     setProgramScene(previewScene);
     if (projectId) void takeToProgram(projectId, previewScene as unknown as SceneName);
-    broadcastOutputState(getProgramOutputPayload());
+    const payload = getProgramOutputPayload();
+    broadcastOutputState(payload);
+    // While Live, Output is locked and ignores plain state pushes — refresh
+    // the lock snapshot so scene switches actually reach the broadcast surface.
+    if (liveState === 'live') {
+      broadcastOutputLock({ locked: true, snapshot: payload, lockedAt: Date.now() });
+    }
   };
 
   const handleCut = () => {
     setProgramScene(previewScene);
     if (projectId) void cutToProgram(projectId, previewScene as unknown as SceneName);
-    broadcastOutputState(getProgramOutputPayload());
+    const payload = getProgramOutputPayload();
+    broadcastOutputState(payload);
+    if (liveState === 'live') {
+      broadcastOutputLock({ locked: true, snapshot: payload, lockedAt: Date.now() });
+    }
   };
 
   const handleGoLive = async () => {
