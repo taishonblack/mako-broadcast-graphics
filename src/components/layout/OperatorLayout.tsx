@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { PlusCircle, Settings, FolderOpen, Grid3x3, Image as ImageIcon, BarChart3 } from 'lucide-react';
 import { LiveSessionBadge } from './LiveSessionBadge';
+import { useLiveSession } from '@/hooks/useLiveSession';
 
 const navItems = [
   { icon: FolderOpen, label: 'Projects', path: '/projects' },
@@ -13,9 +14,10 @@ const navItems = [
 
 export function OperatorLayout({ children }: { children: ReactNode }) {
   const location = useLocation();
+  const { isLive } = useLiveSession();
 
   return (
-    <div className="flex h-screen overflow-hidden bg-background">
+    <div className={`flex h-screen overflow-hidden bg-background ${isLive ? 'pt-7' : ''}`}>
       {/* Sidebar */}
       <aside className="w-16 flex flex-col items-center py-4 gap-1 bg-sidebar border-r border-sidebar-border shrink-0">
         {/* Logo */}
