@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { PlusCircle, Settings, FolderOpen, Grid3x3, Image as ImageIcon, BarChart3 } from 'lucide-react';
+import { LiveSessionBadge } from './LiveSessionBadge';
 
 const navItems = [
   { icon: FolderOpen, label: 'Projects', path: '/projects' },
@@ -59,6 +60,9 @@ export function OperatorLayout({ children }: { children: ReactNode }) {
       <main className="flex-1 flex flex-col min-h-0 min-w-0">
         {children}
       </main>
+
+      {/* Persistent on-air indicator (renders nothing when not live). */}
+      <LiveSessionBadge />
     </div>
   );
 }
