@@ -1106,13 +1106,58 @@ export function OperatorOutputMode({
                 <div className="grid grid-cols-2 gap-2 border-t border-border/60 pt-1.5">
                   <div>
                     <p className="text-[9px] font-mono uppercase text-muted-foreground">Total</p>
-                    <p className="text-sm font-bold text-foreground">{currentPoll.totalVotes.toLocaleString()}</p>
+                    <p className="text-sm font-bold text-foreground">
+                      {(liveState === 'live' ? liveVoteTotal : currentPoll.totalVotes).toLocaleString()}
+                    </p>
                   </div>
                   <div>
                     <p className="text-[9px] font-mono uppercase text-muted-foreground">Votes/sec</p>
                     <p className="text-sm font-bold text-primary">{currentPoll.votesPerSecond}</p>
                   </div>
                 </div>
+                {liveState === 'live' && (
+                  <div className="border-t border-border/60 pt-1.5 space-y-1.5">
+                    <div className="flex items-center justify-between gap-2">
+                      <span className="flex items-center gap-1.5 text-[9px] font-mono uppercase text-muted-foreground">
+                        <span className="h-1.5 w-1.5 rounded-full bg-mako-live animate-pulse" />
+                        Live tally
+                      </span>
+                      <label className="flex items-center gap-1.5 text-[9px] font-mono uppercase text-muted-foreground cursor-pointer">
+                        Show
+                        <Switch
+                          checked={showLiveTally}
+                          onCheckedChange={(v) => setShowLiveTally(Boolean(v))}
+                          className="scale-75"
+                          aria-label="Toggle live vote totals"
+                        />
+                      </label>
+                    </div>
+                    {showLiveTally && (
+                      <ul className="space-y-1">
+                        {currentPoll.options.map((opt, i) => {
+                          const count = liveVoteMap[opt.id] ?? 0;
+                          const pct = liveVoteTotal > 0 ? (count / liveVoteTotal) * 100 : 0;
+                          return (
+                            <li key={opt.id} className="flex items-center gap-2">
+                              <span className="w-4 shrink-0 text-[10px] font-mono text-muted-foreground">
+                                {String.fromCharCode(65 + i)}
+                              </span>
+                              <span className="flex-1 truncate text-[11px] text-foreground">
+                                {opt.text || `Option ${i + 1}`}
+                              </span>
+                              <span className="font-mono text-[11px] tabular-nums text-foreground">
+                                {count.toLocaleString()}
+                              </span>
+                              <span className="w-10 text-right font-mono text-[10px] tabular-nums text-muted-foreground">
+                                {pct.toFixed(0)}%
+                              </span>
+                            </li>
+                          );
+                        })}
+                      </ul>
+                    )}
+                  </div>
+                )}
               </div>
               <div className="grid grid-cols-2 gap-2">
                 <label className="space-y-1">
