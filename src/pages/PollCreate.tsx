@@ -342,6 +342,19 @@ export default function PollCreate() {
   ));
   const [votingState, setVotingState] = useState<VotingState>('not_open');
   const [liveState, setLiveState] = useState<LiveState>('not_live');
+  // Quick Switch (confirmationless TAKE/CUT). The mode preference is
+  // remembered across sessions; the per-show "Bus Safe" arm switch is
+  // session-only and auto-disarms on End Live so a forgotten arm state
+  // can't carry into the next broadcast.
+  const [confirmationlessMode, setConfirmationlessMode] = useState<boolean>(loadConfirmationlessMode);
+  const [busSafeArmed, setBusSafeArmed] = useState<boolean>(false);
+  // Re-read the persisted preference whenever the operator might have
+  // changed it on the Settings page in another tab.
+  useEffect(() => {
+    const onFocus = () => setConfirmationlessMode(loadConfirmationlessMode());
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
   const [previewScene, setPreviewScene] = useState<SceneType>('fullscreen');
   const [programScene, setProgramScene] = useState<SceneType>('fullscreen');
   const [qrSize, setQrSize] = useState(120);
