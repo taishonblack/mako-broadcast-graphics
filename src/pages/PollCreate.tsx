@@ -379,6 +379,10 @@ export default function PollCreate() {
   // Mirror of the latest assetColors so the live-resync effect (declared
   // before assetColors) can read the current value without TDZ issues.
   const assetColorsRef = useRef<AssetColorMap | null>(null);
+  // Mirror of the latest local answers so async restore effects can map
+  // poll_answers UUIDs back to local ids without re-running on every
+  // answers change.
+  const answersRef = useRef<{ id: string; text: string; shortLabel: string; testVotes?: number }[]>([]);
   // Quick Switch (confirmationless TAKE/CUT). The mode preference is
   // remembered across sessions; the per-show "Bus Safe" arm switch is
   // session-only and auto-disarms on End Live so a forgotten arm state
