@@ -902,8 +902,19 @@ export default function PollCreate() {
     }
     // Open Output fullscreen window if not already open, and open voting so
     // the slate/voting flow begins simultaneously with the on-air push.
+    // CRITICAL: if a popup already exists (and especially if the operator
+    // has it in fullscreen), do NOT call window.open again — re-opening a
+    // named window steals focus and forces it out of fullscreen. The lock
+    // broadcast above already pushed the live snapshot to it.
     try {
-      window.open(`/output/${currentWorkspacePoll.id}`, 'mako-output', 'width=1920,height=1080');
+      const existing = outputWindowRef.current;
+      if (!existing || existing.closed) {
+        outputWindowRef.current = window.open(
+          `/output/${currentWorkspacePoll.id}`,
+          'mako-output',
+          'width=1920,height=1080',
+        );
+      }
     } catch {}
     setVotingState('open');
   };
