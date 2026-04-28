@@ -1523,7 +1523,11 @@ export default function PollCreate() {
     const audience = await writePublicViewerState({
       projectId,
       viewerSlug: livePoll.slug,
-      state: 'voting',
+      // Audience only sees the multiple-choice voting UI when the operator
+      // is actually on-air (Go Live). Opening voting from the workspace
+      // without going live keeps voters on the MakoVote branding screen so
+      // we never expose the answers prematurely.
+      state: liveState === 'live' ? 'voting' : 'branding',
       pollSnapshot: audienceSnapshot,
     });
     if (audience.error) toast.error(`Viewer voting sync failed: ${audience.error}`);
