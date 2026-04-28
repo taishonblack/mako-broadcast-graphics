@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { ThemePreset, PollOption, QRPosition } from '@/lib/types';
+import { GraphicLayer } from '@/lib/layers';
 import { AssetOverlay } from '@/components/broadcast/AssetOverlay';
 import { AssetColorMap, AssetTransformMap, AssetId } from '@/components/poll-create/polling-assets/types';
 import { getAssetTransformStyle } from '@/lib/asset-transforms';
@@ -28,6 +29,9 @@ interface ResultsSceneProps {
   /** Bumping this number re-triggers the animated reveal without changing
    *  any vote data — used by the operator "Replay" button. */
   resultsReplayKey?: number;
+  /** Per-layer text overrides so the inspector controls (line spacing,
+   *  wrap width) feed through to the live composition. */
+  layers?: GraphicLayer[];
 }
 
 export function ResultsScene({
