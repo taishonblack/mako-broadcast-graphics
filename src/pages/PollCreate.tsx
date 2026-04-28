@@ -1051,11 +1051,105 @@ export default function PollCreate() {
     setVotingState('open');
   };
 
+  // Self-healing watcher: while Go Live is engaged, listen for incoming
+  // vote_analytics inserts on the active poll. If an analytics row arrives
+  // but our liveVoteMap shows no movement (a sign that cast_vote rejected
+  // the vote — typically because poll_answers wasn't synced or the answer
+  // UUID drifted), re-run sync_poll_answers and refresh the audience
+  // snapshot so the *next* vote lands. sync_poll_answers is idempotent —
+  // existing rows keep their UUIDs by sort_order, so already-counted votes
+  // are preserved.
+  useEffect(() => {
+    if (liveState !== 'live') return;
+    const livePollId = pollId;
+    if (!livePollId || !isUuid(livePollId) || !projectId) return;
+
+    let cancelled = false;
+    const RESYNC_COOLDOWN_MS = 4000;
+    const MAX_ATTEMPTS = 3;
+
+    const resync = async () => {
+      if (cancelled) return;
+      if (liveResyncAttemptsRef.current >= MAX_ATTEMPTS) return;
+      if (Date.now() - lastResyncAtRef.current < RESYNC_COOLDOWN_MS) return;
+      lastResyncAtRef.current = Date.now();
+      liveResyncAttemptsRef.current += 1;
+
+      const optionsForSync = answers.map((o, i) => ({
+        client_id: String(o.id),
+        label: o.text || `Answer ${i + 1}`,
+        shortLabel: o.shortLabel ?? '',
+      }));
+      const { data, error } = await supabase.rpc(
+        'sync_poll_answers' as never,
+        { _poll_id: livePollId, _options: optionsForSync as never } as never,
+      );
+      if (cancelled || error) return;
+      const rows = (data as { answers?: Array<{ client_id: string; id: string }> } | null)?.answers ?? [];
+      if (rows.length === 0) return;
+      const nextMap: Record<string, string> = {};
+      for (const r of rows) nextMap[r.client_id] = r.id;
+      setLiveAnswerIdMap(nextMap);
+
+      // Rewrite the audience snapshot with the (possibly new) UUIDs so the
+      // very next vote from a viewer hits a row that exists.
+      const audienceSnapshot: PublicViewerPollSnapshot = {
+        id: livePollId,
+        question,
+        subheadline,
+        bgColor,
+        bgImage: bgImage || undefined,
+        answers: answers.map((o, i) => ({
+          id: nextMap[String(o.id)] ?? String(o.id),
+          label: o.text || `Answer ${i + 1}`,
+          shortLabel: o.shortLabel,
+          sortOrder: i,
+        })),
+        showLiveResults,
+        showThankYou,
+        assetColors,
+      };
+      await writePublicViewerState({
+        projectId,
+        viewerSlug: slugForUrl,
+        state: 'voting',
+        pollSnapshot: audienceSnapshot,
+      });
+      toast.message('Live tally re-synced', {
+        description: 'Recovered from a vote-routing issue. Counts will update on the next vote.',
+      });
+    };
+
+    const channel = supabase
+      .channel(`live-resync-${livePollId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'vote_analytics', filter: `poll_id=eq.${livePollId}` },
+        (payload) => {
+          const row = payload.new as { answer_id?: string | null } | null;
+          if (!row?.answer_id) return;
+          // If this answer_id has no entry in liveVoteMap (or stayed at 0
+          // after the analytics insert arrived), the underlying poll_answers
+          // row probably doesn't exist — re-sync.
+          const known = Object.values(liveAnswerIdMap).includes(row.answer_id);
+          if (!known) void resync();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      void supabase.removeChannel(channel);
+    };
+  }, [liveState, pollId, projectId, answers, question, subheadline, bgColor, bgImage, showLiveResults, showThankYou, assetColors, slugForUrl, liveAnswerIdMap]);
+
   const handleEndPoll = () => {
     setLiveState('not_live');
     setVotingState('closed');
     // Drop the local→UUID answer-id bridge so the next show starts clean.
     setLiveAnswerIdMap({});
+    liveResyncAttemptsRef.current = 0;
+    lastResyncAtRef.current = 0;
     // Auto-disarm Bus Safe on End Live so the operator must consciously
     // re-arm before the next show. Prevents a forgotten arm carrying over.
     setBusSafeArmed(false);
