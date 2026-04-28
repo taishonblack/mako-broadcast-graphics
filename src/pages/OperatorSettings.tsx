@@ -1,9 +1,9 @@
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { AUTOSAVE_MINUTE_OPTIONS, DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes, loadConfirmationlessMode, saveAutosaveMinutes, saveConfirmationlessMode } from '@/lib/operator-settings';
+import { AUTOSAVE_MINUTE_OPTIONS, DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes, loadConfirmationlessMode, saveAutosaveMinutes, saveConfirmationlessMode, loadHotkeys, saveHotkeys, DEFAULT_HOTKEYS, formatHotkey, OperatorHotkeys } from '@/lib/operator-settings';
 import { useColorSwatches, MAX_SWATCHES } from '@/lib/color-swatches';
-import { Palette, Plus, Settings2, ShieldCheck, Trash2, Zap } from 'lucide-react';
+import { Keyboard, Palette, Plus, Settings2, ShieldCheck, Trash2, Zap } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
@@ -13,6 +13,8 @@ export default function OperatorSettings() {
   const [autosaveMinutes, setAutosaveMinutes] = useState(loadAutosaveMinutes());
   const { swatches, addSwatch, renameSwatch, updateSwatchValue, removeSwatch, clearSwatches } = useColorSwatches();
   const [quickSwitch, setQuickSwitch] = useState(loadConfirmationlessMode());
+  const [hotkeys, setHotkeys] = useState<OperatorHotkeys>(loadHotkeys());
+  const [capturing, setCapturing] = useState<null | 'take' | 'cut'>(null);
   const [newName, setNewName] = useState('');
   const [newValue, setNewValue] = useState('#3B82F6');
 
@@ -35,6 +37,38 @@ export default function OperatorSettings() {
     addSwatch(value, newName.trim() || undefined);
     setNewName('');
     toast.success('Swatch saved');
+  };
+
+  // Persist + broadcast updated hotkeys so the live SceneSelector picks
+  // them up without a page refresh.
+  const updateHotkeys = (next: OperatorHotkeys) => {
+    setHotkeys(next);
+    saveHotkeys(next);
+  };
+
+  const captureKey = (slot: 'take' | 'cut', e: React.KeyboardEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    if (e.metaKey || e.ctrlKey || e.altKey) return;
+    let value = '';
+    if (e.code === 'Space') value = 'Space';
+    else if (e.key === 'Enter') value = 'Enter';
+    else if (e.key === 'Escape') { setCapturing(null); return; }
+    else if (e.key.length === 1) value = e.key.toLowerCase();
+    if (!value) {
+      toast.error('Use a single letter/number, SPACE, or ENTER.');
+      return;
+    }
+    const other = slot === 'take' ? hotkeys.cutKey : hotkeys.takeKey;
+    if (value === other) {
+      toast.error('TAKE and CUT must use different keys.');
+      return;
+    }
+    const next: OperatorHotkeys =
+      slot === 'take' ? { ...hotkeys, takeKey: value } : { ...hotkeys, cutKey: value };
+    updateHotkeys(next);
+    setCapturing(null);
+    toast.success(`${slot === 'take' ? 'TAKE' : 'CUT'} bound to ${formatHotkey(value)}`);
   };
 
   return (
@@ -85,6 +119,84 @@ export default function OperatorSettings() {
             </div>
           </section>
 
+          {/* ── Hotkey bindings ─────────────────────────────────────────── */}
+          <section className="rounded-lg border border-border bg-card/40 p-6">
+            <div className="flex flex-col gap-5">
+              <div className="space-y-1">
+                <div className="flex items-center gap-2 text-foreground">
+                  <Keyboard className="h-4 w-4" />
+                  <h2 className="text-sm font-medium">Broadcast hotkeys</h2>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Remap the keys used to trigger TAKE and CUT from the operator control display.
+                  Click a binding then press the key you want to use (single letter, number, SPACE, or ENTER).
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                {(['take', 'cut'] as const).map((slot) => {
+                  const key = slot === 'take' ? hotkeys.takeKey : hotkeys.cutKey;
+                  const isCapturing = capturing === slot;
+                  return (
+                    <div
+                      key={slot}
+                      className="flex items-center justify-between gap-3 rounded-md border border-border/60 bg-background/40 p-3"
+                    >
+                      <span className="text-xs font-mono uppercase tracking-wider text-muted-foreground">
+                        {slot}
+                      </span>
+                      <button
+                        type="button"
+                        onClick={() => setCapturing(slot)}
+                        onBlur={() => setCapturing(null)}
+                        onKeyDown={(e) => isCapturing && captureKey(slot, e)}
+                        className={`min-w-24 rounded-md border px-3 py-1.5 text-center font-mono text-xs transition-colors ${
+                          isCapturing
+                            ? 'border-primary/70 bg-primary/10 text-primary animate-pulse'
+                            : 'border-border bg-background text-foreground hover:bg-accent/40'
+                        }`}
+                      >
+                        {isCapturing ? 'Press a key…' : formatHotkey(key)}
+                      </button>
+                    </div>
+                  );
+                })}
+              </div>
+
+              <div className="flex items-start justify-between gap-4 rounded-md border border-border/60 bg-background/40 p-3">
+                <div className="space-y-1">
+                  <h3 className="text-xs font-medium text-foreground">SPACE triggers TAKE on focused toggles</h3>
+                  <p className="text-xs text-muted-foreground">
+                    By default, SPACE is ignored when a button or switch has keyboard focus so it doesn't
+                    accidentally toggle the focused control. Turn this on if you want SPACE to always fire TAKE.
+                  </p>
+                </div>
+                <Switch
+                  checked={hotkeys.spaceTakesOnFocusedToggle}
+                  onCheckedChange={(v) =>
+                    updateHotkeys({ ...hotkeys, spaceTakesOnFocusedToggle: Boolean(v) })
+                  }
+                  aria-label="SPACE triggers TAKE on focused toggles"
+                />
+              </div>
+
+              <div className="flex justify-end">
+                <Button
+                  type="button"
+                  variant="ghost"
+                  size="sm"
+                  className="text-[11px] text-muted-foreground"
+                  onClick={() => {
+                    updateHotkeys({ ...DEFAULT_HOTKEYS });
+                    toast.success('Hotkeys reset to defaults');
+                  }}
+                >
+                  Reset to defaults (T / C)
+                </Button>
+              </div>
+            </div>
+          </section>
+
           {/* ── Quick Switch (confirmationless TAKE/CUT) ──────────────────
               Lets operators fire scene cuts during Go Live without the
               confirm() dialog. Requires a per-show "Bus Safe" arm switch
@@ -105,7 +217,7 @@ export default function OperatorSettings() {
                   auto-clears on End Poll so it never carries into the next show.
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Hotkeys: <span className="font-mono text-foreground">SPACE</span> or <span className="font-mono text-foreground">T</span> = TAKE · <span className="font-mono text-foreground">C</span> = CUT.
+                  Hotkeys: <span className="font-mono text-foreground">{formatHotkey(hotkeys.takeKey)}</span> = TAKE · <span className="font-mono text-foreground">{formatHotkey(hotkeys.cutKey)}</span> = CUT.
                 </p>
               </div>
               <Switch
