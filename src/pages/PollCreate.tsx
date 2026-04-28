@@ -72,7 +72,7 @@ import {
   saveProjectPollingAssetFolders,
   normalizeFolderState,
 } from '@/lib/polling-asset-folders';
-import { DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes } from '@/lib/operator-settings';
+import { DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes, loadConfirmationlessMode } from '@/lib/operator-settings';
 
 type OperatorMode = 'build' | 'output';
 
