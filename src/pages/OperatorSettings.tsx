@@ -217,7 +217,7 @@ export default function OperatorSettings() {
                   auto-clears on End Poll so it never carries into the next show.
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  Hotkeys: <span className="font-mono text-foreground">SPACE</span> or <span className="font-mono text-foreground">T</span> = TAKE · <span className="font-mono text-foreground">C</span> = CUT.
+                  Hotkeys: <span className="font-mono text-foreground">{formatHotkey(hotkeys.takeKey)}</span> = TAKE · <span className="font-mono text-foreground">{formatHotkey(hotkeys.cutKey)}</span> = CUT.
                 </p>
               </div>
               <Switch
