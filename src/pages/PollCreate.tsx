@@ -960,6 +960,7 @@ export default function PollCreate() {
       } else if (syncData && typeof syncData === 'object' && 'answers' in (syncData as object)) {
         const rows = ((syncData as { answers?: Array<{ client_id: string; id: string }> }).answers) ?? [];
         for (const r of rows) answerIdMap[r.client_id] = r.id;
+        setLiveAnswerIdMap(answerIdMap);
       }
     } else {
       toast.warning('Live votes need a saved poll. Save the poll first to enable real-time tallies.');
