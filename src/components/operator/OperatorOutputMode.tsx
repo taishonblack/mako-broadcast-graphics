@@ -1366,7 +1366,20 @@ export function OperatorOutputMode({
                     before Go Live.
                   </TooltipContent>
                 </Tooltip>
-                <Switch checked={testViewerView} onCheckedChange={setTestViewerView} />
+                <Switch
+                  checked={testViewerView}
+                  onCheckedChange={(next) => {
+                    setTestViewerView(next);
+                    // Mirror the toggle to the public viewer so the audience
+                    // leaves MakoVote branding and shows the slate during a
+                    // test, and returns to branding when toggled off.
+                    onTestViewerViewChange?.(next, {
+                      text: slateText,
+                      sublineText: slateSublineText,
+                      image: slateImage ?? null,
+                    });
+                  }}
+                />
               </div>
             </div>
 
