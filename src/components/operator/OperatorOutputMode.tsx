@@ -149,6 +149,13 @@ interface OperatorOutputModeProps {
   assetTransformSet?: import('@/components/poll-create/polling-assets/types').AssetTransformSet;
 }
 
+// PostgREST will return a 400 when filtering a UUID column with a value that
+// isn't a valid UUID — guard the slate hydration/save below so synthetic
+// in-memory poll ids (e.g. "draft-poll" before the operator hits Save) don't
+// spam the network tab and confuse autosave debugging.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (v: string | undefined | null): v is string => !!v && UUID_RE.test(v);
+
 export function OperatorOutputMode({
   projectName,
   currentPoll,
