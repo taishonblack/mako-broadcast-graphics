@@ -29,6 +29,7 @@ import {
 import { LoadPollDialog } from '@/components/poll-create/LoadPollDialog';
 import { ImportErrorDialog } from '@/components/poll-create/ImportErrorDialog';
 import { usePollScenes } from '@/hooks/usePollScenes';
+import { useLiveVotes } from '@/hooks/useLiveVotes';
 import { hydrateSceneTransformMap } from '@/lib/poll-scenes';
 import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
 import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
