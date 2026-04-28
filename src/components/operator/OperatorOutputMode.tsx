@@ -35,6 +35,15 @@ import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
 import { ChevronDown, ChevronRight, Clock, Eye, EyeOff, FlaskConical, Globe, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Smartphone, Square, StopCircle, Type as TypeIcon, Vote, XCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { HelpCircle, Check, X as XIcon } from 'lucide-react';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { percentsFromAnswers, rebalancePercents, answersFromPercents, AnswerLite } from '@/lib/answer-percents';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
@@ -705,37 +714,157 @@ export function OperatorOutputMode({
           {/* Quick Switch controls — confirmationless TAKE/CUT + Bus Safe arm.
               Only meaningful while Live, so we render here. */}
           <div className="flex items-center gap-3 rounded-md border border-destructive/30 bg-background/40 px-2 py-0.5">
-            <label className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-foreground/80 cursor-pointer">
-              <Switch
-                checked={confirmationlessMode}
-                onCheckedChange={(v) => onConfirmationlessModeChange?.(Boolean(v))}
-                className="scale-75"
-                aria-label="Quick Switch (confirmationless TAKE/CUT)"
-              />
-              Quick Switch
-            </label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <label className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-foreground/80 cursor-pointer">
+                  <Switch
+                    checked={confirmationlessMode}
+                    onCheckedChange={(v) => onConfirmationlessModeChange?.(Boolean(v))}
+                    className="scale-75"
+                    aria-label="Quick Switch (confirmationless TAKE/CUT)"
+                  />
+                  Quick Switch
+                </label>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[260px] text-xs">
+                <div className="font-semibold mb-1">Quick Switch</div>
+                <div className="text-muted-foreground">
+                  Persistent preference. When ON, TAKE / CUT to PROGRAM fire <em>without</em> a
+                  confirm dialog — but only if <span className="font-mono">Bus Safe</span> is also armed.
+                  When OFF, every on-air switch shows a confirm prompt.
+                </div>
+              </TooltipContent>
+            </Tooltip>
             <span className="h-3 w-px bg-border/60" />
-            <label
-              className={`flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider cursor-pointer transition-colors ${
-                confirmationlessMode ? 'text-foreground/90' : 'text-muted-foreground/60'
-              }`}
-              title={confirmationlessMode
-                ? 'Confirm audio bus is safe, then arm to allow confirmationless cuts.'
-                : 'Enable Quick Switch to use Bus Safe.'}
-            >
-              <Switch
-                checked={busSafeArmed}
-                onCheckedChange={(v) => onBusSafeArmedChange?.(Boolean(v))}
-                disabled={!confirmationlessMode}
-                className="scale-75 data-[state=checked]:bg-[hsl(var(--mako-live))]"
-                aria-label="Bus Safe armed"
-              />
-              {busSafeArmed && confirmationlessMode ? (
-                <span className="text-[hsl(var(--mako-live))]">BUS SAFE · ARMED</span>
-              ) : (
-                <span>Bus Safe</span>
-              )}
-            </label>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <label
+                  className={`flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider cursor-pointer transition-colors ${
+                    confirmationlessMode ? 'text-foreground/90' : 'text-muted-foreground/60'
+                  }`}
+                >
+                  <Switch
+                    checked={busSafeArmed}
+                    onCheckedChange={(v) => onBusSafeArmedChange?.(Boolean(v))}
+                    disabled={!confirmationlessMode}
+                    className="scale-75 data-[state=checked]:bg-[hsl(var(--mako-live))]"
+                    aria-label="Bus Safe armed"
+                  />
+                  {busSafeArmed && confirmationlessMode ? (
+                    <span className="text-[hsl(var(--mako-live))]">BUS SAFE · ARMED</span>
+                  ) : (
+                    <span>Bus Safe</span>
+                  )}
+                </label>
+              </TooltipTrigger>
+              <TooltipContent side="bottom" className="max-w-[260px] text-xs">
+                <div className="font-semibold mb-1">Bus Safe (per-show arm)</div>
+                <div className="text-muted-foreground">
+                  {confirmationlessMode
+                    ? 'Engage to allow confirmationless TAKE / CUT for the current live segment. Auto-disarms when you End Live so the next show starts safe.'
+                    : 'Disabled — turn on Quick Switch first. Bus Safe is the per-segment "the program bus is hot, fire instantly" arm.'}
+                </div>
+              </TooltipContent>
+            </Tooltip>
+            <span className="h-3 w-px bg-border/60" />
+            <Sheet>
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <SheetTrigger asChild>
+                    <button
+                      type="button"
+                      aria-label="What do Quick Switch and Bus Safe do?"
+                      className="flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground hover:bg-muted/40 transition-colors"
+                    >
+                      <HelpCircle className="h-3.5 w-3.5" />
+                    </button>
+                  </SheetTrigger>
+                </TooltipTrigger>
+                <TooltipContent side="bottom" className="text-xs">
+                  Open help — when does TAKE / CUT actually fire?
+                </TooltipContent>
+              </Tooltip>
+              <SheetContent side="right" className="w-[420px] sm:max-w-[420px] overflow-y-auto">
+                <SheetHeader>
+                  <SheetTitle>Quick Switch &amp; Bus Safe</SheetTitle>
+                  <SheetDescription>
+                    Two independent gates that together decide whether TAKE / CUT fires
+                    confirmationless while you are LIVE.
+                  </SheetDescription>
+                </SheetHeader>
+
+                <div className="mt-5 space-y-5 text-sm">
+                  <section className="space-y-1.5">
+                    <h3 className="font-semibold text-foreground">Quick Switch</h3>
+                    <p className="text-muted-foreground">
+                      A <strong>persistent workflow preference</strong>. ON = "I want one-touch transitions"; OFF = "Bus Safe by default — always confirm."
+                      Saved to your operator profile and survives sessions.
+                    </p>
+                  </section>
+
+                  <section className="space-y-1.5">
+                    <h3 className="font-semibold text-foreground">Bus Safe (arm)</h3>
+                    <p className="text-muted-foreground">
+                      A <strong>per-show safety arm</strong>. Tells the system "the program bus is hot right now — let the next TAKE / CUT through without a dialog."
+                      Auto-disarms on <span className="font-mono">End Live</span>, so each new show starts safe.
+                    </p>
+                  </section>
+
+                  <section className="space-y-2">
+                    <h3 className="font-semibold text-foreground">When does TAKE / CUT fire?</h3>
+                    <div className="rounded-md border border-border overflow-hidden">
+                      <table className="w-full text-xs">
+                        <thead className="bg-muted/40 text-muted-foreground font-mono uppercase tracking-wider">
+                          <tr>
+                            <th className="text-left px-2 py-1.5">Quick Switch</th>
+                            <th className="text-left px-2 py-1.5">Bus Safe</th>
+                            <th className="text-left px-2 py-1.5">Behavior</th>
+                          </tr>
+                        </thead>
+                        <tbody className="font-mono">
+                          <tr className="border-t border-border">
+                            <td className="px-2 py-1.5"><XIcon className="h-3 w-3 inline text-muted-foreground" /> OFF</td>
+                            <td className="px-2 py-1.5 text-muted-foreground">— (locked)</td>
+                            <td className="px-2 py-1.5">Confirm dialog every time</td>
+                          </tr>
+                          <tr className="border-t border-border">
+                            <td className="px-2 py-1.5"><Check className="h-3 w-3 inline text-primary" /> ON</td>
+                            <td className="px-2 py-1.5"><XIcon className="h-3 w-3 inline text-muted-foreground" /> OFF</td>
+                            <td className="px-2 py-1.5">Blocked — toast: "Bus Safe not armed"</td>
+                          </tr>
+                          <tr className="border-t border-border bg-[hsl(var(--mako-live)/0.08)]">
+                            <td className="px-2 py-1.5"><Check className="h-3 w-3 inline text-primary" /> ON</td>
+                            <td className="px-2 py-1.5"><Check className="h-3 w-3 inline text-[hsl(var(--mako-live))]" /> ARMED</td>
+                            <td className="px-2 py-1.5">Fires instantly, no confirm</td>
+                          </tr>
+                        </tbody>
+                      </table>
+                    </div>
+                    <p className="text-[11px] text-muted-foreground">
+                      Bus Safe is only togglable when Quick Switch is ON. Outside of LIVE,
+                      neither toggle affects anything — preview switches are always confirmationless.
+                    </p>
+                  </section>
+
+                  <section className="space-y-1.5">
+                    <h3 className="font-semibold text-foreground">Why two switches?</h3>
+                    <p className="text-muted-foreground">
+                      Mirrors a real video switcher. Quick Switch is your <em>workflow</em>
+                      ("I prefer one-touch"). Bus Safe is your <em>moment-to-moment</em> safety
+                      ("I'm consciously arming the bus right now"). Splitting them means a saved
+                      preference can never silently fire a live cut — you must arm in the room.
+                    </p>
+                  </section>
+
+                  <section className="space-y-1.5">
+                    <h3 className="font-semibold text-foreground">Hotkeys</h3>
+                    <p className="text-muted-foreground">
+                      The same gating applies to keyboard <span className="font-mono">T</span> (TAKE) and <span className="font-mono">C</span> (CUT) bindings — remap them in Settings.
+                    </p>
+                  </section>
+                </div>
+              </SheetContent>
+            </Sheet>
           </div>
         </div>
       )}
