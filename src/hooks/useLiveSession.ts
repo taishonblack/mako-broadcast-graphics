@@ -91,7 +91,7 @@ export function useLiveSession(): LiveSession {
       });
 
     const channel = supabase
-      .channel(`live-session-${projectId}`)
+      .channel(`live-session-${projectId}-${Math.random().toString(36).slice(2, 10)}`)
       .on(
         'postgres_changes',
         { event: '*', schema: 'public', table: 'project_live_state', filter: `project_id=eq.${projectId}` },
