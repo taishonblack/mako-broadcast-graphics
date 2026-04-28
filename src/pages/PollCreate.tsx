@@ -332,6 +332,10 @@ export default function PollCreate() {
   // are defined before `folderState`) to validate Answer Type choices
   // without forming a forward dependency.
   const foldersRef = useRef<PollingAssetFolderState['folders']>([]);
+  // Hold a reference to the open Output popup so we don't re-open / re-navigate
+  // it on Go Live (which would steal focus and exit any fullscreen the
+  // operator engaged on that window).
+  const outputWindowRef = useRef<Window | null>(null);
   const [outputBlockPinned, setOutputBlockPinned] = useState<boolean>(() => loadPersistedOutputBlock().pinned);
   const [outputBlockSource, setOutputBlockSource] = useState<OutputBlockSource>(() => (
     loadPersistedOutputBlock().pinned ? 'pinned' : 'default'
