@@ -554,24 +554,35 @@ export default function PollCreate() {
         if (dbVoting === 'open' || dbVoting === 'closed' || dbVoting === 'not_open') {
           setVotingState(dbVoting);
         }
-        // Rebuild the local→UUID answer-id bridge from the persisted
-        // audience snapshot. Keys come from polls.answers (local ids),
-        // values come from public_viewer_state.answers[].id (the synced
-        // poll_answers UUID).
-        if (dbLive) {
-          try {
-            const snap = (data.live_poll_snapshot ?? null) as { poll?: { options?: Array<{ id: string }>; answers?: Array<{ id: string }> } } | null;
-            const poll = snap?.poll;
-            const opts = poll?.options ?? poll?.answers ?? [];
-            if (opts.length) {
-              const map: Record<string, string> = {};
-              for (const o of opts) {
-                const id = String(o.id);
-                if (id) map[id] = id;
-              }
-              setLiveAnswerIdMap((prev) => (Object.keys(prev).length ? prev : map));
-            }
-          } catch { /* ignore */ }
+        // Rebuild the local→UUID answer-id bridge by reading the actual
+        // poll_answers rows for the active poll and zipping them against
+        // the local `answers` state by sort order. The snapshot stored in
+        // live_poll_snapshot only contains UUIDs, so we cannot recover the
+        // local "1"/"2" ids from it — without this the bar graph stays at
+        // 0% after a refresh because realtime tallies (UUID-keyed) never
+        // line up with local-id lookups.
+        if (dbLive && data.active_poll_id && isUuid(data.active_poll_id)) {
+          void supabase
+            .from('poll_answers')
+            .select('id, sort_order')
+            .eq('poll_id', data.active_poll_id)
+            .order('sort_order', { ascending: true })
+            .then(({ data: rows }) => {
+              if (cancelled || !rows?.length) return;
+              setLiveAnswerIdMap((prev) => {
+                if (Object.keys(prev).length) return prev;
+                const map: Record<string, string> = {};
+                // Use the freshest local answers via setAnswers callback —
+                // but we don't have direct access here, so read via state
+                // closure on next render. Fallback: index against current
+                // `answers` snapshot below.
+                for (let i = 0; i < rows.length; i++) {
+                  const local = answersRef.current[i];
+                  if (local) map[String(local.id)] = rows[i].id as string;
+                }
+                return map;
+              });
+            });
         }
       });
     return () => { cancelled = true; };
