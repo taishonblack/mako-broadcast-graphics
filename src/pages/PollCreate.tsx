@@ -1025,7 +1025,7 @@ export default function PollCreate() {
         })),
         showLiveResults: snapshotPoll.showLiveResults,
         showThankYou: snapshotPoll.showThankYou,
-        assetColors,
+        assetColors: assetColorsRef.current ?? ({} as AssetColorMap),
       };
       const audience = await writePublicViewerState({
         projectId,
@@ -1144,7 +1144,7 @@ export default function PollCreate() {
       cancelled = true;
       void supabase.removeChannel(channel);
     };
-  }, [liveState, pollId, projectId, answers, question, subheadline, bgColor, bgImage, showLiveResults, showThankYou, assetColors, slugForUrl, liveAnswerIdMap]);
+  }, [liveState, pollId, projectId, answers, question, subheadline, bgColor, bgImage, showLiveResults, showThankYou, slugForUrl, liveAnswerIdMap]);
 
   const handleEndPoll = () => {
     setLiveState('not_live');
