@@ -1,9 +1,10 @@
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { AUTOSAVE_MINUTE_OPTIONS, DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes, saveAutosaveMinutes } from '@/lib/operator-settings';
+import { AUTOSAVE_MINUTE_OPTIONS, DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes, loadConfirmationlessMode, saveAutosaveMinutes, saveConfirmationlessMode } from '@/lib/operator-settings';
 import { useColorSwatches, MAX_SWATCHES } from '@/lib/color-swatches';
-import { Palette, Plus, Settings2, ShieldCheck, Trash2 } from 'lucide-react';
+import { Palette, Plus, Settings2, ShieldCheck, Trash2, Zap } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
