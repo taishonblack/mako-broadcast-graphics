@@ -600,6 +600,23 @@ export function OperatorOutputMode({
   const [targetPercents, setTargetPercents] = useState<number[]>(() =>
     answerCount > 0 ? Array.from({ length: answerCount }, () => +(100 / answerCount).toFixed(1)) : [],
   );
+
+  // ── Live tally readout in the Active Poll summary ─────────────────────
+  // Operator-only HUD: when Go Live is engaged, show real total + per-answer
+  // counts pulled from poll_answers via realtime. Toggle persists per-device
+  // so producers can collapse it during long shows. Hidden when not on-air.
+  const SHOW_LIVE_TALLY_KEY = 'mako:operator:show-live-tally';
+  const [showLiveTally, setShowLiveTally] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return true;
+    return window.localStorage.getItem(SHOW_LIVE_TALLY_KEY) !== '0';
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(SHOW_LIVE_TALLY_KEY, showLiveTally ? '1' : '0');
+  }, [showLiveTally]);
+  const liveTallyEnabled = liveState === 'live' && showLiveTally;
+  const liveVoteMap = useLiveVotes(currentPoll.id, liveTallyEnabled);
+  const liveVoteTotal = Object.values(liveVoteMap).reduce((s, v) => s + (v ?? 0), 0);
   // Keep the array length in sync if the operator switches polls.
   if (targetPercents.length !== answerCount) {
     const next = answerCount > 0
