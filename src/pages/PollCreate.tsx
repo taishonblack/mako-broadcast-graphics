@@ -982,6 +982,9 @@ export default function PollCreate() {
   const handleEndPoll = () => {
     setLiveState('not_live');
     setVotingState('closed');
+    // Auto-disarm Bus Safe on End Live so the operator must consciously
+    // re-arm before the next show. Prevents a forgotten arm carrying over.
+    setBusSafeArmed(false);
     // Release the Program lock so the workspace once again drives Output.
     broadcastOutputLock({ locked: false });
     if (projectId) {
