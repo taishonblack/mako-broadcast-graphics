@@ -1139,7 +1139,7 @@ export function OperatorOutputMode({
                     {showLiveTally && (
                       <ul className="space-y-1">
                         {currentPoll.options.map((opt, i) => {
-                          const count = liveVoteMap[opt.id] ?? 0;
+                          const count = opt.votes ?? 0;
                           const pct = liveVoteTotal > 0 ? (count / liveVoteTotal) * 100 : 0;
                           return (
                             <li key={opt.id} className="flex items-center gap-2">
