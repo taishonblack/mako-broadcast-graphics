@@ -104,6 +104,28 @@ export default function ViewerVote() {
     setLocalStage('received');
     const projectId = row?.project_id;
     const pollId = snapshot?.id;
+    const sessionId = getOrCreateSessionId();
+
+    // 1) Real tally: atomically record the vote and increment poll_answers.live_votes.
+    //    Server-side checks prevent duplicates per session and reject votes when
+    //    voting isn't open. We don't block the UI on the response — the operator's
+    //    realtime subscription will reflect the new count regardless.
+    if (pollId) {
+      void supabase
+        .rpc('cast_vote', {
+          _poll_id: pollId,
+          _answer_id: answerId,
+          _session_id: sessionId,
+        })
+        .then(({ data, error }) => {
+          if (error) console.warn('cast_vote error', error);
+          else if (data && typeof data === 'object' && 'ok' in data && !(data as { ok: boolean }).ok) {
+            console.warn('cast_vote rejected', data);
+          }
+        });
+    }
+
+    // 2) Analytics (device/region) — separate concern, kept as-is.
     if (projectId && pollId) {
       const url = `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/record-vote`;
       fetch(url, {
@@ -113,7 +135,7 @@ export default function ViewerVote() {
           project_id: projectId,
           poll_id: pollId,
           answer_id: answerId,
-          session_id: getOrCreateSessionId(),
+          session_id: sessionId,
         }),
         keepalive: true,
       }).catch(() => {});
