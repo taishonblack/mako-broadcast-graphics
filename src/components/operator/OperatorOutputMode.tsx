@@ -108,6 +108,11 @@ interface OperatorOutputModeProps {
   /** Notify parent when the operator toggles the Polling Slate on/off so it
    *  can broadcast the slate state to public viewers (mobile/desktop). */
   onSlateActiveChange?: (active: boolean, slate?: { text: string; sublineText: string; image?: string | null }) => void;
+  /** Notify parent when the operator toggles "Test viewer view" so it can
+   *  push a slate state to public viewers — when ON, the audience leaves
+   *  the MakoVote branding and sees the slate (operator can verify what
+   *  voters will see); when OFF the audience returns to branding. */
+  onTestViewerViewChange?: (active: boolean, slate?: { text: string; sublineText: string; image?: string | null }) => void;
   onQrSizeChange: (size: number) => void;
   onQrPositionChange: (position: QRPosition) => void;
   onShowBrandingChange: (show: boolean) => void;
@@ -205,6 +210,7 @@ export function OperatorOutputMode({
   onBusSafeArmedChange,
   onRescanPolls,
   onSlateActiveChange,
+  onTestViewerViewChange,
   onQrSizeChange,
   onQrPositionChange,
   onShowBrandingChange,
