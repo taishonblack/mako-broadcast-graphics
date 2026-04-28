@@ -1249,6 +1249,11 @@ export default function PollCreate() {
     setLiveAnswerIdMap({});
     liveResyncAttemptsRef.current = 0;
     lastResyncAtRef.current = 0;
+    // Clear persisted live-session crumbs so a remount after End Live
+    // doesn't resurrect the old Go Live flag from sessionStorage.
+    try {
+      sessionStorage.removeItem(LIVE_SESSION_KEY);
+    } catch { /* ignore */ }
     // Auto-disarm Bus Safe on End Live so the operator must consciously
     // re-arm before the next show. Prevents a forgotten arm carrying over.
     setBusSafeArmed(false);
