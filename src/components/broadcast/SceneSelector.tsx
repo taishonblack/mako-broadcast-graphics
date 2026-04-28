@@ -110,7 +110,7 @@ export function SceneSelector({ previewScene, programScene, onSceneChange, onTak
 
         {/* Hotkey hints */}
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-[9px] font-mono text-muted-foreground/50">SPACE = TAKE</span>
+          <span className="text-[9px] font-mono text-muted-foreground/50">SPACE/T = TAKE · C = CUT</span>
         </div>
       </div>
     </div>
