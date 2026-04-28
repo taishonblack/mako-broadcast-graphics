@@ -633,15 +633,52 @@ export function OperatorOutputMode({
         <div
           role="status"
           aria-label="Program output is locked while live"
-          className="flex items-center justify-center gap-2 border-b border-destructive/40 bg-destructive/15 px-3 py-1.5"
+          className="flex flex-wrap items-center justify-center gap-x-4 gap-y-1.5 border-b border-destructive/40 bg-destructive/15 px-3 py-1.5"
         >
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inset-0 animate-ping rounded-full bg-destructive opacity-75" />
-            <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
-          </span>
-          <span className="text-[10px] font-mono uppercase tracking-widest text-destructive">
-            LIVE — Program Locked · workspace edits won't affect on-air output until you End Poll
-          </span>
+          <div className="flex items-center gap-2">
+            <span className="relative flex h-2 w-2">
+              <span className="absolute inset-0 animate-ping rounded-full bg-destructive opacity-75" />
+              <span className="relative inline-flex h-2 w-2 rounded-full bg-destructive" />
+            </span>
+            <span className="text-[10px] font-mono uppercase tracking-widest text-destructive">
+              LIVE — Program Locked · workspace edits won't affect on-air until you End Poll
+            </span>
+          </div>
+          {/* Quick Switch controls — confirmationless TAKE/CUT + Bus Safe arm.
+              Only meaningful while Live, so we render here. */}
+          <div className="flex items-center gap-3 rounded-md border border-destructive/30 bg-background/40 px-2 py-0.5">
+            <label className="flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider text-foreground/80 cursor-pointer">
+              <Switch
+                checked={confirmationlessMode}
+                onCheckedChange={(v) => onConfirmationlessModeChange?.(Boolean(v))}
+                className="scale-75"
+                aria-label="Quick Switch (confirmationless TAKE/CUT)"
+              />
+              Quick Switch
+            </label>
+            <span className="h-3 w-px bg-border/60" />
+            <label
+              className={`flex items-center gap-1.5 text-[10px] font-mono uppercase tracking-wider cursor-pointer transition-colors ${
+                confirmationlessMode ? 'text-foreground/90' : 'text-muted-foreground/60'
+              }`}
+              title={confirmationlessMode
+                ? 'Confirm audio bus is safe, then arm to allow confirmationless cuts.'
+                : 'Enable Quick Switch to use Bus Safe.'}
+            >
+              <Switch
+                checked={busSafeArmed}
+                onCheckedChange={(v) => onBusSafeArmedChange?.(Boolean(v))}
+                disabled={!confirmationlessMode}
+                className="scale-75 data-[state=checked]:bg-[hsl(var(--mako-live))]"
+                aria-label="Bus Safe armed"
+              />
+              {busSafeArmed && confirmationlessMode ? (
+                <span className="text-[hsl(var(--mako-live))]">BUS SAFE · ARMED</span>
+              ) : (
+                <span>Bus Safe</span>
+              )}
+            </label>
+          </div>
         </div>
       )}
       <div className="grid h-full grid-cols-[280px_minmax(0,1fr)_320px] gap-3 p-3">
