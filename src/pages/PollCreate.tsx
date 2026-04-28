@@ -343,6 +343,11 @@ export default function PollCreate() {
   ));
   const [votingState, setVotingState] = useState<VotingState>('not_open');
   const [liveState, setLiveState] = useState<LiveState>('not_live');
+  // After Go Live syncs poll_answers, this maps each local option id (e.g.
+  // "1", "2") → the real poll_answers UUID. The operator's bar graph keys
+  // tallies by local id but useLiveVotes returns UUID-keyed counts, so we
+  // join them through this map. Cleared on End Live.
+  const [liveAnswerIdMap, setLiveAnswerIdMap] = useState<Record<string, string>>({});
   // Quick Switch (confirmationless TAKE/CUT). The mode preference is
   // remembered across sessions; the per-show "Bus Safe" arm switch is
   // session-only and auto-disarms on End Live so a forgotten arm state
@@ -633,7 +638,10 @@ export default function PollCreate() {
       // Auto behavior: live votes when Go Live is engaged, test data otherwise.
       // `previewDataMode` still gates the test path so toggling away from
       // 'test' (e.g. for an empty rehearsal) keeps the bars at 0 pre-live.
-      const liveCount = liveVoteMap[a.id] ?? 0;
+      // Bridge local string ids → real poll_answers UUIDs so the bar graph
+      // actually receives the realtime counts after Go Live.
+      const uuidForAnswer = liveAnswerIdMap[String(a.id)] ?? a.id;
+      const liveCount = liveVoteMap[uuidForAnswer] ?? 0;
       const testCount = previewDataMode === 'test' ? (a.testVotes ?? 0) : 0;
       return {
         id: a.id,
@@ -642,7 +650,7 @@ export default function PollCreate() {
         votes: liveState === 'live' ? liveCount : testCount,
         order: i,
       };
-    }), [answers, previewDataMode, liveVoteMap, liveState]
+    }), [answers, previewDataMode, liveVoteMap, liveState, liveAnswerIdMap]
   );
   const previewTotal = previewOptions.reduce((sum, o) => sum + o.votes, 0);
   const previewQuestion = question || 'Your question here?';
@@ -930,6 +938,33 @@ export default function PollCreate() {
       options: livePoll.options?.length ? livePoll.options : previewOptions,
       answers: livePoll.options?.length ? livePoll.options : previewOptions,
     };
+    // ── Sync option rows into poll_answers so cast_vote can increment real
+    //    UUIDs and useLiveVotes can subscribe to live tallies. We need the
+    //    real UUIDs back so the audience snapshot uses ids that match the
+    //    rows the operator's bar graph subscribes to. Without this, votes
+    //    from /vote/:slug land on string ids that don't exist in
+    //    poll_answers and the bar graph stays at 0%.
+    let answerIdMap: Record<string, string> = {};
+    if (isUuid(livePoll.id)) {
+      const optionsForSync = (snapshotPoll.options ?? []).map((o, i) => ({
+        client_id: String(o.id),
+        label: o.text || `Answer ${i + 1}`,
+        shortLabel: o.shortLabel ?? '',
+      }));
+      const { data: syncData, error: syncErr } = await supabase.rpc(
+        'sync_poll_answers' as never,
+        { _poll_id: livePoll.id, _options: optionsForSync as never } as never,
+      );
+      if (syncErr) {
+        toast.error(`Vote tally setup failed: ${syncErr.message}`);
+      } else if (syncData && typeof syncData === 'object' && 'answers' in (syncData as object)) {
+        const rows = ((syncData as { answers?: Array<{ client_id: string; id: string }> }).answers) ?? [];
+        for (const r of rows) answerIdMap[r.client_id] = r.id;
+        setLiveAnswerIdMap(answerIdMap);
+      }
+    } else {
+      toast.warning('Live votes need a saved poll. Save the poll first to enable real-time tallies.');
+    }
     const snapshot = { ...getProgramOutputPayload(snapshotPoll), slateActive: false };
     broadcastOutputLock({ locked: true, snapshot, lockedAt: Date.now() });
     // Persist the snapshot to project_live_state so cross-network viewers
@@ -956,7 +991,9 @@ export default function PollCreate() {
         bgColor: snapshotPoll.bgColor,
         bgImage: snapshotPoll.bgImage,
         answers: (snapshotPoll.options ?? []).map((o, i) => ({
-          id: o.id,
+          // Use the real poll_answers UUID so cast_vote can locate the row.
+          // Falls back to the local id only when sync failed (already toasted).
+          id: answerIdMap[String(o.id)] ?? o.id,
           label: o.text || `Answer ${i + 1}`,
           shortLabel: o.shortLabel,
           sortOrder: i,
@@ -995,6 +1032,8 @@ export default function PollCreate() {
   const handleEndPoll = () => {
     setLiveState('not_live');
     setVotingState('closed');
+    // Drop the local→UUID answer-id bridge so the next show starts clean.
+    setLiveAnswerIdMap({});
     // Auto-disarm Bus Safe on End Live so the operator must consciously
     // re-arm before the next show. Prevents a forgotten arm carrying over.
     setBusSafeArmed(false);

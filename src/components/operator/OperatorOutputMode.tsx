@@ -40,7 +40,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { PollScene } from '@/lib/poll-scenes';
 import { Layers } from 'lucide-react';
-import { useLiveVotes } from '@/hooks/useLiveVotes';
 
 export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
 
@@ -614,9 +613,13 @@ export function OperatorOutputMode({
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(SHOW_LIVE_TALLY_KEY, showLiveTally ? '1' : '0');
   }, [showLiveTally]);
-  const liveTallyEnabled = liveState === 'live' && showLiveTally;
-  const liveVoteMap = useLiveVotes(currentPoll.id, liveTallyEnabled);
-  const liveVoteTotal = Object.values(liveVoteMap).reduce((s, v) => s + (v ?? 0), 0);
+  // Per-answer live counts are already merged into currentPoll.options.votes
+  // by PollCreate (which bridges local-id → poll_answers UUID → liveVoteMap).
+  // Reusing them avoids duplicating the realtime subscription and keeps the
+  // bar graph and this readout perfectly in sync.
+  const liveVoteTotal = liveState === 'live'
+    ? currentPoll.options.reduce((s, o) => s + (o.votes ?? 0), 0)
+    : 0;
   // Keep the array length in sync if the operator switches polls.
   if (targetPercents.length !== answerCount) {
     const next = answerCount > 0
@@ -1135,7 +1138,7 @@ export function OperatorOutputMode({
                     {showLiveTally && (
                       <ul className="space-y-1">
                         {currentPoll.options.map((opt, i) => {
-                          const count = liveVoteMap[opt.id] ?? 0;
+                          const count = opt.votes ?? 0;
                           const pct = liveVoteTotal > 0 ? (count / liveVoteTotal) * 100 : 0;
                           return (
                             <li key={opt.id} className="flex items-center gap-2">

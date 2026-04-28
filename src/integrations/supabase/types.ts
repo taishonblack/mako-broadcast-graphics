@@ -890,6 +890,10 @@ export type Database = {
       poll_is_publicly_live: { Args: { _poll_id: string }; Returns: boolean }
       poll_owned_by_user: { Args: { _poll_id: string }; Returns: boolean }
       project_owned_by_user: { Args: { _project_id: string }; Returns: boolean }
+      sync_poll_answers: {
+        Args: { _options: Json; _poll_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never
