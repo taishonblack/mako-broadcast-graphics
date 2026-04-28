@@ -149,6 +149,13 @@ interface OperatorOutputModeProps {
   assetTransformSet?: import('@/components/poll-create/polling-assets/types').AssetTransformSet;
 }
 
+// PostgREST will return a 400 when filtering a UUID column with a value that
+// isn't a valid UUID — guard the slate hydration/save below so synthetic
+// in-memory poll ids (e.g. "draft-poll" before the operator hits Save) don't
+// spam the network tab and confuse autosave debugging.
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+const isUuid = (v: string | undefined | null): v is string => !!v && UUID_RE.test(v);
+
 export function OperatorOutputMode({
   projectName,
   currentPoll,
@@ -279,6 +286,14 @@ export function OperatorOutputMode({
     let cancelled = false;
     setSlateHydrated(false);
     (async () => {
+      // Skip when the active poll is a synthetic in-memory draft (id is not
+      // a real UUID). Querying with `id=eq.draft-poll` returns a 400 from
+      // PostgREST because the column is a UUID, which spams the console and
+      // can make autosave look broken in devtools.
+      if (!isUuid(currentPoll.id)) {
+        setSlateHydrated(true);
+        return;
+      }
       const { data, error } = await supabase
         .from('polls')
         .select('slate_text, slate_image, slate_text_style, slate_subline_text, slate_subline_style')
@@ -306,6 +321,8 @@ export function OperatorOutputMode({
   // the saved values.
   useEffect(() => {
     if (!slateHydrated) return;
+    // Same guard — never attempt a debounced PATCH against a non-UUID id.
+    if (!isUuid(currentPoll.id)) return;
     const handle = window.setTimeout(() => {
       void supabase
         .from('polls')
