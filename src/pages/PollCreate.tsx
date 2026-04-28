@@ -572,6 +572,29 @@ export default function PollCreate() {
     return () => window.clearInterval(timer);
   }, [autosaveMinutes, persistProjectSave, projectId, projectName, saving, user]);
 
+  // Save-on-leave: timer-based autosave can lag behind the operator. If the
+  // tab is hidden (visibilitychange → 'hidden') or the page is about to be
+  // closed/navigated, flush a save immediately so scenes/assets created in
+  // the last minute aren't lost when the user comes back to a different tab.
+  useEffect(() => {
+    if (!user || !projectId) return;
+    const flush = () => {
+      if (saving !== null) return;
+      void persistProjectSave(projectId, projectName, 'autosave');
+    };
+    const onVisibility = () => {
+      if (document.visibilityState === 'hidden') flush();
+    };
+    window.addEventListener('visibilitychange', onVisibility);
+    window.addEventListener('pagehide', flush);
+    window.addEventListener('beforeunload', flush);
+    return () => {
+      window.removeEventListener('visibilitychange', onVisibility);
+      window.removeEventListener('pagehide', flush);
+      window.removeEventListener('beforeunload', flush);
+    };
+  }, [persistProjectSave, projectId, projectName, saving, user]);
+
   const handleProjectSelected = async (selectedProjectId: string, selectedProjectName: string) => {
     await persistProjectSave(selectedProjectId, selectedProjectName, 'manual');
   };
