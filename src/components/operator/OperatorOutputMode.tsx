@@ -1471,7 +1471,7 @@ export function OperatorOutputMode({
                 </Button>
               ) : (
                 <Button variant="destructive" size="sm" className="w-full justify-start gap-2 text-xs" onClick={onEndPoll}>
-                  <Square className="h-3.5 w-3.5" /> End Poll
+                  <Square className="h-3.5 w-3.5" /> End Live
                 </Button>
               )}
               {votingState !== 'open' ? (
