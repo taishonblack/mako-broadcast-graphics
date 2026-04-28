@@ -348,6 +348,14 @@ export default function PollCreate() {
   // tallies by local id but useLiveVotes returns UUID-keyed counts, so we
   // join them through this map. Cleared on End Live.
   const [liveAnswerIdMap, setLiveAnswerIdMap] = useState<Record<string, string>>({});
+  // When > 0, the self-healing watcher is allowed to re-run sync_poll_answers
+  // on the active poll. We bump it after Go Live and reset to 0 on End Live so
+  // the retry effect can't fire outside a live window.
+  const liveResyncAttemptsRef = useRef<number>(0);
+  const lastResyncAtRef = useRef<number>(0);
+  // Mirror of the latest assetColors so the live-resync effect (declared
+  // before assetColors) can read the current value without TDZ issues.
+  const assetColorsRef = useRef<AssetColorMap | null>(null);
   // Quick Switch (confirmationless TAKE/CUT). The mode preference is
   // remembered across sessions; the per-show "Bus Safe" arm switch is
   // session-only and auto-disarms on End Live so a forgotten arm state
@@ -951,17 +959,34 @@ export default function PollCreate() {
         label: o.text || `Answer ${i + 1}`,
         shortLabel: o.shortLabel ?? '',
       }));
-      const { data: syncData, error: syncErr } = await supabase.rpc(
-        'sync_poll_answers' as never,
-        { _poll_id: livePoll.id, _options: optionsForSync as never } as never,
-      );
-      if (syncErr) {
-        toast.error(`Vote tally setup failed: ${syncErr.message}`);
-      } else if (syncData && typeof syncData === 'object' && 'answers' in (syncData as object)) {
-        const rows = ((syncData as { answers?: Array<{ client_id: string; id: string }> }).answers) ?? [];
-        for (const r of rows) answerIdMap[r.client_id] = r.id;
-        setLiveAnswerIdMap(answerIdMap);
+      // Retry up to 3× with a short backoff. Transient network/RLS hiccups
+      // would otherwise leave poll_answers empty and every viewer vote would
+      // be rejected as `invalid_answer` until the next Go Live.
+      let lastErr: string | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data: syncData, error: syncErr } = await supabase.rpc(
+          'sync_poll_answers' as never,
+          { _poll_id: livePoll.id, _options: optionsForSync as never } as never,
+        );
+        if (syncErr) {
+          lastErr = syncErr.message;
+        } else if (syncData && typeof syncData === 'object' && 'answers' in (syncData as object)) {
+          const rows = ((syncData as { answers?: Array<{ client_id: string; id: string }> }).answers) ?? [];
+          if (rows.length > 0) {
+            answerIdMap = {};
+            for (const r of rows) answerIdMap[r.client_id] = r.id;
+            setLiveAnswerIdMap(answerIdMap);
+            lastErr = null;
+            break;
+          }
+          lastErr = 'sync returned no answers';
+        }
+        await new Promise((r) => setTimeout(r, 250 * (attempt + 1)));
       }
+      if (lastErr) toast.error(`Vote tally setup failed: ${lastErr}`);
+      // Arm the self-healing watcher for this live window.
+      liveResyncAttemptsRef.current = 0;
+      lastResyncAtRef.current = Date.now();
     } else {
       toast.warning('Live votes need a saved poll. Save the poll first to enable real-time tallies.');
     }
@@ -1000,7 +1025,7 @@ export default function PollCreate() {
         })),
         showLiveResults: snapshotPoll.showLiveResults,
         showThankYou: snapshotPoll.showThankYou,
-        assetColors,
+        assetColors: assetColorsRef.current ?? ({} as AssetColorMap),
       };
       const audience = await writePublicViewerState({
         projectId,
@@ -1029,11 +1054,105 @@ export default function PollCreate() {
     setVotingState('open');
   };
 
+  // Self-healing watcher: while Go Live is engaged, listen for incoming
+  // vote_analytics inserts on the active poll. If an analytics row arrives
+  // but our liveVoteMap shows no movement (a sign that cast_vote rejected
+  // the vote — typically because poll_answers wasn't synced or the answer
+  // UUID drifted), re-run sync_poll_answers and refresh the audience
+  // snapshot so the *next* vote lands. sync_poll_answers is idempotent —
+  // existing rows keep their UUIDs by sort_order, so already-counted votes
+  // are preserved.
+  useEffect(() => {
+    if (liveState !== 'live') return;
+    const livePollId = pollId;
+    if (!livePollId || !isUuid(livePollId) || !projectId) return;
+
+    let cancelled = false;
+    const RESYNC_COOLDOWN_MS = 4000;
+    const MAX_ATTEMPTS = 3;
+
+    const resync = async () => {
+      if (cancelled) return;
+      if (liveResyncAttemptsRef.current >= MAX_ATTEMPTS) return;
+      if (Date.now() - lastResyncAtRef.current < RESYNC_COOLDOWN_MS) return;
+      lastResyncAtRef.current = Date.now();
+      liveResyncAttemptsRef.current += 1;
+
+      const optionsForSync = answers.map((o, i) => ({
+        client_id: String(o.id),
+        label: o.text || `Answer ${i + 1}`,
+        shortLabel: o.shortLabel ?? '',
+      }));
+      const { data, error } = await supabase.rpc(
+        'sync_poll_answers' as never,
+        { _poll_id: livePollId, _options: optionsForSync as never } as never,
+      );
+      if (cancelled || error) return;
+      const rows = (data as { answers?: Array<{ client_id: string; id: string }> } | null)?.answers ?? [];
+      if (rows.length === 0) return;
+      const nextMap: Record<string, string> = {};
+      for (const r of rows) nextMap[r.client_id] = r.id;
+      setLiveAnswerIdMap(nextMap);
+
+      // Rewrite the audience snapshot with the (possibly new) UUIDs so the
+      // very next vote from a viewer hits a row that exists.
+      const audienceSnapshot: PublicViewerPollSnapshot = {
+        id: livePollId,
+        question,
+        subheadline,
+        bgColor,
+        bgImage: bgImage || undefined,
+        answers: answers.map((o, i) => ({
+          id: nextMap[String(o.id)] ?? String(o.id),
+          label: o.text || `Answer ${i + 1}`,
+          shortLabel: o.shortLabel,
+          sortOrder: i,
+        })),
+        showLiveResults,
+        showThankYou,
+        assetColors,
+      };
+      await writePublicViewerState({
+        projectId,
+        viewerSlug: slugForUrl,
+        state: 'voting',
+        pollSnapshot: audienceSnapshot,
+      });
+      toast.message('Live tally re-synced', {
+        description: 'Recovered from a vote-routing issue. Counts will update on the next vote.',
+      });
+    };
+
+    const channel = supabase
+      .channel(`live-resync-${livePollId}`)
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'vote_analytics', filter: `poll_id=eq.${livePollId}` },
+        (payload) => {
+          const row = payload.new as { answer_id?: string | null } | null;
+          if (!row?.answer_id) return;
+          // If this answer_id has no entry in liveVoteMap (or stayed at 0
+          // after the analytics insert arrived), the underlying poll_answers
+          // row probably doesn't exist — re-sync.
+          const known = Object.values(liveAnswerIdMap).includes(row.answer_id);
+          if (!known) void resync();
+        },
+      )
+      .subscribe();
+
+    return () => {
+      cancelled = true;
+      void supabase.removeChannel(channel);
+    };
+  }, [liveState, pollId, projectId, answers, question, subheadline, bgColor, bgImage, showLiveResults, showThankYou, slugForUrl, liveAnswerIdMap]);
+
   const handleEndPoll = () => {
     setLiveState('not_live');
     setVotingState('closed');
     // Drop the local→UUID answer-id bridge so the next show starts clean.
     setLiveAnswerIdMap({});
+    liveResyncAttemptsRef.current = 0;
+    lastResyncAtRef.current = 0;
     // Auto-disarm Bus Safe on End Live so the operator must consciously
     // re-arm before the next show. Prevents a forgotten arm carrying over.
     setBusSafeArmed(false);
@@ -1309,6 +1428,9 @@ export default function PollCreate() {
   // Desktop. Full Screen Output always mirrors the `program` slice.
   const [assetColorSet, setAssetColorSet] = useState<AssetColorSet>(() => createDefaultColorSet());
   const assetColors: AssetColorMap = assetColorSet[transformViewport];
+  // Keep the ref in sync so effects declared earlier in the file (e.g. the
+  // live-resync watcher) can read the latest value without violating TDZ.
+  useEffect(() => { assetColorsRef.current = assetColors; }, [assetColors]);
   const setAssetColors = useCallback(
     (updater: AssetColorMap | ((current: AssetColorMap) => AssetColorMap)) => {
       setAssetColorSet((current) => {

@@ -34,7 +34,10 @@ interface LiveStateLite {
   project_id: string;
 }
 
-const REFRESH_MS = 2500;
+// Realtime keeps vote_analytics fresh; this slow interval is just a safety
+// net for live_state changes and tab-restore scenarios where the channel may
+// have missed a tick. Realtime-driven inserts dominate normal operation.
+const REFRESH_MS = 15000;
 
 function downloadCSV(filename: string, rows: AnalyticsRow[], pollLookup: Record<string, PollLite>) {
   const header = ['timestamp', 'poll_id', 'poll_name', 'answer_id', 'answer_label', 'device_type', 'browser', 'os', 'country', 'region'];
@@ -124,9 +127,33 @@ export default function Statistics() {
 
     void load();
     const id = window.setInterval(load, REFRESH_MS);
+
+    // Realtime: append new vote_analytics rows as they arrive so the live
+    // metrics, audience breakdown, and timeline update without waiting for
+    // the polling cycle. We still refresh polls/live_state via the interval
+    // since those change rarely and aren't part of this hot path.
+    const channel = supabase
+      .channel('stats-vote-analytics')
+      .on(
+        'postgres_changes',
+        { event: 'INSERT', schema: 'public', table: 'vote_analytics' },
+        (payload) => {
+          if (cancelled) return;
+          const row = payload.new as AnalyticsRow | null;
+          if (!row?.id) return;
+          setRows((prev) => {
+            // De-dup in case the same row arrives via both interval and realtime.
+            if (prev.some((r) => r.id === row.id)) return prev;
+            return [row, ...prev].slice(0, 5000);
+          });
+        },
+      )
+      .subscribe();
+
     return () => {
       cancelled = true;
       window.clearInterval(id);
+      void supabase.removeChannel(channel);
     };
   }, [user]);
 
