@@ -40,6 +40,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { PollScene } from '@/lib/poll-scenes';
 import { Layers } from 'lucide-react';
+import { useLiveVotes } from '@/hooks/useLiveVotes';
 
 export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
 
