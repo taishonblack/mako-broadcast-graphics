@@ -2593,6 +2593,16 @@ export default function PollCreate() {
             }}
             onGoLive={handleGoLive}
             onEndPoll={handleEndPoll}
+            confirmationlessMode={confirmationlessMode}
+            onConfirmationlessModeChange={(next) => {
+              setConfirmationlessMode(next);
+              // Persist immediately so Settings + workspace stay in sync.
+              import('@/lib/operator-settings').then((m) => m.saveConfirmationlessMode(next));
+              // Toggling off clears the arm so Quick Switch can't fire next session.
+              if (!next) setBusSafeArmed(false);
+            }}
+            busSafeArmed={busSafeArmed}
+            onBusSafeArmedChange={setBusSafeArmed}
             onOpenVoting={() => {
               setVotingState('open');
               void syncViewerVotingOpen();
