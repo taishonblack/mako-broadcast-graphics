@@ -92,6 +92,7 @@ export default function Statistics() {
   const { user } = useAuth();
   const [rows, setRows] = useState<AnalyticsRow[]>([]);
   const [polls, setPolls] = useState<Record<string, PollLite>>({});
+  const [projects, setProjects] = useState<Record<string, ProjectLite>>({});
   const [live, setLive] = useState<LiveStateLite | null>(null);
   const [loading, setLoading] = useState(true);
 
@@ -101,7 +102,7 @@ export default function Statistics() {
 
     const load = async () => {
       const since = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
-      const [{ data: aRows }, { data: pollRows }, { data: liveRows }] = await Promise.all([
+      const [{ data: aRows }, { data: pollRows }, { data: liveRows }, { data: projectRows }] = await Promise.all([
         supabase
           .from('vote_analytics' as never)
           .select('*')
@@ -110,7 +111,7 @@ export default function Statistics() {
           .limit(5000),
         supabase
           .from('polls')
-          .select('id, question, internal_name, answers')
+          .select('id, question, internal_name, answers, project_id, block_letter, block_label')
           .eq('user_id', user.id)
           .order('updated_at', { ascending: false })
           .limit(200),
@@ -119,6 +120,11 @@ export default function Statistics() {
           .select('active_poll_id, voting_state, project_id')
           .order('updated_at', { ascending: false })
           .limit(1),
+        supabase
+          .from('projects')
+          .select('id, name')
+          .eq('user_id', user.id)
+          .limit(500),
       ]);
       if (cancelled) return;
       setRows((aRows ?? []) as unknown as AnalyticsRow[]);
@@ -128,10 +134,31 @@ export default function Statistics() {
           id: p.id,
           question: p.question,
           internal_name: p.internal_name,
-          answers: Array.isArray(p.answers) ? p.answers : [],
+          answers: [],
+          project_id: p.project_id ?? null,
+          block_letter: p.block_letter ?? null,
+          block_label: p.block_label ?? null,
         };
       });
+      // Pull real poll_answers (UUID-keyed) so analytics' answer_id can be
+      // resolved to a human-readable label. polls.answers JSONB uses local
+      // ids ("1","2") which don't match vote_analytics.answer_id.
+      const pollIds = Object.keys(pmap);
+      if (pollIds.length) {
+        const { data: ansRows } = await supabase
+          .from('poll_answers')
+          .select('id, poll_id, label, sort_order')
+          .in('poll_id', pollIds)
+          .order('sort_order', { ascending: true });
+        (ansRows ?? []).forEach((a: any) => {
+          const target = pmap[a.poll_id];
+          if (target) target.answers.push({ id: a.id, label: a.label });
+        });
+      }
       setPolls(pmap);
+      const projmap: Record<string, ProjectLite> = {};
+      (projectRows ?? []).forEach((p: any) => { projmap[p.id] = { id: p.id, name: p.name }; });
+      setProjects(projmap);
       setLive((liveRows?.[0] as LiveStateLite) ?? null);
       setLoading(false);
     };
