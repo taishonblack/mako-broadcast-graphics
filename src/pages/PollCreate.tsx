@@ -555,6 +555,12 @@ export default function PollCreate() {
 
   const handleSaveToProject = () => {
     if (!user) { toast.error('Please sign in first'); return; }
+    // If a project is already selected, save directly in tandem with autosave —
+    // no dialog. Only show the project picker when no project exists yet.
+    if (projectId) {
+      void persistProjectSave(projectId, projectName, 'manual');
+      return;
+    }
     setPickerOpen(true);
   };
 
@@ -2309,7 +2315,7 @@ export default function PollCreate() {
                 {saving === 'project'
                   ? <Loader2 className="w-3 h-3 animate-spin" />
                   : <FolderPlus className="w-3 h-3" />}
-                Save to Project…
+                {projectId ? 'Save Project' : 'Save to Project…'}
               </DropdownMenuItem>
               <DropdownMenuItem onClick={handleNewFolder} className="text-xs gap-2">
                 <FolderOpen className="w-3 h-3" />
@@ -2382,7 +2388,7 @@ export default function PollCreate() {
             className="gap-1.5 h-7 px-2 text-[10px]"
           >
             {saving === 'project' ? <Loader2 className="w-3 h-3 animate-spin" /> : <FolderPlus className="w-3 h-3" />}
-            Save to Project
+            {projectId ? 'Save Project' : 'Save to Project'}
           </Button>
           <span className="text-[10px] text-muted-foreground">
             Autosaves every {autosaveMinutes} min
