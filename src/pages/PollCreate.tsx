@@ -1129,7 +1129,18 @@ export default function PollCreate() {
     try {
       const existing = outputWindowRef.current;
       if (!existing || existing.closed) {
-        outputWindowRef.current = window.open(
+        // Try to re-acquire an existing named popup (survived navigation
+        // and possibly in fullscreen) before opening a fresh one — opening
+        // with features re-navigates the named window and breaks fullscreen.
+        let reacquired: Window | null = null;
+        try {
+          reacquired = window.open('', 'mako-output');
+          if (reacquired && reacquired.location && reacquired.location.href === 'about:blank') {
+            try { reacquired.close(); } catch { /* ignore */ }
+            reacquired = null;
+          }
+        } catch { reacquired = null; }
+        outputWindowRef.current = reacquired ?? window.open(
           `/output/${currentWorkspacePoll.id}`,
           'mako-output',
           'width=1920,height=1080',
