@@ -1,9 +1,10 @@
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { AUTOSAVE_MINUTE_OPTIONS, DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes, saveAutosaveMinutes } from '@/lib/operator-settings';
+import { AUTOSAVE_MINUTE_OPTIONS, DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes, loadConfirmationlessMode, saveAutosaveMinutes, saveConfirmationlessMode } from '@/lib/operator-settings';
 import { useColorSwatches, MAX_SWATCHES } from '@/lib/color-swatches';
-import { Palette, Plus, Settings2, ShieldCheck, Trash2 } from 'lucide-react';
+import { Palette, Plus, Settings2, ShieldCheck, Trash2, Zap } from 'lucide-react';
+import { Switch } from '@/components/ui/switch';
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import { toast } from 'sonner';
@@ -11,6 +12,7 @@ import { toast } from 'sonner';
 export default function OperatorSettings() {
   const [autosaveMinutes, setAutosaveMinutes] = useState(loadAutosaveMinutes());
   const { swatches, addSwatch, renameSwatch, updateSwatchValue, removeSwatch, clearSwatches } = useColorSwatches();
+  const [quickSwitch, setQuickSwitch] = useState(loadConfirmationlessMode());
   const [newName, setNewName] = useState('');
   const [newValue, setNewValue] = useState('#3B82F6');
 
@@ -80,6 +82,42 @@ export default function OperatorSettings() {
               <p className="text-xs text-muted-foreground">
                 Default timing is {DEFAULT_AUTOSAVE_MINUTES} minutes for new operator sessions.
               </p>
+            </div>
+          </section>
+
+          {/* ── Quick Switch (confirmationless TAKE/CUT) ──────────────────
+              Lets operators fire scene cuts during Go Live without the
+              confirm() dialog. Requires a per-show "Bus Safe" arm switch
+              from the workspace header — enabling here only opens the
+              capability; the arm gate prevents stray hotkeys from going
+              to air mid-VO. */}
+          <section className="rounded-lg border border-border bg-card/40 p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 text-foreground">
+                  <Zap className="h-4 w-4 text-[hsl(var(--mako-live))]" />
+                  <h2 className="text-sm font-medium">Quick Switch (confirmationless TAKE / CUT)</h2>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Skip the on-air confirmation dialog when cutting between scenes during Go Live.
+                  Each show requires a manual <span className="font-mono text-foreground">Bus Safe</span> arm switch
+                  in the workspace header before any confirmationless cut will fire — and arming
+                  auto-clears on End Poll so it never carries into the next show.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Hotkeys: <span className="font-mono text-foreground">SPACE</span> or <span className="font-mono text-foreground">T</span> = TAKE · <span className="font-mono text-foreground">C</span> = CUT.
+                </p>
+              </div>
+              <Switch
+                checked={quickSwitch}
+                onCheckedChange={(v) => {
+                  const next = Boolean(v);
+                  setQuickSwitch(next);
+                  saveConfirmationlessMode(next);
+                  toast.success(next ? 'Quick Switch enabled' : 'Quick Switch disabled');
+                }}
+                aria-label="Enable Quick Switch"
+              />
             </div>
           </section>
 

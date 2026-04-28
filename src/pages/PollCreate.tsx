@@ -72,7 +72,7 @@ import {
   saveProjectPollingAssetFolders,
   normalizeFolderState,
 } from '@/lib/polling-asset-folders';
-import { DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes } from '@/lib/operator-settings';
+import { DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes, loadConfirmationlessMode } from '@/lib/operator-settings';
 
 type OperatorMode = 'build' | 'output';
 
@@ -342,6 +342,19 @@ export default function PollCreate() {
   ));
   const [votingState, setVotingState] = useState<VotingState>('not_open');
   const [liveState, setLiveState] = useState<LiveState>('not_live');
+  // Quick Switch (confirmationless TAKE/CUT). The mode preference is
+  // remembered across sessions; the per-show "Bus Safe" arm switch is
+  // session-only and auto-disarms on End Live so a forgotten arm state
+  // can't carry into the next broadcast.
+  const [confirmationlessMode, setConfirmationlessMode] = useState<boolean>(loadConfirmationlessMode);
+  const [busSafeArmed, setBusSafeArmed] = useState<boolean>(false);
+  // Re-read the persisted preference whenever the operator might have
+  // changed it on the Settings page in another tab.
+  useEffect(() => {
+    const onFocus = () => setConfirmationlessMode(loadConfirmationlessMode());
+    window.addEventListener('focus', onFocus);
+    return () => window.removeEventListener('focus', onFocus);
+  }, []);
   const [previewScene, setPreviewScene] = useState<SceneType>('fullscreen');
   const [programScene, setProgramScene] = useState<SceneType>('fullscreen');
   const [qrSize, setQrSize] = useState(120);
@@ -805,9 +818,56 @@ export default function PollCreate() {
     setMode(nextMode);
   };
 
-  const handleTake = () => {
+  /**
+   * Pre-flight gate for an on-air switch. Returns null when safe, or a
+   * human-readable reason string when the cut should be blocked. Only
+   * runs while Go Live is engaged — pre-show preview switching is always
+   * allowed because nothing is on broadcast yet.
+   *
+   * Checks (in order):
+   *   1. Output mirror is reachable (popup window still open). If the
+   *      operator dismissed the Output window, switching scenes here
+   *      wouldn't reach broadcast at all.
+   *   2. Bus Safe is armed. Confirmationless mode requires the operator
+   *      to explicitly arm the cut so a stray hotkey can't take a scene
+   *      to air mid-VO.
+   */
+  const preflightLiveSwitch = (): string | null => {
+    if (liveState !== 'live') return null;
+    const out = outputWindowRef.current;
+    if (!out || out.closed) return 'Program Output window is not open. Re-open Output before cutting.';
+    if (!busSafeArmed) return 'Bus Safe is not armed. Arm it from the header before a confirmationless cut.';
+    return null;
+  };
+
+  /**
+   * Returns true when the operator confirms the cut (or it's safe to fire
+   * without confirmation). Live-on-air switches use either Quick Switch
+   * (armed + mirror healthy → instant) or a confirm() prompt. Pre-show
+   * switches always fire without prompting.
+   */
+  const confirmLiveSwitch = (label: 'TAKE' | 'CUT'): boolean => {
+    if (liveState !== 'live') return true;
+    if (confirmationlessMode) {
+      const reason = preflightLiveSwitch();
+      if (reason) {
+        toast.error(`Quick Switch blocked: ${reason}`);
+        return false;
+      }
+      return true;
+    }
+    // Standard mode while Live: confirm the cut. window.confirm is
+    // intentional — broadcast operators expect a hard, blocking gate so
+    // a misclick can't change what's on air.
+    return window.confirm(`${label} the staged scene to PROGRAM (on air)?`);
+  };
+
+  const fireSwitch = (kind: 'take' | 'cut') => {
     setProgramScene(previewScene);
-    if (projectId) void takeToProgram(projectId, previewScene as unknown as SceneName);
+    if (projectId) {
+      if (kind === 'take') void takeToProgram(projectId, previewScene as unknown as SceneName);
+      else void cutToProgram(projectId, previewScene as unknown as SceneName);
+    }
     const payload = getProgramOutputPayload();
     broadcastOutputState(payload);
     // While Live, Output is locked and ignores plain state pushes — refresh
@@ -817,14 +877,14 @@ export default function PollCreate() {
     }
   };
 
+  const handleTake = () => {
+    if (!confirmLiveSwitch('TAKE')) return;
+    fireSwitch('take');
+  };
+
   const handleCut = () => {
-    setProgramScene(previewScene);
-    if (projectId) void cutToProgram(projectId, previewScene as unknown as SceneName);
-    const payload = getProgramOutputPayload();
-    broadcastOutputState(payload);
-    if (liveState === 'live') {
-      broadcastOutputLock({ locked: true, snapshot: payload, lockedAt: Date.now() });
-    }
+    if (!confirmLiveSwitch('CUT')) return;
+    fireSwitch('cut');
   };
 
   const handleGoLive = async () => {
@@ -922,6 +982,9 @@ export default function PollCreate() {
   const handleEndPoll = () => {
     setLiveState('not_live');
     setVotingState('closed');
+    // Auto-disarm Bus Safe on End Live so the operator must consciously
+    // re-arm before the next show. Prevents a forgotten arm carrying over.
+    setBusSafeArmed(false);
     // Release the Program lock so the workspace once again drives Output.
     broadcastOutputLock({ locked: false });
     if (projectId) {
@@ -2530,6 +2593,16 @@ export default function PollCreate() {
             }}
             onGoLive={handleGoLive}
             onEndPoll={handleEndPoll}
+            confirmationlessMode={confirmationlessMode}
+            onConfirmationlessModeChange={(next) => {
+              setConfirmationlessMode(next);
+              // Persist immediately so Settings + workspace stay in sync.
+              import('@/lib/operator-settings').then((m) => m.saveConfirmationlessMode(next));
+              // Toggling off clears the arm so Quick Switch can't fire next session.
+              if (!next) setBusSafeArmed(false);
+            }}
+            busSafeArmed={busSafeArmed}
+            onBusSafeArmedChange={setBusSafeArmed}
             onOpenVoting={() => {
               setVotingState('open');
               void syncViewerVotingOpen();
