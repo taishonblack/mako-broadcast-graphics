@@ -279,6 +279,14 @@ export function OperatorOutputMode({
     let cancelled = false;
     setSlateHydrated(false);
     (async () => {
+      // Skip when the active poll is a synthetic in-memory draft (id is not
+      // a real UUID). Querying with `id=eq.draft-poll` returns a 400 from
+      // PostgREST because the column is a UUID, which spams the console and
+      // can make autosave look broken in devtools.
+      if (!isUuid(currentPoll.id)) {
+        setSlateHydrated(true);
+        return;
+      }
       const { data, error } = await supabase
         .from('polls')
         .select('slate_text, slate_image, slate_text_style, slate_subline_text, slate_subline_style')
@@ -306,6 +314,8 @@ export function OperatorOutputMode({
   // the saved values.
   useEffect(() => {
     if (!slateHydrated) return;
+    // Same guard — never attempt a debounced PATCH against a non-UUID id.
+    if (!isUuid(currentPoll.id)) return;
     const handle = window.setTimeout(() => {
       void supabase
         .from('polls')
