@@ -554,28 +554,37 @@ export default function PollCreate() {
         if (dbVoting === 'open' || dbVoting === 'closed' || dbVoting === 'not_open') {
           setVotingState(dbVoting);
         }
-        // Rebuild the local→UUID answer-id bridge from the persisted
-        // audience snapshot. Keys come from polls.answers (local ids),
-        // values come from public_viewer_state.answers[].id (the synced
-        // poll_answers UUID).
-        if (dbLive) {
-          try {
-            const snap = (data.live_poll_snapshot ?? null) as { poll?: { options?: Array<{ id: string }>; answers?: Array<{ id: string }> } } | null;
-            const poll = snap?.poll;
-            const opts = poll?.options ?? poll?.answers ?? [];
-            if (opts.length) {
-              const map: Record<string, string> = {};
-              for (const o of opts) {
-                const id = String(o.id);
-                if (id) map[id] = id;
-              }
-              setLiveAnswerIdMap((prev) => (Object.keys(prev).length ? prev : map));
-            }
-          } catch { /* ignore */ }
-        }
       });
     return () => { cancelled = true; };
   }, [projectId]);
+
+  // Whenever we're live but the local→UUID map is empty (e.g. after a
+  // page refresh in the operator workspace), rebuild it by fetching the
+  // current poll_answers for the active poll and zipping by sort_order
+  // against the local answers list. Without this, realtime vote tallies
+  // (UUID-keyed) never reach the bar graph and stay at 0%.
+  useEffect(() => {
+    if (liveState !== 'live') return;
+    if (Object.keys(liveAnswerIdMap).length > 0) return;
+    if (!pollId || !isUuid(pollId)) return;
+    if (!answers.length) return;
+    let cancelled = false;
+    void supabase
+      .from('poll_answers')
+      .select('id, sort_order')
+      .eq('poll_id', pollId)
+      .order('sort_order', { ascending: true })
+      .then(({ data: rows }) => {
+        if (cancelled || !rows?.length) return;
+        const map: Record<string, string> = {};
+        for (let i = 0; i < rows.length; i++) {
+          const local = answers[i];
+          if (local) map[String(local.id)] = rows[i].id as string;
+        }
+        if (Object.keys(map).length) setLiveAnswerIdMap(map);
+      });
+    return () => { cancelled = true; };
+  }, [liveState, liveAnswerIdMap, pollId, answers]);
 
   // Realtime mirror: when ANY surface (e.g. the global LIVE badge's End Live
   // button) writes to project_live_state, reflect those changes locally so
