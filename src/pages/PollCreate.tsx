@@ -348,6 +348,11 @@ export default function PollCreate() {
   // tallies by local id but useLiveVotes returns UUID-keyed counts, so we
   // join them through this map. Cleared on End Live.
   const [liveAnswerIdMap, setLiveAnswerIdMap] = useState<Record<string, string>>({});
+  // When > 0, the self-healing watcher is allowed to re-run sync_poll_answers
+  // on the active poll. We bump it after Go Live and reset to 0 on End Live so
+  // the retry effect can't fire outside a live window.
+  const liveResyncAttemptsRef = useRef<number>(0);
+  const lastResyncAtRef = useRef<number>(0);
   // Quick Switch (confirmationless TAKE/CUT). The mode preference is
   // remembered across sessions; the per-show "Bus Safe" arm switch is
   // session-only and auto-disarms on End Live so a forgotten arm state
@@ -951,17 +956,34 @@ export default function PollCreate() {
         label: o.text || `Answer ${i + 1}`,
         shortLabel: o.shortLabel ?? '',
       }));
-      const { data: syncData, error: syncErr } = await supabase.rpc(
-        'sync_poll_answers' as never,
-        { _poll_id: livePoll.id, _options: optionsForSync as never } as never,
-      );
-      if (syncErr) {
-        toast.error(`Vote tally setup failed: ${syncErr.message}`);
-      } else if (syncData && typeof syncData === 'object' && 'answers' in (syncData as object)) {
-        const rows = ((syncData as { answers?: Array<{ client_id: string; id: string }> }).answers) ?? [];
-        for (const r of rows) answerIdMap[r.client_id] = r.id;
-        setLiveAnswerIdMap(answerIdMap);
+      // Retry up to 3× with a short backoff. Transient network/RLS hiccups
+      // would otherwise leave poll_answers empty and every viewer vote would
+      // be rejected as `invalid_answer` until the next Go Live.
+      let lastErr: string | null = null;
+      for (let attempt = 0; attempt < 3; attempt++) {
+        const { data: syncData, error: syncErr } = await supabase.rpc(
+          'sync_poll_answers' as never,
+          { _poll_id: livePoll.id, _options: optionsForSync as never } as never,
+        );
+        if (syncErr) {
+          lastErr = syncErr.message;
+        } else if (syncData && typeof syncData === 'object' && 'answers' in (syncData as object)) {
+          const rows = ((syncData as { answers?: Array<{ client_id: string; id: string }> }).answers) ?? [];
+          if (rows.length > 0) {
+            answerIdMap = {};
+            for (const r of rows) answerIdMap[r.client_id] = r.id;
+            setLiveAnswerIdMap(answerIdMap);
+            lastErr = null;
+            break;
+          }
+          lastErr = 'sync returned no answers';
+        }
+        await new Promise((r) => setTimeout(r, 250 * (attempt + 1)));
       }
+      if (lastErr) toast.error(`Vote tally setup failed: ${lastErr}`);
+      // Arm the self-healing watcher for this live window.
+      liveResyncAttemptsRef.current = 0;
+      lastResyncAtRef.current = Date.now();
     } else {
       toast.warning('Live votes need a saved poll. Save the poll first to enable real-time tallies.');
     }
