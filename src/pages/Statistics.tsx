@@ -26,6 +26,14 @@ interface PollLite {
   question: string;
   internal_name: string;
   answers: Array<{ id: string; label: string }>;
+  project_id: string | null;
+  block_letter?: string | null;
+  block_label?: string | null;
+}
+
+interface ProjectLite {
+  id: string;
+  name: string;
 }
 
 interface LiveStateLite {
@@ -40,7 +48,7 @@ interface LiveStateLite {
 const REFRESH_MS = 15000;
 
 function downloadCSV(filename: string, rows: AnalyticsRow[], pollLookup: Record<string, PollLite>) {
-  const header = ['timestamp', 'poll_id', 'poll_name', 'answer_id', 'answer_label', 'device_type', 'browser', 'os', 'country', 'region'];
+  const header = ['timestamp', 'project_id', 'poll_id', 'poll_name', 'block', 'answer_id', 'answer_label', 'device_type', 'browser', 'os', 'country', 'region'];
   const escape = (v: string) => {
     const s = String(v ?? '');
     return /[",\n]/.test(s) ? `"${s.replace(/"/g, '""')}"` : s;
@@ -49,11 +57,14 @@ function downloadCSV(filename: string, rows: AnalyticsRow[], pollLookup: Record<
   rows.forEach((r) => {
     const poll = pollLookup[r.poll_id];
     const answerLabel = poll?.answers.find((a) => a.id === r.answer_id)?.label ?? '';
+    const block = [poll?.block_letter, poll?.block_label].filter(Boolean).join(' · ');
     lines.push(
       [
         r.created_at,
+        poll?.project_id ?? '',
         r.poll_id,
         poll?.internal_name || poll?.question || '',
+        block,
         r.answer_id ?? '',
         answerLabel,
         r.device_type,
