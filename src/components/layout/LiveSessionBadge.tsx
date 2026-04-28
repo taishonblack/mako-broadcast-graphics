@@ -40,7 +40,7 @@ export function LiveSessionBadge() {
       <div
         role="status"
         aria-live="polite"
-        className="fixed top-3 right-3 z-50 flex items-center gap-2 rounded-full border border-[hsl(var(--mako-live)/0.5)] bg-background/90 backdrop-blur px-2 py-1 shadow-[0_0_18px_-4px_hsl(var(--mako-live)/0.55)]"
+        className="fixed top-0 left-0 right-0 z-[60] h-7 flex items-center justify-center gap-2 border-b border-[hsl(var(--mako-live)/0.5)] bg-background/95 backdrop-blur shadow-[0_2px_18px_-4px_hsl(var(--mako-live)/0.55)] px-3"
       >
         <span className="mako-chip bg-mako-live/20 text-[hsl(var(--mako-live))] font-bold tracking-wider animate-live-pulse">
           <Radio className="w-3 h-3" />
