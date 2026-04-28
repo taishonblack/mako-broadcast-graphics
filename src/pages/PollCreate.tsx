@@ -577,6 +577,43 @@ export default function PollCreate() {
     return () => { cancelled = true; };
   }, [projectId]);
 
+  // Realtime mirror: when ANY surface (e.g. the global LIVE badge's End Live
+  // button) writes to project_live_state, reflect those changes locally so
+  // PollCreate doesn't keep broadcasting `output_state='program_live'` from
+  // a stale local `liveState`. This is what makes End Live (badge) and
+  // End Poll (operator panel) behave identically.
+  useEffect(() => {
+    if (!projectId) return;
+    const channel = supabase
+      .channel(`pollcreate-live-state-${projectId}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'project_live_state', filter: `project_id=eq.${projectId}` },
+        (payload) => {
+          const row = (payload.new ?? null) as { output_state?: string; voting_state?: string } | null;
+          if (!row) return;
+          const dbLive = row.output_state === 'program_live';
+          if (dbLive) {
+            setLiveState('live');
+          } else if (row.output_state) {
+            // Mirror handleEndPoll cleanup so the workspace returns to a
+            // clean preview state without the operator clicking End Poll.
+            setLiveState('not_live');
+            setLiveAnswerIdMap({});
+            liveResyncAttemptsRef.current = 0;
+            lastResyncAtRef.current = 0;
+            setBusSafeArmed(false);
+            try { sessionStorage.removeItem(LIVE_SESSION_KEY); } catch { /* ignore */ }
+            broadcastOutputLock({ locked: false });
+          }
+          const v = row.voting_state;
+          if (v === 'open' || v === 'closed' || v === 'not_open') setVotingState(v);
+        },
+      )
+      .subscribe();
+    return () => { void supabase.removeChannel(channel); };
+  }, [projectId]);
+
   useEffect(() => {
     setAutosaveMinutes(loadAutosaveMinutes());
 
