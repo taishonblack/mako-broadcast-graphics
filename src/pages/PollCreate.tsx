@@ -341,13 +341,36 @@ export default function PollCreate() {
   const [outputBlockSource, setOutputBlockSource] = useState<OutputBlockSource>(() => (
     loadPersistedOutputBlock().pinned ? 'pinned' : 'default'
   ));
-  const [votingState, setVotingState] = useState<VotingState>('not_open');
-  const [liveState, setLiveState] = useState<LiveState>('not_live');
+  // Live session state is persisted to sessionStorage so that navigating
+  // away from /workspace (e.g. to /statistics or /settings) and back does
+  // NOT silently exit Go Live. The DB (`project_live_state`) is the ultimate
+  // source of truth and is reconciled below; sessionStorage just gives us
+  // an instant rehydrate so the operator never sees a blank "not live"
+  // flash on remount. End Live is the only path that clears these.
+  const LIVE_SESSION_KEY = 'mako-live-session';
+  type PersistedLiveSession = {
+    liveState: LiveState;
+    votingState: VotingState;
+    liveAnswerIdMap: Record<string, string>;
+  };
+  const loadPersistedLiveSession = (): PersistedLiveSession | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = sessionStorage.getItem(LIVE_SESSION_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as PersistedLiveSession;
+      if (!parsed || (parsed.liveState !== 'live' && parsed.liveState !== 'not_live')) return null;
+      return parsed;
+    } catch { return null; }
+  };
+  const persisted = loadPersistedLiveSession();
+  const [votingState, setVotingState] = useState<VotingState>(persisted?.votingState ?? 'not_open');
+  const [liveState, setLiveState] = useState<LiveState>(persisted?.liveState ?? 'not_live');
   // After Go Live syncs poll_answers, this maps each local option id (e.g.
   // "1", "2") → the real poll_answers UUID. The operator's bar graph keys
   // tallies by local id but useLiveVotes returns UUID-keyed counts, so we
   // join them through this map. Cleared on End Live.
-  const [liveAnswerIdMap, setLiveAnswerIdMap] = useState<Record<string, string>>({});
+  const [liveAnswerIdMap, setLiveAnswerIdMap] = useState<Record<string, string>>(persisted?.liveAnswerIdMap ?? {});
   // When > 0, the self-healing watcher is allowed to re-run sync_poll_answers
   // on the active poll. We bump it after Go Live and reset to 0 on End Live so
   // the retry effect can't fire outside a live window.
