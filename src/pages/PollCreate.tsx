@@ -1428,6 +1428,9 @@ export default function PollCreate() {
   // Desktop. Full Screen Output always mirrors the `program` slice.
   const [assetColorSet, setAssetColorSet] = useState<AssetColorSet>(() => createDefaultColorSet());
   const assetColors: AssetColorMap = assetColorSet[transformViewport];
+  // Keep the ref in sync so effects declared earlier in the file (e.g. the
+  // live-resync watcher) can read the latest value without violating TDZ.
+  useEffect(() => { assetColorsRef.current = assetColors; }, [assetColors]);
   const setAssetColors = useCallback(
     (updater: AssetColorMap | ((current: AssetColorMap) => AssetColorMap)) => {
       setAssetColorSet((current) => {
