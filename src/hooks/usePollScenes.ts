@@ -12,8 +12,71 @@ import {
   nextSceneName,
   renamePollScene,
   setPollSceneAssetVisible,
+  setPollSceneAssetTransform,
 } from '@/lib/poll-scenes';
 import type { AssetId, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
+
+const SCENE_STORAGE_PREFIX = 'mako-poll-scenes-v2';
+
+interface StoredPollScene {
+  id: string;
+  pollId: string;
+  name: string;
+  preset: ScenePreset;
+  sortOrder: number;
+  visibleAssetIds: AssetId[];
+  assetTransforms: PollScene['assetTransforms'];
+}
+
+function sceneStorageKey(pollId: string | undefined, draftScopeKey: string) {
+  return `${SCENE_STORAGE_PREFIX}:${pollId ? `poll:${pollId}` : `draft:${draftScopeKey}`}`;
+}
+
+function serializeScenes(scenes: PollScene[]): StoredPollScene[] {
+  return scenes.map((scene) => ({
+    id: scene.id,
+    pollId: scene.pollId,
+    name: scene.name,
+    preset: scene.preset,
+    sortOrder: scene.sortOrder,
+    visibleAssetIds: Array.from(scene.visibleAssetIds),
+    assetTransforms: scene.assetTransforms ?? {},
+  }));
+}
+
+function deserializeScenes(raw: unknown): PollScene[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((scene): scene is StoredPollScene => Boolean(scene && typeof scene === 'object'))
+    .map((scene) => ({
+      id: typeof scene.id === 'string' ? scene.id : `draft-scene-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+      pollId: typeof scene.pollId === 'string' ? scene.pollId : 'draft',
+      name: typeof scene.name === 'string' && scene.name.trim() ? scene.name : 'Scene',
+      preset: scene.preset === 'liveResults' || scene.preset === 'final' ? scene.preset : 'fullScreen',
+      sortOrder: typeof scene.sortOrder === 'number' ? scene.sortOrder : 0,
+      visibleAssetIds: new Set(Array.isArray(scene.visibleAssetIds) ? scene.visibleAssetIds : []),
+      assetTransforms: scene.assetTransforms ?? {},
+    }))
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+function loadCachedScenes(key: string): { exists: boolean; scenes: PollScene[] } {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return { exists: false, scenes: [] };
+    return { exists: true, scenes: deserializeScenes(JSON.parse(raw)) };
+  } catch {
+    return { exists: false, scenes: [] };
+  }
+}
+
+function cacheScenes(key: string, scenes: PollScene[]) {
+  try {
+    localStorage.setItem(key, JSON.stringify(serializeScenes(scenes)));
+  } catch {
+    // Local cache is a resilience layer only; persistence still works via DB.
+  }
+}
 
 /**
  * Hook for managing scenes attached to a single poll.
