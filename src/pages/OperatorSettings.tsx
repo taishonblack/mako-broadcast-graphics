@@ -85,6 +85,42 @@ export default function OperatorSettings() {
             </div>
           </section>
 
+          {/* ── Quick Switch (confirmationless TAKE/CUT) ──────────────────
+              Lets operators fire scene cuts during Go Live without the
+              confirm() dialog. Requires a per-show "Bus Safe" arm switch
+              from the workspace header — enabling here only opens the
+              capability; the arm gate prevents stray hotkeys from going
+              to air mid-VO. */}
+          <section className="rounded-lg border border-border bg-card/40 p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 text-foreground">
+                  <Zap className="h-4 w-4 text-[hsl(var(--mako-live))]" />
+                  <h2 className="text-sm font-medium">Quick Switch (confirmationless TAKE / CUT)</h2>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  Skip the on-air confirmation dialog when cutting between scenes during Go Live.
+                  Each show requires a manual <span className="font-mono text-foreground">Bus Safe</span> arm switch
+                  in the workspace header before any confirmationless cut will fire — and arming
+                  auto-clears on End Poll so it never carries into the next show.
+                </p>
+                <p className="text-xs text-muted-foreground">
+                  Hotkeys: <span className="font-mono text-foreground">SPACE</span> or <span className="font-mono text-foreground">T</span> = TAKE · <span className="font-mono text-foreground">C</span> = CUT.
+                </p>
+              </div>
+              <Switch
+                checked={quickSwitch}
+                onCheckedChange={(v) => {
+                  const next = Boolean(v);
+                  setQuickSwitch(next);
+                  saveConfirmationlessMode(next);
+                  toast.success(next ? 'Quick Switch enabled' : 'Quick Switch disabled');
+                }}
+                aria-label="Enable Quick Switch"
+              />
+            </div>
+          </section>
+
           {/* ── Swatch Manager ───────────────────────────────────────────
               Operator's personal color palette. Available everywhere the
               "Use Swatch" dropdown appears (QR fill, backgrounds, voter
