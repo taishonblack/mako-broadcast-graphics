@@ -1032,6 +1032,8 @@ export default function PollCreate() {
   const handleEndPoll = () => {
     setLiveState('not_live');
     setVotingState('closed');
+    // Drop the local→UUID answer-id bridge so the next show starts clean.
+    setLiveAnswerIdMap({});
     // Auto-disarm Bus Safe on End Live so the operator must consciously
     // re-arm before the next show. Prevents a forgotten arm carrying over.
     setBusSafeArmed(false);
