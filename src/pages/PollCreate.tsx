@@ -558,39 +558,37 @@ export default function PollCreate() {
         if (dbVoting === 'open' || dbVoting === 'closed' || dbVoting === 'not_open') {
           setVotingState(dbVoting);
         }
-        // Rebuild the local→UUID answer-id bridge by reading the actual
-        // poll_answers rows for the active poll and zipping them against
-        // the local `answers` state by sort order. The snapshot stored in
-        // live_poll_snapshot only contains UUIDs, so we cannot recover the
-        // local "1"/"2" ids from it — without this the bar graph stays at
-        // 0% after a refresh because realtime tallies (UUID-keyed) never
-        // line up with local-id lookups.
-        if (dbLive && data.active_poll_id && isUuid(data.active_poll_id)) {
-          void supabase
-            .from('poll_answers')
-            .select('id, sort_order')
-            .eq('poll_id', data.active_poll_id)
-            .order('sort_order', { ascending: true })
-            .then(({ data: rows }) => {
-              if (cancelled || !rows?.length) return;
-              setLiveAnswerIdMap((prev) => {
-                if (Object.keys(prev).length) return prev;
-                const map: Record<string, string> = {};
-                // Use the freshest local answers via setAnswers callback —
-                // but we don't have direct access here, so read via state
-                // closure on next render. Fallback: index against current
-                // `answers` snapshot below.
-                for (let i = 0; i < rows.length; i++) {
-                  const local = answersRef.current[i];
-                  if (local) map[String(local.id)] = rows[i].id as string;
-                }
-                return map;
-              });
-            });
-        }
       });
     return () => { cancelled = true; };
   }, [projectId]);
+
+  // Whenever we're live but the local→UUID map is empty (e.g. after a
+  // page refresh in the operator workspace), rebuild it by fetching the
+  // current poll_answers for the active poll and zipping by sort_order
+  // against the local answers list. Without this, realtime vote tallies
+  // (UUID-keyed) never reach the bar graph and stay at 0%.
+  useEffect(() => {
+    if (liveState !== 'live') return;
+    if (Object.keys(liveAnswerIdMap).length > 0) return;
+    if (!pollId || !isUuid(pollId)) return;
+    if (!answers.length) return;
+    let cancelled = false;
+    void supabase
+      .from('poll_answers')
+      .select('id, sort_order')
+      .eq('poll_id', pollId)
+      .order('sort_order', { ascending: true })
+      .then(({ data: rows }) => {
+        if (cancelled || !rows?.length) return;
+        const map: Record<string, string> = {};
+        for (let i = 0; i < rows.length; i++) {
+          const local = answers[i];
+          if (local) map[String(local.id)] = rows[i].id as string;
+        }
+        if (Object.keys(map).length) setLiveAnswerIdMap(map);
+      });
+    return () => { cancelled = true; };
+  }, [liveState, liveAnswerIdMap, pollId, answers]);
 
   // Realtime mirror: when ANY surface (e.g. the global LIVE badge's End Live
   // button) writes to project_live_state, reflect those changes locally so
