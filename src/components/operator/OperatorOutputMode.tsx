@@ -469,7 +469,13 @@ export function OperatorOutputMode({
   // Tracks whether the operator has opened the fullscreen Output window.
   // Drives the green "ACTIVE" state on the Open Output quick action so
   // operators can see at a glance that a fullscreen surface is live.
-  const [outputOpen, setOutputOpen] = useState(false);
+  // Persisted across navigation: a fullscreen popup survives route changes
+  // even though this React component remounts, and the operator should
+  // continue to see ACTIVE without reopening (which would break fullscreen).
+  const [outputOpen, setOutputOpen] = useState(() => {
+    if (typeof window === 'undefined') return false;
+    return sessionStorage.getItem('mako-output-open') === '1';
+  });
   // Track the popup so we can detect close and flip the ACTIVE indicator off.
   const outputWindowRef = useRef<Window | null>(null);
   // Has the operator ever opened the Output window in this session? Used
@@ -531,6 +537,31 @@ export function OperatorOutputMode({
       setSlateActive(false);
     }
   }, [votingState, slateActive]);
+
+  // On mount, try to re-acquire an existing named popup so the close-poller
+  // works after navigation. window.open('', name) returns the existing
+  // window without navigating it.
+  useEffect(() => {
+    if (!outputOpen) return;
+    try {
+      const existing = window.open('', 'mako-output');
+      if (existing && existing.location && existing.location.href !== 'about:blank') {
+        outputWindowRef.current = existing;
+      } else if (existing) {
+        try { existing.close(); } catch { /* ignore */ }
+        // No real popup — clear stale flag.
+        sessionStorage.removeItem('mako-output-open');
+        setOutputOpen(false);
+      }
+    } catch { /* ignore */ }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (outputOpen) sessionStorage.setItem('mako-output-open', '1');
+    else sessionStorage.removeItem('mako-output-open');
+  }, [outputOpen]);
 
   const handleOpenOutputClick = () => {
     const win = onOpenOutput();

@@ -341,13 +341,36 @@ export default function PollCreate() {
   const [outputBlockSource, setOutputBlockSource] = useState<OutputBlockSource>(() => (
     loadPersistedOutputBlock().pinned ? 'pinned' : 'default'
   ));
-  const [votingState, setVotingState] = useState<VotingState>('not_open');
-  const [liveState, setLiveState] = useState<LiveState>('not_live');
+  // Live session state is persisted to sessionStorage so that navigating
+  // away from /workspace (e.g. to /statistics or /settings) and back does
+  // NOT silently exit Go Live. The DB (`project_live_state`) is the ultimate
+  // source of truth and is reconciled below; sessionStorage just gives us
+  // an instant rehydrate so the operator never sees a blank "not live"
+  // flash on remount. End Live is the only path that clears these.
+  const LIVE_SESSION_KEY = 'mako-live-session';
+  type PersistedLiveSession = {
+    liveState: LiveState;
+    votingState: VotingState;
+    liveAnswerIdMap: Record<string, string>;
+  };
+  const loadPersistedLiveSession = (): PersistedLiveSession | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      const raw = sessionStorage.getItem(LIVE_SESSION_KEY);
+      if (!raw) return null;
+      const parsed = JSON.parse(raw) as PersistedLiveSession;
+      if (!parsed || (parsed.liveState !== 'live' && parsed.liveState !== 'not_live')) return null;
+      return parsed;
+    } catch { return null; }
+  };
+  const persisted = loadPersistedLiveSession();
+  const [votingState, setVotingState] = useState<VotingState>(persisted?.votingState ?? 'not_open');
+  const [liveState, setLiveState] = useState<LiveState>(persisted?.liveState ?? 'not_live');
   // After Go Live syncs poll_answers, this maps each local option id (e.g.
   // "1", "2") → the real poll_answers UUID. The operator's bar graph keys
   // tallies by local id but useLiveVotes returns UUID-keyed counts, so we
   // join them through this map. Cleared on End Live.
-  const [liveAnswerIdMap, setLiveAnswerIdMap] = useState<Record<string, string>>({});
+  const [liveAnswerIdMap, setLiveAnswerIdMap] = useState<Record<string, string>>(persisted?.liveAnswerIdMap ?? {});
   // When > 0, the self-healing watcher is allowed to re-run sync_poll_answers
   // on the active poll. We bump it after Go Live and reset to 0 on End Live so
   // the retry effect can't fire outside a live window.
@@ -490,6 +513,68 @@ export default function PollCreate() {
         setProjectName(match.name);
       })
       .catch(() => undefined);
+  }, [projectId]);
+
+  // Persist live session locally so navigation between operator pages does
+  // not silently drop Go Live / Voting / answer-id-map state.
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    try {
+      if (liveState === 'live') {
+        sessionStorage.setItem(
+          LIVE_SESSION_KEY,
+          JSON.stringify({ liveState, votingState, liveAnswerIdMap }),
+        );
+      } else {
+        sessionStorage.removeItem(LIVE_SESSION_KEY);
+      }
+    } catch { /* ignore quota / private mode */ }
+  }, [liveState, votingState, liveAnswerIdMap]);
+
+  // Reconcile live state from the DB on mount / when projectId resolves.
+  // If the operator went Live then navigated away, project_live_state is
+  // still `program_live` + voting `open` — rehydrate those flags so the
+  // Go Live / Open Voting pills light up correctly without forcing the
+  // operator to click again. Only End Live (which writes output_state =
+  // 'preview') flips us back to not_live.
+  useEffect(() => {
+    if (!projectId) return;
+    let cancelled = false;
+    void supabase
+      .from('project_live_state')
+      .select('output_state, voting_state, active_poll_id, live_poll_snapshot')
+      .eq('project_id', projectId)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (cancelled || !data) return;
+        const dbLive = data.output_state === 'program_live';
+        const dbVoting = data.voting_state as VotingState | null;
+        if (dbLive) setLiveState('live');
+        else if (data.output_state) setLiveState('not_live');
+        if (dbVoting === 'open' || dbVoting === 'closed' || dbVoting === 'not_open') {
+          setVotingState(dbVoting);
+        }
+        // Rebuild the local→UUID answer-id bridge from the persisted
+        // audience snapshot. Keys come from polls.answers (local ids),
+        // values come from public_viewer_state.answers[].id (the synced
+        // poll_answers UUID).
+        if (dbLive) {
+          try {
+            const snap = (data.live_poll_snapshot ?? null) as { poll?: { options?: Array<{ id: string }>; answers?: Array<{ id: string }> } } | null;
+            const poll = snap?.poll;
+            const opts = poll?.options ?? poll?.answers ?? [];
+            if (opts.length) {
+              const map: Record<string, string> = {};
+              for (const o of opts) {
+                const id = String(o.id);
+                if (id) map[id] = id;
+              }
+              setLiveAnswerIdMap((prev) => (Object.keys(prev).length ? prev : map));
+            }
+          } catch { /* ignore */ }
+        }
+      });
+    return () => { cancelled = true; };
   }, [projectId]);
 
   useEffect(() => {
@@ -1044,7 +1129,18 @@ export default function PollCreate() {
     try {
       const existing = outputWindowRef.current;
       if (!existing || existing.closed) {
-        outputWindowRef.current = window.open(
+        // Try to re-acquire an existing named popup (survived navigation
+        // and possibly in fullscreen) before opening a fresh one — opening
+        // with features re-navigates the named window and breaks fullscreen.
+        let reacquired: Window | null = null;
+        try {
+          reacquired = window.open('', 'mako-output');
+          if (reacquired && reacquired.location && reacquired.location.href === 'about:blank') {
+            try { reacquired.close(); } catch { /* ignore */ }
+            reacquired = null;
+          }
+        } catch { reacquired = null; }
+        outputWindowRef.current = reacquired ?? window.open(
           `/output/${currentWorkspacePoll.id}`,
           'mako-output',
           'width=1920,height=1080',
@@ -1153,6 +1249,11 @@ export default function PollCreate() {
     setLiveAnswerIdMap({});
     liveResyncAttemptsRef.current = 0;
     lastResyncAtRef.current = 0;
+    // Clear persisted live-session crumbs so a remount after End Live
+    // doesn't resurrect the old Go Live flag from sessionStorage.
+    try {
+      sessionStorage.removeItem(LIVE_SESSION_KEY);
+    } catch { /* ignore */ }
     // Auto-disarm Bus Safe on End Live so the operator must consciously
     // re-arm before the next show. Prevents a forgotten arm carrying over.
     setBusSafeArmed(false);
@@ -2765,6 +2866,23 @@ export default function PollCreate() {
                 try { existing.focus(); } catch { /* ignore */ }
                 return existing;
               }
+              // After cross-page navigation, the React ref is null even when
+              // the named popup is still open (and may be in fullscreen).
+              // Re-acquire its handle WITHOUT navigating it — passing an
+              // empty URL + no features returns the existing window.
+              try {
+                const reacquired = window.open('', 'mako-output');
+                if (reacquired && !reacquired.closed && reacquired.location && reacquired.location.href !== 'about:blank') {
+                  outputWindowRef.current = reacquired;
+                  try { reacquired.focus(); } catch { /* ignore */ }
+                  return reacquired;
+                }
+                // Empty handle or about:blank → no real popup exists; close
+                // the about:blank we may have just spawned and open fresh.
+                if (reacquired && reacquired.location && reacquired.location.href === 'about:blank') {
+                  try { reacquired.close(); } catch { /* ignore */ }
+                }
+              } catch { /* cross-origin guard, fall through to open */ }
               const win = window.open(`/output/${currentWorkspacePoll.id}`, 'mako-output', 'width=1920,height=1080');
               outputWindowRef.current = win;
               return win ?? null;
