@@ -35,6 +35,15 @@ import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
 import { ChevronDown, ChevronRight, Clock, Eye, EyeOff, FlaskConical, Globe, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Smartphone, Square, StopCircle, Type as TypeIcon, Vote, XCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { HelpCircle, Check, X as XIcon } from 'lucide-react';
+import {
+  Sheet,
+  SheetContent,
+  SheetDescription,
+  SheetHeader,
+  SheetTitle,
+  SheetTrigger,
+} from '@/components/ui/sheet';
 import { percentsFromAnswers, rebalancePercents, answersFromPercents, AnswerLite } from '@/lib/answer-percents';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
