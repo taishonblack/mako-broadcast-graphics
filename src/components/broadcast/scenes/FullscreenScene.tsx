@@ -62,6 +62,7 @@ export function FullscreenScene({
   wordmarkWeight = 'semibold',
   wordmarkTracking = 0,
   wordmarkScale = 1,
+  layers,
 }: FullscreenSceneProps) {
   const useNativeChart = template === 'pie-donut' || template === 'puck-slider' || template === 'vertical-bar';
   const showWordmarkPlaceholder = !question.trim() && options.every((option) => !option.text.trim()) && totalVotes === 0;
