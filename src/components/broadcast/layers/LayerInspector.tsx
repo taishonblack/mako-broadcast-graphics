@@ -241,26 +241,32 @@ export function LayerInspector({ layer, onUpdateLayer }: LayerInspectorProps) {
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground w-12">Width</span>
+            <span
+              className="text-[10px] text-muted-foreground w-12"
+              title="Wrap width as % of frame. Capped at Action Safe (90%) — text drops to a new line before crossing it."
+            >Width</span>
             <Slider
               value={[layer.textProps.maxWidth]}
               onValueChange={([v]) => onUpdateLayer(layer.id, {
                 textProps: { ...layer.textProps!, maxWidth: v }
               })}
-              min={20} max={100} step={5}
+              min={20} max={90} step={5}
               className="flex-1"
             />
             <span className="text-[10px] text-muted-foreground font-mono w-10">{layer.textProps.maxWidth}%</span>
           </div>
 
           <div className="flex items-center gap-2">
-            <span className="text-[10px] text-muted-foreground w-12">Leading</span>
+            <span
+              className="text-[10px] text-muted-foreground w-12"
+              title="Line spacing — controls the gap between lines once the text wraps onto multiple rows."
+            >Leading</span>
             <Slider
               value={[layer.textProps.lineHeight * 10]}
               onValueChange={([v]) => onUpdateLayer(layer.id, {
                 textProps: { ...layer.textProps!, lineHeight: v / 10 }
               })}
-              min={8} max={24} step={1}
+              min={8} max={28} step={1}
               className="flex-1"
             />
             <span className="text-[10px] text-muted-foreground font-mono w-10">{layer.textProps.lineHeight.toFixed(1)}</span>

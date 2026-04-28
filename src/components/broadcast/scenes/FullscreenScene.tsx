@@ -62,10 +62,24 @@ export function FullscreenScene({
   wordmarkWeight = 'semibold',
   wordmarkTracking = 0,
   wordmarkScale = 1,
+  layers,
 }: FullscreenSceneProps) {
   const useNativeChart = template === 'pie-donut' || template === 'puck-slider' || template === 'vertical-bar';
   const showWordmarkPlaceholder = !question.trim() && options.every((option) => !option.text.trim()) && totalVotes === 0;
   const visibleAssets = new Set(enabledAssetIds ?? ['question', 'answers', 'logo']);
+
+  // Look up per-layer text settings (lineHeight, maxWidth%) so the
+  // inspector can control wrapped-line spacing on the live composition.
+  // Action Safe is inset 5% on each side of the 1920px canvas → 1728px usable.
+  // We clamp the wrap width to action-safe so long question text breaks to a
+  // new line BEFORE touching the action-safe guide instead of overflowing it.
+  const questionLayer = layers?.find((l) => l.id === 'question');
+  const ACTION_SAFE_PX = 1728;
+  const questionMaxWidthPx = Math.min(
+    ACTION_SAFE_PX,
+    Math.round(((questionLayer?.textProps?.maxWidth ?? 84) / 100) * 1920),
+  );
+  const questionLineHeight = questionLayer?.textProps?.lineHeight ?? 1.1;
 
   return (
     <div
@@ -97,11 +111,14 @@ export function FullscreenScene({
             {visibleAssets.has('question') && (
             <h1
               data-layer="question"
-              className="font-bold text-center leading-tight mb-20"
+              className="font-bold text-center mb-20"
               style={{
                 color: assetColors?.question?.textPrimary ?? theme.textPrimary,
                 fontSize: '88px',
-                maxWidth: '1600px',
+                maxWidth: `${questionMaxWidthPx}px`,
+                lineHeight: questionLineHeight,
+                overflowWrap: 'break-word',
+                wordBreak: 'normal',
                 ...getAssetTransformStyle(transforms?.question),
               }}
             >
