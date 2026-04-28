@@ -2518,7 +2518,16 @@ export default function PollCreate() {
             }}
             onTake={handleTake}
             onCut={handleCut}
-            onOpenOutput={() => window.open(`/output/${currentWorkspacePoll.id}`, 'mako-output', 'width=1920,height=1080') ?? null}
+            onOpenOutput={() => {
+              const existing = outputWindowRef.current;
+              if (existing && !existing.closed) {
+                try { existing.focus(); } catch { /* ignore */ }
+                return existing;
+              }
+              const win = window.open(`/output/${currentWorkspacePoll.id}`, 'mako-output', 'width=1920,height=1080');
+              outputWindowRef.current = win;
+              return win ?? null;
+            }}
             onGoLive={handleGoLive}
             onEndPoll={handleEndPoll}
             onOpenVoting={() => {
