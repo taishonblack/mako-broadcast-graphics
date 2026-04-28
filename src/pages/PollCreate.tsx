@@ -2850,6 +2850,23 @@ export default function PollCreate() {
                 try { existing.focus(); } catch { /* ignore */ }
                 return existing;
               }
+              // After cross-page navigation, the React ref is null even when
+              // the named popup is still open (and may be in fullscreen).
+              // Re-acquire its handle WITHOUT navigating it — passing an
+              // empty URL + no features returns the existing window.
+              try {
+                const reacquired = window.open('', 'mako-output');
+                if (reacquired && !reacquired.closed && reacquired.location && reacquired.location.href !== 'about:blank') {
+                  outputWindowRef.current = reacquired;
+                  try { reacquired.focus(); } catch { /* ignore */ }
+                  return reacquired;
+                }
+                // Empty handle or about:blank → no real popup exists; close
+                // the about:blank we may have just spawned and open fresh.
+                if (reacquired && reacquired.location && reacquired.location.href === 'about:blank') {
+                  try { reacquired.close(); } catch { /* ignore */ }
+                }
+              } catch { /* cross-origin guard, fall through to open */ }
               const win = window.open(`/output/${currentWorkspacePoll.id}`, 'mako-output', 'width=1920,height=1080');
               outputWindowRef.current = win;
               return win ?? null;
