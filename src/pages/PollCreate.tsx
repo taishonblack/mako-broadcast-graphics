@@ -623,14 +623,26 @@ export default function PollCreate() {
     await persistProjectSave(selectedProjectId, selectedProjectName, 'manual');
   };
 
+  // Real voter tallies — only subscribed to while we're actually on-air.
+  // When not live, the hook returns an empty map and we fall back to test
+  // data, so the operator's build/preview workflow is unchanged.
+  const liveVoteMap = useLiveVotes(pollId ?? undefined, liveState === 'live');
+
   const previewOptions: PollOption[] = useMemo(() =>
-    answers.map((a, i) => ({
-      id: a.id,
-      text: a.text || `Answer ${i + 1}`,
-      shortLabel: a.shortLabel || undefined,
-      votes: previewDataMode === 'test' ? (a.testVotes ?? 0) : 0,
-      order: i,
-    })), [answers, previewDataMode]
+    answers.map((a, i) => {
+      // Auto behavior: live votes when Go Live is engaged, test data otherwise.
+      // `previewDataMode` still gates the test path so toggling away from
+      // 'test' (e.g. for an empty rehearsal) keeps the bars at 0 pre-live.
+      const liveCount = liveVoteMap[a.id] ?? 0;
+      const testCount = previewDataMode === 'test' ? (a.testVotes ?? 0) : 0;
+      return {
+        id: a.id,
+        text: a.text || `Answer ${i + 1}`,
+        shortLabel: a.shortLabel || undefined,
+        votes: liveState === 'live' ? liveCount : testCount,
+        order: i,
+      };
+    }), [answers, previewDataMode, liveVoteMap, liveState]
   );
   const previewTotal = previewOptions.reduce((sum, o) => sum + o.votes, 0);
   const previewQuestion = question || 'Your question here?';
