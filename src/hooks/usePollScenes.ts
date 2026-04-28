@@ -80,6 +80,35 @@ function cacheScenes(key: string, scenes: PollScene[]) {
   }
 }
 
+async function persistDraftScenesToPoll(pollId: string, draftScenes: PollScene[]): Promise<PollScene[]> {
+  const createdScenes: PollScene[] = [];
+  for (const draft of draftScenes) {
+    const created = await createPollScene(pollId, draft.preset, draft.name, draft.sortOrder);
+    const meta = getScenePreset(draft.preset);
+    const assetIds = new Set<AssetId>([
+      ...meta.defaultVisibleAssets,
+      ...Array.from(draft.visibleAssetIds),
+      ...(Object.keys(draft.assetTransforms ?? {}) as AssetId[]),
+    ]);
+
+    await Promise.all(Array.from(assetIds).map((assetId) =>
+      setPollSceneAssetVisible(created.id, assetId, draft.visibleAssetIds.has(assetId)),
+    ));
+    if (Object.keys(draft.assetTransforms ?? {}).length > 0) {
+      await bulkSavePollSceneAssetTransforms(created.id, draft.assetTransforms as AssetTransformMap);
+    }
+
+    createdScenes.push({
+      ...created,
+      name: draft.name,
+      sortOrder: draft.sortOrder,
+      visibleAssetIds: new Set(draft.visibleAssetIds),
+      assetTransforms: draft.assetTransforms ?? {},
+    });
+  }
+  return createdScenes;
+}
+
 /**
  * Hook for managing scenes attached to a single poll.
  *
@@ -90,34 +119,69 @@ function cacheScenes(key: string, scenes: PollScene[]) {
  *   flushed to the DB.
  */
 export function usePollScenes(pollId: string | undefined) {
-  const [scenes, setScenes] = useState<PollScene[]>([]);
+  const draftStorageKey = sceneStorageKey(undefined, 'workspace');
+  const activeStorageKey = sceneStorageKey(pollId, 'workspace');
+  const [scenes, setScenes] = useState<PollScene[]>(() => loadCachedScenes(activeStorageKey).scenes);
   const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const draftScenesRef = useRef<PollScene[]>([]);
+  const draftScenesRef = useRef<PollScene[]>(loadCachedScenes(draftStorageKey).scenes);
+  const hydratedStorageKeyRef = useRef<string | null>(null);
 
   // Load whenever pollId becomes available.
   useEffect(() => {
     if (!pollId) {
-      // Restore draft state if the user navigated back.
-      setScenes(draftScenesRef.current);
-      setActiveSceneId(draftScenesRef.current[0]?.id ?? null);
+      // Restore draft state if the user navigated away/back or the tab was suspended.
+      const cachedDraft = loadCachedScenes(draftStorageKey).scenes;
+      draftScenesRef.current = cachedDraft;
+      setScenes(cachedDraft);
+      setActiveSceneId((prev) => (prev && cachedDraft.some((s) => s.id === prev) ? prev : cachedDraft[0]?.id ?? null));
+      hydratedStorageKeyRef.current = draftStorageKey;
       return;
     }
     let cancelled = false;
     setLoading(true);
+    const cached = loadCachedScenes(activeStorageKey);
+    const draftScenes = draftScenesRef.current.length > 0 ? draftScenesRef.current : loadCachedScenes(draftStorageKey).scenes;
+    if (cached.scenes.length > 0) {
+      setScenes(cached.scenes);
+      setActiveSceneId((prev) => (prev && cached.scenes.some((s) => s.id === prev) ? prev : cached.scenes[0]?.id ?? null));
+    }
     loadPollScenes(pollId)
-      .then((rows) => {
+      .then(async (rows) => {
         if (cancelled) return;
-        setScenes(rows);
-        setActiveSceneId((prev) => (prev && rows.some((r) => r.id === prev) ? prev : rows[0]?.id ?? null));
+        const nextRows = rows.length > 0 || draftScenes.length === 0
+          ? rows
+          : await persistDraftScenesToPoll(pollId, draftScenes);
+        if (cancelled) return;
+        setScenes(nextRows);
+        setActiveSceneId((prev) => (prev && nextRows.some((r) => r.id === prev) ? prev : nextRows[0]?.id ?? null));
+        cacheScenes(activeStorageKey, nextRows);
+        hydratedStorageKeyRef.current = activeStorageKey;
+        if (draftScenes.length > 0 && nextRows.length > 0) {
+          draftScenesRef.current = [];
+          localStorage.removeItem(draftStorageKey);
+        }
       })
       .catch((err) => {
         console.error('[usePollScenes] load failed', err);
-        toast.error('Failed to load scenes');
+        if (cached.exists) {
+          setScenes(cached.scenes);
+          setActiveSceneId((prev) => (prev && cached.scenes.some((r) => r.id === prev) ? prev : cached.scenes[0]?.id ?? null));
+          hydratedStorageKeyRef.current = activeStorageKey;
+          toast.error('Scene sync interrupted — restored cached scenes');
+        } else {
+          toast.error('Failed to load scenes');
+        }
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [pollId]);
+  }, [activeStorageKey, draftStorageKey, pollId]);
+
+  useEffect(() => {
+    if (hydratedStorageKeyRef.current !== activeStorageKey) return;
+    cacheScenes(activeStorageKey, scenes);
+    if (!pollId) draftScenesRef.current = scenes;
+  }, [activeStorageKey, pollId, scenes]);
 
   const addScene = useCallback(async (preset: ScenePreset) => {
     const meta = getScenePreset(preset);
