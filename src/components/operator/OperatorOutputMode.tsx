@@ -96,6 +96,14 @@ interface OperatorOutputModeProps {
   onEndPoll: () => void;
   onOpenVoting: () => void;
   onCloseVoting: () => void;
+  /** Quick Switch (confirmationless TAKE/CUT) — when ON, the operator can
+   *  fire scene cuts to PROGRAM during Go Live without the safety
+   *  confirm() dialog, provided Bus Safe is armed. The toggle persists in
+   *  operator settings; the arm switch is session-only. */
+  confirmationlessMode?: boolean;
+  onConfirmationlessModeChange?: (next: boolean) => void;
+  busSafeArmed?: boolean;
+  onBusSafeArmedChange?: (next: boolean) => void;
   onRescanPolls?: () => void;
   /** Notify parent when the operator toggles the Polling Slate on/off so it
    *  can broadcast the slate state to public viewers (mobile/desktop). */
