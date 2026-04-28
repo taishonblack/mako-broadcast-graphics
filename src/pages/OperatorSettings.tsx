@@ -12,6 +12,7 @@ import { toast } from 'sonner';
 export default function OperatorSettings() {
   const [autosaveMinutes, setAutosaveMinutes] = useState(loadAutosaveMinutes());
   const { swatches, addSwatch, renameSwatch, updateSwatchValue, removeSwatch, clearSwatches } = useColorSwatches();
+  const [quickSwitch, setQuickSwitch] = useState(loadConfirmationlessMode());
   const [newName, setNewName] = useState('');
   const [newValue, setNewValue] = useState('#3B82F6');
 
