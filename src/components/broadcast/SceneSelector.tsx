@@ -26,19 +26,26 @@ export function SceneSelector({ previewScene, programScene, onSceneChange, onTak
   const programId = broadcastSceneFromSceneType(programScene);
   const dirty = previewId !== programId;
 
-  // SPACE = TAKE — broadcast operator standard. Ignored when typing in
-  // form fields so the spacebar still works in inputs/textareas.
+  // Broadcast hotkeys — operator standard.
+  //   SPACE / T  → TAKE (animated cut to program)
+  //   C          → CUT  (instant cut to program)
+  // Ignored when typing in form fields, with modifier keys, or when the
+  // user has a dialog/menu open (Radix sets aria-hidden on body siblings).
   useEffect(() => {
     const handler = (e: KeyboardEvent) => {
-      if (e.code !== 'Space') return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
       const t = e.target as HTMLElement | null;
       if (t && (t.tagName === 'INPUT' || t.tagName === 'TEXTAREA' || t.isContentEditable)) return;
+      const isTake = e.code === 'Space' || e.key === 't' || e.key === 'T';
+      const isCut = e.key === 'c' || e.key === 'C';
+      if (!isTake && !isCut) return;
       e.preventDefault();
-      onTake();
+      if (isTake) onTake();
+      else onCut();
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
-  }, [onTake]);
+  }, [onTake, onCut]);
 
   return (
     <div className="flex flex-col gap-2 w-full">
