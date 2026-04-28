@@ -15,6 +15,100 @@ import {
 } from '@/lib/poll-scenes';
 import type { AssetId, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
 
+const SCENE_STORAGE_PREFIX = 'mako-poll-scenes-v2';
+
+interface StoredPollScene {
+  id: string;
+  pollId: string;
+  name: string;
+  preset: ScenePreset;
+  sortOrder: number;
+  visibleAssetIds: AssetId[];
+  assetTransforms: PollScene['assetTransforms'];
+}
+
+function sceneStorageKey(pollId: string | undefined, draftScopeKey: string) {
+  return `${SCENE_STORAGE_PREFIX}:${pollId ? `poll:${pollId}` : `draft:${draftScopeKey}`}`;
+}
+
+function serializeScenes(scenes: PollScene[]): StoredPollScene[] {
+  return scenes.map((scene) => ({
+    id: scene.id,
+    pollId: scene.pollId,
+    name: scene.name,
+    preset: scene.preset,
+    sortOrder: scene.sortOrder,
+    visibleAssetIds: Array.from(scene.visibleAssetIds),
+    assetTransforms: scene.assetTransforms ?? {},
+  }));
+}
+
+function deserializeScenes(raw: unknown): PollScene[] {
+  if (!Array.isArray(raw)) return [];
+  return raw
+    .filter((scene): scene is StoredPollScene => Boolean(scene && typeof scene === 'object'))
+    .map((scene): PollScene => {
+      const preset: ScenePreset = scene.preset === 'liveResults' || scene.preset === 'final' ? scene.preset : 'fullScreen';
+      return {
+        id: typeof scene.id === 'string' ? scene.id : `draft-scene-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+        pollId: typeof scene.pollId === 'string' ? scene.pollId : 'draft',
+        name: typeof scene.name === 'string' && scene.name.trim() ? scene.name : 'Scene',
+        preset,
+        sortOrder: typeof scene.sortOrder === 'number' ? scene.sortOrder : 0,
+        visibleAssetIds: new Set(Array.isArray(scene.visibleAssetIds) ? scene.visibleAssetIds : []),
+        assetTransforms: scene.assetTransforms ?? {},
+      };
+    })
+    .sort((a, b) => a.sortOrder - b.sortOrder);
+}
+
+function loadCachedScenes(key: string): { exists: boolean; scenes: PollScene[] } {
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return { exists: false, scenes: [] };
+    return { exists: true, scenes: deserializeScenes(JSON.parse(raw)) };
+  } catch {
+    return { exists: false, scenes: [] };
+  }
+}
+
+function cacheScenes(key: string, scenes: PollScene[]) {
+  try {
+    localStorage.setItem(key, JSON.stringify(serializeScenes(scenes)));
+  } catch {
+    // Local cache is a resilience layer only; persistence still works via DB.
+  }
+}
+
+async function persistDraftScenesToPoll(pollId: string, draftScenes: PollScene[]): Promise<PollScene[]> {
+  const createdScenes: PollScene[] = [];
+  for (const draft of draftScenes) {
+    const created = await createPollScene(pollId, draft.preset, draft.name, draft.sortOrder);
+    const meta = getScenePreset(draft.preset);
+    const assetIds = new Set<AssetId>([
+      ...meta.defaultVisibleAssets,
+      ...Array.from(draft.visibleAssetIds),
+      ...(Object.keys(draft.assetTransforms ?? {}) as AssetId[]),
+    ]);
+
+    await Promise.all(Array.from(assetIds).map((assetId) =>
+      setPollSceneAssetVisible(created.id, assetId, draft.visibleAssetIds.has(assetId)),
+    ));
+    if (Object.keys(draft.assetTransforms ?? {}).length > 0) {
+      await bulkSavePollSceneAssetTransforms(created.id, draft.assetTransforms as AssetTransformMap);
+    }
+
+    createdScenes.push({
+      ...created,
+      name: draft.name,
+      sortOrder: draft.sortOrder,
+      visibleAssetIds: new Set(draft.visibleAssetIds),
+      assetTransforms: draft.assetTransforms ?? {},
+    });
+  }
+  return createdScenes;
+}
+
 /**
  * Hook for managing scenes attached to a single poll.
  *
@@ -25,34 +119,69 @@ import type { AssetId, AssetTransformMap } from '@/components/poll-create/pollin
  *   flushed to the DB.
  */
 export function usePollScenes(pollId: string | undefined) {
-  const [scenes, setScenes] = useState<PollScene[]>([]);
+  const draftStorageKey = sceneStorageKey(undefined, 'workspace');
+  const activeStorageKey = sceneStorageKey(pollId, 'workspace');
+  const [scenes, setScenes] = useState<PollScene[]>(() => loadCachedScenes(activeStorageKey).scenes);
   const [activeSceneId, setActiveSceneId] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const draftScenesRef = useRef<PollScene[]>([]);
+  const draftScenesRef = useRef<PollScene[]>(loadCachedScenes(draftStorageKey).scenes);
+  const hydratedStorageKeyRef = useRef<string | null>(null);
 
   // Load whenever pollId becomes available.
   useEffect(() => {
     if (!pollId) {
-      // Restore draft state if the user navigated back.
-      setScenes(draftScenesRef.current);
-      setActiveSceneId(draftScenesRef.current[0]?.id ?? null);
+      // Restore draft state if the user navigated away/back or the tab was suspended.
+      const cachedDraft = loadCachedScenes(draftStorageKey).scenes;
+      draftScenesRef.current = cachedDraft;
+      setScenes(cachedDraft);
+      setActiveSceneId((prev) => (prev && cachedDraft.some((s) => s.id === prev) ? prev : cachedDraft[0]?.id ?? null));
+      hydratedStorageKeyRef.current = draftStorageKey;
       return;
     }
     let cancelled = false;
     setLoading(true);
+    const cached = loadCachedScenes(activeStorageKey);
+    const draftScenes = draftScenesRef.current.length > 0 ? draftScenesRef.current : loadCachedScenes(draftStorageKey).scenes;
+    if (cached.scenes.length > 0) {
+      setScenes(cached.scenes);
+      setActiveSceneId((prev) => (prev && cached.scenes.some((s) => s.id === prev) ? prev : cached.scenes[0]?.id ?? null));
+    }
     loadPollScenes(pollId)
-      .then((rows) => {
+      .then(async (rows) => {
         if (cancelled) return;
-        setScenes(rows);
-        setActiveSceneId((prev) => (prev && rows.some((r) => r.id === prev) ? prev : rows[0]?.id ?? null));
+        const nextRows = rows.length > 0 || draftScenes.length === 0
+          ? rows
+          : await persistDraftScenesToPoll(pollId, draftScenes);
+        if (cancelled) return;
+        setScenes(nextRows);
+        setActiveSceneId((prev) => (prev && nextRows.some((r) => r.id === prev) ? prev : nextRows[0]?.id ?? null));
+        cacheScenes(activeStorageKey, nextRows);
+        hydratedStorageKeyRef.current = activeStorageKey;
+        if (draftScenes.length > 0 && nextRows.length > 0) {
+          draftScenesRef.current = [];
+          localStorage.removeItem(draftStorageKey);
+        }
       })
       .catch((err) => {
         console.error('[usePollScenes] load failed', err);
-        toast.error('Failed to load scenes');
+        if (cached.exists) {
+          setScenes(cached.scenes);
+          setActiveSceneId((prev) => (prev && cached.scenes.some((r) => r.id === prev) ? prev : cached.scenes[0]?.id ?? null));
+          hydratedStorageKeyRef.current = activeStorageKey;
+          toast.error('Scene sync interrupted — restored cached scenes');
+        } else {
+          toast.error('Failed to load scenes');
+        }
       })
       .finally(() => { if (!cancelled) setLoading(false); });
     return () => { cancelled = true; };
-  }, [pollId]);
+  }, [activeStorageKey, draftStorageKey, pollId]);
+
+  useEffect(() => {
+    if (hydratedStorageKeyRef.current !== activeStorageKey) return;
+    cacheScenes(activeStorageKey, scenes);
+    if (!pollId) draftScenesRef.current = scenes;
+  }, [activeStorageKey, pollId, scenes]);
 
   const addScene = useCallback(async (preset: ScenePreset) => {
     const meta = getScenePreset(preset);
