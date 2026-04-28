@@ -332,6 +332,10 @@ export default function PollCreate() {
   // are defined before `folderState`) to validate Answer Type choices
   // without forming a forward dependency.
   const foldersRef = useRef<PollingAssetFolderState['folders']>([]);
+  // Hold a reference to the open Output popup so we don't re-open / re-navigate
+  // it on Go Live (which would steal focus and exit any fullscreen the
+  // operator engaged on that window).
+  const outputWindowRef = useRef<Window | null>(null);
   const [outputBlockPinned, setOutputBlockPinned] = useState<boolean>(() => loadPersistedOutputBlock().pinned);
   const [outputBlockSource, setOutputBlockSource] = useState<OutputBlockSource>(() => (
     loadPersistedOutputBlock().pinned ? 'pinned' : 'default'
@@ -804,13 +808,23 @@ export default function PollCreate() {
   const handleTake = () => {
     setProgramScene(previewScene);
     if (projectId) void takeToProgram(projectId, previewScene as unknown as SceneName);
-    broadcastOutputState(getProgramOutputPayload());
+    const payload = getProgramOutputPayload();
+    broadcastOutputState(payload);
+    // While Live, Output is locked and ignores plain state pushes — refresh
+    // the lock snapshot so scene switches actually reach the broadcast surface.
+    if (liveState === 'live') {
+      broadcastOutputLock({ locked: true, snapshot: payload, lockedAt: Date.now() });
+    }
   };
 
   const handleCut = () => {
     setProgramScene(previewScene);
     if (projectId) void cutToProgram(projectId, previewScene as unknown as SceneName);
-    broadcastOutputState(getProgramOutputPayload());
+    const payload = getProgramOutputPayload();
+    broadcastOutputState(payload);
+    if (liveState === 'live') {
+      broadcastOutputLock({ locked: true, snapshot: payload, lockedAt: Date.now() });
+    }
   };
 
   const handleGoLive = async () => {
@@ -888,8 +902,19 @@ export default function PollCreate() {
     }
     // Open Output fullscreen window if not already open, and open voting so
     // the slate/voting flow begins simultaneously with the on-air push.
+    // CRITICAL: if a popup already exists (and especially if the operator
+    // has it in fullscreen), do NOT call window.open again — re-opening a
+    // named window steals focus and forces it out of fullscreen. The lock
+    // broadcast above already pushed the live snapshot to it.
     try {
-      window.open(`/output/${currentWorkspacePoll.id}`, 'mako-output', 'width=1920,height=1080');
+      const existing = outputWindowRef.current;
+      if (!existing || existing.closed) {
+        outputWindowRef.current = window.open(
+          `/output/${currentWorkspacePoll.id}`,
+          'mako-output',
+          'width=1920,height=1080',
+        );
+      }
     } catch {}
     setVotingState('open');
   };
@@ -2493,7 +2518,16 @@ export default function PollCreate() {
             }}
             onTake={handleTake}
             onCut={handleCut}
-            onOpenOutput={() => window.open(`/output/${currentWorkspacePoll.id}`, 'mako-output', 'width=1920,height=1080') ?? null}
+            onOpenOutput={() => {
+              const existing = outputWindowRef.current;
+              if (existing && !existing.closed) {
+                try { existing.focus(); } catch { /* ignore */ }
+                return existing;
+              }
+              const win = window.open(`/output/${currentWorkspacePoll.id}`, 'mako-output', 'width=1920,height=1080');
+              outputWindowRef.current = win;
+              return win ?? null;
+            }}
             onGoLive={handleGoLive}
             onEndPoll={handleEndPoll}
             onOpenVoting={() => {
