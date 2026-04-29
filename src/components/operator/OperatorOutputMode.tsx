@@ -1606,6 +1606,17 @@ export function OperatorOutputMode({
                     {currentPoll.totalVotes.toLocaleString()} {currentPoll.totalVotes === 1 ? 'vote' : 'votes'}
                   </p>
                 </div>
+                <label className="flex items-center justify-between gap-2 rounded-md bg-background/40 px-1.5 py-1 cursor-pointer">
+                  <span className="text-[10px] font-mono uppercase text-muted-foreground">
+                    Overlay on Program Preview
+                  </span>
+                  <Switch
+                    checked={showPreviewTallyOverlay}
+                    onCheckedChange={(v) => setShowPreviewTallyOverlay(Boolean(v))}
+                    className="scale-75"
+                    aria-label="Toggle live tally overlay on program preview"
+                  />
+                </label>
                 {currentPoll.options.map((o, i) => {
                   const pct = currentPoll.totalVotes > 0
                     ? Math.round((o.votes / currentPoll.totalVotes) * 100)
