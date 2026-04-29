@@ -192,26 +192,35 @@ export function FullscreenScene({
                     const color = operatorBarColors?.[i] ?? PGD.answerTextColor;
                     const labelColor = assetColors?.answers?.textPrimary ?? PGD.answerTextColor;
                     return (
-                      <div key={option.id} className="flex flex-col gap-2">
-                        <div className="flex items-end justify-between">
+                      <div
+                        key={option.id}
+                        className="relative w-full overflow-hidden border"
+                        style={{
+                          background: PGD.answerButtonIdleBg,
+                          borderColor: PGD.answerBorderColor,
+                          borderRadius: `${PGD.answerBorderRadius}px`,
+                          padding: `${PGD.answerButtonPaddingY}px 32px`,
+                          backdropFilter: 'blur(8px)',
+                        }}
+                      >
+                        {/* Bar fill rendered INSIDE the pill so the button
+                            shape matches the voter buttons exactly. */}
+                        <div
+                          className="absolute inset-y-0 left-0"
+                          style={{
+                            width: `${pct}%`,
+                            backgroundColor: color,
+                            opacity: 0.35,
+                            transition: 'width 0.5s ease-out',
+                          }}
+                        />
+                        <div className="relative flex items-center justify-between gap-6">
                           <span className="font-semibold" style={{ color: labelColor, fontSize: `${PGD.answerFontSize}px` }}>
                             {option.text}
                           </span>
-                          <span className="font-bold font-mono tabular-nums" style={{ color: labelColor, fontSize: '56px' }}>
+                          <span className="font-bold font-mono tabular-nums" style={{ color: labelColor, fontSize: `${PGD.answerFontSize}px` }}>
                             {Math.round(pct)}%
                           </span>
-                        </div>
-                        <div className="overflow-hidden" style={{ height: `${PGD.answerBarHeight}px`, borderRadius: `${PGD.answerBorderRadius}px`, background: PGD.answerButtonIdleBg, border: `1px solid ${PGD.answerBorderColor}` }}>
-                          <div
-                            className="h-full"
-                            style={{
-                              width: `${pct}%`,
-                              backgroundColor: color,
-                              borderRadius: `${PGD.answerBorderRadius}px`,
-                              boxShadow: 'none',
-                              transition: 'width 0.5s ease-out',
-                            }}
-                          />
                         </div>
                       </div>
                     );
