@@ -424,6 +424,7 @@ export function DraftPreviewMonitor({
               question={question}
               subheadline={subheadline}
               options={labelledOptions}
+              answerType={answerType}
               enabledAssetIds={enabledAssetIds}
               slug={slug}
               assetColors={assetColors}
