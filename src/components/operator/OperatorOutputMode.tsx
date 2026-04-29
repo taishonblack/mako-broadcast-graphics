@@ -657,6 +657,11 @@ export function OperatorOutputMode({
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(SHOW_PREVIEW_TALLY_KEY, showPreviewTallyOverlay ? '1' : '0');
   }, [showPreviewTallyOverlay]);
+  // Operator-controlled "Use Test Vote Bars" preference. Default OFF so
+  // Program Preview, Inspector, and Fullscreen Output never show
+  // synthetic 50/50, 1000/1000, or 2000-total values unless explicitly
+  // enabled. When OFF, every bar reads from real `liveVoteMap` only.
+  const [useMockVoteData, setUseMockVoteData] = useMockVoteDataPreference();
   // Per-answer live counts are already merged into currentPoll.options.votes
   // by PollCreate (which bridges local-id → poll_answers UUID → liveVoteMap).
   // Reusing them avoids duplicating the realtime subscription and keeps the
