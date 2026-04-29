@@ -3141,8 +3141,14 @@ export default function PollCreate() {
             busSafeArmed={busSafeArmed}
             onBusSafeArmedChange={setBusSafeArmed}
             onOpenVoting={() => {
-              setVotingState('open');
-              void syncViewerVotingOpen();
+              // Don't flip the UI optimistically — only flip after the DB
+              // write actually lands an active_poll_id. Otherwise the badge
+              // says VOTING OPEN while Statistics correctly reports
+              // "No active poll" because nothing was bound.
+              void (async () => {
+                const ok = await syncViewerVotingOpen();
+                if (ok) setVotingState('open');
+              })();
             }}
             onCloseVoting={() => {
               setVotingState('closed');
