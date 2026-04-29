@@ -660,9 +660,10 @@ export function OperatorOutputMode({
   // by PollCreate (which bridges local-id → poll_answers UUID → liveVoteMap).
   // Reusing them avoids duplicating the realtime subscription and keeps the
   // bar graph and this readout perfectly in sync.
-  const liveVoteTotal = liveState === 'live'
-    ? currentPoll.options.reduce((s, o) => s + (o.votes ?? 0), 0)
-    : 0;
+  // Real-data total. With Output Mode's previewOptions stripped of any
+  // mock/test injection, this is always the genuine poll_answers.live_votes
+  // sum (0 pre-live, frozen final after voting closes).
+  const liveVoteTotal = currentPoll.options.reduce((s, o) => s + (o.votes ?? 0), 0);
   // Keep the array length in sync if the operator switches polls.
   if (targetPercents.length !== answerCount) {
     const next = answerCount > 0
