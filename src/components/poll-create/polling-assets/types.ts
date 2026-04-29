@@ -41,6 +41,15 @@ export interface AssetColorConfig {
   textPrimary?: string;
   textSecondary?: string;
   barColors?: string[];
+  /**
+   * Per-viewport pill style overrides for the polling graphic family
+   * (Answer Bars + Answer Type voter buttons). Operators tweak these on
+   * the inspector; falsy values fall back to the shared
+   * POLLING_GRAPHIC_DEFAULTS so existing polls keep their look.
+   */
+  barPaddingY?: number;
+  barPaddingX?: number;
+  barBorderRadius?: number;
 }
 
 export type TransformField =
