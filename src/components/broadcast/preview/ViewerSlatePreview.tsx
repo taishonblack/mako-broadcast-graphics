@@ -290,8 +290,11 @@ export function ViewerSlatePreview({
                             background: answerBarColors[i] ?? PGD.answerButtonIdleBg,
                             backdropFilter: 'blur(8px)',
                             color: answerColor,
-                            padding: '16px',
-                            borderRadius: `${PGD.answerBorderRadius * 0.66}px`,
+                            // Unified pill family — same radius token + proportional
+                            // padding as Answer Bars on Program so switching surfaces
+                            // shows the same button shape.
+                            padding: mode === 'mobile' ? '18px 20px' : '22px 28px',
+                            borderRadius: `${PGD.answerBorderRadius}px`,
                           }}
                         >
                           <span style={{ fontSize: mode === 'mobile' ? 16 : PGD.answerFontSizeVoter, color: answerColor }}>{opt.text || 'Answer'}</span>
