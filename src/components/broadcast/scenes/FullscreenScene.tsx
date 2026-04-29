@@ -5,6 +5,7 @@ import { renderChart } from '@/lib/render-chart';
 import { AssetColorMap, AssetState, AssetTransformMap, AssetId } from '@/components/poll-create/polling-assets/types';
 import { getAssetTransformStyle } from '@/lib/asset-transforms';
 import { WordmarkLockup } from '@/components/broadcast/WordmarkLockup';
+import { POLLING_GRAPHIC_DEFAULTS as PGD } from '@/lib/polling-graphic-defaults';
 
 interface FullscreenSceneProps {
   question: string;
@@ -84,7 +85,7 @@ export function FullscreenScene({
   const ACTION_SAFE_PX = 1728;
   const questionMaxWidthPx = Math.min(
     ACTION_SAFE_PX,
-    Math.round(((questionLayer?.textProps?.maxWidth ?? 84) / 100) * 1920),
+    Math.round(((questionLayer?.textProps?.maxWidth ?? PGD.questionMaxWidthPct) / 100) * 1920),
   );
   const questionLineHeight = questionLayer?.textProps?.lineHeight ?? 1.1;
 
@@ -123,7 +124,7 @@ export function FullscreenScene({
               className="font-bold text-center mb-20"
               style={{
                 color: assetColors?.question?.textPrimary ?? theme.textPrimary,
-                fontSize: '88px',
+                fontSize: `${PGD.questionFontSize}px`,
                 maxWidth: `${questionMaxWidthPx}px`,
                 lineHeight: questionLineHeight,
                 overflowWrap: 'break-word',
@@ -135,17 +136,59 @@ export function FullscreenScene({
             </h1>
             )}
 
-            <div className="w-full" style={{ maxWidth: '1600px', ...getAssetTransformStyle(transforms?.answers) }}>
+            <div className="w-full" style={{ maxWidth: `${PGD.pollGraphicWidth}px` }}>
+              {/* ANSWER TYPE — voter-style choice buttons rendered into the
+                  same footprint as Answer Bars so swapping scenes feels like
+                  a clean reveal, not a repositioned graphic. */}
+              {visibleAssets.has('answerType') && !visibleAssets.has('answers') && (
+                <div
+                  data-layer="answerType"
+                  className={
+                    options.length === 2 &&
+                    options.every((o) => ['yes','no','y','n'].includes((o.text || '').trim().toLowerCase()))
+                      ? 'grid grid-cols-2'
+                      : 'flex flex-col'
+                  }
+                  style={{
+                    gap: `${PGD.answerSpacing}px`,
+                    ...getAssetTransformStyle(transforms?.answerType),
+                  }}
+                >
+                  {options.map((option, i) => {
+                    const bg =
+                      assetColors?.answerType?.barColors?.[i] ?? PGD.answerButtonIdleBg;
+                    const fg =
+                      assetColors?.answerType?.textPrimary ?? theme.textPrimary;
+                    return (
+                      <div
+                        key={option.id}
+                        className="w-full text-center font-semibold border border-white/15"
+                        style={{
+                          background: bg,
+                          color: fg,
+                          padding: `${PGD.answerButtonPaddingY}px 32px`,
+                          borderRadius: `${PGD.answerBorderRadius}px`,
+                          fontSize: `${PGD.answerFontSize}px`,
+                        }}
+                      >
+                        {option.text || `Answer ${i + 1}`}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+
               {visibleAssets.has('answers') && (useNativeChart ? (
                 <div
                   data-layer="answerBars"
                   className="flex w-full items-center justify-center"
                   style={{
                     minHeight: template === 'pie-donut' ? '520px' : template === 'vertical-bar' ? '620px' : undefined,
+                    ...getAssetTransformStyle(transforms?.answers),
                   }}
                 >
                   <div
-                    style={{
+                  style={{
                       transform: template === 'pie-donut' ? 'scale(2.75)' : template === 'vertical-bar' ? 'scale(2.1)' : 'scale(2.4)',
                       transformOrigin: 'center center',
                     }}
@@ -154,26 +197,31 @@ export function FullscreenScene({
                   </div>
                 </div>
               ) : (
-                <div data-layer="answerBars" className="space-y-8">
+                <div
+                  data-layer="answerBars"
+                  className="flex flex-col"
+                  style={{ gap: `${PGD.answerSpacing}px`, ...getAssetTransformStyle(transforms?.answers) }}
+                >
                   {options.map((option, i) => {
                     const pct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
                     const color = colors[i % colors.length];
                     return (
                       <div key={option.id} className="flex flex-col gap-2">
                         <div className="flex items-end justify-between">
-                          <span className="font-semibold" style={{ color: assetColors?.answers?.textPrimary ?? theme.textPrimary, fontSize: '40px' }}>
+                          <span className="font-semibold" style={{ color: assetColors?.answers?.textPrimary ?? theme.textPrimary, fontSize: `${PGD.answerFontSize}px` }}>
                             {option.text}
                           </span>
                           <span className="font-bold font-mono tabular-nums" style={{ color, fontSize: '56px' }}>
                             {Math.round(pct)}%
                           </span>
                         </div>
-                        <div className="rounded-full overflow-hidden" style={{ height: '28px', background: 'hsla(210, 20%, 92%, 0.1)' }}>
+                        <div className="overflow-hidden" style={{ height: `${PGD.answerBarHeight}px`, borderRadius: `${PGD.answerBorderRadius}px`, background: 'hsla(210, 20%, 92%, 0.1)' }}>
                           <div
-                            className="h-full rounded-full"
+                            className="h-full"
                             style={{
                               width: `${pct}%`,
                               backgroundColor: color,
+                              borderRadius: `${PGD.answerBorderRadius}px`,
                               boxShadow: `0 0 24px -4px ${color}`,
                               transition: 'width 0.5s ease-out',
                             }}
