@@ -43,13 +43,17 @@ export const POLLING_GRAPHIC_DEFAULTS = {
   /** Inner padding for Answer Type buttons (px @ program scale). */
   answerButtonPaddingY: 36,
   /** Default color pair (used when the operator has not set per-asset
-   *  bar colors). Same primary / accent on both assets so they read as
-   *  one family. */
-  answerColorA: 'hsl(24 95% 53%)',  // brand orange
-  answerColorB: 'hsl(210 70% 50%)', // complementary blue
-  answerColorRest: ['hsl(142 71% 45%)', 'hsl(280 65% 55%)'],
-  /** Idle / unselected button background for Answer Type. */
-  answerButtonIdleBg: 'hsla(220, 18%, 13%, 0.85)',
+   *  bar colors). Neutral white/gray family — operators apply theme
+   *  colors explicitly via the inspector. */
+  answerColorA: '#ffffff',
+  answerColorB: '#ffffff',
+  answerColorRest: ['#ffffff', '#ffffff'],
+  /** Idle / unselected button background for Answer Type and bar track. */
+  answerButtonIdleBg: 'hsla(0, 0%, 100%, 0.08)',
+  /** Default text color for answer labels and percentages. */
+  answerTextColor: '#ffffff',
+  /** Default border color for buttons / bar containers. */
+  answerBorderColor: 'hsla(0, 0%, 100%, 0.25)',
 } as const;
 
 /** Convenience accessor for the default ordered color palette shared by
