@@ -615,73 +615,10 @@ export function OperatorOutputMode({
     ? 'border-mako-success/60 bg-mako-success/15 text-mako-success hover:bg-mako-success/25'
     : '';
 
-  // Per-answer target percentages for the test-vote runner. Initialized to
-  // an even split across the active poll's answers; auto-rebalances so the
-  // sum is always exactly 100. When the operator edits one bar, the other
-  // bars share the remaining percentage proportionally to their current
-  // values (or evenly if they are all zero).
-  const answerCount = currentPoll.options.length;
-  const [targetPercents, setTargetPercents] = useState<number[]>(() =>
-    answerCount > 0 ? Array.from({ length: answerCount }, () => +(100 / answerCount).toFixed(1)) : [],
-  );
-
-  // ── Live tally readout in the Active Poll summary ─────────────────────
-  // Operator-only HUD: when Go Live is engaged, show real total + per-answer
-  // counts pulled from poll_answers via realtime. Toggle persists per-device
-  // so producers can collapse it during long shows. Hidden when not on-air.
-  const SHOW_LIVE_TALLY_KEY = 'mako:operator:show-live-tally';
-  const [showLiveTally, setShowLiveTally] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    return window.localStorage.getItem(SHOW_LIVE_TALLY_KEY) !== '0';
-  });
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(SHOW_LIVE_TALLY_KEY, showLiveTally ? '1' : '0');
-  }, [showLiveTally]);
-  // (Removed) "Overlay on Program Preview" toggle — Output Mode keeps the
-  // on-air composition clean; the Output Inspector below shows real
-  // per-answer counts and percentages instead.
-  // Per-answer live counts are already merged into currentPoll.options.votes
-  // by PollCreate (which bridges local-id → poll_answers UUID → liveVoteMap).
-  // Reusing them avoids duplicating the realtime subscription and keeps the
-  // bar graph and this readout perfectly in sync.
-  // Real-data total. With Output Mode's previewOptions stripped of any
-  // mock/test injection, this is always the genuine poll_answers.live_votes
-  // sum (0 pre-live, frozen final after voting closes).
+  // Real-data total. Output Mode's previewOptions are stripped of any
+  // mock/test injection upstream, so this is always the genuine
+  // poll_answers.live_votes sum (0 pre-live, frozen final after close).
   const liveVoteTotal = currentPoll.options.reduce((s, o) => s + (o.votes ?? 0), 0);
-  // Keep the array length in sync if the operator switches polls.
-  if (targetPercents.length !== answerCount) {
-    const next = answerCount > 0
-      ? Array.from({ length: answerCount }, () => +(100 / answerCount).toFixed(1))
-      : [];
-    // Defer to the next render to avoid setting state during render.
-    queueMicrotask(() => setTargetPercents(next));
-  }
-
-  const handleTargetChange = (index: number, raw: number) => {
-    const clamped = Math.max(0, Math.min(100, Number.isFinite(raw) ? raw : 0));
-    setTargetPercents((prev) => {
-      if (prev.length <= 1) return [100];
-      const next = [...prev];
-      next[index] = clamped;
-      const remainder = Math.max(0, 100 - clamped);
-      const others = prev.map((v, i) => (i === index ? 0 : v));
-      const otherSum = others.reduce((s, v) => s + v, 0);
-      for (let i = 0; i < next.length; i += 1) {
-        if (i === index) continue;
-        next[i] = otherSum > 0
-          ? +((others[i] / otherSum) * remainder).toFixed(1)
-          : +(remainder / (next.length - 1)).toFixed(1);
-      }
-      // Fix any rounding drift on the last non-edited slot.
-      const drift = +(100 - next.reduce((s, v) => s + v, 0)).toFixed(1);
-      if (drift !== 0) {
-        const lastOther = next.findIndex((_, i) => i !== index);
-        if (lastOther >= 0) next[lastOther] = +(next[lastOther] + drift).toFixed(1);
-      }
-      return next;
-    });
-  };
 
   return (
     <div className="h-full overflow-hidden">
