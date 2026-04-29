@@ -89,6 +89,19 @@ Deno.serve(async (req) => {
       });
     }
 
+    // Mirror the vote into poll_answers.live_votes so the operator's
+    // Program Preview / Full Screen Output bar graph (which subscribes to
+    // poll_answers via useLiveVotes) updates in real time. Statistics
+    // reads vote_analytics directly and is unaffected. Best-effort: if the
+    // increment fails we still return ok so the viewer's vote isn't lost.
+    if (answer_id) {
+      const { error: incErr } = await supabase.rpc('increment_poll_answer_live_votes', {
+        _answer_id: answer_id,
+        _poll_id: body.poll_id,
+      });
+      if (incErr) console.error('record-vote live_votes increment failed', incErr);
+    }
+
     return new Response(JSON.stringify({ ok: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
