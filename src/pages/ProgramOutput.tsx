@@ -25,7 +25,6 @@ import { Poll } from '@/lib/types';
 import { DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/types';
 import { Maximize, Minimize, RefreshCw } from 'lucide-react';
 import { useTallyDisplay } from '@/hooks/useTallyDisplay';
-import { useMockVoteDataPreference } from '@/lib/use-mock-vote-data';
 import React from 'react';
 
 /**
