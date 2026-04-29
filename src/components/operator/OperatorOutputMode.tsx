@@ -1381,23 +1381,12 @@ export function OperatorOutputMode({
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] font-mono uppercase text-muted-foreground">Live Vote Tally</p>
                   <p className="text-[10px] font-mono text-foreground">
-                    {currentPoll.totalVotes.toLocaleString()} {currentPoll.totalVotes === 1 ? 'vote' : 'votes'}
+                    {liveVoteTotal.toLocaleString()} {liveVoteTotal === 1 ? 'vote' : 'votes'}
                   </p>
                 </div>
-                <label className="flex items-center justify-between gap-2 rounded-md bg-background/40 px-1.5 py-1 cursor-pointer">
-                  <span className="text-[10px] font-mono uppercase text-muted-foreground">
-                    Overlay on Program Preview
-                  </span>
-                  <Switch
-                    checked={showPreviewTallyOverlay}
-                    onCheckedChange={(v) => setShowPreviewTallyOverlay(Boolean(v))}
-                    className="scale-75"
-                    aria-label="Toggle live tally overlay on program preview"
-                  />
-                </label>
                 {currentPoll.options.map((o, i) => {
-                  const pct = currentPoll.totalVotes > 0
-                    ? Math.round((o.votes / currentPoll.totalVotes) * 100)
+                  const pct = liveVoteTotal > 0
+                    ? Math.round((o.votes / liveVoteTotal) * 100)
                     : 0;
                   return (
                     <div key={o.id} className="flex items-center justify-between gap-2 text-[11px]">
@@ -1408,6 +1397,11 @@ export function OperatorOutputMode({
                     </div>
                   );
                 })}
+                {liveState !== 'live' && (
+                  <p className="text-[9px] font-mono uppercase text-muted-foreground/70">
+                    Real votes only — Go Live and Open Voting to begin.
+                  </p>
+                )}
               </div>
             )}
 
