@@ -274,32 +274,11 @@ export function DraftPreviewMonitor({
     const subheadlineStyle = getAssetTransformStyle(transforms.subheadline);
     const answersStyle = getAssetTransformStyle(transforms.answers);
 
-    if (answerType === 'yes-no') {
-      const yesBg = barColors[0];
-      const noBg = barColors[1];
-      return (
-        <div className="space-y-4">
-          <div className="text-center space-y-1.5">
-            <h2 className="text-base font-bold" style={{ color: questionTextColor, ...questionStyle }}>{question}</h2>
-            {subheadline && <p className="text-xs" style={{ color: subheadlineTextColor, ...subheadlineStyle }}>{subheadline}</p>}
-          </div>
-          <div className="grid grid-cols-2 gap-3 pt-2" style={answersStyle}>
-            <button
-              className="py-6 rounded-2xl border border-white/15 transition-colors text-base font-bold"
-              style={{ background: yesBg ?? 'hsl(var(--primary) / 0.15)', color: answerTextColor }}
-            >
-              YES
-            </button>
-            <button
-              className="py-6 rounded-2xl border border-white/15 transition-colors text-base font-bold"
-              style={{ background: noBg ?? 'hsl(var(--muted) / 0.4)', color: answerTextColor }}
-            >
-              NO
-            </button>
-          </div>
-        </div>
-      );
-    }
+    // Layout rule (consistent across all scenes & surfaces):
+    //   2 options  → side-by-side grid (Yes/No style)
+    //   >2 options → stacked (multiple choice)
+    // Operators don't have to re-position per scene.
+    const sideBySide = labelledOptions.length === 2;
 
     return (
       <div className="space-y-4">
@@ -307,13 +286,30 @@ export function DraftPreviewMonitor({
           <h2 className="text-base font-bold" style={{ color: questionTextColor, ...questionStyle }}>{question}</h2>
           {subheadline && <p className="text-xs" style={{ color: subheadlineTextColor, ...subheadlineStyle }}>{subheadline}</p>}
         </div>
-        <div className="space-y-2" style={answersStyle}>
+        <div
+          className={sideBySide ? 'grid grid-cols-2 gap-3 pt-2' : 'space-y-2'}
+          style={answersStyle}
+        >
           {labelledOptions.map((opt, i) => {
             const showLabelChip = answerType === 'multiple-choice';
             const buttonText = answerType === 'custom'
               ? (opt.text || `Answer ${i + 1}`)
               : (opt.text || `Answer ${i + 1}`);
             const chipBg = barColors[i];
+            if (sideBySide) {
+              return (
+                <button
+                  key={opt.id}
+                  className="py-6 rounded-2xl border border-white/15 transition-colors text-base font-bold"
+                  style={{
+                    color: answerTextColor,
+                    background: chipBg ?? 'hsla(220, 18%, 13%, 0.5)',
+                  }}
+                >
+                  {(buttonText || '').toUpperCase()}
+                </button>
+              );
+            }
             return (
               <button
                 key={opt.id}

@@ -234,17 +234,36 @@ export function ViewerSlatePreview({
                   {subheadline}
                 </p>
               )}
-              <div className="w-full max-w-[420px] space-y-3" style={answersTransformStyle}>
-                {options!.map((opt, i) => (
+              {(() => {
+                // 2 options → side-by-side (Yes/No). >2 → stacked (MC).
+                // Operators get consistent layout regardless of which scene
+                // surfaces the voter buttons.
+                const sideBySide = (options?.length ?? 0) === 2;
+                return (
                   <div
-                    key={opt.id}
-                    className="w-full p-4 rounded-2xl text-center font-medium border border-white/15"
-                    style={{ background: answerBarColors[i] ?? 'hsla(220, 18%, 13%, 0.85)', backdropFilter: 'blur(8px)', color: answerColor }}
+                    className={
+                      sideBySide
+                        ? 'w-full max-w-[420px] grid grid-cols-2 gap-3'
+                        : 'w-full max-w-[420px] space-y-3'
+                    }
+                    style={answersTransformStyle}
                   >
-                    <span style={{ fontSize: mode === 'mobile' ? 16 : 20, color: answerColor }}>{opt.text || 'Answer'}</span>
+                    {options!.map((opt, i) => (
+                      <div
+                        key={opt.id}
+                        className={
+                          sideBySide
+                            ? 'p-4 rounded-2xl text-center font-bold border border-white/15'
+                            : 'w-full p-4 rounded-2xl text-center font-medium border border-white/15'
+                        }
+                        style={{ background: answerBarColors[i] ?? 'hsla(220, 18%, 13%, 0.85)', backdropFilter: 'blur(8px)', color: answerColor }}
+                      >
+                        <span style={{ fontSize: mode === 'mobile' ? 16 : 20, color: answerColor }}>{opt.text || 'Answer'}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                );
+              })()}
             </div>
           ) : hasSlateText ? (
             <div
