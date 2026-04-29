@@ -6,6 +6,7 @@ import { AssetColorMap, AssetState, AssetTransformMap, AssetId } from '@/compone
 import { getAssetTransformStyle } from '@/lib/asset-transforms';
 import { WordmarkLockup } from '@/components/broadcast/WordmarkLockup';
 import { POLLING_GRAPHIC_DEFAULTS as PGD } from '@/lib/polling-graphic-defaults';
+import { SceneAssetTransformFrame } from './SceneAssetTransformFrame';
 
 interface FullscreenSceneProps {
   question: string;
@@ -108,56 +109,62 @@ export function FullscreenScene({
         }}
       />
 
-      <div className="relative z-20 w-full h-full flex flex-col items-center justify-center px-32 py-24">
-        {showWordmarkPlaceholder ? (
+      {showWordmarkPlaceholder ? (
+        <div className="relative z-20 w-full h-full flex flex-col items-center justify-center px-32 py-24">
           <WordmarkLockup
             theme={theme}
             weight={wordmarkWeight}
             tracking={wordmarkTracking}
             scale={wordmarkScale}
           />
-        ) : (
-          <>
-            {visibleAssets.has('question') && (
-            <h1
-              data-layer="question"
-              className="font-bold text-center mb-20"
-              style={{
-                color: assetColors?.question?.textPrimary ?? theme.textPrimary,
-                fontSize: `${PGD.questionFontSize}px`,
-                maxWidth: `${questionMaxWidthPx}px`,
-                lineHeight: questionLineHeight,
-                overflowWrap: 'break-word',
-                wordBreak: 'normal',
-                ...getAssetTransformStyle(transforms?.question),
-              }}
-            >
-              {question}
-            </h1>
-            )}
+        </div>
+      ) : (
+        <div className="relative z-20 w-full h-full">
+          {/* All polling-family assets render through SceneAssetTransformFrame
+              so X/Y/Scale apply to the SAME outer wrapper (full canvas,
+              center-center origin) for every asset. Internal layout sits
+              inside the frame and never changes the meaning of the transform.
+              See src/components/broadcast/scenes/SceneAssetTransformFrame.tsx. */}
 
-            <div className="w-full" style={{ maxWidth: `${PGD.pollGraphicWidth}px` }}>
-              {/* NOTE: `answerType` is a voter-input-only asset. It must NOT
-                  render on Program / Output / Fullscreen. Voter buttons live
-                  exclusively in the Mobile/Desktop voter previews and the
-                  real /vote page. Program shows Answer Bars (`answers`). */}
+          {visibleAssets.has('question') && (
+            <SceneAssetTransformFrame transform={transforms?.question}>
+              <h1
+                data-layer="question"
+                className="font-bold text-center"
+                style={{
+                  color: assetColors?.question?.textPrimary ?? theme.textPrimary,
+                  fontSize: `${PGD.questionFontSize}px`,
+                  maxWidth: `${questionMaxWidthPx}px`,
+                  lineHeight: questionLineHeight,
+                  overflowWrap: 'break-word',
+                  wordBreak: 'normal',
+                  // Lift the question to the upper third of the canvas so it
+                  // matches the voter preview's question slot. Translate is
+                  // applied INSIDE the frame so it doesn't fight the outer
+                  // X/Y transform (which still means "nudge from default").
+                  transform: `translateY(-${(50 - PGD.questionTopPercent) * 0.01 * 1080}px)`,
+                }}
+              >
+                {question}
+              </h1>
+            </SceneAssetTransformFrame>
+          )}
 
-              {/* Inner layout uses the shared polling-graphic tokens
-                  (`answerGap`, `answerGroupWidthPercent`, `answerTextAlign`)
-                  so Answer Bars (here) and Answer Type (voter preview) line
-                  up at identical X/Y/scale. The OUTER transform moves the
-                  container — the INNER math is shared. */}
-              {visibleAssets.has('answers') && (useNativeChart ? (
+          {/* `answerType` is voter-input only — never renders here. */}
+
+          {visibleAssets.has('answers') && (
+            <SceneAssetTransformFrame transform={transforms?.answers}>
+              {useNativeChart ? (
                 <div
                   data-layer="answerBars"
-                  className="flex w-full items-center justify-center"
+                  className="flex items-center justify-center"
                   style={{
+                    width: `${PGD.pollGraphicWidth}px`,
                     minHeight: template === 'pie-donut' ? '520px' : template === 'vertical-bar' ? '620px' : undefined,
-                    ...getAssetTransformStyle(transforms?.answers),
                   }}
                 >
                   <div
-                  style={{
+                    style={{
                       transform: template === 'pie-donut' ? 'scale(2.75)' : template === 'vertical-bar' ? 'scale(2.1)' : 'scale(2.4)',
                       transformOrigin: 'center center',
                     }}
@@ -171,19 +178,15 @@ export function FullscreenScene({
                   className="flex flex-col"
                   style={{
                     // Shared inner layout — identical math as Answer Type so
-                    // the outer X/Y/scale lines up with the voter preview.
+                    // the answer rows live in the same internal slot at
+                    // identical X=0/Y=0/scale=1.
                     gap: `${PGD.answerGap}px`,
-                    width: `${PGD.answerGroupWidthPercent}%`,
-                    margin: '0 auto',
+                    width: `${(PGD.pollGraphicWidth * PGD.answerGroupWidthPercent) / 100}px`,
                     textAlign: PGD.answerTextAlign,
-                    ...getAssetTransformStyle(transforms?.answers),
                   }}
                 >
                   {options.map((option, i) => {
                     const pct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
-                    // Default to neutral white. Only honor the palette
-                    // (`colors[]`) when the operator has explicitly set
-                    // per-bar colors via the inspector.
                     const operatorBarColors = assetColors?.answers?.barColors;
                     const color = operatorBarColors?.[i] ?? PGD.answerTextColor;
                     const labelColor = assetColors?.answers?.textPrimary ?? PGD.answerTextColor;
@@ -213,19 +216,21 @@ export function FullscreenScene({
                     );
                   })}
                 </div>
-              ))}
+              )}
+            </SceneAssetTransformFrame>
+          )}
 
-              {visibleAssets.has('voterTally') && (
-              <div data-layer="votesText" className="mt-12 text-center">
-                <span className="font-mono" style={{ color: assetColors?.voterTally?.textSecondary ?? theme.textSecondary, fontSize: '28px', ...getAssetTransformStyle(transforms?.voterTally) }}>
+          {visibleAssets.has('voterTally') && (
+            <SceneAssetTransformFrame transform={transforms?.voterTally}>
+              <div data-layer="votesText" className="text-center" style={{ transform: `translateY(${(50 - PGD.questionTopPercent) * 0.01 * 1080 * 0.6}px)` }}>
+                <span className="font-mono" style={{ color: assetColors?.voterTally?.textSecondary ?? theme.textSecondary, fontSize: '28px' }}>
                   {totalVotes.toLocaleString()} total votes
                 </span>
               </div>
-              )}
-            </div>
-          </>
-        )}
-      </div>
+            </SceneAssetTransformFrame>
+          )}
+        </div>
+      )}
 
       {((visibleAssets.has('qr') && qrVisible && qrSize !== undefined) || (visibleAssets.has('logo') && showBranding)) && (
         <AssetOverlay
