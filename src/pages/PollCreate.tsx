@@ -814,14 +814,21 @@ export default function PollCreate() {
     return arr;
   }, [answers, liveAnswerIdMap]);
 
+  // OUTPUT MODE = strict live-only. BUILD MODE = mock/test allowed for
+  // layout rehearsal. Switching modes never changes the underlying poll
+  // tallies — only what the canvas renders.
+  const isOutputMode = mode === 'output';
   const previewOptions: PollOption[] = useMemo(() =>
     answers.map((a, i) => {
       // Source-of-truth priority (per "vote source priority" spec):
       //   1. Real `poll_answers.live_votes` for the active poll, mirrored
       //      through `liveVoteMap`. Used whenever the poll is saved AND
       //      voting is open / closed, OR Go Live is engaged / has ended.
-      //   2. Per-answer test counts ONLY when `useMockVoteData` is
-      //      explicitly ON (the "Use Test Vote Bars" toggle).
+      //   2. Per-answer test counts ONLY in BUILD MODE when
+      //      `useMockVoteData` is explicitly ON (the "Use Test Vote Bars"
+      //      toggle). In OUTPUT MODE mock/test data is hard-suppressed
+      //      so Program Preview / Inspector / Fullscreen Output never
+      //      leak design-time values onto a live broadcast.
       //   3. Otherwise 0. NEVER auto-fall-back to mock after Go Live,
       //      End Live, Close Voting, scene switch, or folder switch.
       // Bridge local string ids → real poll_answers UUIDs (with an
@@ -837,10 +844,11 @@ export default function PollCreate() {
       if (hasRealTally) {
         // Real votes win — even if 0. Test data is suppressed.
         votes = liveCount;
-      } else if (useMockVoteData) {
-        // Operator explicitly opted in to mock/test bars off-air.
+      } else if (!isOutputMode && useMockVoteData) {
+        // BUILD MODE only: operator opted in to design/test bars.
         votes = a.testVotes ?? 0;
       } else {
+        // OUTPUT MODE with no real votes yet → 0% (never mock).
         votes = 0;
       }
       return {
@@ -850,7 +858,7 @@ export default function PollCreate() {
         votes,
         order: i,
       };
-    }), [answers, useMockVoteData, liveVoteMap, liveTallyEnabled, liveAnswerIdMap, liveUuidsByOrder]
+    }), [answers, useMockVoteData, isOutputMode, liveVoteMap, liveTallyEnabled, liveAnswerIdMap, liveUuidsByOrder]
   );
   const previewTotal = previewOptions.reduce((sum, o) => sum + o.votes, 0);
   const previewQuestion = question || 'Your question here?';
