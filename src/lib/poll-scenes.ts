@@ -190,10 +190,18 @@ export async function setPollSceneAssetTransform(
   assetId: AssetId,
   transform: AssetTransformConfig,
 ) {
+  const { data: existing, error: readError } = await supabase
+    .from('poll_scene_assets')
+    .select('visible')
+    .eq('scene_id', sceneId)
+    .eq('asset_id', assetId)
+    .maybeSingle();
+  if (readError) throw readError;
+
   const { error } = await supabase
     .from('poll_scene_assets')
     .upsert(
-      { scene_id: sceneId, asset_id: assetId, transform: transform as never, visible: true } as never,
+      { scene_id: sceneId, asset_id: assetId, transform: transform as never, visible: Boolean(existing?.visible) } as never,
       { onConflict: 'scene_id,asset_id' } as never,
     );
   if (error) throw error;
