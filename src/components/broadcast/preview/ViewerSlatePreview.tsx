@@ -3,6 +3,7 @@ import { AssetColorMap, AssetTransformMap } from '@/components/poll-create/polli
 import type { AnswerType } from '@/components/poll-create/ContentPanel';
 import { getAssetTransformStyle } from '@/lib/asset-transforms';
 import { POLLING_GRAPHIC_DEFAULTS as PGD } from '@/lib/polling-graphic-defaults';
+import { SceneAssetTransformFrame } from '@/components/broadcast/scenes/SceneAssetTransformFrame';
 
 /**
  * Operator-controlled typography for the polling slate. Drives the headline
@@ -189,14 +190,11 @@ export function ViewerSlatePreview({
   const answerBarColors =
     assetColors?.answerType?.barColors ?? assetColors?.answers?.barColors ?? [];
 
-  // Per-asset transform styles. Computed once per render so each block can
-  // be translated / scaled / rotated independently of the others, matching
-  // how the inspector's per-asset sliders behave in Program.
-  const questionTransformStyle = getAssetTransformStyle(transforms?.question);
-  const subheadlineTransformStyle = getAssetTransformStyle(transforms?.subheadline);
+  // Per-asset transforms render through SceneAssetTransformFrame so X/Y/Scale
+  // mean the same thing on the voter canvas as they do on the program canvas.
   // Voter button group reads from `answerType` transform (falls back to
   // `answers` for legacy polls authored before the split).
-  const answersTransformStyle = getAssetTransformStyle(transforms?.answerType ?? transforms?.answers);
+  const answersTransform = transforms?.answerType ?? transforms?.answers;
 
   return (
     <div
@@ -224,22 +222,43 @@ export function ViewerSlatePreview({
           )}
 
           {showVoting ? (
-            <div className="absolute inset-0 flex flex-col items-center justify-center px-8 gap-6">
+            <div className="absolute inset-0">
+              {/* All polling-family assets render through the SAME frame so
+                  X/Y/Scale on the operator inspector mean the same thing on
+                  the voter canvas as they do on Program. */}
               {question && (
-                <h1
-                  className="text-center leading-tight"
-                  style={{ color: questionColor, fontWeight: 700, fontSize: mode === 'mobile' ? 28 : 40, maxWidth: '90%', ...questionTransformStyle }}
-                >
-                  {question}
-                </h1>
+                <SceneAssetTransformFrame transform={transforms?.question}>
+                  <h1
+                    className="text-center leading-tight"
+                    style={{
+                      color: questionColor,
+                      fontWeight: 700,
+                      fontSize: mode === 'mobile' ? 28 : 40,
+                      maxWidth: '90%',
+                      // Match Program: question lives in the upper third of
+                      // the canvas. Translate INSIDE the frame so default
+                      // X=0/Y=0 already lands here.
+                      transform: `translateY(-${(50 - PGD.questionTopPercent) * 0.01 * NATIVE_H}px)`,
+                    }}
+                  >
+                    {question}
+                  </h1>
+                </SceneAssetTransformFrame>
               )}
               {subheadline && (
-                <p
-                  className="text-center"
-                  style={{ color: subheadlineColor, fontSize: mode === 'mobile' ? 14 : 18, maxWidth: '85%', ...subheadlineTransformStyle }}
-                >
-                  {subheadline}
-                </p>
+                <SceneAssetTransformFrame transform={transforms?.subheadline}>
+                  <p
+                    className="text-center"
+                    style={{
+                      color: subheadlineColor,
+                      fontSize: mode === 'mobile' ? 14 : 18,
+                      maxWidth: '85%',
+                      transform: `translateY(-${(50 - PGD.questionTopPercent - 8) * 0.01 * NATIVE_H}px)`,
+                    }}
+                  >
+                    {subheadline}
+                  </p>
+                </SceneAssetTransformFrame>
               )}
               {(() => {
                 // Layout rule:
@@ -248,39 +267,39 @@ export function ViewerSlatePreview({
                 // Falls back to stacked when `answerType` isn't supplied.
                 const isYesNo = answerType === 'yes-no' && options!.length === 2;
                 const containerClass = isYesNo
-                  ? 'w-full grid grid-cols-2'
-                  : 'w-full flex flex-col';
+                  ? 'grid grid-cols-2'
+                  : 'flex flex-col';
                 return (
-                  <div
-                    className={containerClass}
-                    style={{
-                      maxWidth: `${PGD.pollGraphicWidthVoter}px`,
-                      // Shared inner layout — same `answerGap` ratio and
-                      // group width % as Answer Bars on Program so the rows
-                      // sit in the same internal slot at identical X/Y/scale.
-                      // Voter viewport scales the gap down proportionally.
-                      gap: `${PGD.answerSpacingVoter}px`,
-                      width: `${PGD.answerGroupWidthPercent}%`,
-                      textAlign: PGD.answerTextAlign,
-                      ...answersTransformStyle,
-                    }}
-                  >
-                    {options!.map((opt, i) => (
-                      <div
-                        key={opt.id}
-                        className="w-full text-center font-medium border border-white/15"
-                        style={{
-                          background: answerBarColors[i] ?? PGD.answerButtonIdleBg,
-                          backdropFilter: 'blur(8px)',
-                          color: answerColor,
-                          padding: '16px',
-                          borderRadius: `${PGD.answerBorderRadius * 0.66}px`,
-                        }}
-                      >
-                        <span style={{ fontSize: mode === 'mobile' ? 16 : PGD.answerFontSizeVoter, color: answerColor }}>{opt.text || 'Answer'}</span>
-                      </div>
-                    ))}
-                  </div>
+                  <SceneAssetTransformFrame transform={answersTransform}>
+                    <div
+                      className={containerClass}
+                      style={{
+                        // Shared inner layout — width is set to the same
+                        // percentage of the canvas as Answer Bars on Program,
+                        // so X=0/Y=0/scale=1 lands the row block in the same
+                        // visual slot.
+                        gap: `${PGD.answerSpacingVoter}px`,
+                        width: `${(NATIVE_W * PGD.answerGroupWidthPercent) / 100}px`,
+                        textAlign: PGD.answerTextAlign,
+                      }}
+                    >
+                      {options!.map((opt, i) => (
+                        <div
+                          key={opt.id}
+                          className="w-full text-center font-medium border border-white/15"
+                          style={{
+                            background: answerBarColors[i] ?? PGD.answerButtonIdleBg,
+                            backdropFilter: 'blur(8px)',
+                            color: answerColor,
+                            padding: '16px',
+                            borderRadius: `${PGD.answerBorderRadius * 0.66}px`,
+                          }}
+                        >
+                          <span style={{ fontSize: mode === 'mobile' ? 16 : PGD.answerFontSizeVoter, color: answerColor }}>{opt.text || 'Answer'}</span>
+                        </div>
+                      ))}
+                    </div>
+                  </SceneAssetTransformFrame>
                 );
               })()}
             </div>
