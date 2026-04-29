@@ -163,7 +163,11 @@ export function ResultsScene({
             const finalPct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
             const pct = finalPct * progress;
             const displayVotes = Math.round(option.votes * progress);
-            const operatorBarColors = assetColors?.answers?.barColors;
+            // Mirror Answer Type colors so Answer Bars Answer 1/2 share
+            // the same palette as the voter buttons unless the operator
+            // explicitly overrides per-bar.
+            const operatorBarColors =
+              assetColors?.answers?.barColors ?? assetColors?.answerType?.barColors;
             const color = operatorBarColors?.[i] ?? PGD.answerTextColor;
             const labelColor = assetColors?.answers?.textPrimary ?? PGD.answerTextColor;
 
