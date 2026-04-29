@@ -821,10 +821,15 @@ export default function PollCreate() {
       // is real-data only — if there are no live votes, bars stay at 0.
       // Mock data is reserved for Build Mode design work.
       //
-      // Bridge local string ids → real poll_answers UUIDs (with an
-      // order-indexed fallback so the lookup never returns 0 just because
-      // the id-keyed map briefly disagrees with the DB).
-      const mappedUuid = liveAnswerIdMap[String(a.id)] ?? liveUuidsByOrder[i];
+      // Bind by sort_order to the active poll's real poll_answers UUIDs
+      // (from `useActivePollBinding`). This is the no-guessing path the
+      // architecture requires: Scene Answer i → poll_answers ordered by
+      // sort_order → poll_answers.live_votes. Local-id bridges remain as
+      // fallbacks only for the brief window before the binding loads.
+      const mappedUuid =
+        activeAnswerUuids[i] ??
+        liveAnswerIdMap[String(a.id)] ??
+        liveUuidsByOrder[i];
       const liveCount =
         (mappedUuid ? liveVoteMap[mappedUuid] : undefined) ??
         liveVoteMap[String(a.id)] ??
@@ -838,7 +843,7 @@ export default function PollCreate() {
         votes: liveState === 'live' ? liveCount : testCount,
         order: i,
       };
-    }), [answers, previewDataMode, liveVoteMap, liveState, liveAnswerIdMap, liveUuidsByOrder, mode]
+    }), [answers, previewDataMode, liveVoteMap, liveState, liveAnswerIdMap, liveUuidsByOrder, activeAnswerUuids, mode]
   );
   const previewTotal = previewOptions.reduce((sum, o) => sum + o.votes, 0);
   const previewQuestion = question || 'Your question here?';
