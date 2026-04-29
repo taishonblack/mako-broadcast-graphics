@@ -15,7 +15,7 @@ import {
 } from '@/lib/poll-scenes';
 import type { AssetId, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
 
-const SCENE_STORAGE_PREFIX = 'mako-poll-scenes-v2';
+const SCENE_STORAGE_PREFIX = 'mako-poll-scenes-v3';
 
 interface StoredPollScene {
   id: string;
@@ -84,18 +84,13 @@ async function persistDraftScenesToPoll(pollId: string, draftScenes: PollScene[]
   const createdScenes: PollScene[] = [];
   for (const draft of draftScenes) {
     const created = await createPollScene(pollId, draft.preset, draft.name, draft.sortOrder);
-    const meta = getScenePreset(draft.preset);
-    const assetIds = new Set<AssetId>([
-      ...meta.defaultVisibleAssets,
-      ...Array.from(draft.visibleAssetIds),
-      ...(Object.keys(draft.assetTransforms ?? {}) as AssetId[]),
-    ]);
+    const visibleAssetIds = Array.from(draft.visibleAssetIds);
 
-    await Promise.all(Array.from(assetIds).map((assetId) =>
-      setPollSceneAssetVisible(created.id, assetId, draft.visibleAssetIds.has(assetId)),
+    await Promise.all(visibleAssetIds.map((assetId) =>
+      setPollSceneAssetVisible(created.id, assetId, true),
     ));
-    if (Object.keys(draft.assetTransforms ?? {}).length > 0) {
-      await bulkSavePollSceneAssetTransforms(created.id, draft.assetTransforms as AssetTransformMap);
+    if (visibleAssetIds.length > 0 && Object.keys(draft.assetTransforms ?? {}).length > 0) {
+      await bulkSavePollSceneAssetTransforms(created.id, draft.assetTransforms as AssetTransformMap, visibleAssetIds);
     }
 
     createdScenes.push({
@@ -329,23 +324,30 @@ export function usePollScenes(pollId: string | undefined) {
    */
   const saveSceneAssetTransforms = useCallback(
     async (sceneId: string, transforms: AssetTransformMap) => {
+      const currentScene = scenes.find((s) => s.id === sceneId);
+      const visibleAssetIds = Array.from(currentScene?.visibleAssetIds ?? []);
+      const visibleTransforms = Object.fromEntries(
+        visibleAssetIds
+          .filter((assetId) => transforms[assetId])
+          .map((assetId) => [assetId, transforms[assetId]]),
+      ) as AssetTransformMap;
       setScenes((prev) =>
-        prev.map((s) => (s.id === sceneId ? { ...s, assetTransforms: { ...transforms } } : s)),
+        prev.map((s) => (s.id === sceneId ? { ...s, assetTransforms: { ...visibleTransforms } } : s)),
       );
       const isDraft = sceneId.startsWith('draft-scene-');
       if (isDraft) {
         draftScenesRef.current = draftScenesRef.current.map((s) =>
-          s.id === sceneId ? { ...s, assetTransforms: { ...transforms } } : s,
+          s.id === sceneId ? { ...s, assetTransforms: { ...visibleTransforms } } : s,
         );
         return;
       }
-      try { await bulkSavePollSceneAssetTransforms(sceneId, transforms); }
+      try { await bulkSavePollSceneAssetTransforms(sceneId, visibleTransforms, visibleAssetIds); }
       catch (err) {
         console.error('[usePollScenes] save transforms failed', err);
         toast.error('Failed to save scene layout');
       }
     },
-    [],
+    [scenes],
   );
 
   return {
