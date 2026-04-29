@@ -4,6 +4,7 @@ import { GraphicLayer } from '@/lib/layers';
 import { AssetOverlay } from '@/components/broadcast/AssetOverlay';
 import { AssetColorMap, AssetTransformMap, AssetId } from '@/components/poll-create/polling-assets/types';
 import { getAssetTransformStyle } from '@/lib/asset-transforms';
+import { POLLING_GRAPHIC_DEFAULTS as PGD } from '@/lib/polling-graphic-defaults';
 
 interface ResultsSceneProps {
   question: string;
@@ -70,7 +71,7 @@ export function ResultsScene({
   const ACTION_SAFE_PX = 1728;
   const questionMaxWidthPx = Math.min(
     ACTION_SAFE_PX,
-    Math.round(((questionLayer?.textProps?.maxWidth ?? 84) / 100) * 1920),
+    Math.round(((questionLayer?.textProps?.maxWidth ?? PGD.questionMaxWidthPct) / 100) * 1920),
   );
   const questionLineHeight = questionLayer?.textProps?.lineHeight ?? 1.1;
 
@@ -121,13 +122,13 @@ export function ResultsScene({
         }}
       />
 
-      <div className="relative z-20 flex flex-col items-center w-full px-32" style={{ maxWidth: '1600px' }}>
+      <div className="relative z-20 flex flex-col items-center w-full px-32" style={{ maxWidth: `${PGD.pollGraphicWidth}px` }}>
         {visibleAssets.has('question') && (
         <h1
           className="font-bold mb-16 text-center"
           style={{
             color: assetColors?.question?.textPrimary ?? theme.textPrimary,
-            fontSize: '88px',
+            fontSize: `${PGD.questionFontSize}px`,
             maxWidth: `${questionMaxWidthPx}px`,
             lineHeight: questionLineHeight,
             overflowWrap: 'break-word',
@@ -139,8 +140,43 @@ export function ResultsScene({
         </h1>
         )}
 
+        {/* ANSWER TYPE — voter-style buttons in the same footprint as
+            Answer Bars so a Scene-1 Answer-Type → Scene-2 Answer-Bars cut
+            reads as a single graphic family. */}
+        {visibleAssets.has('answerType') && !visibleAssets.has('answers') && (
+          <div
+            className={
+              options.length === 2 &&
+              options.every((o) => ['yes','no','y','n'].includes((o.text || '').trim().toLowerCase()))
+                ? 'w-full grid grid-cols-2'
+                : 'w-full flex flex-col'
+            }
+            style={{ gap: `${PGD.answerSpacing}px`, ...getAssetTransformStyle(transforms?.answerType) }}
+          >
+            {options.map((option, i) => {
+              const bg = assetColors?.answerType?.barColors?.[i] ?? PGD.answerButtonIdleBg;
+              const fg = assetColors?.answerType?.textPrimary ?? theme.textPrimary;
+              return (
+                <div
+                  key={option.id}
+                  className="w-full text-center font-semibold border border-white/15"
+                  style={{
+                    background: bg,
+                    color: fg,
+                    padding: `${PGD.answerButtonPaddingY}px 32px`,
+                    borderRadius: `${PGD.answerBorderRadius}px`,
+                    fontSize: `${PGD.answerFontSize}px`,
+                  }}
+                >
+                  {option.text || `Answer ${i + 1}`}
+                </div>
+              );
+            })}
+          </div>
+        )}
+
         {visibleAssets.has('answers') && (
-        <div className="w-full space-y-10" style={getAssetTransformStyle(transforms?.answers)}>
+        <div className="w-full flex flex-col" style={{ gap: `${PGD.answerSpacing}px`, ...getAssetTransformStyle(transforms?.answers) }}>
           {options.map((option, i) => {
             const finalPct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
             const pct = finalPct * progress;
@@ -152,7 +188,7 @@ export function ResultsScene({
                 <div className="flex items-end justify-between">
                   <span
                     className="font-semibold"
-                    style={{ color: assetColors?.answers?.textPrimary ?? theme.textPrimary, fontSize: '44px' }}
+                    style={{ color: assetColors?.answers?.textPrimary ?? theme.textPrimary, fontSize: `${PGD.answerFontSize}px` }}
                   >
                     {option.text}
                   </span>
@@ -164,14 +200,15 @@ export function ResultsScene({
                   </span>
                 </div>
                 <div
-                  className="rounded-full overflow-hidden"
-                  style={{ height: '32px', background: 'hsla(210, 20%, 92%, 0.1)' }}
+                  className="overflow-hidden"
+                  style={{ height: `${PGD.answerBarHeight}px`, borderRadius: `${PGD.answerBorderRadius}px`, background: 'hsla(210, 20%, 92%, 0.1)' }}
                 >
                   <div
-                    className="h-full rounded-full"
+                    className="h-full"
                     style={{
                       width: `${pct}%`,
                       backgroundColor: color,
+                      borderRadius: `${PGD.answerBorderRadius}px`,
                       boxShadow: 'none',
                     }}
                   />
