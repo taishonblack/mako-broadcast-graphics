@@ -788,7 +788,6 @@ export default function PollCreate() {
   // instead of snapping back to test/mock values.
   const liveTallyEnabled = Boolean(pollId) && (
     liveState === 'live' ||
-    liveState === 'ended' ||
     votingState === 'open' ||
     votingState === 'closed'
   );
@@ -873,8 +872,6 @@ export default function PollCreate() {
     });
     console.log('[program-preview] vote source', {
       pollId,
-      activeFolderId: folderState.activeFolderId ?? null,
-      activeSceneId: folderState.activeSceneId ?? null,
       liveState,
       votingState,
       useMockVoteData,
@@ -883,7 +880,7 @@ export default function PollCreate() {
       breakdown,
       finalRenderedTotal: previewTotal,
     });
-  }, [pollId, folderState.activeFolderId, folderState.activeSceneId, liveState, votingState, useMockVoteData, liveTallyEnabled, answers, liveAnswerIdMap, liveUuidsByOrder, liveVoteMap, previewOptions, previewTotal]);
+  }, [pollId, liveState, votingState, useMockVoteData, liveTallyEnabled, answers, liveAnswerIdMap, liveUuidsByOrder, liveVoteMap, previewOptions, previewTotal]);
 
   const slugForUrl = slug || 'your-poll-slug';
   const fullUrl = `https://makovote.app/vote/${slugForUrl}`;
