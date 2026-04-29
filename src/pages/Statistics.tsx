@@ -573,8 +573,8 @@ export default function Statistics() {
                   <thead className="bg-muted/30">
                     <tr className="text-left text-xs uppercase tracking-wider text-muted-foreground font-mono">
                       <th className="px-3 py-2">Poll</th>
-                      <th className="px-3 py-2 w-[180px]">Project</th>
-                      <th className="px-3 py-2 w-[120px]">Block</th>
+                      <th className="px-3 py-2 w-[180px]">Folder</th>
+                      <th className="px-3 py-2 w-[120px]">Scene</th>
                       <th className="px-3 py-2 w-[100px]">Votes</th>
                       <th className="px-3 py-2 w-[100px]">Status</th>
                       <th className="px-3 py-2 w-[160px]">Last vote</th>
@@ -585,18 +585,18 @@ export default function Statistics() {
                     {history.map((h) => {
                       const p = polls[h.pollId];
                       const status = activePollId === h.pollId && isLive ? 'open' : 'closed';
-                      const projectName = p?.project_id ? (projects[p.project_id]?.name ?? '—') : '—';
-                      const blockText = [p?.block_letter, p?.block_label].filter(Boolean).join(' · ') || '—';
+                      const folderText = [p?.block_letter, p?.block_label].filter(Boolean).join(' · ') || '—';
+                      const sceneText = p?.internal_name || p?.question || '—';
                       return (
                         <tr key={h.pollId} className="border-t border-border/50">
                           <td className="px-3 py-2 text-foreground truncate max-w-[420px]">
                             {p?.internal_name || p?.question || h.pollId.slice(0, 8)}
                           </td>
                           <td className="px-3 py-2 text-muted-foreground truncate max-w-[180px]">
-                            {projectName}
+                            {folderText}
                           </td>
                           <td className="px-3 py-2 text-muted-foreground font-mono text-xs truncate max-w-[120px]">
-                            {blockText}
+                            {sceneText}
                           </td>
                           <td className="px-3 py-2 font-mono">{h.total}</td>
                           <td className="px-3 py-2">
