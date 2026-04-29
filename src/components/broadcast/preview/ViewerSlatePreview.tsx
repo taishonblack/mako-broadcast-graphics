@@ -255,7 +255,13 @@ export function ViewerSlatePreview({
                     className={containerClass}
                     style={{
                       maxWidth: `${PGD.pollGraphicWidthVoter}px`,
+                      // Shared inner layout — same `answerGap` ratio and
+                      // group width % as Answer Bars on Program so the rows
+                      // sit in the same internal slot at identical X/Y/scale.
+                      // Voter viewport scales the gap down proportionally.
                       gap: `${PGD.answerSpacingVoter}px`,
+                      width: `${PGD.answerGroupWidthPercent}%`,
+                      textAlign: PGD.answerTextAlign,
                       ...answersTransformStyle,
                     }}
                   >
