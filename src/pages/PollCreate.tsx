@@ -975,9 +975,11 @@ export default function PollCreate() {
     // from Build → Output until they revisited Build's Program tab.)
     const programTransforms = assetTransformSet.program;
     const programAssetColors = assetColorSet.program;
+    // Neutral white by default. The operator opts into themed colors via the
+    // inspector — we no longer auto-paint Answer 1 orange / Answer 2 blue.
     const programColors = programAssetColors.answers.barColors?.length
       ? programAssetColors.answers.barColors
-      : [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
+      : ['#ffffff', '#ffffff', '#ffffff', '#ffffff'];
     // Scene-driven visibility: the operator picks a scene, the scene
     // narrows the poll's enabled assets down to what should appear on
     // air (e.g. Question+QR hides answer bars; Lower Third hides QR).
@@ -2216,9 +2218,10 @@ export default function PollCreate() {
     hasImage: Boolean(activeFolder?.bgImage),
     imageMissing: backgroundImageMissing,
   };
+  // Neutral white by default — see programColors above for rationale.
   const previewColors = assetColors.answers.barColors?.length
     ? assetColors.answers.barColors
-    : [theme.chartColorA, theme.chartColorB, theme.chartColorC, theme.chartColorD];
+    : ['#ffffff', '#ffffff', '#ffffff', '#ffffff'];
 
   const createSnapshot = useCallback((): EditorSnapshot => ({
     question,
