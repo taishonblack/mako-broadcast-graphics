@@ -14,8 +14,9 @@ export function PuckSlider({ options, totalVotes, colors, smooth = true }: PuckS
   const smoothedTotal = smoothedOptions.reduce((s, o) => s + o.votes, 0);
   const denomTotal = smooth ? Math.max(smoothedTotal, 0) : totalVotes;
   const leftPct = denomTotal > 0 ? (smoothedOptions[0].votes / denomTotal) * 100 : 50;
-  const leftColor = colors?.[0] || 'hsl(24, 95%, 53%)';
-  const rightColor = colors?.[1] || 'hsl(210, 70%, 50%)';
+  // Neutral white default — operator picks accent colors via the inspector.
+  const leftColor = colors?.[0] || '#ffffff';
+  const rightColor = colors?.[1] || '#ffffff';
 
   return (
     <div className="flex flex-col items-center gap-4 w-full max-w-md mx-auto">

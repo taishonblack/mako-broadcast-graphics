@@ -54,6 +54,35 @@ export const POLLING_GRAPHIC_DEFAULTS = {
   answerTextColor: '#ffffff',
   /** Default border color for buttons / bar containers. */
   answerBorderColor: 'hsla(0, 0%, 100%, 0.25)',
+
+  /* ---------------------------------------------------------------------
+   * Shared INTERNAL layout tokens.
+   *
+   * Outer X/Y/scale (the asset transform) moves the asset *container*, but
+   * the math INSIDE the container — where the question sits, where the
+   * answer rows start, the row height, gaps and padding — must be the same
+   * for `answers` (Answer Bars) and `answerType` (Answer Type buttons).
+   *
+   * Otherwise, even with identical X=0/Y=0/scale=100, the two assets render
+   * at different visual positions. These tokens guarantee the inner layout
+   * matches across the polling graphic family.
+   * ------------------------------------------------------------------- */
+
+  /** Question baseline as a percentage of the inner container (top → down). */
+  questionTopPercent: 18,
+  /** Answer group baseline as a percentage of the inner container. */
+  answerGroupTopPercent: 46,
+  /** Answer group max width as a percentage of the inner container. */
+  answerGroupWidthPercent: 84,
+  /** Per-row height (px @ program scale). Bar track height + label slot. */
+  answerRowHeight: 96,
+  /** Vertical gap between answer rows (px @ program scale). */
+  answerGap: 32,
+  /** Horizontal alignment for answer labels. */
+  answerTextAlign: 'left' as const,
+  /** Inner padding for the polling graphic container (px @ program scale). */
+  containerPaddingX: 128,
+  containerPaddingY: 96,
 } as const;
 
 /** Convenience accessor for the default ordered color palette shared by

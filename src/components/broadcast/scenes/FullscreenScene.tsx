@@ -142,6 +142,11 @@ export function FullscreenScene({
                   exclusively in the Mobile/Desktop voter previews and the
                   real /vote page. Program shows Answer Bars (`answers`). */}
 
+              {/* Inner layout uses the shared polling-graphic tokens
+                  (`answerGap`, `answerGroupWidthPercent`, `answerTextAlign`)
+                  so Answer Bars (here) and Answer Type (voter preview) line
+                  up at identical X/Y/scale. The OUTER transform moves the
+                  container — the INNER math is shared. */}
               {visibleAssets.has('answers') && (useNativeChart ? (
                 <div
                   data-layer="answerBars"
@@ -164,7 +169,15 @@ export function FullscreenScene({
                 <div
                   data-layer="answerBars"
                   className="flex flex-col"
-                  style={{ gap: `${PGD.answerSpacing}px`, ...getAssetTransformStyle(transforms?.answers) }}
+                  style={{
+                    // Shared inner layout — identical math as Answer Type so
+                    // the outer X/Y/scale lines up with the voter preview.
+                    gap: `${PGD.answerGap}px`,
+                    width: `${PGD.answerGroupWidthPercent}%`,
+                    margin: '0 auto',
+                    textAlign: PGD.answerTextAlign,
+                    ...getAssetTransformStyle(transforms?.answers),
+                  }}
                 >
                   {options.map((option, i) => {
                     const pct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
