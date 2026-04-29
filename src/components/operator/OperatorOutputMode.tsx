@@ -1235,175 +1235,36 @@ export function OperatorOutputMode({
             </div>
           )}
 
-          {/* Test-vote runner — inject N votes over T seconds and watch the
-              bars + counters animate in the preview above. Useful for QA'ing
-              the chart animation without opening a viewer browser. */}
-          {(onStartTestVotes || onStopTestVotes) && (
-            <Collapsible open={voteRunnerOpen} onOpenChange={setVoteRunnerOpen} className="mako-panel p-3 space-y-3">
-              <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-accent/30">
-                <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase text-muted-foreground">
-                  {voteRunnerOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                  Vote Runner
-                </span>
-                <span className="flex items-center gap-2">
-                  {testVoteRunning && (
-                    <span className="flex items-center gap-1 text-[10px] font-mono text-primary">
-                      <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" /> running
-                    </span>
-                  )}
-                </span>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-3 pt-2">
-              {/* Active Poll summary — merged from the standalone Active Poll
-                  panel so the right column has room for the Output Inspector. */}
-              <div className="rounded-md border border-border/60 bg-accent/10 p-2 space-y-1.5">
-                <div>
-                  <p className="text-[10px] font-mono text-muted-foreground truncate">{currentPoll.internalName}</p>
-                  <p className="text-xs font-semibold text-foreground line-clamp-2">{currentPoll.question || 'No on-air question yet'}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-2 border-t border-border/60 pt-1.5">
-                  <div>
-                    <p className="text-[9px] font-mono uppercase text-muted-foreground">Total</p>
-                    <p className="text-sm font-bold text-foreground">
-                      {(liveState === 'live' ? liveVoteTotal : currentPoll.totalVotes).toLocaleString()}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-mono uppercase text-muted-foreground">Votes/sec</p>
-                    <p className="text-sm font-bold text-primary">{currentPoll.votesPerSecond}</p>
-                  </div>
-                </div>
-                {liveState === 'live' && (
-                  <div className="border-t border-border/60 pt-1.5 space-y-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="flex items-center gap-1.5 text-[9px] font-mono uppercase text-muted-foreground">
-                        <span className="h-1.5 w-1.5 rounded-full bg-mako-live animate-pulse" />
-                        Live tally
-                      </span>
-                      <label className="flex items-center gap-1.5 text-[9px] font-mono uppercase text-muted-foreground cursor-pointer">
-                        Show
-                        <Switch
-                          checked={showLiveTally}
-                          onCheckedChange={(v) => setShowLiveTally(Boolean(v))}
-                          className="scale-75"
-                          aria-label="Toggle live vote totals"
-                        />
-                      </label>
-                    </div>
-                    {showLiveTally && (
-                      <ul className="space-y-1">
-                        {currentPoll.options.map((opt, i) => {
-                          const count = opt.votes ?? 0;
-                          const pct = liveVoteTotal > 0 ? (count / liveVoteTotal) * 100 : 0;
-                          return (
-                            <li key={opt.id} className="flex items-center gap-2">
-                              <span className="w-4 shrink-0 text-[10px] font-mono text-muted-foreground">
-                                {String.fromCharCode(65 + i)}
-                              </span>
-                              <span className="flex-1 truncate text-[11px] text-foreground">
-                                {opt.text || `Option ${i + 1}`}
-                              </span>
-                              <span className="font-mono text-[11px] tabular-nums text-foreground">
-                                {count.toLocaleString()}
-                              </span>
-                              <span className="w-10 text-right font-mono text-[10px] tabular-nums text-muted-foreground">
-                                {pct.toFixed(0)}%
-                              </span>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <label className="space-y-1">
-                  <span className="text-[10px] uppercase text-muted-foreground">Total votes</span>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={testVoteTotal}
-                    onChange={(e) => setTestVoteTotal(Math.max(1, Number(e.target.value) || 0))}
-                    className="h-7 text-xs"
-                  />
-                </label>
-                <label className="space-y-1">
-                  <span className="text-[10px] uppercase text-muted-foreground">Duration (s)</span>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={testVoteDuration}
-                    onChange={(e) => setTestVoteDuration(Math.max(1, Number(e.target.value) || 0))}
-                    className="h-7 text-xs"
-                  />
-                </label>
-              </div>
-              {hasAnswerBars && answerCount > 0 && (
-                <Collapsible open={targetsOpen} onOpenChange={setTargetsOpen} className="border-t border-border/60 pt-2">
-                  <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 rounded-md px-1 py-1 text-left transition-colors hover:bg-accent/30">
-                    <span className="flex items-center gap-1.5 text-[10px] uppercase text-muted-foreground">
-                      {targetsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                      Target % per bar
-                    </span>
-                    <span className="text-[10px] font-mono text-muted-foreground">
-                      {targetPercents.reduce((s, v) => s + v, 0).toFixed(0)}%
-                    </span>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-1.5 pt-2">
-                    {currentPoll.options.map((opt, i) => (
-                      <div key={opt.id} className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-sm bg-primary/70" />
-                        <span className="flex-1 truncate text-[11px] text-foreground">{opt.text || `Option ${i + 1}`}</span>
-                        <Input
-                          type="number"
-                          min={0}
-                          max={100}
-                          step={1}
-                          value={targetPercents[i] ?? 0}
-                          onChange={(e) => handleTargetChange(i, Number(e.target.value))}
-                          disabled={testVoteRunning}
-                          className="h-7 w-16 text-right text-xs"
-                        />
-                        <span className="text-[10px] text-muted-foreground">%</span>
-                      </div>
-                    ))}
-                    <p className="text-[10px] text-muted-foreground">
-                      Editing one bar auto-rebalances the others so the total is always 100%.
-                    </p>
-                  </CollapsibleContent>
-                </Collapsible>
-              )}
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  className="flex-1 gap-1.5 text-xs"
-                  disabled={testVoteRunning}
-                  onClick={() => {
-                    // Reset tallies to zero before ramping toward the targets so
-                    // each Run produces a clean animation from 0% → target.
-                    onResetTestVotes?.();
-                    onStartTestVotes?.(testVoteTotal, testVoteDuration, targetPercents);
-                  }}
-                >
-                  <Play className="h-3.5 w-3.5" /> Run
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1 gap-1.5 text-xs"
-                  disabled={!testVoteRunning}
-                  onClick={() => onStopTestVotes?.()}
-                >
-                  <StopCircle className="h-3.5 w-3.5" /> Stop
-                </Button>
-              </div>
-              <p className="text-[10px] text-muted-foreground text-center">
-                Pressing Run resets the tally to 0% and ramps to your targets.
+          {/* Active Poll summary — REAL data only. The legacy Vote Runner
+              (test-vote injector + per-bar Target % editor) was removed
+              from Output Mode; mock/manual percentages now live exclusively
+              in Build Mode. Output reads totals straight from
+              poll_answers.live_votes via the parent's previewOptions. */}
+          <div className="mako-panel p-3 space-y-2">
+            <div>
+              <p className="text-[10px] font-mono text-muted-foreground truncate">{currentPoll.internalName}</p>
+              <p className="text-xs font-semibold text-foreground line-clamp-2">
+                {currentPoll.question || 'No on-air question yet'}
               </p>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
+            </div>
+            <div className="grid grid-cols-2 gap-2 border-t border-border/60 pt-1.5">
+              <div>
+                <p className="text-[9px] font-mono uppercase text-muted-foreground">Real votes</p>
+                <p className="text-sm font-bold text-foreground">
+                  {liveVoteTotal.toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-[9px] font-mono uppercase text-muted-foreground">Voting</p>
+                <p className="text-sm font-bold text-foreground uppercase">{votingState.replace('_', ' ')}</p>
+              </div>
+            </div>
+            {liveState !== 'live' && (
+              <p className="text-[9px] font-mono uppercase text-muted-foreground/70">
+                Output Mode shows real votes only. Go Live to begin tallying.
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="min-h-0 overflow-auto space-y-3">
