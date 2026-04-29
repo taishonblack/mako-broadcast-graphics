@@ -2922,6 +2922,15 @@ export default function PollCreate() {
                 try { existing.focus(); } catch { /* ignore */ }
                 return existing;
               }
+              const sessionThinksOpen = (() => {
+                try { return sessionStorage.getItem('mako-output-open') === '1'; }
+                catch { return false; }
+              })();
+              // If React remounted while the named Output window stayed open,
+              // the ref is gone but Chrome fullscreen is still active there.
+              // Do not window.open()/focus() an ACTIVE session — that is what
+              // drops Program Output out of fullscreen.
+              if (sessionThinksOpen) return null;
               // Open directly with a named target. If a popup with this
               // name already exists (e.g. after navigating between operator
               // pages), the browser reuses it instead of spawning a new
