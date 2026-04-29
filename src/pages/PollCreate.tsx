@@ -794,9 +794,13 @@ export default function PollCreate() {
     activePollId: dbActivePollId,
     answerUuidsByOrder: activeAnswerUuids,
     activeAnswers,
-  } = useActivePollBinding(projectId ?? undefined, liveState === 'live');
-  const activePollId = dbActivePollId ?? (liveState === 'live' && isUuid(pollId ?? '') ? pollId : null);
-  const liveVoteMap = useLiveVotes(activePollId ?? undefined, liveState === 'live');
+  } = useActivePollBinding(projectId ?? undefined, Boolean(projectId));
+  // Real vote display is NOT gated on liveState. As long as the project has
+  // an active_poll_id we keep showing its poll_answers.live_votes — across
+  // End Live, voting closed, scene/folder switches. Only selecting a new
+  // active poll or resetting votes can replace the displayed totals.
+  const activePollId = dbActivePollId ?? (isUuid(pollId ?? '') ? pollId : null);
+  const liveVoteMap = useLiveVotes(activePollId ?? undefined, Boolean(activePollId));
 
   // Build an order-indexed view of the live UUID map so we can recover
   // votes even when the local→UUID bridge is mid-sync. Vote rows in
@@ -826,7 +830,11 @@ export default function PollCreate() {
   const previewOptions: PollOption[] = useMemo(() => {
     const isOutputMode = mode === 'output';
 
-    if (liveState === 'live' && activeAnswers.length > 0) {
+    // Real-data path: whenever the project has an active poll bound (even
+    // after End Live / voting closed), render that poll's answer rows with
+    // votes looked up by poll_answers.id. This unifies Statistics, Program
+    // Preview, Output Inspector and Fullscreen Output on a single source.
+    if (activeAnswers.length > 0) {
       return activeAnswers.map((row, i) => ({
         id: row.id, // <-- stable poll_answers.id, NOT a local id
         text: row.label || `Answer ${i + 1}`,
@@ -836,24 +844,27 @@ export default function PollCreate() {
       }));
     }
 
+    // Output Mode must NEVER show mock/test data — only real votes.
+    // If there's no active poll bound yet, render zeros for the current
+    // workspace answers so the bars remain visible but empty.
     return answers.map((a, i) => {
       const testCount = !isOutputMode && previewDataMode === 'test' ? (a.testVotes ?? 0) : 0;
       return {
         id: a.id,
         text: a.text || `Answer ${i + 1}`,
         shortLabel: a.shortLabel || undefined,
-        votes: liveState === 'live' ? 0 : testCount,
+        votes: isOutputMode ? 0 : testCount,
         order: i,
       };
     });
-  }, [answers, previewDataMode, liveVoteMap, liveState, activeAnswers, mode]);
+  }, [answers, previewDataMode, liveVoteMap, activeAnswers, mode]);
   const previewTotal = previewOptions.reduce((sum, o) => sum + o.votes, 0);
   const previewQuestion = question || 'Your question here?';
 
   // Diagnostic: per-answer mapping check. Confirms each rendered bar's
   // label is paired with the correct poll_answers.id and live count.
   useEffect(() => {
-    if (liveState !== 'live') return;
+    if (activeAnswers.length === 0) return;
     const labelById = new Map(activeAnswers.map((r) => [r.id, r.label]));
     const rows = previewOptions.map((opt, i) => {
       const total = previewOptions.reduce((s, o) => s + o.votes, 0);
