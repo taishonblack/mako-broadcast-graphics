@@ -49,7 +49,6 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { PollScene } from '@/lib/poll-scenes';
 import { Layers } from 'lucide-react';
-import { useMockVoteDataPreference } from '@/lib/use-mock-vote-data';
 
 export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
 
