@@ -864,7 +864,7 @@ export default function PollCreate() {
   // Diagnostic: per-answer mapping check. Confirms each rendered bar's
   // label is paired with the correct poll_answers.id and live count.
   useEffect(() => {
-    if (liveState !== 'live') return;
+    if (activeAnswers.length === 0) return;
     const labelById = new Map(activeAnswers.map((r) => [r.id, r.label]));
     const rows = previewOptions.map((opt, i) => {
       const total = previewOptions.reduce((s, o) => s + o.votes, 0);
