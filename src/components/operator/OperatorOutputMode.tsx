@@ -643,6 +643,19 @@ export function OperatorOutputMode({
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(SHOW_LIVE_TALLY_KEY, showLiveTally ? '1' : '0');
   }, [showLiveTally]);
+  // Separate toggle: when ON, paint live counts + percentages directly on
+  // top of the Program Preview canvas so producers can confirm the bars
+  // are tracking real votes without scanning the inspector. Defaults OFF
+  // so the on-screen composition stays clean.
+  const SHOW_PREVIEW_TALLY_KEY = 'mako:operator:show-preview-tally';
+  const [showPreviewTallyOverlay, setShowPreviewTallyOverlay] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(SHOW_PREVIEW_TALLY_KEY) === '1';
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(SHOW_PREVIEW_TALLY_KEY, showPreviewTallyOverlay ? '1' : '0');
+  }, [showPreviewTallyOverlay]);
   // Per-answer live counts are already merged into currentPoll.options.votes
   // by PollCreate (which bridges local-id → poll_answers UUID → liveVoteMap).
   // Reusing them avoids duplicating the realtime subscription and keeps the
