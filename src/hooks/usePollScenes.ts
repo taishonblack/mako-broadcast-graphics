@@ -206,7 +206,13 @@ export function usePollScenes(pollId: string | undefined) {
     if (pollId) {
       try {
         const created = await createPollScene(pollId, preset, name, sortOrder);
-        setScenes((prev) => [...prev, created]);
+        // Strip preset-seeded visibility so the operator must explicitly
+        // add assets to each scene. Otherwise an asset added later to the
+        // folder auto-appears in every scene whose preset pre-included it
+        // (e.g. adding "Answer Bars" while Scene 2 (Live Results) is
+        // active also makes it show up in any other Live-Results scene).
+        const blank: PollScene = { ...created, visibleAssetIds: new Set<AssetId>() };
+        setScenes((prev) => [...prev, blank]);
         setActiveSceneId(created.id);
         toast.success(`Added ${meta.label}`);
       } catch (err) {
@@ -221,7 +227,9 @@ export function usePollScenes(pollId: string | undefined) {
         name,
         preset,
         sortOrder,
-        visibleAssetIds: new Set<AssetId>(meta.defaultVisibleAssets),
+        // See note above — start scenes empty so each asset must be added
+        // explicitly to the scene the operator currently has selected.
+        visibleAssetIds: new Set<AssetId>(),
         assetTransforms: {},
       };
       const next = [...scenes, draft];

@@ -2713,13 +2713,6 @@ export default function PollCreate() {
   };
 
   const handleAddAssetToFolder = (folderId: string, assetId: AssetId) => {
-    console.log('[scene-debug] handleAddAssetToFolder', {
-      folderId,
-      assetId,
-      activeSceneId: sceneController.activeSceneId,
-      activeSceneName: sceneController.scenes.find(s => s.id === sceneController.activeSceneId)?.name,
-      allScenes: sceneController.scenes.map(s => ({ id: s.id, name: s.name, sort: s.sortOrder })),
-    });
     updateFolderState((current) => ({
       ...current,
       activeFolderId: folderId,
