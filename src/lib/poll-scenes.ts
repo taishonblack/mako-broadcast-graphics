@@ -138,28 +138,13 @@ export async function createPollScene(
     .single();
   if (error) throw error;
 
-  const meta = getScenePreset(preset);
-  if (meta.defaultVisibleAssets.length > 0) {
-    const rows = meta.defaultVisibleAssets.map((asset_id) => ({
-      scene_id: (data as RawSceneRow).id,
-      asset_id,
-      visible: true,
-    }));
-    const { error: insErr } = await supabase
-      .from('poll_scene_assets')
-      .insert(rows as never);
-    if (insErr) throw insErr;
-  }
-
-  return rowToScene(
-    data as RawSceneRow,
-    meta.defaultVisibleAssets.map((asset_id) => ({
-      scene_id: (data as RawSceneRow).id,
-      asset_id,
-      visible: true,
-      transform: {},
-    })),
-  );
+  // Intentionally NOT seeding `poll_scene_assets` from the preset's
+  // `defaultVisibleAssets`. Pre-seeding caused assets added later to the
+  // folder to auto-appear in every scene whose preset pre-included them,
+  // which violated the operator's "asset belongs to the scene I selected"
+  // mental model. Scenes start blank; the operator adds assets via the
+  // folder "+" menu while the target scene is active.
+  return rowToScene(data as RawSceneRow, []);
 }
 
 export async function renamePollScene(sceneId: string, name: string) {
