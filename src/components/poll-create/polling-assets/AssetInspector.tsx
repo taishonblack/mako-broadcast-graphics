@@ -7,7 +7,8 @@ import {
   AnswerType, MCLabelStyle,
 } from '@/components/poll-create/ContentPanel';
 import { ASSET_REGISTRY } from './PollingAssetsPane';
-import { AssetId, AssetState } from './types';
+import { AssetColorMap, AssetId, AssetState, TransformViewport } from './types';
+import { POLLING_GRAPHIC_DEFAULTS as PGD } from '@/lib/polling-graphic-defaults';
 import { Trash2, PlusCircle, GripVertical } from 'lucide-react';
 import { BackgroundPicker } from '@/components/poll-create/BackgroundPicker';
 import { MediaPicker } from '@/components/poll-create/MediaPicker';
@@ -55,6 +56,14 @@ interface AssetInspectorProps {
    *  Answer Bars asset panel so the operator can flip back to vote-input
    *  mode without rebuilding the folder. */
   onConvertAnswerBarsToAnswerType?: () => void;
+  /** Active viewport (program/mobile/desktop). Style edits write into the
+   *  matching slice of the color set so each device can be tuned
+   *  independently. */
+  activeViewport?: TransformViewport;
+  /** Color map for the active viewport (used to read pill-style overrides). */
+  assetColors?: AssetColorMap;
+  /** Writer for the active-viewport color slice. */
+  setAssetColors?: (updater: (current: AssetColorMap) => AssetColorMap) => void;
 }
 
 export function AssetInspector(p: AssetInspectorProps) {
