@@ -205,7 +205,7 @@ export async function setPollSceneAssetTransform(
  */
 export async function bulkSavePollSceneAssetTransforms(
   sceneId: string,
-  transforms: AssetTransformMap,
+  transforms: Partial<Record<AssetId, AssetTransformConfig>>,
   visibleAssetIds?: Iterable<AssetId>,
 ) {
   const visibleSet = visibleAssetIds ? new Set<AssetId>(visibleAssetIds) : null;
