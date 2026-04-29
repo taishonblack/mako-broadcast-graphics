@@ -656,13 +656,9 @@ export function OperatorOutputMode({
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(SHOW_PREVIEW_TALLY_KEY, showPreviewTallyOverlay ? '1' : '0');
   }, [showPreviewTallyOverlay]);
-  // Output-Mode panel is read-only with respect to the mock-data toggle.
-  // The Build/Output split (enforced in `PollCreate.previewOptions`) means
-  // mock/test vote bars are unavailable here by design — Output reads
-  // exclusively from `liveVoteMap` for the active poll. We still surface
-  // the current preference for diagnostics, but it can only be flipped
-  // from Build Mode.
-  const [useMockVoteData] = useMockVoteDataPreference();
+  // Output Mode reads exclusively from `liveVoteMap` for the active
+  // poll — the mock/test vote toggle is Build-Mode only and intentionally
+  // not wired up here.
   // Per-answer live counts are already merged into currentPoll.options.votes
   // by PollCreate (which bridges local-id → poll_answers UUID → liveVoteMap).
   // Reusing them avoids duplicating the realtime subscription and keeps the
