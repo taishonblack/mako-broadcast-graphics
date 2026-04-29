@@ -9,12 +9,8 @@ interface VerticalBarChartProps {
   smooth?: boolean;
 }
 
-const defaultColors = [
-  'hsl(24, 95%, 53%)',
-  'hsl(210, 70%, 50%)',
-  'hsl(142, 71%, 45%)',
-  'hsl(280, 65%, 55%)',
-];
+// Neutral white default — see HorizontalBarChart.
+const defaultColors = ['#ffffff', '#ffffff', '#ffffff', '#ffffff'];
 
 export function VerticalBarChart({ options, totalVotes, colors = defaultColors, showPercent = true, smooth = true }: VerticalBarChartProps) {
   const smoothedOptions = useSmoothedVotes(options, smooth);
