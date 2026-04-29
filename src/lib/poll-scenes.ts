@@ -193,7 +193,7 @@ export async function setPollSceneAssetTransform(
   const { error } = await supabase
     .from('poll_scene_assets')
     .upsert(
-      { scene_id: sceneId, asset_id: assetId, transform: transform as never } as never,
+      { scene_id: sceneId, asset_id: assetId, transform: transform as never, visible: true } as never,
       { onConflict: 'scene_id,asset_id' } as never,
     );
   if (error) throw error;
@@ -206,11 +206,14 @@ export async function setPollSceneAssetTransform(
 export async function bulkSavePollSceneAssetTransforms(
   sceneId: string,
   transforms: AssetTransformMap,
+  visibleAssetIds?: Iterable<AssetId>,
 ) {
+  const visibleSet = visibleAssetIds ? new Set<AssetId>(visibleAssetIds) : null;
   const rows = (Object.keys(transforms) as AssetId[]).map((assetId) => ({
     scene_id: sceneId,
     asset_id: assetId,
     transform: transforms[assetId] as never,
+    ...(visibleSet ? { visible: visibleSet.has(assetId) } : {}),
   }));
   if (rows.length === 0) return;
   const { error } = await supabase
