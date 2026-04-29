@@ -30,6 +30,7 @@ import { LoadPollDialog } from '@/components/poll-create/LoadPollDialog';
 import { ImportErrorDialog } from '@/components/poll-create/ImportErrorDialog';
 import { usePollScenes } from '@/hooks/usePollScenes';
 import { useLiveVotes } from '@/hooks/useLiveVotes';
+import { useActivePollBinding } from '@/hooks/useActivePollBinding';
 import { hydrateSceneTransformMap } from '@/lib/poll-scenes';
 import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
 import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
@@ -783,7 +784,18 @@ export default function PollCreate() {
   // Real voter tallies — only subscribed to while we're actually on-air.
   // When not live, the hook returns an empty map and we fall back to test
   // data, so the operator's build/preview workflow is unchanged.
-  const liveVoteMap = useLiveVotes(pollId ?? undefined, liveState === 'live');
+  //
+  // SINGLE SOURCE OF TRUTH: We bind to `project_live_state.active_poll_id`
+  // rather than the workspace's currently-loaded `pollId`. This guarantees
+  // Program Preview / Output Inspector / Fullscreen Output all read votes
+  // from the same poll the viewers are voting on — even if the operator
+  // has navigated the workspace to a different poll mid-show.
+  const { activePollId: dbActivePollId, answerUuidsByOrder: activeAnswerUuids } = useActivePollBinding(
+    projectId ?? undefined,
+    liveState === 'live',
+  );
+  const activePollId = dbActivePollId ?? (liveState === 'live' && isUuid(pollId ?? '') ? pollId : null);
+  const liveVoteMap = useLiveVotes(activePollId ?? undefined, liveState === 'live');
 
   // Build an order-indexed view of the live UUID map so we can recover
   // votes even when the local→UUID bridge is mid-sync. Vote rows in
@@ -809,10 +821,15 @@ export default function PollCreate() {
       // is real-data only — if there are no live votes, bars stay at 0.
       // Mock data is reserved for Build Mode design work.
       //
-      // Bridge local string ids → real poll_answers UUIDs (with an
-      // order-indexed fallback so the lookup never returns 0 just because
-      // the id-keyed map briefly disagrees with the DB).
-      const mappedUuid = liveAnswerIdMap[String(a.id)] ?? liveUuidsByOrder[i];
+      // Bind by sort_order to the active poll's real poll_answers UUIDs
+      // (from `useActivePollBinding`). This is the no-guessing path the
+      // architecture requires: Scene Answer i → poll_answers ordered by
+      // sort_order → poll_answers.live_votes. Local-id bridges remain as
+      // fallbacks only for the brief window before the binding loads.
+      const mappedUuid =
+        activeAnswerUuids[i] ??
+        liveAnswerIdMap[String(a.id)] ??
+        liveUuidsByOrder[i];
       const liveCount =
         (mappedUuid ? liveVoteMap[mappedUuid] : undefined) ??
         liveVoteMap[String(a.id)] ??
@@ -826,7 +843,7 @@ export default function PollCreate() {
         votes: liveState === 'live' ? liveCount : testCount,
         order: i,
       };
-    }), [answers, previewDataMode, liveVoteMap, liveState, liveAnswerIdMap, liveUuidsByOrder, mode]
+    }), [answers, previewDataMode, liveVoteMap, liveState, liveAnswerIdMap, liveUuidsByOrder, activeAnswerUuids, mode]
   );
   const previewTotal = previewOptions.reduce((sum, o) => sum + o.votes, 0);
   const previewQuestion = question || 'Your question here?';
@@ -838,7 +855,10 @@ export default function PollCreate() {
   useEffect(() => {
     if (liveState !== 'live') return;
     const breakdown = answers.map((a, i) => {
-      const mappedUuid = liveAnswerIdMap[String(a.id)] ?? liveUuidsByOrder[i];
+      const mappedUuid =
+        activeAnswerUuids[i] ??
+        liveAnswerIdMap[String(a.id)] ??
+        liveUuidsByOrder[i];
       return {
         index: i,
         localId: String(a.id),
@@ -847,12 +867,19 @@ export default function PollCreate() {
         previewVotes: previewOptions[i]?.votes ?? 0,
       };
     });
+    console.log('[binding]', {
+      active_poll_id: activePollId,
+      workspace_poll_id: pollId,
+      answer_uuid_list: activeAnswerUuids,
+      liveVoteMap,
+    });
     console.log('[program-preview] live tally', {
       pollId,
+      activePollId,
       liveVoteMapKeys: Object.keys(liveVoteMap),
       breakdown,
     });
-  }, [liveState, pollId, answers, liveAnswerIdMap, liveUuidsByOrder, liveVoteMap, previewOptions]);
+  }, [liveState, pollId, activePollId, activeAnswerUuids, answers, liveAnswerIdMap, liveUuidsByOrder, liveVoteMap, previewOptions]);
 
   const slugForUrl = slug || 'your-poll-slug';
   const fullUrl = `https://makovote.app/vote/${slugForUrl}`;
