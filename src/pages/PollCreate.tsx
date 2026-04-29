@@ -558,16 +558,20 @@ export default function PollCreate() {
     return () => { cancelled = true; };
   }, [projectId]);
 
-  // Whenever we're live but the local→UUID map is empty (e.g. after a
-  // page refresh in the operator workspace), rebuild it by fetching the
-  // current poll_answers for the active poll and zipping by sort_order
-  // against the local answers list. Without this, realtime vote tallies
-  // (UUID-keyed) never reach the bar graph and stay at 0%.
+  // Defensive map sync: while live, ensure EVERY local answer has a UUID
+  // bridge entry. This covers (a) post-refresh (empty map), (b) operator
+  // edits that add/remove/reorder answers mid-show, and (c) any case where
+  // the locally stored map drifts from the DB. We zip by sort_order, which
+  // is also how cast_vote / sync_poll_answers identify rows — guaranteeing
+  // vote lookups against `liveVoteMap` resolve to a real UUID instead of
+  // returning 0 because the local id never had a mapping.
   useEffect(() => {
     if (liveState !== 'live') return;
-    if (Object.keys(liveAnswerIdMap).length > 0) return;
     if (!pollId || !isUuid(pollId)) return;
     if (!answers.length) return;
+    const missingLocal = answers.some((a) => !liveAnswerIdMap[String(a.id)]);
+    const staleCount = Object.keys(liveAnswerIdMap).length !== answers.length;
+    if (!missingLocal && !staleCount) return;
     let cancelled = false;
     void supabase
       .from('poll_answers')
@@ -576,12 +580,17 @@ export default function PollCreate() {
       .order('sort_order', { ascending: true })
       .then(({ data: rows }) => {
         if (cancelled || !rows?.length) return;
-        const map: Record<string, string> = {};
+        const next: Record<string, string> = {};
         for (let i = 0; i < rows.length; i++) {
           const local = answers[i];
-          if (local) map[String(local.id)] = rows[i].id as string;
+          if (local) next[String(local.id)] = rows[i].id as string;
         }
-        if (Object.keys(map).length) setLiveAnswerIdMap(map);
+        // Only commit if it actually changes something — avoids a setState
+        // loop when the deps re-run on every render.
+        const changed =
+          Object.keys(next).length !== Object.keys(liveAnswerIdMap).length ||
+          Object.keys(next).some((k) => liveAnswerIdMap[k] !== next[k]);
+        if (changed) setLiveAnswerIdMap(next);
       });
     return () => { cancelled = true; };
   }, [liveState, liveAnswerIdMap, pollId, answers]);
