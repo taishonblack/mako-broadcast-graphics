@@ -292,17 +292,20 @@ function VotingView({
             <p className="text-sm mt-2" style={{ color: subColor || 'hsl(var(--muted-foreground))' }}>{snapshot.subheadline}</p>
           )}
         </div>
-        <div className="space-y-3">
+        <div className={answers.length === 2 ? 'grid grid-cols-2 gap-3' : 'space-y-3'}>
           {answers.map((option) => {
             const isSelected = selectedAnswerId === option.id;
             const isOtherSelected = hasVoted && !isSelected;
+            const sideBySide = answers.length === 2;
             return (
               <button
                 key={option.id}
                 onClick={() => onVote(option.id)}
                 disabled={hasVoted}
                 className={[
-                  'w-full p-4 rounded-2xl text-left font-medium text-foreground transition-all border',
+                  sideBySide
+                    ? 'p-6 rounded-2xl text-center font-bold text-foreground transition-all border'
+                    : 'w-full p-4 rounded-2xl text-left font-medium text-foreground transition-all border',
                   isSelected
                     ? 'border-primary bg-primary/20 ring-2 ring-primary shadow-[0_0_24px_hsl(var(--primary)/0.45)]'
                     : isOtherSelected
@@ -311,8 +314,8 @@ function VotingView({
                 ].join(' ')}
                 style={{ background: isSelected ? undefined : 'hsla(220, 18%, 13%, 0.8)' }}
               >
-                <span className="text-base flex items-center justify-between gap-2">
-                  <span>{option.label}</span>
+                <span className={sideBySide ? 'text-base flex items-center justify-center gap-2' : 'text-base flex items-center justify-between gap-2'}>
+                  <span>{sideBySide ? (option.label || '').toUpperCase() : option.label}</span>
                   {isSelected && <CheckCircle className="h-5 w-5 text-primary shrink-0" />}
                 </span>
               </button>
