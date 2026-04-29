@@ -33,6 +33,7 @@ import { useEffect, useRef, useState } from 'react';
 import { BLOCK_LETTERS, BlockLetter, DEFAULT_BLOCK_LABELS, SavedPoll } from '@/lib/poll-persistence';
 import { LiveState, Poll, QRPosition, VotingState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
+import { OUTPUT_PRESENCE_CHANNEL, OutputPresenceMessage } from '@/lib/output-state';
 import { ChevronDown, ChevronRight, Clock, Eye, EyeOff, FlaskConical, Globe, Monitor, Pin, PinOff, Play, RefreshCw, RotateCcw, Smartphone, Square, StopCircle, Type as TypeIcon, Vote, XCircle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { HelpCircle, Check, X as XIcon } from 'lucide-react';
@@ -584,6 +585,48 @@ export function OperatorOutputMode({
     }, 500);
     return () => window.clearInterval(id);
   }, [outputOpen]);
+
+  // Presence listener — the fullscreen Output page broadcasts 'open' on a
+  // 2s heartbeat and 'closed' on unload. This is the authoritative source
+  // for the ACTIVE indicator because (a) the original popup `Window`
+  // reference is lost across operator route remounts, and (b) it works
+  // even when the popup was opened in a previous session.
+  //
+  //   - On 'closed' → flip ACTIVE off immediately.
+  //   - On 'open'  → ensure ACTIVE is on, and remember the last-seen ts so
+  //                  we can mark stale (closed) if the heartbeat dries up.
+  const lastPresenceRef = useRef<number>(0);
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof BroadcastChannel === 'undefined') return;
+    const ch = new BroadcastChannel(OUTPUT_PRESENCE_CHANNEL);
+    ch.onmessage = (ev) => {
+      const msg = ev.data as OutputPresenceMessage | undefined;
+      if (!msg) return;
+      if (msg.type === 'closed') {
+        outputWindowRef.current = null;
+        lastPresenceRef.current = 0;
+        setOutputOpen(false);
+      } else if (msg.type === 'open') {
+        lastPresenceRef.current = msg.ts || Date.now();
+        setOutputOpen((prev) => prev || true);
+      }
+    };
+    // Stale-presence sweeper: if we believe the output is open but haven't
+    // heard a heartbeat in >5s, treat it as closed. Covers the case where
+    // the popup crashed without firing beforeunload.
+    const sweep = window.setInterval(() => {
+      if (!lastPresenceRef.current) return;
+      if (Date.now() - lastPresenceRef.current > 5000) {
+        lastPresenceRef.current = 0;
+        outputWindowRef.current = null;
+        setOutputOpen(false);
+      }
+    }, 1000);
+    return () => {
+      try { ch.close(); } catch { /* ignore */ }
+      window.clearInterval(sweep);
+    };
+  }, []);
 
   const handleScheduleVote = () => {
     if (voteSchedule === 'now') {

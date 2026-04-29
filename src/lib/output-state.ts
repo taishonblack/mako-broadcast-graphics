@@ -23,6 +23,27 @@ export const OUTPUT_HEARTBEAT_STORAGE_KEY = 'mako-output-heartbeat-ts';
  *  mirror push, leaving it stuck on stale `localStorage` (or the mock
  *  fallback when `localStorage` was never written for this session). */
 export const OUTPUT_REQUEST_CHANNEL = 'mako-output-request';
+/** Presence channel — the fullscreen Output page announces itself when it
+ *  mounts (`{ type: 'open' }`) and when the user closes / unloads the
+ *  window (`{ type: 'closed' }`). The operator workspace listens so the
+ *  "Full Screen Output ACTIVE" indicator clears the moment the popup is
+ *  dismissed — even after a route remount where the original popup
+ *  `Window` reference was lost. */
+export const OUTPUT_PRESENCE_CHANNEL = 'mako-output-presence';
+
+export type OutputPresenceMessage = { type: 'open' | 'closed'; ts: number };
+
+/** Output → Operator: "I'm here" / "I'm gone". */
+export function broadcastOutputPresence(type: 'open' | 'closed') {
+  if (typeof window === 'undefined') return;
+  try {
+    if (typeof BroadcastChannel !== 'undefined') {
+      const ch = new BroadcastChannel(OUTPUT_PRESENCE_CHANNEL);
+      ch.postMessage({ type, ts: Date.now() } satisfies OutputPresenceMessage);
+      ch.close();
+    }
+  } catch { /* ignore */ }
+}
 
 /** Output → Operator: "please re-send your current Program Preview." */
 export function requestOutputSnapshot() {
