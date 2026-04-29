@@ -825,6 +825,29 @@ export default function PollCreate() {
   const previewTotal = previewOptions.reduce((sum, o) => sum + o.votes, 0);
   const previewQuestion = question || 'Your question here?';
 
+  // Diagnostics: emit a per-answer breakdown of the live tally pipeline so
+  // we can confirm Program Preview is reading the same UUIDs that
+  // cast_vote is incrementing on the server. Only logs while live to keep
+  // the build console quiet during normal authoring.
+  useEffect(() => {
+    if (liveState !== 'live') return;
+    const breakdown = answers.map((a, i) => {
+      const mappedUuid = liveAnswerIdMap[String(a.id)] ?? liveUuidsByOrder[i];
+      return {
+        index: i,
+        localId: String(a.id),
+        mappedUuid: mappedUuid ?? null,
+        liveVoteMapValue: mappedUuid ? (liveVoteMap[mappedUuid] ?? null) : null,
+        previewVotes: previewOptions[i]?.votes ?? 0,
+      };
+    });
+    console.log('[program-preview] live tally', {
+      pollId,
+      liveVoteMapKeys: Object.keys(liveVoteMap),
+      breakdown,
+    });
+  }, [liveState, pollId, answers, liveAnswerIdMap, liveUuidsByOrder, liveVoteMap, previewOptions]);
+
   const slugForUrl = slug || 'your-poll-slug';
   const fullUrl = `https://makovote.app/vote/${slugForUrl}`;
   const shortUrl = `mvote.app/${slugForUrl}`;
