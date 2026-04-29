@@ -2044,6 +2044,7 @@ export default function PollCreate() {
     previewOptions,
     resultsReplayKey,
     snapshotRequestNonce,
+    liveState,
   ]);
   // Presence heartbeat — pings open Output windows once per second so the
   // Output page can show "Mirroring: Live" and detect stalls even when
