@@ -1174,7 +1174,16 @@ export default function PollCreate() {
     // broadcast above already pushed the live snapshot to it.
     try {
       const existing = outputWindowRef.current;
-      if (!existing || existing.closed) {
+      // Also treat sessionStorage('mako-output-open') as positive evidence
+      // that a popup already exists — the React ref is dropped on remount
+      // (e.g. switching Build → Output) but the actual window survives.
+      // Re-opening it via window.open(url, name) would navigate it and
+      // force Chrome to exit fullscreen.
+      const sessionThinksOpen = (() => {
+        try { return sessionStorage.getItem('mako-output-open') === '1'; }
+        catch { return false; }
+      })();
+      if ((!existing || existing.closed) && !sessionThinksOpen) {
         // Open by name. The browser will reuse an existing named popup
         // without breaking its fullscreen state, as long as we don't
         // probe with window.open('', name) first (that call drops
