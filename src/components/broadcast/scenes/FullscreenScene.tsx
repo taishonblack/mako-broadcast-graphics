@@ -168,25 +168,30 @@ export function FullscreenScene({
                 >
                   {options.map((option, i) => {
                     const pct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
-                    const color = colors[i % colors.length];
+                    // Default to neutral white. Only honor the palette
+                    // (`colors[]`) when the operator has explicitly set
+                    // per-bar colors via the inspector.
+                    const operatorBarColors = assetColors?.answers?.barColors;
+                    const color = operatorBarColors?.[i] ?? PGD.answerTextColor;
+                    const labelColor = assetColors?.answers?.textPrimary ?? PGD.answerTextColor;
                     return (
                       <div key={option.id} className="flex flex-col gap-2">
                         <div className="flex items-end justify-between">
-                          <span className="font-semibold" style={{ color: assetColors?.answers?.textPrimary ?? theme.textPrimary, fontSize: `${PGD.answerFontSize}px` }}>
+                          <span className="font-semibold" style={{ color: labelColor, fontSize: `${PGD.answerFontSize}px` }}>
                             {option.text}
                           </span>
-                          <span className="font-bold font-mono tabular-nums" style={{ color, fontSize: '56px' }}>
+                          <span className="font-bold font-mono tabular-nums" style={{ color: labelColor, fontSize: '56px' }}>
                             {Math.round(pct)}%
                           </span>
                         </div>
-                        <div className="overflow-hidden" style={{ height: `${PGD.answerBarHeight}px`, borderRadius: `${PGD.answerBorderRadius}px`, background: 'hsla(210, 20%, 92%, 0.1)' }}>
+                        <div className="overflow-hidden" style={{ height: `${PGD.answerBarHeight}px`, borderRadius: `${PGD.answerBorderRadius}px`, background: PGD.answerButtonIdleBg, border: `1px solid ${PGD.answerBorderColor}` }}>
                           <div
                             className="h-full"
                             style={{
                               width: `${pct}%`,
                               backgroundColor: color,
                               borderRadius: `${PGD.answerBorderRadius}px`,
-                              boxShadow: `0 0 24px -4px ${color}`,
+                              boxShadow: 'none',
                               transition: 'width 0.5s ease-out',
                             }}
                           />
