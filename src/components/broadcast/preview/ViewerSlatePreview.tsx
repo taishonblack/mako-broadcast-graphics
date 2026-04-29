@@ -1,7 +1,6 @@
 import { PollOption } from '@/lib/types';
 import { AssetColorMap, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
 import type { AnswerType } from '@/components/poll-create/ContentPanel';
-import { getAssetTransformStyle } from '@/lib/asset-transforms';
 import { POLLING_GRAPHIC_DEFAULTS as PGD } from '@/lib/polling-graphic-defaults';
 import { SceneAssetTransformFrame } from '@/components/broadcast/scenes/SceneAssetTransformFrame';
 
