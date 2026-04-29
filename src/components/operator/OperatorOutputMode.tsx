@@ -643,6 +643,19 @@ export function OperatorOutputMode({
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(SHOW_LIVE_TALLY_KEY, showLiveTally ? '1' : '0');
   }, [showLiveTally]);
+  // Separate toggle: when ON, paint live counts + percentages directly on
+  // top of the Program Preview canvas so producers can confirm the bars
+  // are tracking real votes without scanning the inspector. Defaults OFF
+  // so the on-screen composition stays clean.
+  const SHOW_PREVIEW_TALLY_KEY = 'mako:operator:show-preview-tally';
+  const [showPreviewTallyOverlay, setShowPreviewTallyOverlay] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return window.localStorage.getItem(SHOW_PREVIEW_TALLY_KEY) === '1';
+  });
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    window.localStorage.setItem(SHOW_PREVIEW_TALLY_KEY, showPreviewTallyOverlay ? '1' : '0');
+  }, [showPreviewTallyOverlay]);
   // Per-answer live counts are already merged into currentPoll.options.votes
   // by PollCreate (which bridges local-id → poll_answers UUID → liveVoteMap).
   // Reusing them avoids duplicating the realtime subscription and keeps the
@@ -1031,6 +1044,39 @@ export function OperatorOutputMode({
                     <div className={`relative rounded-lg overflow-hidden ${ringClass}`}>
                       <PreviewWithOverlays showLabel label="1920×1080">
                         {previewNode}
+                        {showPreviewTallyOverlay && currentPoll?.options && currentPoll.options.length > 0 && (
+                          <div className="pointer-events-none absolute inset-x-2 bottom-2 z-30 rounded-md bg-background/75 backdrop-blur-sm border border-border/60 px-2 py-1.5 space-y-1">
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
+                                Live Tally Overlay
+                              </span>
+                              <span className="text-[10px] font-mono text-foreground">
+                                {currentPoll.totalVotes.toLocaleString()} {currentPoll.totalVotes === 1 ? 'vote' : 'votes'}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-1 gap-0.5">
+                              {currentPoll.options.map((o, i) => {
+                                const pct = currentPoll.totalVotes > 0
+                                  ? Math.round((o.votes / currentPoll.totalVotes) * 100)
+                                  : 0;
+                                return (
+                                  <div key={o.id} className="flex items-center gap-2 text-[11px]">
+                                    <span className="w-4 shrink-0 font-mono text-muted-foreground">
+                                      {String.fromCharCode(65 + i)}
+                                    </span>
+                                    <span className="flex-1 truncate text-foreground">{o.text || `Answer ${i + 1}`}</span>
+                                    <span className="font-mono tabular-nums text-foreground">
+                                      {o.votes.toLocaleString()}
+                                    </span>
+                                    <span className="w-10 text-right font-mono tabular-nums text-muted-foreground">
+                                      {pct}%
+                                    </span>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
                       </PreviewWithOverlays>
                     </div>
                   );
@@ -1560,6 +1606,17 @@ export function OperatorOutputMode({
                     {currentPoll.totalVotes.toLocaleString()} {currentPoll.totalVotes === 1 ? 'vote' : 'votes'}
                   </p>
                 </div>
+                <label className="flex items-center justify-between gap-2 rounded-md bg-background/40 px-1.5 py-1 cursor-pointer">
+                  <span className="text-[10px] font-mono uppercase text-muted-foreground">
+                    Overlay on Program Preview
+                  </span>
+                  <Switch
+                    checked={showPreviewTallyOverlay}
+                    onCheckedChange={(v) => setShowPreviewTallyOverlay(Boolean(v))}
+                    className="scale-75"
+                    aria-label="Toggle live tally overlay on program preview"
+                  />
+                </label>
                 {currentPoll.options.map((o, i) => {
                   const pct = currentPoll.totalVotes > 0
                     ? Math.round((o.votes / currentPoll.totalVotes) * 100)

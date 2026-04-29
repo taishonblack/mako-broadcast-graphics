@@ -558,16 +558,20 @@ export default function PollCreate() {
     return () => { cancelled = true; };
   }, [projectId]);
 
-  // Whenever we're live but the local→UUID map is empty (e.g. after a
-  // page refresh in the operator workspace), rebuild it by fetching the
-  // current poll_answers for the active poll and zipping by sort_order
-  // against the local answers list. Without this, realtime vote tallies
-  // (UUID-keyed) never reach the bar graph and stay at 0%.
+  // Defensive map sync: while live, ensure EVERY local answer has a UUID
+  // bridge entry. This covers (a) post-refresh (empty map), (b) operator
+  // edits that add/remove/reorder answers mid-show, and (c) any case where
+  // the locally stored map drifts from the DB. We zip by sort_order, which
+  // is also how cast_vote / sync_poll_answers identify rows — guaranteeing
+  // vote lookups against `liveVoteMap` resolve to a real UUID instead of
+  // returning 0 because the local id never had a mapping.
   useEffect(() => {
     if (liveState !== 'live') return;
-    if (Object.keys(liveAnswerIdMap).length > 0) return;
     if (!pollId || !isUuid(pollId)) return;
     if (!answers.length) return;
+    const missingLocal = answers.some((a) => !liveAnswerIdMap[String(a.id)]);
+    const staleCount = Object.keys(liveAnswerIdMap).length !== answers.length;
+    if (!missingLocal && !staleCount) return;
     let cancelled = false;
     void supabase
       .from('poll_answers')
@@ -576,12 +580,17 @@ export default function PollCreate() {
       .order('sort_order', { ascending: true })
       .then(({ data: rows }) => {
         if (cancelled || !rows?.length) return;
-        const map: Record<string, string> = {};
+        const next: Record<string, string> = {};
         for (let i = 0; i < rows.length; i++) {
           const local = answers[i];
-          if (local) map[String(local.id)] = rows[i].id as string;
+          if (local) next[String(local.id)] = rows[i].id as string;
         }
-        if (Object.keys(map).length) setLiveAnswerIdMap(map);
+        // Only commit if it actually changes something — avoids a setState
+        // loop when the deps re-run on every render.
+        const changed =
+          Object.keys(next).length !== Object.keys(liveAnswerIdMap).length ||
+          Object.keys(next).some((k) => liveAnswerIdMap[k] !== next[k]);
+        if (changed) setLiveAnswerIdMap(next);
       });
     return () => { cancelled = true; };
   }, [liveState, liveAnswerIdMap, pollId, answers]);
@@ -772,15 +781,33 @@ export default function PollCreate() {
   // data, so the operator's build/preview workflow is unchanged.
   const liveVoteMap = useLiveVotes(pollId ?? undefined, liveState === 'live');
 
+  // Build an order-indexed view of the live UUID map so we can recover
+  // votes even when the local→UUID bridge is mid-sync. Vote rows in
+  // poll_answers are zipped to local answers by sort_order, so index
+  // lookup is a safe fallback that mirrors how cast_vote/sync_poll_answers
+  // identify the row server-side.
+  const liveUuidsByOrder = useMemo(() => {
+    const arr: string[] = [];
+    answers.forEach((a, i) => {
+      const mapped = liveAnswerIdMap[String(a.id)];
+      if (mapped) arr[i] = mapped;
+    });
+    return arr;
+  }, [answers, liveAnswerIdMap]);
+
   const previewOptions: PollOption[] = useMemo(() =>
     answers.map((a, i) => {
       // Auto behavior: live votes when Go Live is engaged, test data otherwise.
       // `previewDataMode` still gates the test path so toggling away from
       // 'test' (e.g. for an empty rehearsal) keeps the bars at 0 pre-live.
-      // Bridge local string ids → real poll_answers UUIDs so the bar graph
-      // actually receives the realtime counts after Go Live.
-      const uuidForAnswer = liveAnswerIdMap[String(a.id)] ?? a.id;
-      const liveCount = liveVoteMap[uuidForAnswer] ?? 0;
+      // Bridge local string ids → real poll_answers UUIDs (with an
+      // order-indexed fallback so the lookup never returns 0 just because
+      // the id-keyed map briefly disagrees with the DB).
+      const mappedUuid = liveAnswerIdMap[String(a.id)] ?? liveUuidsByOrder[i];
+      const liveCount =
+        (mappedUuid ? liveVoteMap[mappedUuid] : undefined) ??
+        liveVoteMap[String(a.id)] ??
+        0;
       const testCount = previewDataMode === 'test' ? (a.testVotes ?? 0) : 0;
       return {
         id: a.id,
@@ -789,7 +816,7 @@ export default function PollCreate() {
         votes: liveState === 'live' ? liveCount : testCount,
         order: i,
       };
-    }), [answers, previewDataMode, liveVoteMap, liveState, liveAnswerIdMap]
+    }), [answers, previewDataMode, liveVoteMap, liveState, liveAnswerIdMap, liveUuidsByOrder]
   );
   const previewTotal = previewOptions.reduce((sum, o) => sum + o.votes, 0);
   const previewQuestion = question || 'Your question here?';
