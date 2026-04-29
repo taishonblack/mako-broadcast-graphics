@@ -784,7 +784,18 @@ export default function PollCreate() {
   // Real voter tallies — only subscribed to while we're actually on-air.
   // When not live, the hook returns an empty map and we fall back to test
   // data, so the operator's build/preview workflow is unchanged.
-  const liveVoteMap = useLiveVotes(pollId ?? undefined, liveState === 'live');
+  //
+  // SINGLE SOURCE OF TRUTH: We bind to `project_live_state.active_poll_id`
+  // rather than the workspace's currently-loaded `pollId`. This guarantees
+  // Program Preview / Output Inspector / Fullscreen Output all read votes
+  // from the same poll the viewers are voting on — even if the operator
+  // has navigated the workspace to a different poll mid-show.
+  const { activePollId: dbActivePollId, answerUuidsByOrder: activeAnswerUuids } = useActivePollBinding(
+    projectId ?? undefined,
+    liveState === 'live',
+  );
+  const activePollId = dbActivePollId ?? (liveState === 'live' && isUuid(pollId ?? '') ? pollId : null);
+  const liveVoteMap = useLiveVotes(activePollId ?? undefined, liveState === 'live');
 
   // Build an order-indexed view of the live UUID map so we can recover
   // votes even when the local→UUID bridge is mid-sync. Vote rows in
