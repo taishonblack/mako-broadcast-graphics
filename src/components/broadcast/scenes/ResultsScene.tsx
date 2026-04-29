@@ -150,27 +150,31 @@ export function ResultsScene({
             const finalPct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
             const pct = finalPct * progress;
             const displayVotes = Math.round(option.votes * progress);
-            const color = colors[i % colors.length];
+            // Default neutral white. Only use palette `colors[]` when the
+            // operator has explicitly set per-bar colors via the inspector.
+            const operatorBarColors = assetColors?.answers?.barColors;
+            const color = operatorBarColors?.[i] ?? PGD.answerTextColor;
+            const labelColor = assetColors?.answers?.textPrimary ?? PGD.answerTextColor;
 
             return (
               <div key={option.id} className="flex flex-col gap-3">
                 <div className="flex items-end justify-between">
                   <span
                     className="font-semibold"
-                    style={{ color: assetColors?.answers?.textPrimary ?? theme.textPrimary, fontSize: `${PGD.answerFontSize}px` }}
+                    style={{ color: labelColor, fontSize: `${PGD.answerFontSize}px` }}
                   >
                     {option.text}
                   </span>
                   <span
                     className="font-bold font-mono tabular-nums"
-                    style={{ color, fontSize: '72px' }}
+                    style={{ color: labelColor, fontSize: '72px' }}
                   >
                     {Math.round(pct)}%
                   </span>
                 </div>
                 <div
                   className="overflow-hidden"
-                  style={{ height: `${PGD.answerBarHeight}px`, borderRadius: `${PGD.answerBorderRadius}px`, background: 'hsla(210, 20%, 92%, 0.1)' }}
+                  style={{ height: `${PGD.answerBarHeight}px`, borderRadius: `${PGD.answerBorderRadius}px`, background: PGD.answerButtonIdleBg, border: `1px solid ${PGD.answerBorderColor}` }}
                 >
                   <div
                     className="h-full"
@@ -184,7 +188,7 @@ export function ResultsScene({
                 </div>
                 <span
                   className="font-mono"
-                  style={{ color: assetColors?.answers?.textSecondary ?? theme.textSecondary, fontSize: '22px' }}
+                  style={{ color: assetColors?.answers?.textSecondary ?? PGD.answerTextColor, fontSize: '22px', opacity: 0.75 }}
                 >
                   {displayVotes.toLocaleString()} votes
                 </span>
