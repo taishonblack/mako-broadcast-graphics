@@ -781,10 +781,25 @@ export default function PollCreate() {
     await persistProjectSave(selectedProjectId, selectedProjectName, 'manual');
   };
 
-  // Real voter tallies — only subscribed to while we're actually on-air.
-  // When not live, the hook returns an empty map and we fall back to test
-  // data, so the operator's build/preview workflow is unchanged.
-  const liveVoteMap = useLiveVotes(pollId ?? undefined, liveState === 'live');
+  // Real voter tallies — subscribed for the entire lifecycle of an active
+  // poll: as soon as voting opens (so Statistics + Program Preview both
+  // mirror the same incoming tally), throughout Go Live, AND after voting
+  // closes / Live ends so the final REAL totals stay frozen on screen
+  // instead of snapping back to test/mock values.
+  const liveTallyEnabled = Boolean(pollId) && (
+    liveState === 'live' ||
+    liveState === 'ended' ||
+    votingState === 'open' ||
+    votingState === 'closed'
+  );
+  const liveVoteMap = useLiveVotes(pollId ?? undefined, liveTallyEnabled);
+
+  // Operator-controlled "Use Test Vote Bars" preference. When OFF (the
+  // default), Program Preview / Output / Inspector NEVER show synthetic
+  // counts — every bar reads from `liveVoteMap` only, even when no votes
+  // have arrived yet (bars sit at 0). When ON, the operator has explicitly
+  // opted into per-answer test counts for off-air rehearsal.
+  const [useMockVoteData] = useMockVoteDataPreference();
 
   // Build an order-indexed view of the live UUID map so we can recover
   // votes even when the local→UUID bridge is mid-sync. Vote rows in
@@ -802,9 +817,14 @@ export default function PollCreate() {
 
   const previewOptions: PollOption[] = useMemo(() =>
     answers.map((a, i) => {
-      // Auto behavior: live votes when Go Live is engaged, test data otherwise.
-      // `previewDataMode` still gates the test path so toggling away from
-      // 'test' (e.g. for an empty rehearsal) keeps the bars at 0 pre-live.
+      // Source-of-truth priority (per "vote source priority" spec):
+      //   1. Real `poll_answers.live_votes` for the active poll, mirrored
+      //      through `liveVoteMap`. Used whenever the poll is saved AND
+      //      voting is open / closed, OR Go Live is engaged / has ended.
+      //   2. Per-answer test counts ONLY when `useMockVoteData` is
+      //      explicitly ON (the "Use Test Vote Bars" toggle).
+      //   3. Otherwise 0. NEVER auto-fall-back to mock after Go Live,
+      //      End Live, Close Voting, scene switch, or folder switch.
       // Bridge local string ids → real poll_answers UUIDs (with an
       // order-indexed fallback so the lookup never returns 0 just because
       // the id-keyed map briefly disagrees with the DB).
@@ -813,25 +833,34 @@ export default function PollCreate() {
         (mappedUuid ? liveVoteMap[mappedUuid] : undefined) ??
         liveVoteMap[String(a.id)] ??
         0;
-      const testCount = previewDataMode === 'test' ? (a.testVotes ?? 0) : 0;
+      const hasRealTally = liveTallyEnabled;
+      let votes: number;
+      if (hasRealTally) {
+        // Real votes win — even if 0. Test data is suppressed.
+        votes = liveCount;
+      } else if (useMockVoteData) {
+        // Operator explicitly opted in to mock/test bars off-air.
+        votes = a.testVotes ?? 0;
+      } else {
+        votes = 0;
+      }
       return {
         id: a.id,
         text: a.text || `Answer ${i + 1}`,
         shortLabel: a.shortLabel || undefined,
-        votes: liveState === 'live' ? liveCount : testCount,
+        votes,
         order: i,
       };
-    }), [answers, previewDataMode, liveVoteMap, liveState, liveAnswerIdMap, liveUuidsByOrder]
+    }), [answers, useMockVoteData, liveVoteMap, liveTallyEnabled, liveAnswerIdMap, liveUuidsByOrder]
   );
   const previewTotal = previewOptions.reduce((sum, o) => sum + o.votes, 0);
   const previewQuestion = question || 'Your question here?';
 
-  // Diagnostics: emit a per-answer breakdown of the live tally pipeline so
-  // we can confirm Program Preview is reading the same UUIDs that
-  // cast_vote is incrementing on the server. Only logs while live to keep
-  // the build console quiet during normal authoring.
+  // Diagnostics: emit the full Program Preview vote source state on every
+  // change so producers can verify the source-of-truth contract is being
+  // honored (real votes > mock when explicitly enabled > 0). Mirrors the
+  // "Program Preview must show…" acceptance list in the spec.
   useEffect(() => {
-    if (liveState !== 'live') return;
     const breakdown = answers.map((a, i) => {
       const mappedUuid = liveAnswerIdMap[String(a.id)] ?? liveUuidsByOrder[i];
       return {
@@ -842,12 +871,19 @@ export default function PollCreate() {
         previewVotes: previewOptions[i]?.votes ?? 0,
       };
     });
-    console.log('[program-preview] live tally', {
+    console.log('[program-preview] vote source', {
       pollId,
+      activeFolderId: folderState.activeFolderId ?? null,
+      activeSceneId: folderState.activeSceneId ?? null,
+      liveState,
+      votingState,
+      useMockVoteData,
+      liveTallyEnabled,
       liveVoteMapKeys: Object.keys(liveVoteMap),
       breakdown,
+      finalRenderedTotal: previewTotal,
     });
-  }, [liveState, pollId, answers, liveAnswerIdMap, liveUuidsByOrder, liveVoteMap, previewOptions]);
+  }, [pollId, folderState.activeFolderId, folderState.activeSceneId, liveState, votingState, useMockVoteData, liveTallyEnabled, answers, liveAnswerIdMap, liveUuidsByOrder, liveVoteMap, previewOptions, previewTotal]);
 
   const slugForUrl = slug || 'your-poll-slug';
   const fullUrl = `https://makovote.app/vote/${slugForUrl}`;
