@@ -855,7 +855,10 @@ export default function PollCreate() {
   useEffect(() => {
     if (liveState !== 'live') return;
     const breakdown = answers.map((a, i) => {
-      const mappedUuid = liveAnswerIdMap[String(a.id)] ?? liveUuidsByOrder[i];
+      const mappedUuid =
+        activeAnswerUuids[i] ??
+        liveAnswerIdMap[String(a.id)] ??
+        liveUuidsByOrder[i];
       return {
         index: i,
         localId: String(a.id),
@@ -864,12 +867,19 @@ export default function PollCreate() {
         previewVotes: previewOptions[i]?.votes ?? 0,
       };
     });
+    console.log('[binding]', {
+      active_poll_id: activePollId,
+      workspace_poll_id: pollId,
+      answer_uuid_list: activeAnswerUuids,
+      liveVoteMap,
+    });
     console.log('[program-preview] live tally', {
       pollId,
+      activePollId,
       liveVoteMapKeys: Object.keys(liveVoteMap),
       breakdown,
     });
-  }, [liveState, pollId, answers, liveAnswerIdMap, liveUuidsByOrder, liveVoteMap, previewOptions]);
+  }, [liveState, pollId, activePollId, activeAnswerUuids, answers, liveAnswerIdMap, liveUuidsByOrder, liveVoteMap, previewOptions]);
 
   const slugForUrl = slug || 'your-poll-slug';
   const fullUrl = `https://makovote.app/vote/${slugForUrl}`;
