@@ -3377,6 +3377,9 @@ export default function PollCreate() {
                       onConvertAnswerBarsToAnswerType={() => {
                         if (folderState.activeFolderId) handleConvertAnswerBarsToAnswerType(folderState.activeFolderId);
                       }}
+                      activeViewport={transformViewport}
+                      assetColors={assetColors}
+                      setAssetColors={setAssetColors}
                     />
                   </Pane>
                 </ResizablePanel>
