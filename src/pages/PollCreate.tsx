@@ -1001,12 +1001,12 @@ export default function PollCreate() {
   };
 
   /**
-   * Returns true when the operator confirms the cut (or it's safe to fire
-   * without confirmation). Live-on-air switches use either Quick Switch
-   * (armed + mirror healthy → instant) or a confirm() prompt. Pre-show
-   * switches always fire without prompting.
+   * Returns true when the on-air switch can fire without disturbing the
+   * Program Output window. Native confirm()/alert() dialogs steal browser
+   * focus and Chrome drops fullscreen popups when that happens, so TAKE/CUT
+   * must never use a blocking browser dialog while Go Live is active.
    */
-  const confirmLiveSwitch = (label: 'TAKE' | 'CUT'): boolean => {
+  const canFireLiveSwitch = (): boolean => {
     if (liveState !== 'live') return true;
     if (confirmationlessMode) {
       const reason = preflightLiveSwitch();
@@ -1016,10 +1016,7 @@ export default function PollCreate() {
       }
       return true;
     }
-    // Standard mode while Live: confirm the cut. window.confirm is
-    // intentional — broadcast operators expect a hard, blocking gate so
-    // a misclick can't change what's on air.
-    return window.confirm(`${label} the staged scene to PROGRAM (on air)?`);
+    return true;
   };
 
   const fireSwitch = (kind: 'take' | 'cut') => {
@@ -1038,12 +1035,12 @@ export default function PollCreate() {
   };
 
   const handleTake = () => {
-    if (!confirmLiveSwitch('TAKE')) return;
+    if (!canFireLiveSwitch()) return;
     fireSwitch('take');
   };
 
   const handleCut = () => {
-    if (!confirmLiveSwitch('CUT')) return;
+    if (!canFireLiveSwitch()) return;
     fireSwitch('cut');
   };
 
