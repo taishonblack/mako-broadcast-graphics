@@ -44,7 +44,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { percentsFromAnswers, rebalancePercents, answersFromPercents, AnswerLite } from '@/lib/answer-percents';
+import type { AnswerLite } from '@/lib/answer-percents';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { PollScene } from '@/lib/poll-scenes';
@@ -270,14 +270,9 @@ export function OperatorOutputMode({
   // since polls live inside folders and are not surfaced as block entries.
   const blockEntryCount = (letter: BlockLetter) => foldersByBlock[letter].length;
 
-  // Local controlled inputs for the test-vote runner.
-  const [testVoteTotal, setTestVoteTotal] = useState(100);
-  const [testVoteDuration, setTestVoteDuration] = useState(30);
-  const [targetsOpen, setTargetsOpen] = useState(false);
-  // Vote Runner + Live % editor default collapsed — they take a lot of
-  // vertical space and most operators only need them periodically.
-  const [voteRunnerOpen, setVoteRunnerOpen] = useState(false);
-  const [livePctOpen, setLivePctOpen] = useState(false);
+  // (Removed) test-vote runner inputs and Vote Runner / Live % collapse
+  // state — those panels were stripped from Output Mode so the dashboard
+  // is real-data only. Test injection lives in Build Mode now.
 
   // ─── Output Inspector state ────────────────────────────────────────────
   // Polling Slate: a still image / message shown to mobile voters (and on
