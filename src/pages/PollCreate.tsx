@@ -2199,8 +2199,11 @@ export default function PollCreate() {
         nextState.activeFolderId = savedActiveFolderId;
       }
       setFolderState(nextState);
-      setSceneTransformSets({ [NO_SCENE_KEY]: createDefaultTransformSet() });
-      setAssetColorSet(createDefaultColorSet());
+      // NOTE: do NOT reset sceneTransformSets / assetColorSet here. This
+      // effect refires whenever auth state or visibility changes (e.g. the
+      // operator switches browser tabs and comes back), and resetting would
+      // wipe in-memory positioning (QR placement, etc.) that the DB seed
+      // effect would not re-populate when there are no scenes.
       return;
     }
 
@@ -2212,8 +2215,14 @@ export default function PollCreate() {
           nextState.activeFolderId = savedActiveFolderId;
         }
         setFolderState(nextState);
-        setSceneTransformSets({ [NO_SCENE_KEY]: createDefaultTransformSet() });
-        setAssetColorSet(createDefaultColorSet());
+        // Only reset transforms / colors when we're loading a *different*
+        // project than the one already in memory. Reloads of the same
+        // project (e.g. after tab refocus) must preserve the operator's
+        // in-memory positioning.
+        if (foldersLoadedForProject !== projectId) {
+          setSceneTransformSets({ [NO_SCENE_KEY]: createDefaultTransformSet() });
+          setAssetColorSet(createDefaultColorSet());
+        }
         setFoldersLoadedForProject(projectId);
       })
       .catch(() => {
@@ -2223,8 +2232,10 @@ export default function PollCreate() {
           nextState.activeFolderId = savedActiveFolderId;
         }
         setFolderState(nextState);
-        setSceneTransformSets({ [NO_SCENE_KEY]: createDefaultTransformSet() });
-        setAssetColorSet(createDefaultColorSet());
+        if (foldersLoadedForProject !== projectId) {
+          setSceneTransformSets({ [NO_SCENE_KEY]: createDefaultTransformSet() });
+          setAssetColorSet(createDefaultColorSet());
+        }
         setFoldersLoadedForProject(projectId);
       });
     // Intentionally only depend on projectId/user. Reloading on bgColor/question
