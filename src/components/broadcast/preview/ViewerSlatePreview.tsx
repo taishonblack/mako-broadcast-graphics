@@ -2,6 +2,7 @@ import { PollOption } from '@/lib/types';
 import { AssetColorMap, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
 import type { AnswerType } from '@/components/poll-create/ContentPanel';
 import { getAssetTransformStyle } from '@/lib/asset-transforms';
+import { POLLING_GRAPHIC_DEFAULTS as PGD } from '@/lib/polling-graphic-defaults';
 
 /**
  * Operator-controlled typography for the polling slate. Drives the headline
@@ -247,17 +248,30 @@ export function ViewerSlatePreview({
                 // Falls back to stacked when `answerType` isn't supplied.
                 const isYesNo = answerType === 'yes-no' && options!.length === 2;
                 const containerClass = isYesNo
-                  ? 'w-full max-w-[420px] grid grid-cols-2 gap-3'
-                  : 'w-full max-w-[420px] space-y-3';
+                  ? 'w-full grid grid-cols-2'
+                  : 'w-full flex flex-col';
                 return (
-                  <div className={containerClass} style={answersTransformStyle}>
+                  <div
+                    className={containerClass}
+                    style={{
+                      maxWidth: `${PGD.pollGraphicWidthVoter}px`,
+                      gap: `${PGD.answerSpacingVoter}px`,
+                      ...answersTransformStyle,
+                    }}
+                  >
                     {options!.map((opt, i) => (
                       <div
                         key={opt.id}
-                        className="w-full p-4 rounded-2xl text-center font-medium border border-white/15"
-                        style={{ background: answerBarColors[i] ?? 'hsla(220, 18%, 13%, 0.85)', backdropFilter: 'blur(8px)', color: answerColor }}
+                        className="w-full text-center font-medium border border-white/15"
+                        style={{
+                          background: answerBarColors[i] ?? PGD.answerButtonIdleBg,
+                          backdropFilter: 'blur(8px)',
+                          color: answerColor,
+                          padding: '16px',
+                          borderRadius: `${PGD.answerBorderRadius * 0.66}px`,
+                        }}
                       >
-                        <span style={{ fontSize: mode === 'mobile' ? 16 : 20, color: answerColor }}>{opt.text || 'Answer'}</span>
+                        <span style={{ fontSize: mode === 'mobile' ? 16 : PGD.answerFontSizeVoter, color: answerColor }}>{opt.text || 'Answer'}</span>
                       </div>
                     ))}
                   </div>
