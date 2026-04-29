@@ -1842,7 +1842,7 @@ export default function PollCreate() {
   const activeSceneVisible = sceneController.activeScene?.visibleAssetIds;
   const sceneFilteredEnabled = activeSceneVisible
     ? enabledAssets.filter((id) => activeSceneVisible.has(id as AssetId))
-    : enabledAssets;
+    : [];
 
   const syncViewerVotingOpen = useCallback(async () => {
     if (!projectId) {
@@ -2206,9 +2206,9 @@ export default function PollCreate() {
   // Show MakoVote branding when the folder has no assets, or when no question
   // text or answer bars have been authored yet.
   const hasContent =
-    enabledAssets.length > 0 &&
+    sceneFilteredEnabled.length > 0 &&
     (question.length > 0 || answers.some((a) => a.text.length > 0));
-  const activeInspectorAssetIds = selectedAssetId ? [selectedAssetId] : enabledAssets;
+  const activeInspectorAssetIds = selectedAssetId ? [selectedAssetId] : sceneFilteredEnabled;
   const activeHistoryKey = selectedAssetId ?? `folder:${folderState.activeFolderId ?? 'none'}`;
   const currentHistory = selectionHistory[activeHistoryKey] ?? { undo: [], redo: [] };
   const backgroundStatus = {
