@@ -213,7 +213,7 @@ export async function bulkSavePollSceneAssetTransforms(
     scene_id: sceneId,
     asset_id: assetId,
     transform: transforms[assetId] as never,
-    ...(visibleSet ? { visible: visibleSet.has(assetId) } : {}),
+    visible: visibleSet?.has(assetId) ?? false,
   }));
   if (rows.length === 0) return;
   const { error } = await supabase
