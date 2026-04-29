@@ -89,18 +89,10 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Mirror the vote into poll_answers.live_votes so the operator's
-    // Program Preview / Full Screen Output bar graph (which subscribes to
-    // poll_answers via useLiveVotes) updates in real time. Statistics
-    // reads vote_analytics directly and is unaffected. Best-effort: if the
-    // increment fails we still return ok so the viewer's vote isn't lost.
-    if (answer_id) {
-      const { error: incErr } = await supabase.rpc('increment_poll_answer_live_votes', {
-        _answer_id: answer_id,
-        _poll_id: body.poll_id,
-      });
-      if (incErr) console.error('record-vote live_votes increment failed', incErr);
-    }
+    // NOTE: This function is analytics-only. The single source of truth for
+    // poll_answers.live_votes is the `cast_vote` RPC, which the viewer page
+    // calls in parallel. Incrementing live_votes here too would double-count
+    // every vote and de-sync Statistics vs Program Preview / Full Screen.
 
     return new Response(JSON.stringify({ ok: true }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
