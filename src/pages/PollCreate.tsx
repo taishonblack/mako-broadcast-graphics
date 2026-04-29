@@ -790,12 +790,17 @@ export default function PollCreate() {
   // Program Preview / Output Inspector / Fullscreen Output all read votes
   // from the same poll the viewers are voting on — even if the operator
   // has navigated the workspace to a different poll mid-show.
-  const { activePollId: dbActivePollId, answerUuidsByOrder: activeAnswerUuids } = useActivePollBinding(
-    projectId ?? undefined,
-    liveState === 'live',
-  );
-  const activePollId = dbActivePollId ?? (liveState === 'live' && isUuid(pollId ?? '') ? pollId : null);
-  const liveVoteMap = useLiveVotes(activePollId ?? undefined, liveState === 'live');
+  const {
+    activePollId: dbActivePollId,
+    answerUuidsByOrder: activeAnswerUuids,
+    activeAnswers,
+  } = useActivePollBinding(projectId ?? undefined, Boolean(projectId));
+  // Real vote display is NOT gated on liveState. As long as the project has
+  // an active_poll_id we keep showing its poll_answers.live_votes — across
+  // End Live, voting closed, scene/folder switches. Only selecting a new
+  // active poll or resetting votes can replace the displayed totals.
+  const activePollId = dbActivePollId ?? (isUuid(pollId ?? '') ? pollId : null);
+  const liveVoteMap = useLiveVotes(activePollId ?? undefined, Boolean(activePollId));
 
   // Build an order-indexed view of the live UUID map so we can recover
   // votes even when the local→UUID bridge is mid-sync. Vote rows in
@@ -811,75 +816,83 @@ export default function PollCreate() {
     return arr;
   }, [answers, liveAnswerIdMap]);
 
-  const previewOptions: PollOption[] = useMemo(() =>
-    answers.map((a, i) => {
-      // Auto behavior: live votes when Go Live is engaged, test data otherwise.
-      // `previewDataMode` still gates the test path so toggling away from
-      // 'test' (e.g. for an empty rehearsal) keeps the bars at 0 pre-live.
-      //
-      // OUTPUT MODE RULE: never inject mock/test percentages. Output Mode
-      // is real-data only — if there are no live votes, bars stay at 0.
-      // Mock data is reserved for Build Mode design work.
-      //
-      // Bind by sort_order to the active poll's real poll_answers UUIDs
-      // (from `useActivePollBinding`). This is the no-guessing path the
-      // architecture requires: Scene Answer i → poll_answers ordered by
-      // sort_order → poll_answers.live_votes. Local-id bridges remain as
-      // fallbacks only for the brief window before the binding loads.
-      const mappedUuid =
-        activeAnswerUuids[i] ??
-        liveAnswerIdMap[String(a.id)] ??
-        liveUuidsByOrder[i];
-      const liveCount =
-        (mappedUuid ? liveVoteMap[mappedUuid] : undefined) ??
-        liveVoteMap[String(a.id)] ??
-        0;
-      const isOutputMode = mode === 'output';
+  // SINGLE SOURCE OF TRUTH for live rendering:
+  //   When voting is live we render the ACTIVE poll's answer rows
+  //   (ordered by sort_order, then created_at) with votes looked up by
+  //   poll_answers.id — never by array index. This guarantees Statistics,
+  //   Program Preview, Output Inspector and Fullscreen Output all show
+  //   the same label paired with the same vote count, even if the
+  //   workspace has a different poll loaded or its local answers are
+  //   reordered.
+  //
+  //   When NOT live we render the workspace's local `answers` (Build Mode
+  //   uses test/mock data). Output Mode never injects mock data.
+  const previewOptions: PollOption[] = useMemo(() => {
+    const isOutputMode = mode === 'output';
+
+    // Real-data path: whenever the project has an active poll bound (even
+    // after End Live / voting closed), render that poll's answer rows with
+    // votes looked up by poll_answers.id. This unifies Statistics, Program
+    // Preview, Output Inspector and Fullscreen Output on a single source.
+    if (activeAnswers.length > 0) {
+      return activeAnswers.map((row, i) => ({
+        id: row.id, // <-- stable poll_answers.id, NOT a local id
+        text: row.label || `Answer ${i + 1}`,
+        shortLabel: row.short_label || undefined,
+        votes: liveVoteMap[row.id] ?? 0,
+        order: i,
+      }));
+    }
+
+    // Output Mode must NEVER show mock/test data — only real votes.
+    // If there's no active poll bound yet, render zeros for the current
+    // workspace answers so the bars remain visible but empty.
+    return answers.map((a, i) => {
       const testCount = !isOutputMode && previewDataMode === 'test' ? (a.testVotes ?? 0) : 0;
       return {
         id: a.id,
         text: a.text || `Answer ${i + 1}`,
         shortLabel: a.shortLabel || undefined,
-        votes: liveState === 'live' ? liveCount : testCount,
+        votes: isOutputMode ? 0 : testCount,
         order: i,
       };
-    }), [answers, previewDataMode, liveVoteMap, liveState, liveAnswerIdMap, liveUuidsByOrder, activeAnswerUuids, mode]
-  );
+    });
+  }, [answers, previewDataMode, liveVoteMap, activeAnswers, mode]);
   const previewTotal = previewOptions.reduce((sum, o) => sum + o.votes, 0);
   const previewQuestion = question || 'Your question here?';
 
-  // Diagnostics: emit a per-answer breakdown of the live tally pipeline so
-  // we can confirm Program Preview is reading the same UUIDs that
-  // cast_vote is incrementing on the server. Only logs while live to keep
-  // the build console quiet during normal authoring.
+  // Diagnostic: per-answer mapping check. Confirms each rendered bar's
+  // label is paired with the correct poll_answers.id and live count.
   useEffect(() => {
-    if (liveState !== 'live') return;
-    const breakdown = answers.map((a, i) => {
-      const mappedUuid =
-        activeAnswerUuids[i] ??
-        liveAnswerIdMap[String(a.id)] ??
-        liveUuidsByOrder[i];
+    if (activeAnswers.length === 0) return;
+    const labelById = new Map(activeAnswers.map((r) => [r.id, r.label]));
+    const rows = previewOptions.map((opt, i) => {
+      const total = previewOptions.reduce((s, o) => s + o.votes, 0);
+      const pct = total > 0 ? Math.round((opt.votes / total) * 100) : 0;
+      const expectedLabel = labelById.get(String(opt.id));
+      if (expectedLabel !== undefined && expectedLabel !== opt.text) {
+        console.warn('[answer-mapping-warning] label/id mismatch', {
+          renderedIndex: i,
+          poll_answer_id: opt.id,
+          renderedLabel: opt.text,
+          expectedLabel,
+        });
+      }
       return {
-        index: i,
-        localId: String(a.id),
-        mappedUuid: mappedUuid ?? null,
-        liveVoteMapValue: mappedUuid ? (liveVoteMap[mappedUuid] ?? null) : null,
-        previewVotes: previewOptions[i]?.votes ?? 0,
+        label: opt.text,
+        renderedIndex: i,
+        poll_answer_id: opt.id,
+        live_votes: opt.votes,
+        computed_percent: pct,
       };
     });
-    console.log('[binding]', {
+    console.table(rows);
+    console.log('[answer-mapping-check]', {
       active_poll_id: activePollId,
       workspace_poll_id: pollId,
-      answer_uuid_list: activeAnswerUuids,
       liveVoteMap,
     });
-    console.log('[program-preview] live tally', {
-      pollId,
-      activePollId,
-      liveVoteMapKeys: Object.keys(liveVoteMap),
-      breakdown,
-    });
-  }, [liveState, pollId, activePollId, activeAnswerUuids, answers, liveAnswerIdMap, liveUuidsByOrder, liveVoteMap, previewOptions]);
+  }, [liveState, pollId, activePollId, activeAnswers, liveVoteMap, previewOptions]);
 
   const slugForUrl = slug || 'your-poll-slug';
   const fullUrl = `https://makovote.app/vote/${slugForUrl}`;
@@ -1850,11 +1863,14 @@ export default function PollCreate() {
     : enabledAssets;
 
   const syncViewerVotingOpen = useCallback(async () => {
-    if (!projectId) return;
+    if (!projectId) {
+      toast.error('No project selected. Save the poll to a project before opening voting.');
+      return false;
+    }
     const savedMatch = !isUuid(currentWorkspacePoll.id)
       ? projectPolls.find((poll) => poll.projectId === projectId && poll.slug === slugForUrl)
       : undefined;
-    const livePoll: Poll = savedMatch
+    let livePoll: Poll = savedMatch
       ? {
           ...currentWorkspacePoll,
           id: savedMatch.id,
@@ -1866,12 +1882,58 @@ export default function PollCreate() {
           bgImage: currentWorkspacePoll.bgImage || savedMatch.bgImage,
         }
       : currentWorkspacePoll;
+
+    // CRITICAL: voting can only be "open" against a real poll UUID — the
+    // cast_vote RPC matches `project_live_state.active_poll_id = _poll_id`
+    // so without a UUID viewers can never cast and Statistics shows
+    // "No active poll". If the workspace poll hasn't been persisted yet,
+    // save it now to obtain a UUID before flipping voting open.
+    if (!isUuid(livePoll.id)) {
+      const ok = await persistProjectSave(projectId, projectName, 'manual');
+      if (!ok) {
+        toast.error('No poll selected. Save the poll before opening voting.');
+        return false;
+      }
+      // persistProjectSave updates pollId via setPollId; read it back from
+      // projectPolls or fall back to the freshly-set pollId state.
+      const refreshed = projectPolls.find((p) => p.projectId === projectId && p.slug === slugForUrl);
+      const newId = refreshed?.id ?? pollId;
+      if (!newId || !isUuid(newId)) {
+        toast.error('Could not resolve a poll id. Save the poll, then open voting.');
+        return false;
+      }
+      livePoll = { ...livePoll, id: newId, projectId };
+    }
+
     const snapshotPoll = {
       ...livePoll,
       viewer_slug: livePoll.slug,
       options: livePoll.options?.length ? livePoll.options : previewOptions,
       answers: livePoll.options?.length ? livePoll.options : previewOptions,
     };
+
+    // Make sure poll_answers rows exist with stable UUIDs so cast_vote can
+    // increment them and useLiveVotes (Statistics + Output) gets real
+    // tallies instead of 0. Mirrors handleGoLive's sync, kept separate so
+    // Open Voting works even when the operator hasn't pressed Go Live.
+    let answerIdMap: Record<string, string> = {};
+    const optionsForSync = (snapshotPoll.options ?? []).map((o, i) => ({
+      client_id: String(o.id),
+      label: o.text || `Answer ${i + 1}`,
+      shortLabel: o.shortLabel ?? '',
+    }));
+    const { data: syncData, error: syncErr } = await supabase.rpc(
+      'sync_poll_answers' as never,
+      { _poll_id: livePoll.id, _options: optionsForSync as never } as never,
+    );
+    if (syncErr) {
+      toast.error(`Vote tally setup failed: ${syncErr.message}`);
+    } else if (syncData && typeof syncData === 'object' && 'answers' in (syncData as object)) {
+      const rows = ((syncData as { answers?: Array<{ client_id: string; id: string }> }).answers) ?? [];
+      for (const r of rows) answerIdMap[r.client_id] = r.id;
+      if (Object.keys(answerIdMap).length > 0) setLiveAnswerIdMap(answerIdMap);
+    }
+
     const snapshot = {
       poll: snapshotPoll,
       scene: previewScene,
@@ -1899,26 +1961,32 @@ export default function PollCreate() {
     };
     const { error } = await supabase.from('project_live_state').upsert({
       project_id: projectId,
-      active_poll_id: isUuid(livePoll.id) ? livePoll.id : null,
+      active_poll_id: livePoll.id,
       active_folder_id: folderState.activeFolderId ?? null,
       live_folder_id: folderState.activeFolderId ?? null,
       live_poll_snapshot: snapshot as never,
       voting_state: 'open',
       output_state: liveState === 'live' ? 'program_live' : 'preview',
     } as never);
-    if (error) toast.error(`Viewer sync failed: ${error.message}`);
+    if (error) {
+      toast.error(`Viewer sync failed: ${error.message}`);
+      return false;
+    }
+    // Reflect on-air status on the poll row itself for downstream queries
+    // (Statistics, Project list status pills) and for any audit tooling.
+    void supabase.from('polls').update({ status: 'open' } as never).eq('id', livePoll.id);
     // Audience-facing write: switch /vote/:slug to the voting state so
     // mobile + desktop voters actually see answer buttons. Without this
     // the public_viewer_state row stays on its previous state and the
     // audience UI never transitions out of branding/slate.
     const audienceSnapshot: PublicViewerPollSnapshot = {
-      id: isUuid(livePoll.id) ? livePoll.id : undefined,
+      id: livePoll.id,
       question: snapshotPoll.question,
       subheadline: snapshotPoll.subheadline,
       bgColor: snapshotPoll.bgColor,
       bgImage: snapshotPoll.bgImage,
       answers: (snapshotPoll.options ?? []).map((o, i) => ({
-        id: o.id,
+        id: answerIdMap[String(o.id)] ?? o.id,
         label: o.text || `Answer ${i + 1}`,
         shortLabel: o.shortLabel,
         sortOrder: i,
@@ -1937,8 +2005,12 @@ export default function PollCreate() {
       state: liveState === 'live' ? 'voting' : 'branding',
       pollSnapshot: audienceSnapshot,
     });
-    if (audience.error) toast.error(`Viewer voting sync failed: ${audience.error}`);
-  }, [activeFolder, assetColors, assetState, assetTransforms, brandingPosition, currentWorkspacePoll, enabledAssets, folderState.activeFolderId, liveState, previewOptions, previewScene, projectId, projectPolls, qrSize, showBranding, slugForUrl]);
+    if (audience.error) {
+      toast.error(`Viewer voting sync failed: ${audience.error}`);
+      return false;
+    }
+    return true;
+  }, [activeFolder, assetColors, assetState, assetTransforms, brandingPosition, currentWorkspacePoll, enabledAssets, folderState.activeFolderId, liveState, persistProjectSave, pollId, previewOptions, previewScene, projectId, projectName, projectPolls, qrSize, showBranding, slugForUrl]);
 
   const syncViewerVotingClosed = useCallback(async () => {
     if (!projectId) return;
@@ -3069,8 +3141,14 @@ export default function PollCreate() {
             busSafeArmed={busSafeArmed}
             onBusSafeArmedChange={setBusSafeArmed}
             onOpenVoting={() => {
-              setVotingState('open');
-              void syncViewerVotingOpen();
+              // Don't flip the UI optimistically — only flip after the DB
+              // write actually lands an active_poll_id. Otherwise the badge
+              // says VOTING OPEN while Statistics correctly reports
+              // "No active poll" because nothing was bound.
+              void (async () => {
+                const ok = await syncViewerVotingOpen();
+                if (ok) setVotingState('open');
+              })();
             }}
             onCloseVoting={() => {
               setVotingState('closed');

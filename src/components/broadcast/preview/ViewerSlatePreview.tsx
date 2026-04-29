@@ -1,5 +1,6 @@
 import { PollOption } from '@/lib/types';
 import { AssetColorMap, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
+import type { AnswerType } from '@/components/poll-create/ContentPanel';
 import { getAssetTransformStyle } from '@/lib/asset-transforms';
 
 /**
@@ -64,6 +65,10 @@ export interface ViewerSlatePreviewProps {
   /** Poll question + options, used when voting is open. */
   question?: string;
   options?: PollOption[];
+  /** Drives voter button layout: yes-no renders side-by-side (Yes left,
+   *  No right); multiple-choice / custom render stacked. Without this,
+   *  the preview defaulted to stacked for every type. */
+  answerType?: AnswerType;
   /** Folder asset toggles. Drives Mirror Mode: when `answers` is not in the
    *  enabled list but `question` or `qr` is, the mobile/desktop preview
    *  renders the question + QR (matching Program) instead of the answer
@@ -114,6 +119,7 @@ export function ViewerSlatePreview({
   votingOpen = false,
   question,
   options,
+  answerType,
   enabledAssetIds,
   subheadline,
   slug,
@@ -234,17 +240,29 @@ export function ViewerSlatePreview({
                   {subheadline}
                 </p>
               )}
-              <div className="w-full max-w-[420px] space-y-3" style={answersTransformStyle}>
-                {options!.map((opt, i) => (
-                  <div
-                    key={opt.id}
-                    className="w-full p-4 rounded-2xl text-center font-medium border border-white/15"
-                    style={{ background: answerBarColors[i] ?? 'hsla(220, 18%, 13%, 0.85)', backdropFilter: 'blur(8px)', color: answerColor }}
-                  >
-                    <span style={{ fontSize: mode === 'mobile' ? 16 : 20, color: answerColor }}>{opt.text || 'Answer'}</span>
+              {(() => {
+                // Layout rule:
+                //   Y/N → side-by-side (Yes on the left, No on the right)
+                //   MC / custom → stacked
+                // Falls back to stacked when `answerType` isn't supplied.
+                const isYesNo = answerType === 'yes-no' && options!.length === 2;
+                const containerClass = isYesNo
+                  ? 'w-full max-w-[420px] grid grid-cols-2 gap-3'
+                  : 'w-full max-w-[420px] space-y-3';
+                return (
+                  <div className={containerClass} style={answersTransformStyle}>
+                    {options!.map((opt, i) => (
+                      <div
+                        key={opt.id}
+                        className="w-full p-4 rounded-2xl text-center font-medium border border-white/15"
+                        style={{ background: answerBarColors[i] ?? 'hsla(220, 18%, 13%, 0.85)', backdropFilter: 'blur(8px)', color: answerColor }}
+                      >
+                        <span style={{ fontSize: mode === 'mobile' ? 16 : 20, color: answerColor }}>{opt.text || 'Answer'}</span>
+                      </div>
+                    ))}
                   </div>
-                ))}
-              </div>
+                );
+              })()}
             </div>
           ) : hasSlateText ? (
             <div
