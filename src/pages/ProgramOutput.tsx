@@ -72,20 +72,7 @@ const DEFAULT_ASSETS: OutputAssets = {
 
 export default function ProgramOutput() {
   const { id } = useParams();
-  // Mock fallback exists ONLY so the popup has something to render on
-  // first paint when no operator snapshot has arrived yet (cold open).
-  // ProgramOutput IS the broadcast Output surface — by spec, mock/test
-  // vote data is NEVER allowed here regardless of the operator's "Use
-  // Test Vote Bars" toggle (that toggle is Build Mode only). The
-  // baked-in mock totals are always scrubbed to 0.
-  const fallbackPoll = useMemo(() => {
-    const base = mockPolls.find((poll) => poll.id === id) || mockPolls[0];
-    return {
-      ...base,
-      totalVotes: 0,
-      options: base.options.map((o) => ({ ...o, votes: 0 })),
-    };
-  }, [id]);
+  const fallbackPoll = useMemo(() => mockPolls.find((poll) => poll.id === id) || mockPolls[0], [id]);
   const initialOutputState = useMemo(() => readOutputState(), []);
   const initialLock = useMemo(() => readOutputLock(), []);
   const initialEffective = initialLock?.locked && initialLock.snapshot ? initialLock.snapshot : initialOutputState;
