@@ -1547,6 +1547,35 @@ export function OperatorOutputMode({
               )}
             </div>
 
+            {/* Live Vote Tally — broadcast-style readout of the real-time
+                vote counts on the current Program preview. Pulls directly
+                from the poll's options (which carry live tallies once Go
+                Live is engaged) so the operator can confirm at a glance
+                that votes are landing without leaving the Output mode. */}
+            {currentPoll?.options && currentPoll.options.length > 0 && (
+              <div className="space-y-1.5 rounded-md border border-border/60 p-2">
+                <div className="flex items-center justify-between">
+                  <p className="text-[10px] font-mono uppercase text-muted-foreground">Live Vote Tally</p>
+                  <p className="text-[10px] font-mono text-foreground">
+                    {currentPoll.totalVotes.toLocaleString()} {currentPoll.totalVotes === 1 ? 'vote' : 'votes'}
+                  </p>
+                </div>
+                {currentPoll.options.map((o, i) => {
+                  const pct = currentPoll.totalVotes > 0
+                    ? Math.round((o.votes / currentPoll.totalVotes) * 100)
+                    : 0;
+                  return (
+                    <div key={o.id} className="flex items-center justify-between gap-2 text-[11px]">
+                      <span className="truncate text-foreground">{o.text || `Answer ${i + 1}`}</span>
+                      <span className="font-mono text-muted-foreground tabular-nums">
+                        {o.votes.toLocaleString()} · {pct}%
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+
             {/* Test viewer view — when ON, the Mobile / Desktop preview
                 forces the slate render instead of the live answer-type
                 voting UI, so the operator can QA the slate copy/image
