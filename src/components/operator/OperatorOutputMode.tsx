@@ -254,6 +254,11 @@ export function OperatorOutputMode({
   // onSelectPoll + pollsByBlock are no longer surfaced — the right-rail
   // panel now lists Scenes (not polls) within the active block.
   void onSelectPoll; void projectPolls;
+  // Vote Runner / mock-percentage panels were removed from Output Mode —
+  // these props are kept in the signature for parent compatibility but are
+  // intentionally not rendered. Build Mode still uses them.
+  void hasAnswerBars; void answers; void onSetAnswers;
+  void testVoteRunning; void onStartTestVotes; void onStopTestVotes; void onResetTestVotes;
 
   // (pollsByBlock removed — Scenes panel replaces the per-block polls list.)
 
