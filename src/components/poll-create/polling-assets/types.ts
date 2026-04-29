@@ -193,10 +193,10 @@ export const DEFAULT_ASSET_COLORS: AssetColorMap = {
   answers: {
     textPrimary: 'hsl(0 0% 100%)',
     textSecondary: 'hsl(215 15% 65%)',
-    // Neutral white default — operators apply theme colors explicitly via the
-    // inspector. Do NOT seed brand orange/blue here; the polling graphic
-    // family must look like a single neutral graphic out of the box.
-    barColors: ['#ffffff', '#ffffff', '#ffffff', '#ffffff'],
+    // Mirror Answer Type's button tints so Answer 1/2 (and beyond) on the
+    // bars graphic share the same color scheme as the voter buttons by
+    // default. Operators can override per-bar via the inspector.
+    barColors: ['hsla(220, 18%, 13%, 0.85)', 'hsla(220, 18%, 13%, 0.85)', 'hsla(220, 18%, 13%, 0.85)', 'hsla(220, 18%, 13%, 0.85)'],
   },
   answerType: {
     textPrimary: 'hsl(0 0% 100%)',
