@@ -1922,8 +1922,15 @@ export function OperatorOutputMode({
                   // Going live releases the polling slate so voters see answer types.
                   setSlateActive(false);
                   // Reflect the current Program Preview onto the fullscreen
-                  // Output surface (opens the popup if not already open).
-                  handleOpenOutputClick();
+                  // Output surface — but ONLY open a new popup if none is
+                  // already tracked. Calling onOpenOutput when a fullscreen
+                  // popup exists would .focus() it (Chrome drops fullscreen)
+                  // or, worse, trigger window.open with a URL on a remounted
+                  // session where the ref is null but the window still
+                  // exists, navigating it and exiting fullscreen.
+                  if (!outputOpen) {
+                    handleOpenOutputClick();
+                  }
                   onGoLive();
                 } finally {
                   setTimeout(() => {
