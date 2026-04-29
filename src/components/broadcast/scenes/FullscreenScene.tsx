@@ -187,7 +187,8 @@ export function FullscreenScene({
                 >
                   {options.map((option, i) => {
                     const pct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
-                    const operatorBarColors = assetColors?.answers?.barColors;
+                    const operatorBarColors =
+                      assetColors?.answers?.barColors ?? assetColors?.answerType?.barColors;
                     const color = operatorBarColors?.[i] ?? PGD.answerTextColor;
                     const labelColor = assetColors?.answers?.textPrimary ?? PGD.answerTextColor;
                     return (
