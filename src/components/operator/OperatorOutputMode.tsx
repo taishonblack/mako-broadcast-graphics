@@ -1111,49 +1111,8 @@ export function OperatorOutputMode({
             </div>
           )}
 
-          {/* Live answer-bar percentages. Edits write back into the same Build
-              state that the inspector reads from, so Build and Output stay in
-              perfect sync without any extra storage layer. */}
-          {answers && onSetAnswers && answers.length > 0 && (
-            <Collapsible open={livePctOpen} onOpenChange={setLivePctOpen} className="mako-panel p-3 space-y-2">
-              <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-accent/30">
-                <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase text-muted-foreground">
-                  {livePctOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                  Answer Bars · Live %
-                </span>
-                <span className="text-[10px] font-mono text-muted-foreground">
-                  {percentsFromAnswers(answers).reduce((s, v) => s + v, 0).toFixed(0)}%
-                </span>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-1.5 pt-2">
-                {answers.map((a, i) => {
-                  const livePercents = percentsFromAnswers(answers);
-                  return (
-                    <div key={a.id} className="flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 shrink-0 rounded-sm bg-primary/70" />
-                      <span className="flex-1 truncate text-[11px] text-foreground">{a.text || `Answer ${i + 1}`}</span>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        step={1}
-                        value={livePercents[i] ?? 0}
-                        onChange={(e) => {
-                          const next = rebalancePercents(livePercents, i, Number(e.target.value));
-                          onSetAnswers(answersFromPercents(answers, next));
-                        }}
-                        className="h-7 w-16 text-right text-xs"
-                      />
-                      <span className="text-[10px] text-muted-foreground">%</span>
-                    </div>
-                  );
-                })}
-                <p className="text-[10px] text-muted-foreground">
-                  Edits sync to Build's inspector instantly.
-                </p>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
+          {/* Output Mode is real-data only — Build's "Answer Bars · Live %"
+              mock editor lives in Build Mode and was removed from Output. */}
 
           {/* Tally pacing — kept OUT of the Vote Runner collapsible because
               the operator may need to flip Live ↔ Stop Motion (and tweak
