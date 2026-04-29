@@ -145,7 +145,18 @@ export function ResultsScene({
             and the real /vote page. Program shows Answer Bars. */}
 
         {visibleAssets.has('answers') && (
-        <div className="w-full flex flex-col" style={{ gap: `${PGD.answerSpacing}px`, ...getAssetTransformStyle(transforms?.answers) }}>
+        <div
+          className="flex flex-col"
+          style={{
+            // Shared inner layout — matches Answer Bars on Fullscreen and
+            // Answer Type on the voter preview so X/Y/scale parity holds.
+            gap: `${PGD.answerGap}px`,
+            width: `${PGD.answerGroupWidthPercent}%`,
+            margin: '0 auto',
+            textAlign: PGD.answerTextAlign,
+            ...getAssetTransformStyle(transforms?.answers),
+          }}
+        >
           {options.map((option, i) => {
             const finalPct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
             const pct = finalPct * progress;
