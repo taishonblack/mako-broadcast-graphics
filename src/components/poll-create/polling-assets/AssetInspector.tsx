@@ -383,6 +383,104 @@ export function AssetInspector(p: AssetInspectorProps) {
                 </p>
               )}
             </div>
+
+            {/* ----------------------------------------------------------
+               Style — per-viewport pill padding + radius. Writes into the
+               active viewport's color slice so Mobile / Desktop / Program
+               can each be tuned independently. Edits flow automatically
+               through Answer Bars (Program) and the voter buttons
+               (Mobile / Desktop) because every renderer reads from the
+               same `answers` color slice with PGD fallbacks.
+               ---------------------------------------------------------- */}
+            {p.setAssetColors && (
+              <div className="space-y-2 pt-2 border-t border-border/40">
+                <div className="flex items-center justify-between">
+                  <Label className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
+                    Style
+                  </Label>
+                  <span className="text-[9px] font-mono uppercase text-primary/80">
+                    {p.activeViewport ?? 'program'}
+                  </span>
+                </div>
+                {(() => {
+                  // Style is stored under the `answers` key so a single edit
+                  // drives both Answer Bars AND the voter buttons (the voter
+                  // renderer reads `answers` first). Operators can still
+                  // override `answerType` separately if they want device-only
+                  // styling — but the default is unified.
+                  const cfg = p.assetColors?.answers ?? {};
+                  const padY = cfg.barPaddingY ?? PGD.answerButtonPaddingY;
+                  const padX = cfg.barPaddingX ?? 32;
+                  const radius = cfg.barBorderRadius ?? PGD.answerBorderRadius;
+                  const setStyle = (patch: Partial<typeof cfg>) =>
+                    p.setAssetColors!((current) => ({
+                      ...current,
+                      answers: { ...(current.answers ?? {}), ...patch },
+                    }));
+                  return (
+                    <>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] text-muted-foreground">Padding Y</Label>
+                          <span className="text-[10px] font-mono text-muted-foreground">{padY}px</span>
+                        </div>
+                        <Slider
+                          min={0}
+                          max={80}
+                          step={1}
+                          value={[padY]}
+                          onValueChange={([v]) => setStyle({ barPaddingY: v })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] text-muted-foreground">Padding X</Label>
+                          <span className="text-[10px] font-mono text-muted-foreground">{padX}px</span>
+                        </div>
+                        <Slider
+                          min={0}
+                          max={80}
+                          step={1}
+                          value={[padX]}
+                          onValueChange={([v]) => setStyle({ barPaddingX: v })}
+                        />
+                      </div>
+                      <div className="space-y-1">
+                        <div className="flex items-center justify-between">
+                          <Label className="text-[10px] text-muted-foreground">Border Radius</Label>
+                          <span className="text-[10px] font-mono text-muted-foreground">{radius}px</span>
+                        </div>
+                        <Slider
+                          min={0}
+                          max={48}
+                          step={1}
+                          value={[radius]}
+                          onValueChange={([v]) => setStyle({ barBorderRadius: v })}
+                        />
+                      </div>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        className="w-full h-7 text-[10px]"
+                        onClick={() =>
+                          setStyle({
+                            barPaddingY: undefined,
+                            barPaddingX: undefined,
+                            barBorderRadius: undefined,
+                          })
+                        }
+                      >
+                        Reset to default
+                      </Button>
+                      <p className="text-[9px] text-muted-foreground/70 leading-tight">
+                        Applies to <span className="font-mono">{p.activeViewport ?? 'program'}</span>. Switch the preview tab (Program / Mobile / Desktop) to tune each device.
+                      </p>
+                    </>
+                  );
+                })()}
+              </div>
+            )}
           </div>
         )}
 
