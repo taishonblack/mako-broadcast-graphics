@@ -44,7 +44,7 @@ import {
   SheetTitle,
   SheetTrigger,
 } from '@/components/ui/sheet';
-import { percentsFromAnswers, rebalancePercents, answersFromPercents, AnswerLite } from '@/lib/answer-percents';
+import type { AnswerLite } from '@/lib/answer-percents';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { PollScene } from '@/lib/poll-scenes';
@@ -254,6 +254,11 @@ export function OperatorOutputMode({
   // onSelectPoll + pollsByBlock are no longer surfaced — the right-rail
   // panel now lists Scenes (not polls) within the active block.
   void onSelectPoll; void projectPolls;
+  // Vote Runner / mock-percentage panels were removed from Output Mode —
+  // these props are kept in the signature for parent compatibility but are
+  // intentionally not rendered. Build Mode still uses them.
+  void hasAnswerBars; void answers; void onSetAnswers;
+  void testVoteRunning; void onStartTestVotes; void onStopTestVotes; void onResetTestVotes;
 
   // (pollsByBlock removed — Scenes panel replaces the per-block polls list.)
 
@@ -270,14 +275,9 @@ export function OperatorOutputMode({
   // since polls live inside folders and are not surfaced as block entries.
   const blockEntryCount = (letter: BlockLetter) => foldersByBlock[letter].length;
 
-  // Local controlled inputs for the test-vote runner.
-  const [testVoteTotal, setTestVoteTotal] = useState(100);
-  const [testVoteDuration, setTestVoteDuration] = useState(30);
-  const [targetsOpen, setTargetsOpen] = useState(false);
-  // Vote Runner + Live % editor default collapsed — they take a lot of
-  // vertical space and most operators only need them periodically.
-  const [voteRunnerOpen, setVoteRunnerOpen] = useState(false);
-  const [livePctOpen, setLivePctOpen] = useState(false);
+  // (Removed) test-vote runner inputs and Vote Runner / Live % collapse
+  // state — those panels were stripped from Output Mode so the dashboard
+  // is real-data only. Test injection lives in Build Mode now.
 
   // ─── Output Inspector state ────────────────────────────────────────────
   // Polling Slate: a still image / message shown to mobile voters (and on
@@ -620,82 +620,10 @@ export function OperatorOutputMode({
     ? 'border-mako-success/60 bg-mako-success/15 text-mako-success hover:bg-mako-success/25'
     : '';
 
-  // Per-answer target percentages for the test-vote runner. Initialized to
-  // an even split across the active poll's answers; auto-rebalances so the
-  // sum is always exactly 100. When the operator edits one bar, the other
-  // bars share the remaining percentage proportionally to their current
-  // values (or evenly if they are all zero).
-  const answerCount = currentPoll.options.length;
-  const [targetPercents, setTargetPercents] = useState<number[]>(() =>
-    answerCount > 0 ? Array.from({ length: answerCount }, () => +(100 / answerCount).toFixed(1)) : [],
-  );
-
-  // ── Live tally readout in the Active Poll summary ─────────────────────
-  // Operator-only HUD: when Go Live is engaged, show real total + per-answer
-  // counts pulled from poll_answers via realtime. Toggle persists per-device
-  // so producers can collapse it during long shows. Hidden when not on-air.
-  const SHOW_LIVE_TALLY_KEY = 'mako:operator:show-live-tally';
-  const [showLiveTally, setShowLiveTally] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return true;
-    return window.localStorage.getItem(SHOW_LIVE_TALLY_KEY) !== '0';
-  });
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(SHOW_LIVE_TALLY_KEY, showLiveTally ? '1' : '0');
-  }, [showLiveTally]);
-  // Separate toggle: when ON, paint live counts + percentages directly on
-  // top of the Program Preview canvas so producers can confirm the bars
-  // are tracking real votes without scanning the inspector. Defaults OFF
-  // so the on-screen composition stays clean.
-  const SHOW_PREVIEW_TALLY_KEY = 'mako:operator:show-preview-tally';
-  const [showPreviewTallyOverlay, setShowPreviewTallyOverlay] = useState<boolean>(() => {
-    if (typeof window === 'undefined') return false;
-    return window.localStorage.getItem(SHOW_PREVIEW_TALLY_KEY) === '1';
-  });
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-    window.localStorage.setItem(SHOW_PREVIEW_TALLY_KEY, showPreviewTallyOverlay ? '1' : '0');
-  }, [showPreviewTallyOverlay]);
-  // Per-answer live counts are already merged into currentPoll.options.votes
-  // by PollCreate (which bridges local-id → poll_answers UUID → liveVoteMap).
-  // Reusing them avoids duplicating the realtime subscription and keeps the
-  // bar graph and this readout perfectly in sync.
-  const liveVoteTotal = liveState === 'live'
-    ? currentPoll.options.reduce((s, o) => s + (o.votes ?? 0), 0)
-    : 0;
-  // Keep the array length in sync if the operator switches polls.
-  if (targetPercents.length !== answerCount) {
-    const next = answerCount > 0
-      ? Array.from({ length: answerCount }, () => +(100 / answerCount).toFixed(1))
-      : [];
-    // Defer to the next render to avoid setting state during render.
-    queueMicrotask(() => setTargetPercents(next));
-  }
-
-  const handleTargetChange = (index: number, raw: number) => {
-    const clamped = Math.max(0, Math.min(100, Number.isFinite(raw) ? raw : 0));
-    setTargetPercents((prev) => {
-      if (prev.length <= 1) return [100];
-      const next = [...prev];
-      next[index] = clamped;
-      const remainder = Math.max(0, 100 - clamped);
-      const others = prev.map((v, i) => (i === index ? 0 : v));
-      const otherSum = others.reduce((s, v) => s + v, 0);
-      for (let i = 0; i < next.length; i += 1) {
-        if (i === index) continue;
-        next[i] = otherSum > 0
-          ? +((others[i] / otherSum) * remainder).toFixed(1)
-          : +(remainder / (next.length - 1)).toFixed(1);
-      }
-      // Fix any rounding drift on the last non-edited slot.
-      const drift = +(100 - next.reduce((s, v) => s + v, 0)).toFixed(1);
-      if (drift !== 0) {
-        const lastOther = next.findIndex((_, i) => i !== index);
-        if (lastOther >= 0) next[lastOther] = +(next[lastOther] + drift).toFixed(1);
-      }
-      return next;
-    });
-  };
+  // Real-data total. Output Mode's previewOptions are stripped of any
+  // mock/test injection upstream, so this is always the genuine
+  // poll_answers.live_votes sum (0 pre-live, frozen final after close).
+  const liveVoteTotal = currentPoll.options.reduce((s, o) => s + (o.votes ?? 0), 0);
 
   return (
     <div className="h-full overflow-hidden">
@@ -1044,39 +972,6 @@ export function OperatorOutputMode({
                     <div className={`relative rounded-lg overflow-hidden ${ringClass}`}>
                       <PreviewWithOverlays showLabel label="1920×1080">
                         {previewNode}
-                        {showPreviewTallyOverlay && currentPoll?.options && currentPoll.options.length > 0 && (
-                          <div className="pointer-events-none absolute inset-x-2 bottom-2 z-30 rounded-md bg-background/75 backdrop-blur-sm border border-border/60 px-2 py-1.5 space-y-1">
-                            <div className="flex items-center justify-between">
-                              <span className="text-[10px] font-mono uppercase tracking-wider text-muted-foreground">
-                                Live Tally Overlay
-                              </span>
-                              <span className="text-[10px] font-mono text-foreground">
-                                {currentPoll.totalVotes.toLocaleString()} {currentPoll.totalVotes === 1 ? 'vote' : 'votes'}
-                              </span>
-                            </div>
-                            <div className="grid grid-cols-1 gap-0.5">
-                              {currentPoll.options.map((o, i) => {
-                                const pct = currentPoll.totalVotes > 0
-                                  ? Math.round((o.votes / currentPoll.totalVotes) * 100)
-                                  : 0;
-                                return (
-                                  <div key={o.id} className="flex items-center gap-2 text-[11px]">
-                                    <span className="w-4 shrink-0 font-mono text-muted-foreground">
-                                      {String.fromCharCode(65 + i)}
-                                    </span>
-                                    <span className="flex-1 truncate text-foreground">{o.text || `Answer ${i + 1}`}</span>
-                                    <span className="font-mono tabular-nums text-foreground">
-                                      {o.votes.toLocaleString()}
-                                    </span>
-                                    <span className="w-10 text-right font-mono tabular-nums text-muted-foreground">
-                                      {pct}%
-                                    </span>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </div>
-                        )}
                       </PreviewWithOverlays>
                     </div>
                   );
@@ -1111,49 +1006,8 @@ export function OperatorOutputMode({
             </div>
           )}
 
-          {/* Live answer-bar percentages. Edits write back into the same Build
-              state that the inspector reads from, so Build and Output stay in
-              perfect sync without any extra storage layer. */}
-          {answers && onSetAnswers && answers.length > 0 && (
-            <Collapsible open={livePctOpen} onOpenChange={setLivePctOpen} className="mako-panel p-3 space-y-2">
-              <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-accent/30">
-                <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase text-muted-foreground">
-                  {livePctOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                  Answer Bars · Live %
-                </span>
-                <span className="text-[10px] font-mono text-muted-foreground">
-                  {percentsFromAnswers(answers).reduce((s, v) => s + v, 0).toFixed(0)}%
-                </span>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-1.5 pt-2">
-                {answers.map((a, i) => {
-                  const livePercents = percentsFromAnswers(answers);
-                  return (
-                    <div key={a.id} className="flex items-center gap-2">
-                      <span className="h-2.5 w-2.5 shrink-0 rounded-sm bg-primary/70" />
-                      <span className="flex-1 truncate text-[11px] text-foreground">{a.text || `Answer ${i + 1}`}</span>
-                      <Input
-                        type="number"
-                        min={0}
-                        max={100}
-                        step={1}
-                        value={livePercents[i] ?? 0}
-                        onChange={(e) => {
-                          const next = rebalancePercents(livePercents, i, Number(e.target.value));
-                          onSetAnswers(answersFromPercents(answers, next));
-                        }}
-                        className="h-7 w-16 text-right text-xs"
-                      />
-                      <span className="text-[10px] text-muted-foreground">%</span>
-                    </div>
-                  );
-                })}
-                <p className="text-[10px] text-muted-foreground">
-                  Edits sync to Build's inspector instantly.
-                </p>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
+          {/* Output Mode is real-data only — Build's "Answer Bars · Live %"
+              mock editor lives in Build Mode and was removed from Output. */}
 
           {/* Tally pacing — kept OUT of the Vote Runner collapsible because
               the operator may need to flip Live ↔ Stop Motion (and tweak
@@ -1276,175 +1130,36 @@ export function OperatorOutputMode({
             </div>
           )}
 
-          {/* Test-vote runner — inject N votes over T seconds and watch the
-              bars + counters animate in the preview above. Useful for QA'ing
-              the chart animation without opening a viewer browser. */}
-          {(onStartTestVotes || onStopTestVotes) && (
-            <Collapsible open={voteRunnerOpen} onOpenChange={setVoteRunnerOpen} className="mako-panel p-3 space-y-3">
-              <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 rounded-md px-1 py-0.5 text-left transition-colors hover:bg-accent/30">
-                <span className="flex items-center gap-1.5 text-[10px] font-mono uppercase text-muted-foreground">
-                  {voteRunnerOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                  Vote Runner
-                </span>
-                <span className="flex items-center gap-2">
-                  {testVoteRunning && (
-                    <span className="flex items-center gap-1 text-[10px] font-mono text-primary">
-                      <span className="h-1.5 w-1.5 rounded-full bg-primary animate-pulse" /> running
-                    </span>
-                  )}
-                </span>
-              </CollapsibleTrigger>
-              <CollapsibleContent className="space-y-3 pt-2">
-              {/* Active Poll summary — merged from the standalone Active Poll
-                  panel so the right column has room for the Output Inspector. */}
-              <div className="rounded-md border border-border/60 bg-accent/10 p-2 space-y-1.5">
-                <div>
-                  <p className="text-[10px] font-mono text-muted-foreground truncate">{currentPoll.internalName}</p>
-                  <p className="text-xs font-semibold text-foreground line-clamp-2">{currentPoll.question || 'No on-air question yet'}</p>
-                </div>
-                <div className="grid grid-cols-2 gap-2 border-t border-border/60 pt-1.5">
-                  <div>
-                    <p className="text-[9px] font-mono uppercase text-muted-foreground">Total</p>
-                    <p className="text-sm font-bold text-foreground">
-                      {(liveState === 'live' ? liveVoteTotal : currentPoll.totalVotes).toLocaleString()}
-                    </p>
-                  </div>
-                  <div>
-                    <p className="text-[9px] font-mono uppercase text-muted-foreground">Votes/sec</p>
-                    <p className="text-sm font-bold text-primary">{currentPoll.votesPerSecond}</p>
-                  </div>
-                </div>
-                {liveState === 'live' && (
-                  <div className="border-t border-border/60 pt-1.5 space-y-1.5">
-                    <div className="flex items-center justify-between gap-2">
-                      <span className="flex items-center gap-1.5 text-[9px] font-mono uppercase text-muted-foreground">
-                        <span className="h-1.5 w-1.5 rounded-full bg-mako-live animate-pulse" />
-                        Live tally
-                      </span>
-                      <label className="flex items-center gap-1.5 text-[9px] font-mono uppercase text-muted-foreground cursor-pointer">
-                        Show
-                        <Switch
-                          checked={showLiveTally}
-                          onCheckedChange={(v) => setShowLiveTally(Boolean(v))}
-                          className="scale-75"
-                          aria-label="Toggle live vote totals"
-                        />
-                      </label>
-                    </div>
-                    {showLiveTally && (
-                      <ul className="space-y-1">
-                        {currentPoll.options.map((opt, i) => {
-                          const count = opt.votes ?? 0;
-                          const pct = liveVoteTotal > 0 ? (count / liveVoteTotal) * 100 : 0;
-                          return (
-                            <li key={opt.id} className="flex items-center gap-2">
-                              <span className="w-4 shrink-0 text-[10px] font-mono text-muted-foreground">
-                                {String.fromCharCode(65 + i)}
-                              </span>
-                              <span className="flex-1 truncate text-[11px] text-foreground">
-                                {opt.text || `Option ${i + 1}`}
-                              </span>
-                              <span className="font-mono text-[11px] tabular-nums text-foreground">
-                                {count.toLocaleString()}
-                              </span>
-                              <span className="w-10 text-right font-mono text-[10px] tabular-nums text-muted-foreground">
-                                {pct.toFixed(0)}%
-                              </span>
-                            </li>
-                          );
-                        })}
-                      </ul>
-                    )}
-                  </div>
-                )}
-              </div>
-              <div className="grid grid-cols-2 gap-2">
-                <label className="space-y-1">
-                  <span className="text-[10px] uppercase text-muted-foreground">Total votes</span>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={testVoteTotal}
-                    onChange={(e) => setTestVoteTotal(Math.max(1, Number(e.target.value) || 0))}
-                    className="h-7 text-xs"
-                  />
-                </label>
-                <label className="space-y-1">
-                  <span className="text-[10px] uppercase text-muted-foreground">Duration (s)</span>
-                  <Input
-                    type="number"
-                    min={1}
-                    value={testVoteDuration}
-                    onChange={(e) => setTestVoteDuration(Math.max(1, Number(e.target.value) || 0))}
-                    className="h-7 text-xs"
-                  />
-                </label>
-              </div>
-              {hasAnswerBars && answerCount > 0 && (
-                <Collapsible open={targetsOpen} onOpenChange={setTargetsOpen} className="border-t border-border/60 pt-2">
-                  <CollapsibleTrigger className="flex w-full items-center justify-between gap-2 rounded-md px-1 py-1 text-left transition-colors hover:bg-accent/30">
-                    <span className="flex items-center gap-1.5 text-[10px] uppercase text-muted-foreground">
-                      {targetsOpen ? <ChevronDown className="h-3 w-3" /> : <ChevronRight className="h-3 w-3" />}
-                      Target % per bar
-                    </span>
-                    <span className="text-[10px] font-mono text-muted-foreground">
-                      {targetPercents.reduce((s, v) => s + v, 0).toFixed(0)}%
-                    </span>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent className="space-y-1.5 pt-2">
-                    {currentPoll.options.map((opt, i) => (
-                      <div key={opt.id} className="flex items-center gap-2">
-                        <span className="h-2.5 w-2.5 shrink-0 rounded-sm bg-primary/70" />
-                        <span className="flex-1 truncate text-[11px] text-foreground">{opt.text || `Option ${i + 1}`}</span>
-                        <Input
-                          type="number"
-                          min={0}
-                          max={100}
-                          step={1}
-                          value={targetPercents[i] ?? 0}
-                          onChange={(e) => handleTargetChange(i, Number(e.target.value))}
-                          disabled={testVoteRunning}
-                          className="h-7 w-16 text-right text-xs"
-                        />
-                        <span className="text-[10px] text-muted-foreground">%</span>
-                      </div>
-                    ))}
-                    <p className="text-[10px] text-muted-foreground">
-                      Editing one bar auto-rebalances the others so the total is always 100%.
-                    </p>
-                  </CollapsibleContent>
-                </Collapsible>
-              )}
-              <div className="flex gap-2">
-                <Button
-                  size="sm"
-                  className="flex-1 gap-1.5 text-xs"
-                  disabled={testVoteRunning}
-                  onClick={() => {
-                    // Reset tallies to zero before ramping toward the targets so
-                    // each Run produces a clean animation from 0% → target.
-                    onResetTestVotes?.();
-                    onStartTestVotes?.(testVoteTotal, testVoteDuration, targetPercents);
-                  }}
-                >
-                  <Play className="h-3.5 w-3.5" /> Run
-                </Button>
-                <Button
-                  size="sm"
-                  variant="outline"
-                  className="flex-1 gap-1.5 text-xs"
-                  disabled={!testVoteRunning}
-                  onClick={() => onStopTestVotes?.()}
-                >
-                  <StopCircle className="h-3.5 w-3.5" /> Stop
-                </Button>
-              </div>
-              <p className="text-[10px] text-muted-foreground text-center">
-                Pressing Run resets the tally to 0% and ramps to your targets.
+          {/* Active Poll summary — REAL data only. The legacy Vote Runner
+              (test-vote injector + per-bar Target % editor) was removed
+              from Output Mode; mock/manual percentages now live exclusively
+              in Build Mode. Output reads totals straight from
+              poll_answers.live_votes via the parent's previewOptions. */}
+          <div className="mako-panel p-3 space-y-2">
+            <div>
+              <p className="text-[10px] font-mono text-muted-foreground truncate">{currentPoll.internalName}</p>
+              <p className="text-xs font-semibold text-foreground line-clamp-2">
+                {currentPoll.question || 'No on-air question yet'}
               </p>
-              </CollapsibleContent>
-            </Collapsible>
-          )}
+            </div>
+            <div className="grid grid-cols-2 gap-2 border-t border-border/60 pt-1.5">
+              <div>
+                <p className="text-[9px] font-mono uppercase text-muted-foreground">Real votes</p>
+                <p className="text-sm font-bold text-foreground">
+                  {liveVoteTotal.toLocaleString()}
+                </p>
+              </div>
+              <div>
+                <p className="text-[9px] font-mono uppercase text-muted-foreground">Voting</p>
+                <p className="text-sm font-bold text-foreground uppercase">{votingState.replace('_', ' ')}</p>
+              </div>
+            </div>
+            {liveState !== 'live' && (
+              <p className="text-[9px] font-mono uppercase text-muted-foreground/70">
+                Output Mode shows real votes only. Go Live to begin tallying.
+              </p>
+            )}
+          </div>
         </div>
 
         <div className="min-h-0 overflow-auto space-y-3">
@@ -1603,23 +1318,12 @@ export function OperatorOutputMode({
                 <div className="flex items-center justify-between">
                   <p className="text-[10px] font-mono uppercase text-muted-foreground">Live Vote Tally</p>
                   <p className="text-[10px] font-mono text-foreground">
-                    {currentPoll.totalVotes.toLocaleString()} {currentPoll.totalVotes === 1 ? 'vote' : 'votes'}
+                    {liveVoteTotal.toLocaleString()} {liveVoteTotal === 1 ? 'vote' : 'votes'}
                   </p>
                 </div>
-                <label className="flex items-center justify-between gap-2 rounded-md bg-background/40 px-1.5 py-1 cursor-pointer">
-                  <span className="text-[10px] font-mono uppercase text-muted-foreground">
-                    Overlay on Program Preview
-                  </span>
-                  <Switch
-                    checked={showPreviewTallyOverlay}
-                    onCheckedChange={(v) => setShowPreviewTallyOverlay(Boolean(v))}
-                    className="scale-75"
-                    aria-label="Toggle live tally overlay on program preview"
-                  />
-                </label>
                 {currentPoll.options.map((o, i) => {
-                  const pct = currentPoll.totalVotes > 0
-                    ? Math.round((o.votes / currentPoll.totalVotes) * 100)
+                  const pct = liveVoteTotal > 0
+                    ? Math.round((o.votes / liveVoteTotal) * 100)
                     : 0;
                   return (
                     <div key={o.id} className="flex items-center justify-between gap-2 text-[11px]">
@@ -1630,6 +1334,11 @@ export function OperatorOutputMode({
                     </div>
                   );
                 })}
+                {liveState !== 'live' && (
+                  <p className="text-[9px] font-mono uppercase text-muted-foreground/70">
+                    Real votes only — Go Live and Open Voting to begin.
+                  </p>
+                )}
               </div>
             )}
 

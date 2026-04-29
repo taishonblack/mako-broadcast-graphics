@@ -804,6 +804,11 @@ export default function PollCreate() {
       // Auto behavior: live votes when Go Live is engaged, test data otherwise.
       // `previewDataMode` still gates the test path so toggling away from
       // 'test' (e.g. for an empty rehearsal) keeps the bars at 0 pre-live.
+      //
+      // OUTPUT MODE RULE: never inject mock/test percentages. Output Mode
+      // is real-data only — if there are no live votes, bars stay at 0.
+      // Mock data is reserved for Build Mode design work.
+      //
       // Bridge local string ids → real poll_answers UUIDs (with an
       // order-indexed fallback so the lookup never returns 0 just because
       // the id-keyed map briefly disagrees with the DB).
@@ -812,7 +817,8 @@ export default function PollCreate() {
         (mappedUuid ? liveVoteMap[mappedUuid] : undefined) ??
         liveVoteMap[String(a.id)] ??
         0;
-      const testCount = previewDataMode === 'test' ? (a.testVotes ?? 0) : 0;
+      const isOutputMode = mode === 'output';
+      const testCount = !isOutputMode && previewDataMode === 'test' ? (a.testVotes ?? 0) : 0;
       return {
         id: a.id,
         text: a.text || `Answer ${i + 1}`,
@@ -820,7 +826,7 @@ export default function PollCreate() {
         votes: liveState === 'live' ? liveCount : testCount,
         order: i,
       };
-    }), [answers, previewDataMode, liveVoteMap, liveState, liveAnswerIdMap, liveUuidsByOrder]
+    }), [answers, previewDataMode, liveVoteMap, liveState, liveAnswerIdMap, liveUuidsByOrder, mode]
   );
   const previewTotal = previewOptions.reduce((sum, o) => sum + o.votes, 0);
   const previewQuestion = question || 'Your question here?';
