@@ -149,12 +149,28 @@ export function usePollScenes(pollId: string | undefined) {
     loadPollScenes(pollId)
       .then(async (rows) => {
         if (cancelled) return;
-        const nextRows = rows.length > 0 || draftScenes.length === 0
-          ? rows
+        const persistedFromDraft = rows.length > 0 || draftScenes.length === 0
+          ? null
           : await persistDraftScenesToPoll(pollId, draftScenes);
+        const nextRows = persistedFromDraft ?? rows;
         if (cancelled) return;
         setScenes(nextRows);
-        setActiveSceneId((prev) => (prev && nextRows.some((r) => r.id === prev) ? prev : nextRows[0]?.id ?? null));
+        setActiveSceneId((prev) => {
+          // Keep the same scene selected when the prev id still exists.
+          if (prev && nextRows.some((r) => r.id === prev)) return prev;
+          // When draft scenes were just persisted, the local in-memory id
+          // (e.g. `draft-scene-…`) was replaced by a fresh DB UUID. Map the
+          // previous selection forward by matching sort order so the
+          // operator's chosen scene (e.g. Scene 2) doesn't snap back to
+          // Scene 1 the moment the poll is saved.
+          if (persistedFromDraft && prev) {
+            const draftIndex = draftScenes.findIndex((s) => s.id === prev);
+            if (draftIndex >= 0 && persistedFromDraft[draftIndex]) {
+              return persistedFromDraft[draftIndex].id;
+            }
+          }
+          return nextRows[0]?.id ?? null;
+        });
         cacheScenes(activeStorageKey, nextRows);
         hydratedStorageKeyRef.current = activeStorageKey;
         if (draftScenes.length > 0 && nextRows.length > 0) {
