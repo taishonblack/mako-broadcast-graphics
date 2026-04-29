@@ -20,6 +20,7 @@ import {
   readOutputState,
   readOutputLock,
   requestOutputSnapshot,
+  broadcastOutputPresence,
 } from '@/lib/output-state';
 import { Poll } from '@/lib/types';
 import { DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/types';
@@ -144,6 +145,28 @@ export default function ProgramOutput() {
     const t2 = window.setTimeout(() => requestOutputSnapshot(), 1000);
     return () => { window.clearTimeout(t1); window.clearTimeout(t2); };
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Presence — announce when the fullscreen Output window opens, and tell
+  // the operator the moment the user closes / unloads it. Without this the
+  // operator's "Full Screen Output ACTIVE" indicator can stick green after
+  // the popup is dismissed (the original `Window` reference is lost across
+  // operator route remounts, so the close-poller alone can't detect it).
+  useEffect(() => {
+    broadcastOutputPresence('open');
+    // Re-announce periodically so a freshly-mounted operator workspace
+    // can reconcile presence even if it missed the initial 'open' burst.
+    const id = window.setInterval(() => broadcastOutputPresence('open'), 2000);
+    const onUnload = () => broadcastOutputPresence('closed');
+    window.addEventListener('beforeunload', onUnload);
+    window.addEventListener('pagehide', onUnload);
+    return () => {
+      window.clearInterval(id);
+      window.removeEventListener('beforeunload', onUnload);
+      window.removeEventListener('pagehide', onUnload);
+      // Best-effort 'closed' on React unmount too (e.g. SPA nav within popup).
+      broadcastOutputPresence('closed');
+    };
+  }, []);
 
   // Auto-open the overlay when the frame would otherwise be blank
   // (no question + no layers + no branding). Operators can dismiss with "?".
