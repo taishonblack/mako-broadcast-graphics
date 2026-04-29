@@ -131,30 +131,33 @@ const withTransform = (overrides: Partial<AssetTransformConfig>): AssetTransform
   ...overrides,
 });
 
+// Factory functions (NOT const objects) so each scene gets its own
+// independent transform instance. Shared object refs would let one scene's
+// edit leak into other scenes.
 const QUESTION_DEFAULTS = {
-  program: withTransform({ y: 182 }),
-  mobile: withTransform({ y: 40 }),
-  desktop: withTransform({ y: 117 }),
+  program: () => withTransform({ y: 182 }),
+  mobile: () => withTransform({ y: 40 }),
+  desktop: () => withTransform({ y: 117 }),
 };
 
 const ANSWER_TYPE_DEFAULTS = {
-  program: withTransform({ y: 113 }),
-  mobile: withTransform({ y: -47 }),
-  desktop: withTransform({ y: 113 }),
+  program: () => withTransform({ y: 113 }),
+  mobile: () => withTransform({ y: -47 }),
+  desktop: () => withTransform({ y: 113 }),
 };
 
 // Answer Bars: Mobile + Desktop mirror Answer Type so X/Y/Scale match.
 // Program keeps the neutral default (operators position bars per show).
 const ANSWER_BARS_DEFAULTS = {
-  program: createDefaultTransform(),
-  mobile: withTransform({ y: ANSWER_TYPE_DEFAULTS.mobile.y }),
-  desktop: withTransform({ y: ANSWER_TYPE_DEFAULTS.desktop.y }),
+  program: () => createDefaultTransform(),
+  mobile: () => withTransform({ y: -47 }),
+  desktop: () => withTransform({ y: 113 }),
 };
 
 const QR_DEFAULTS = {
-  program: withTransform({ x: -796, y: -314, scale: 1.63 }),
-  mobile: createDefaultTransform(),
-  desktop: createDefaultTransform(),
+  program: () => withTransform({ x: -796, y: -314, scale: 1.63 }),
+  mobile: () => createDefaultTransform(),
+  desktop: () => createDefaultTransform(),
 };
 
 /**
@@ -168,12 +171,12 @@ const createDefaultBackgroundTransform = (): AssetTransformConfig => ({
 });
 
 export const DEFAULT_ASSET_TRANSFORMS: AssetTransformMap = {
-  question: QUESTION_DEFAULTS.program,
-  answers: ANSWER_BARS_DEFAULTS.program,
-  answerType: ANSWER_TYPE_DEFAULTS.program,
+  question: QUESTION_DEFAULTS.program(),
+  answers: ANSWER_BARS_DEFAULTS.program(),
+  answerType: ANSWER_TYPE_DEFAULTS.program(),
   subheadline: createDefaultTransform(),
   background: createDefaultBackgroundTransform(),
-  qr: QR_DEFAULTS.program,
+  qr: QR_DEFAULTS.program(),
   logo: createDefaultTransform(),
   voterTally: createDefaultTransform(),
   image: createDefaultTransform(),
@@ -181,9 +184,9 @@ export const DEFAULT_ASSET_TRANSFORMS: AssetTransformMap = {
 
 /** Build a fresh per-viewport transform set seeded with the same defaults. */
 export const createDefaultTransformSet = (): AssetTransformSet => ({
-  program: { question: QUESTION_DEFAULTS.program, answers: ANSWER_BARS_DEFAULTS.program, answerType: ANSWER_TYPE_DEFAULTS.program, subheadline: createDefaultTransform(), background: createDefaultBackgroundTransform(), qr: QR_DEFAULTS.program, logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
-  mobile:  { question: QUESTION_DEFAULTS.mobile,  answers: ANSWER_BARS_DEFAULTS.mobile,  answerType: ANSWER_TYPE_DEFAULTS.mobile,  subheadline: createDefaultTransform(), background: createDefaultBackgroundTransform(), qr: QR_DEFAULTS.mobile,  logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
-  desktop: { question: QUESTION_DEFAULTS.desktop, answers: ANSWER_BARS_DEFAULTS.desktop, answerType: ANSWER_TYPE_DEFAULTS.desktop, subheadline: createDefaultTransform(), background: createDefaultBackgroundTransform(), qr: QR_DEFAULTS.desktop, logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
+  program: { question: QUESTION_DEFAULTS.program(), answers: ANSWER_BARS_DEFAULTS.program(), answerType: ANSWER_TYPE_DEFAULTS.program(), subheadline: createDefaultTransform(), background: createDefaultBackgroundTransform(), qr: QR_DEFAULTS.program(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
+  mobile:  { question: QUESTION_DEFAULTS.mobile(),  answers: ANSWER_BARS_DEFAULTS.mobile(),  answerType: ANSWER_TYPE_DEFAULTS.mobile(),  subheadline: createDefaultTransform(), background: createDefaultBackgroundTransform(), qr: QR_DEFAULTS.mobile(),  logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
+  desktop: { question: QUESTION_DEFAULTS.desktop(), answers: ANSWER_BARS_DEFAULTS.desktop(), answerType: ANSWER_TYPE_DEFAULTS.desktop(), subheadline: createDefaultTransform(), background: createDefaultBackgroundTransform(), qr: QR_DEFAULTS.desktop(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
 });
 
 export const DEFAULT_ASSET_TRANSFORM_SET: AssetTransformSet = createDefaultTransformSet();
