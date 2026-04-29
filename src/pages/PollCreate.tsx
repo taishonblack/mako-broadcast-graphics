@@ -1575,31 +1575,13 @@ export default function PollCreate() {
     () => ({ [NO_SCENE_KEY]: createDefaultTransformSet() }),
   );
   const activeTransformKey = sceneController.activeSceneId ?? NO_SCENE_KEY;
-  // Lazily seed a transform set for a newly-active scene by copying from
-  // the previously-active scene (or the no-scene bucket). This keeps "new
-  // scene inherits current scene transforms" behavior without needing to
-  // hook the create flow directly.
-  const lastActiveKeyRef = useRef<string>(activeTransformKey);
-  useEffect(() => {
-    setSceneTransformSets((current) => {
-      if (current[activeTransformKey]) {
-        lastActiveKeyRef.current = activeTransformKey;
-        return current;
-      }
-      const seedFrom = current[lastActiveKeyRef.current] ?? current[NO_SCENE_KEY] ?? createDefaultTransformSet();
-      // Deep clone so subsequent edits in the new scene don't mutate the source.
-      const cloned: AssetTransformSet = JSON.parse(JSON.stringify(seedFrom));
-      lastActiveKeyRef.current = activeTransformKey;
-      return { ...current, [activeTransformKey]: cloned };
-    });
-  }, [activeTransformKey]);
   const assetTransformSet: AssetTransformSet =
     sceneTransformSets[activeTransformKey] ?? sceneTransformSets[NO_SCENE_KEY];
   const assetTransforms: AssetTransformMap = assetTransformSet[transformViewport];
   const setAssetTransformSet = useCallback(
     (updater: AssetTransformSet | ((current: AssetTransformSet) => AssetTransformSet)) => {
       setSceneTransformSets((all) => {
-        const key = lastActiveKeyRef.current;
+        const key = activeTransformKey;
         const slice = all[key] ?? createDefaultTransformSet();
         const next = typeof updater === 'function'
           ? (updater as (c: AssetTransformSet) => AssetTransformSet)(slice)
@@ -1608,12 +1590,12 @@ export default function PollCreate() {
         return { ...all, [key]: next };
       });
     },
-    [],
+    [activeTransformKey],
   );
   const setAssetTransforms = useCallback(
     (updater: AssetTransformMap | ((current: AssetTransformMap) => AssetTransformMap)) => {
       setSceneTransformSets((all) => {
-        const key = lastActiveKeyRef.current;
+        const key = activeTransformKey;
         const set = all[key] ?? createDefaultTransformSet();
         const slice = set[transformViewport];
         const next = typeof updater === 'function'
@@ -1623,7 +1605,7 @@ export default function PollCreate() {
         return { ...all, [key]: { ...set, [transformViewport]: next } };
       });
     },
-    [transformViewport],
+    [activeTransformKey, transformViewport],
   );
   // Seed sceneTransformSets from the DB whenever scenes load. We only
   // overwrite buckets we haven't created yet locally, so an in-progress
