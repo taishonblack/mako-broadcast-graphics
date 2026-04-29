@@ -2015,6 +2015,18 @@ export default function PollCreate() {
   // Take/Cut for purely cosmetic edits.
   useEffect(() => {
     broadcastOutputState(getProgramOutputPayload());
+    // While locked (Go Live engaged), the Output popup ignores plain state
+    // pushes and only honors fresh lock snapshots. Re-broadcast the lock
+    // payload here so live vote tallies (and any cosmetic edits the
+    // operator makes mid-show) actually reach the on-air surface — without
+    // this the fullscreen output is frozen at the snapshot from Go Live.
+    if (liveState === 'live') {
+      broadcastOutputLock({
+        locked: true,
+        snapshot: getProgramOutputPayload(),
+        lockedAt: Date.now(),
+      });
+    }
   }, [
     currentWorkspacePoll,
     previewScene,
