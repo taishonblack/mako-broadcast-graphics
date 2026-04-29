@@ -191,6 +191,9 @@ export function FullscreenScene({
                       assetColors?.answers?.barColors ?? assetColors?.answerType?.barColors;
                     const color = operatorBarColors?.[i] ?? PGD.answerTextColor;
                     const labelColor = assetColors?.answers?.textPrimary ?? PGD.answerTextColor;
+                    const padY = assetColors?.answers?.barPaddingY ?? PGD.answerButtonPaddingY;
+                    const padX = assetColors?.answers?.barPaddingX ?? 32;
+                    const radius = assetColors?.answers?.barBorderRadius ?? PGD.answerBorderRadius;
                     return (
                       <div
                         key={option.id}
@@ -198,8 +201,8 @@ export function FullscreenScene({
                         style={{
                           background: PGD.answerButtonIdleBg,
                           borderColor: PGD.answerBorderColor,
-                          borderRadius: `${PGD.answerBorderRadius}px`,
-                          padding: `${PGD.answerButtonPaddingY}px 32px`,
+                          borderRadius: `${radius}px`,
+                          padding: `${padY}px ${padX}px`,
                           backdropFilter: 'blur(8px)',
                         }}
                       >

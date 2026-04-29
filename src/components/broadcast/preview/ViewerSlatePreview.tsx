@@ -188,6 +188,13 @@ export function ViewerSlatePreview({
     assetColors?.answerType?.textPrimary ?? assetColors?.answers?.textPrimary ?? '#ffffff';
   const answerBarColors =
     assetColors?.answerType?.barColors ?? assetColors?.answers?.barColors ?? [];
+  // Pill style overrides — read `answers` first so the admin's Answer Bars
+  // style flows into the voter buttons (unified family), then allow
+  // `answerType` to override per-viewport if explicitly tuned.
+  const styleSrc = assetColors?.answerType ?? assetColors?.answers;
+  const stylePadY = styleSrc?.barPaddingY;
+  const stylePadX = styleSrc?.barPaddingX;
+  const styleRadius = styleSrc?.barBorderRadius ?? PGD.answerBorderRadius;
 
   // Per-asset transforms render through SceneAssetTransformFrame so X/Y/Scale
   // mean the same thing on the voter canvas as they do on the program canvas.
@@ -290,11 +297,13 @@ export function ViewerSlatePreview({
                             background: answerBarColors[i] ?? PGD.answerButtonIdleBg,
                             backdropFilter: 'blur(8px)',
                             color: answerColor,
-                            // Unified pill family — same radius token + proportional
-                            // padding as Answer Bars on Program so switching surfaces
-                            // shows the same button shape.
-                            padding: mode === 'mobile' ? '18px 20px' : '22px 28px',
-                            borderRadius: `${PGD.answerBorderRadius}px`,
+                            // Unified pill family — admin-tunable padding/radius
+                            // (per active viewport) flows in from assetColors.
+                            padding:
+                              stylePadY != null || stylePadX != null
+                                ? `${stylePadY ?? (mode === 'mobile' ? 18 : 22)}px ${stylePadX ?? (mode === 'mobile' ? 20 : 28)}px`
+                                : mode === 'mobile' ? '18px 20px' : '22px 28px',
+                            borderRadius: `${styleRadius}px`,
                           }}
                         >
                           <span style={{ fontSize: mode === 'mobile' ? 16 : PGD.answerFontSizeVoter, color: answerColor }}>{opt.text || 'Answer'}</span>
