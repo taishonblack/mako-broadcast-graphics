@@ -2057,6 +2057,14 @@ export default function PollCreate() {
         snapshot: getProgramOutputPayload(),
         lockedAt: Date.now(),
       });
+      // Diagnostics: confirms Program Preview vote counts that were just
+      // pushed into the locked Output snapshot. Pair with the [vote] logs
+      // on the viewer page to verify end-to-end live vote propagation.
+      console.log('[live-output] refreshed locked snapshot', {
+        poll_id: pollId,
+        liveVoteMap,
+        previewOptionVotes: previewOptions.map((o) => ({ id: o.id, votes: o.votes })),
+      });
     }
   }, [
     currentWorkspacePoll,
