@@ -172,38 +172,44 @@ export function ResultsScene({
             const labelColor = assetColors?.answers?.textPrimary ?? PGD.answerTextColor;
 
             return (
-              <div key={option.id} className="flex flex-col gap-3">
-                <div className="flex items-end justify-between">
-                  <span
-                    className="font-semibold"
-                    style={{ color: labelColor, fontSize: `${PGD.answerFontSize}px` }}
-                  >
-                    {option.text}
-                  </span>
-                  <span
-                    className="font-bold font-mono tabular-nums"
-                    style={{ color: labelColor, fontSize: '72px' }}
-                  >
-                    {Math.round(pct)}%
-                  </span>
-                </div>
+              <div key={option.id} className="flex flex-col gap-2">
                 <div
-                  className="overflow-hidden"
-                  style={{ height: `${PGD.answerBarHeight}px`, borderRadius: `${PGD.answerBorderRadius}px`, background: PGD.answerButtonIdleBg, border: `1px solid ${PGD.answerBorderColor}` }}
+                  className="relative w-full overflow-hidden border"
+                  style={{
+                    background: PGD.answerButtonIdleBg,
+                    borderColor: PGD.answerBorderColor,
+                    borderRadius: `${PGD.answerBorderRadius}px`,
+                    padding: `${PGD.answerButtonPaddingY}px 32px`,
+                    backdropFilter: 'blur(8px)',
+                  }}
                 >
+                  {/* Bar fill rendered INSIDE the pill — same shape as voter buttons. */}
                   <div
-                    className="h-full"
+                    className="absolute inset-y-0 left-0"
                     style={{
                       width: `${pct}%`,
                       backgroundColor: color,
-                      borderRadius: `${PGD.answerBorderRadius}px`,
-                      boxShadow: 'none',
+                      opacity: 0.35,
                     }}
                   />
+                  <div className="relative flex items-center justify-between gap-6">
+                    <span
+                      className="font-semibold"
+                      style={{ color: labelColor, fontSize: `${PGD.answerFontSize}px` }}
+                    >
+                      {option.text}
+                    </span>
+                    <span
+                      className="font-bold font-mono tabular-nums"
+                      style={{ color: labelColor, fontSize: `${PGD.answerFontSize}px` }}
+                    >
+                      {Math.round(pct)}%
+                    </span>
+                  </div>
                 </div>
                 <span
                   className="font-mono"
-                  style={{ color: assetColors?.answers?.textSecondary ?? PGD.answerTextColor, fontSize: '22px', opacity: 0.75 }}
+                  style={{ color: assetColors?.answers?.textSecondary ?? PGD.answerTextColor, fontSize: '22px', opacity: 0.75, paddingLeft: '12px' }}
                 >
                   {displayVotes.toLocaleString()} votes
                 </span>
