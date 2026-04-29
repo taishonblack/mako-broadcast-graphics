@@ -15,7 +15,7 @@ import {
 } from '@/lib/poll-scenes';
 import type { AssetId, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
 
-const SCENE_STORAGE_PREFIX = 'mako-poll-scenes-v2';
+const SCENE_STORAGE_PREFIX = 'mako-poll-scenes-v3';
 
 interface StoredPollScene {
   id: string;
@@ -84,18 +84,13 @@ async function persistDraftScenesToPoll(pollId: string, draftScenes: PollScene[]
   const createdScenes: PollScene[] = [];
   for (const draft of draftScenes) {
     const created = await createPollScene(pollId, draft.preset, draft.name, draft.sortOrder);
-    const meta = getScenePreset(draft.preset);
-    const assetIds = new Set<AssetId>([
-      ...meta.defaultVisibleAssets,
-      ...Array.from(draft.visibleAssetIds),
-      ...(Object.keys(draft.assetTransforms ?? {}) as AssetId[]),
-    ]);
+    const visibleAssetIds = Array.from(draft.visibleAssetIds);
 
-    await Promise.all(Array.from(assetIds).map((assetId) =>
-      setPollSceneAssetVisible(created.id, assetId, draft.visibleAssetIds.has(assetId)),
+    await Promise.all(visibleAssetIds.map((assetId) =>
+      setPollSceneAssetVisible(created.id, assetId, true),
     ));
-    if (Object.keys(draft.assetTransforms ?? {}).length > 0) {
-      await bulkSavePollSceneAssetTransforms(created.id, draft.assetTransforms as AssetTransformMap);
+    if (visibleAssetIds.length > 0 && Object.keys(draft.assetTransforms ?? {}).length > 0) {
+      await bulkSavePollSceneAssetTransforms(created.id, draft.assetTransforms as AssetTransformMap, visibleAssetIds);
     }
 
     createdScenes.push({
