@@ -49,6 +49,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 import type { PollScene } from '@/lib/poll-scenes';
 import { Layers } from 'lucide-react';
+import { useMockVoteDataPreference } from '@/lib/use-mock-vote-data';
 
 export type OutputBlockSource = 'pinned' | 'manual' | 'auto-first-populated' | 'auto-promoted' | 'default';
 
@@ -656,6 +657,11 @@ export function OperatorOutputMode({
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(SHOW_PREVIEW_TALLY_KEY, showPreviewTallyOverlay ? '1' : '0');
   }, [showPreviewTallyOverlay]);
+  // Operator-controlled "Use Test Vote Bars" preference. Default OFF so
+  // Program Preview, Inspector, and Fullscreen Output never show
+  // synthetic 50/50, 1000/1000, or 2000-total values unless explicitly
+  // enabled. When OFF, every bar reads from real `liveVoteMap` only.
+  const [useMockVoteData, setUseMockVoteData] = useMockVoteDataPreference();
   // Per-answer live counts are already merged into currentPoll.options.votes
   // by PollCreate (which bridges local-id → poll_answers UUID → liveVoteMap).
   // Reusing them avoids duplicating the realtime subscription and keeps the
@@ -1598,6 +1604,62 @@ export function OperatorOutputMode({
                 from the poll's options (which carry live tallies once Go
                 Live is engaged) so the operator can confirm at a glance
                 that votes are landing without leaving the Output mode. */}
+            {/* Vote Source Inspector — single source of truth for which
+                values are driving the bars on Program Preview / Output.
+                Lists pollId, folder, scene, liveState, votingState, the
+                useMockVoteData flag, the raw liveVoteMap, the previewed
+                option votes, and the final rendered total — exactly the
+                "Program Preview must show…" acceptance list. */}
+            <div className="space-y-1.5 rounded-md border border-border/60 p-2">
+              <p className="text-[10px] font-mono uppercase text-muted-foreground">Vote Source</p>
+              <label className="flex items-center justify-between gap-2 rounded-md bg-background/40 px-1.5 py-1 cursor-pointer">
+                <div className="min-w-0">
+                  <span className="block text-[10px] font-mono uppercase text-foreground">
+                    Use Test Vote Bars
+                  </span>
+                  <span className="block text-[9px] text-muted-foreground/70 leading-snug">
+                    {useMockVoteData
+                      ? 'Bars show per-answer test counts (off-air rehearsal)'
+                      : 'Bars read REAL votes only — never mock data'}
+                  </span>
+                </div>
+                <Switch
+                  checked={useMockVoteData}
+                  onCheckedChange={(v) => setUseMockVoteData(Boolean(v))}
+                  className="scale-75"
+                  aria-label="Toggle use test vote bars"
+                />
+              </label>
+              <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 font-mono text-[10px] leading-tight">
+                <span className="text-muted-foreground">poll id</span>
+                <span className="truncate text-foreground" title={currentPoll?.id ?? ''}>{currentPoll?.id ?? '∅'}</span>
+                <span className="text-muted-foreground">folder</span>
+                <span className="truncate text-foreground" title={activeFolderId ?? ''}>{activeFolderId ?? '∅'}</span>
+                <span className="text-muted-foreground">scene</span>
+                <span className="truncate text-foreground" title={activeSceneId ?? ''}>{activeSceneId ?? programScene}</span>
+                <span className="text-muted-foreground">liveState</span>
+                <span className="text-foreground">{liveState}</span>
+                <span className="text-muted-foreground">votingState</span>
+                <span className="text-foreground">{votingState}</span>
+                <span className="text-muted-foreground">useMockVoteData</span>
+                <span className={useMockVoteData ? 'text-mako-warning' : 'text-mako-success'}>
+                  {String(useMockVoteData)}
+                </span>
+                <span className="text-muted-foreground">final total</span>
+                <span className="text-foreground tabular-nums">{(currentPoll?.totalVotes ?? 0).toLocaleString()}</span>
+              </div>
+              {currentPoll?.options && currentPoll.options.length > 0 && (
+                <div className="mt-1 border-t border-border/40 pt-1 space-y-0.5">
+                  {currentPoll.options.map((o, i) => (
+                    <div key={o.id} className="flex items-center justify-between gap-2 font-mono text-[10px]">
+                      <span className="truncate text-muted-foreground">[{i}] {o.text || `Answer ${i + 1}`}</span>
+                      <span className="tabular-nums text-foreground">{Math.round(o.votes).toLocaleString()}</span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {currentPoll?.options && currentPoll.options.length > 0 && (
               <div className="space-y-1.5 rounded-md border border-border/60 p-2">
                 <div className="flex items-center justify-between">

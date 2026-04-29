@@ -25,6 +25,7 @@ import { Poll } from '@/lib/types';
 import { DEFAULT_ASSET_STATE } from '@/components/poll-create/polling-assets/types';
 import { Maximize, Minimize, RefreshCw } from 'lucide-react';
 import { useTallyDisplay } from '@/hooks/useTallyDisplay';
+import { useMockVoteDataPreference } from '@/lib/use-mock-vote-data';
 import React from 'react';
 
 /**
@@ -72,7 +73,21 @@ const DEFAULT_ASSETS: OutputAssets = {
 
 export default function ProgramOutput() {
   const { id } = useParams();
-  const fallbackPoll = useMemo(() => mockPolls.find((poll) => poll.id === id) || mockPolls[0], [id]);
+  // Mock fallback exists ONLY so the popup has something to render on
+  // first paint when no operator snapshot has arrived yet (cold open).
+  // The instant a real snapshot lands we never re-fall-back to it, and
+  // its baked-in vote counts are scrubbed to 0 unless the operator has
+  // explicitly enabled "Use Test Vote Bars".
+  const [useMockVoteData] = useMockVoteDataPreference();
+  const fallbackPoll = useMemo(() => {
+    const base = mockPolls.find((poll) => poll.id === id) || mockPolls[0];
+    if (useMockVoteData) return base;
+    return {
+      ...base,
+      totalVotes: 0,
+      options: base.options.map((o) => ({ ...o, votes: 0 })),
+    };
+  }, [id, useMockVoteData]);
   const initialOutputState = useMemo(() => readOutputState(), []);
   const initialLock = useMemo(() => readOutputLock(), []);
   const initialEffective = initialLock?.locked && initialLock.snapshot ? initialLock.snapshot : initialOutputState;
