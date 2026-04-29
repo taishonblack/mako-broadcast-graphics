@@ -657,11 +657,13 @@ export function OperatorOutputMode({
     if (typeof window === 'undefined') return;
     window.localStorage.setItem(SHOW_PREVIEW_TALLY_KEY, showPreviewTallyOverlay ? '1' : '0');
   }, [showPreviewTallyOverlay]);
-  // Operator-controlled "Use Test Vote Bars" preference. Default OFF so
-  // Program Preview, Inspector, and Fullscreen Output never show
-  // synthetic 50/50, 1000/1000, or 2000-total values unless explicitly
-  // enabled. When OFF, every bar reads from real `liveVoteMap` only.
-  const [useMockVoteData, setUseMockVoteData] = useMockVoteDataPreference();
+  // Output-Mode panel is read-only with respect to the mock-data toggle.
+  // The Build/Output split (enforced in `PollCreate.previewOptions`) means
+  // mock/test vote bars are unavailable here by design — Output reads
+  // exclusively from `liveVoteMap` for the active poll. We still surface
+  // the current preference for diagnostics, but it can only be flipped
+  // from Build Mode.
+  const [useMockVoteData] = useMockVoteDataPreference();
   // Per-answer live counts are already merged into currentPoll.options.votes
   // by PollCreate (which bridges local-id → poll_answers UUID → liveVoteMap).
   // Reusing them avoids duplicating the realtime subscription and keeps the
