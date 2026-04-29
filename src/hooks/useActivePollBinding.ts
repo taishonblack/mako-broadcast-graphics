@@ -14,24 +14,12 @@ import { supabase } from '@/integrations/supabase/client';
  * to a different poll mid-show silently disconnects the bars from the
  * actual live tallies (the bug this hook exists to fix).
  */
-export interface ActivePollAnswer {
-  id: string;
-  label: string;
-  short_label: string;
-  color: string;
-  sort_order: number;
-}
-
 export function useActivePollBinding(
   projectId: string | undefined,
   enabled: boolean,
-): {
-  activePollId: string | null;
-  answerUuidsByOrder: string[];
-  activeAnswers: ActivePollAnswer[];
-} {
+): { activePollId: string | null; answerUuidsByOrder: string[] } {
   const [activePollId, setActivePollId] = useState<string | null>(null);
-  const [activeAnswers, setActiveAnswers] = useState<ActivePollAnswer[]>([]);
+  const [answerUuidsByOrder, setAnswerUuidsByOrder] = useState<string[]>([]);
 
   // Subscribe to project_live_state for active_poll_id changes.
   useEffect(() => {
@@ -72,7 +60,7 @@ export function useActivePollBinding(
   // Load ordered answer UUIDs for the active poll.
   useEffect(() => {
     if (!enabled || !activePollId) {
-      setActiveAnswers([]);
+      setAnswerUuidsByOrder([]);
       return;
     }
     let cancelled = false;
@@ -80,20 +68,11 @@ export function useActivePollBinding(
     const load = async () => {
       const { data } = await supabase
         .from('poll_answers')
-        .select('id, label, short_label, color, sort_order')
+        .select('id, sort_order')
         .eq('poll_id', activePollId)
-        .order('sort_order', { ascending: true })
-        .order('created_at', { ascending: true });
+        .order('sort_order', { ascending: true });
       if (cancelled || !data) return;
-      setActiveAnswers(
-        data.map((r) => ({
-          id: r.id as string,
-          label: (r.label as string) ?? '',
-          short_label: (r.short_label as string) ?? '',
-          color: (r.color as string) ?? '',
-          sort_order: (r.sort_order as number) ?? 0,
-        })),
-      );
+      setAnswerUuidsByOrder(data.map((r) => r.id as string));
     };
 
     void load();
@@ -113,9 +92,5 @@ export function useActivePollBinding(
     };
   }, [activePollId, enabled]);
 
-  return {
-    activePollId,
-    answerUuidsByOrder: activeAnswers.map((a) => a.id),
-    activeAnswers,
-  };
+  return { activePollId, answerUuidsByOrder };
 }

@@ -1040,21 +1040,6 @@ export function OperatorOutputMode({
                 votingOpen={votingState === 'open' && !testViewerView}
                 question={currentPoll.question}
                 options={currentPoll.options}
-                /* Output Mode doesn't carry the authored answer-type, so
-                 * infer Yes/No from a 2-option poll whose labels read as
-                 * Yes/No. Anything else falls through to multiple-choice
-                 * (stacked layout). Mirrors Build's preview rules. */
-                answerType={(() => {
-                  const opts = currentPoll.options ?? [];
-                  if (opts.length === 2) {
-                    const a = (opts[0]?.text || '').trim().toLowerCase();
-                    const b = (opts[1]?.text || '').trim().toLowerCase();
-                    if ((a === 'yes' && b === 'no') || (a === 'y' && b === 'n')) {
-                      return 'yes-no';
-                    }
-                  }
-                  return 'multiple-choice';
-                })()}
                 enabledAssetIds={enabledAssetIds}
                 subheadline={currentPoll.subheadline}
                 slug={currentPoll.slug}
