@@ -146,7 +146,10 @@ export const DEFAULT_ASSET_COLORS: AssetColorMap = {
   answers: {
     textPrimary: 'hsl(0 0% 100%)',
     textSecondary: 'hsl(215 15% 65%)',
-    barColors: ['hsl(24 95% 53%)', 'hsl(210 70% 50%)', 'hsl(142 71% 45%)', 'hsl(280 65% 55%)'],
+    // Neutral white default — operators apply theme colors explicitly via the
+    // inspector. Do NOT seed brand orange/blue here; the polling graphic
+    // family must look like a single neutral graphic out of the box.
+    barColors: ['#ffffff', '#ffffff', '#ffffff', '#ffffff'],
   },
   answerType: {
     textPrimary: 'hsl(0 0% 100%)',
