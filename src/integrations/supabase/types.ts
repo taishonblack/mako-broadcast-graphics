@@ -886,6 +886,10 @@ export type Database = {
           subheadline: string
         }[]
       }
+      increment_poll_answer_live_votes: {
+        Args: { _answer_id: string; _poll_id: string }
+        Returns: undefined
+      }
       normalize_project_tags: { Args: { _tags: string[] }; Returns: string[] }
       poll_is_publicly_live: { Args: { _poll_id: string }; Returns: boolean }
       poll_owned_by_user: { Args: { _poll_id: string }; Returns: boolean }
