@@ -259,13 +259,6 @@ export function AssetInspector(p: AssetInspectorProps) {
               <Label className="text-[10px] text-muted-foreground">
                 {id === 'answerType' ? 'Choices' : 'Answers · Test Votes'}
               </Label>
-              <div
-                className={
-                  p.answerType === 'yes-no'
-                    ? 'grid grid-cols-2 gap-1.5'
-                    : 'space-y-1.5'
-                }
-              >
               {p.answers.map((a, i) => (
                 <div
                   key={a.id}
@@ -347,7 +340,6 @@ export function AssetInspector(p: AssetInspectorProps) {
                   </button>
                 </div>
               ))}
-              </div>
               {id === 'answerType' && answerTypeIssues.size > 0 && (
                 <ul className="space-y-0.5 text-[9px] text-destructive">
                   {p.answers.map((a, i) => {
