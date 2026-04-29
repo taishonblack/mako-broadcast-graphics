@@ -7,6 +7,7 @@ import { Download } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from 'recharts';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 
 interface AnalyticsRow {
   id: string;
@@ -95,6 +96,13 @@ export default function Statistics() {
   const [projects, setProjects] = useState<Record<string, ProjectLite>>({});
   const [live, setLive] = useState<LiveStateLite | null>(null);
   const [loading, setLoading] = useState(true);
+  // Scope filters — let the operator focus the Live Voting + Timeline cards
+  // on a specific folder (block) and scene (poll) instead of always
+  // following whichever poll the operator opened voting on. "live" keeps
+  // the original behavior (mirror the active poll); explicit values
+  // pin the view to the operator's selection.
+  const [folderFilter, setFolderFilter] = useState<string>('live');
+  const [sceneFilter, setSceneFilter] = useState<string>('live');
 
   useEffect(() => {
     if (!user) return;
@@ -197,11 +205,37 @@ export default function Statistics() {
 
   const activePollId = live?.active_poll_id ?? null;
   const isLive = live?.voting_state === 'open';
-  const activePoll = activePollId ? polls[activePollId] : null;
+
+  // Build folder list (unique block_letter values across the user's polls).
+  const folderOptions = useMemo(() => {
+    const seen = new Map<string, string>();
+    Object.values(polls).forEach((p) => {
+      const key = (p.block_letter || '').trim();
+      if (!key) return;
+      const label = [p.block_letter, p.block_label].filter(Boolean).join(' · ');
+      if (!seen.has(key)) seen.set(key, label || key);
+    });
+    return Array.from(seen.entries()).map(([id, label]) => ({ id, label }));
+  }, [polls]);
+
+  // Scenes scoped to the chosen folder. When folderFilter is "live" we
+  // default to the active poll's folder so scene options stay relevant.
+  const effectiveFolder = folderFilter === 'live'
+    ? (activePollId ? (polls[activePollId]?.block_letter ?? '') : '')
+    : folderFilter;
+  const sceneOptions = useMemo(() => {
+    return Object.values(polls)
+      .filter((p) => !effectiveFolder || (p.block_letter || '') === effectiveFolder)
+      .map((p) => ({ id: p.id, label: p.internal_name || p.question || p.id.slice(0, 8) }));
+  }, [polls, effectiveFolder]);
+
+  // Resolve which poll the Live Voting / Timeline cards focus on.
+  const focusedPollId = sceneFilter === 'live' ? activePollId : sceneFilter;
+  const activePoll = focusedPollId ? polls[focusedPollId] : null;
 
   const liveRows = useMemo(
-    () => (activePollId ? rows.filter((r) => r.poll_id === activePollId) : []),
-    [rows, activePollId],
+    () => (focusedPollId ? rows.filter((r) => r.poll_id === focusedPollId) : []),
+    [rows, focusedPollId],
   );
 
   const totalVotes = liveRows.length;
@@ -345,6 +379,52 @@ export default function Statistics() {
               </Button>
             )}
           </div>
+        </div>
+
+        {/* Scope filter — choose which folder + scene the live cards reflect. */}
+        <div className="flex flex-wrap items-end gap-3">
+          <div className="space-y-1">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">Folder</div>
+            <Select
+              value={folderFilter}
+              onValueChange={(v) => { setFolderFilter(v); setSceneFilter('live'); }}
+            >
+              <SelectTrigger className="w-[200px] h-9 text-xs">
+                <SelectValue placeholder="Active folder" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="live">Active (follow live)</SelectItem>
+                {folderOptions.map((f) => (
+                  <SelectItem key={f.id} value={f.id}>{f.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          <div className="space-y-1">
+            <div className="text-[10px] uppercase tracking-wider text-muted-foreground font-mono">Scene</div>
+            <Select value={sceneFilter} onValueChange={setSceneFilter}>
+              <SelectTrigger className="w-[280px] h-9 text-xs">
+                <SelectValue placeholder="Active scene" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="live">Active (follow live)</SelectItem>
+                {sceneOptions.map((s) => (
+                  <SelectItem key={s.id} value={s.id}>{s.label}</SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          {focusedPollId && (
+            <p className="text-[10px] font-mono text-muted-foreground pb-2">
+              Showing votes for{' '}
+              <span className="text-foreground">
+                {polls[focusedPollId]?.internal_name || polls[focusedPollId]?.question || focusedPollId.slice(0, 8)}
+              </span>
+              {polls[focusedPollId]?.block_letter && (
+                <> · folder <span className="text-foreground">{[polls[focusedPollId]?.block_letter, polls[focusedPollId]?.block_label].filter(Boolean).join(' · ')}</span></>
+              )}
+            </p>
+          )}
         </div>
 
         {/* Live Voting */}
