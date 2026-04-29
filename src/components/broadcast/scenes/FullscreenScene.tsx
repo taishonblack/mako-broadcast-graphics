@@ -137,46 +137,10 @@ export function FullscreenScene({
             )}
 
             <div className="w-full" style={{ maxWidth: `${PGD.pollGraphicWidth}px` }}>
-              {/* ANSWER TYPE — voter-style choice buttons rendered into the
-                  same footprint as Answer Bars so swapping scenes feels like
-                  a clean reveal, not a repositioned graphic. */}
-              {visibleAssets.has('answerType') && !visibleAssets.has('answers') && (
-                <div
-                  data-layer="answerType"
-                  className={
-                    options.length === 2 &&
-                    options.every((o) => ['yes','no','y','n'].includes((o.text || '').trim().toLowerCase()))
-                      ? 'grid grid-cols-2'
-                      : 'flex flex-col'
-                  }
-                  style={{
-                    gap: `${PGD.answerSpacing}px`,
-                    ...getAssetTransformStyle(transforms?.answerType),
-                  }}
-                >
-                  {options.map((option, i) => {
-                    const bg =
-                      assetColors?.answerType?.barColors?.[i] ?? PGD.answerButtonIdleBg;
-                    const fg =
-                      assetColors?.answerType?.textPrimary ?? theme.textPrimary;
-                    return (
-                      <div
-                        key={option.id}
-                        className="w-full text-center font-semibold border border-white/15"
-                        style={{
-                          background: bg,
-                          color: fg,
-                          padding: `${PGD.answerButtonPaddingY}px 32px`,
-                          borderRadius: `${PGD.answerBorderRadius}px`,
-                          fontSize: `${PGD.answerFontSize}px`,
-                        }}
-                      >
-                        {option.text || `Answer ${i + 1}`}
-                      </div>
-                    );
-                  })}
-                </div>
-              )}
+              {/* NOTE: `answerType` is a voter-input-only asset. It must NOT
+                  render on Program / Output / Fullscreen. Voter buttons live
+                  exclusively in the Mobile/Desktop voter previews and the
+                  real /vote page. Program shows Answer Bars (`answers`). */}
 
               {visibleAssets.has('answers') && (useNativeChart ? (
                 <div
