@@ -790,10 +790,11 @@ export default function PollCreate() {
   // Program Preview / Output Inspector / Fullscreen Output all read votes
   // from the same poll the viewers are voting on — even if the operator
   // has navigated the workspace to a different poll mid-show.
-  const { activePollId: dbActivePollId, answerUuidsByOrder: activeAnswerUuids } = useActivePollBinding(
-    projectId ?? undefined,
-    liveState === 'live',
-  );
+  const {
+    activePollId: dbActivePollId,
+    answerUuidsByOrder: activeAnswerUuids,
+    activeAnswers,
+  } = useActivePollBinding(projectId ?? undefined, liveState === 'live');
   const activePollId = dbActivePollId ?? (liveState === 'live' && isUuid(pollId ?? '') ? pollId : null);
   const liveVoteMap = useLiveVotes(activePollId ?? undefined, liveState === 'live');
 
@@ -811,75 +812,76 @@ export default function PollCreate() {
     return arr;
   }, [answers, liveAnswerIdMap]);
 
-  const previewOptions: PollOption[] = useMemo(() =>
-    answers.map((a, i) => {
-      // Auto behavior: live votes when Go Live is engaged, test data otherwise.
-      // `previewDataMode` still gates the test path so toggling away from
-      // 'test' (e.g. for an empty rehearsal) keeps the bars at 0 pre-live.
-      //
-      // OUTPUT MODE RULE: never inject mock/test percentages. Output Mode
-      // is real-data only — if there are no live votes, bars stay at 0.
-      // Mock data is reserved for Build Mode design work.
-      //
-      // Bind by sort_order to the active poll's real poll_answers UUIDs
-      // (from `useActivePollBinding`). This is the no-guessing path the
-      // architecture requires: Scene Answer i → poll_answers ordered by
-      // sort_order → poll_answers.live_votes. Local-id bridges remain as
-      // fallbacks only for the brief window before the binding loads.
-      const mappedUuid =
-        activeAnswerUuids[i] ??
-        liveAnswerIdMap[String(a.id)] ??
-        liveUuidsByOrder[i];
-      const liveCount =
-        (mappedUuid ? liveVoteMap[mappedUuid] : undefined) ??
-        liveVoteMap[String(a.id)] ??
-        0;
-      const isOutputMode = mode === 'output';
+  // SINGLE SOURCE OF TRUTH for live rendering:
+  //   When voting is live we render the ACTIVE poll's answer rows
+  //   (ordered by sort_order, then created_at) with votes looked up by
+  //   poll_answers.id — never by array index. This guarantees Statistics,
+  //   Program Preview, Output Inspector and Fullscreen Output all show
+  //   the same label paired with the same vote count, even if the
+  //   workspace has a different poll loaded or its local answers are
+  //   reordered.
+  //
+  //   When NOT live we render the workspace's local `answers` (Build Mode
+  //   uses test/mock data). Output Mode never injects mock data.
+  const previewOptions: PollOption[] = useMemo(() => {
+    const isOutputMode = mode === 'output';
+
+    if (liveState === 'live' && activeAnswers.length > 0) {
+      return activeAnswers.map((row, i) => ({
+        id: row.id, // <-- stable poll_answers.id, NOT a local id
+        text: row.label || `Answer ${i + 1}`,
+        shortLabel: row.short_label || undefined,
+        votes: liveVoteMap[row.id] ?? 0,
+        order: i,
+      }));
+    }
+
+    return answers.map((a, i) => {
       const testCount = !isOutputMode && previewDataMode === 'test' ? (a.testVotes ?? 0) : 0;
       return {
         id: a.id,
         text: a.text || `Answer ${i + 1}`,
         shortLabel: a.shortLabel || undefined,
-        votes: liveState === 'live' ? liveCount : testCount,
+        votes: liveState === 'live' ? 0 : testCount,
         order: i,
       };
-    }), [answers, previewDataMode, liveVoteMap, liveState, liveAnswerIdMap, liveUuidsByOrder, activeAnswerUuids, mode]
-  );
+    });
+  }, [answers, previewDataMode, liveVoteMap, liveState, activeAnswers, mode]);
   const previewTotal = previewOptions.reduce((sum, o) => sum + o.votes, 0);
   const previewQuestion = question || 'Your question here?';
 
-  // Diagnostics: emit a per-answer breakdown of the live tally pipeline so
-  // we can confirm Program Preview is reading the same UUIDs that
-  // cast_vote is incrementing on the server. Only logs while live to keep
-  // the build console quiet during normal authoring.
+  // Diagnostic: per-answer mapping check. Confirms each rendered bar's
+  // label is paired with the correct poll_answers.id and live count.
   useEffect(() => {
     if (liveState !== 'live') return;
-    const breakdown = answers.map((a, i) => {
-      const mappedUuid =
-        activeAnswerUuids[i] ??
-        liveAnswerIdMap[String(a.id)] ??
-        liveUuidsByOrder[i];
+    const labelById = new Map(activeAnswers.map((r) => [r.id, r.label]));
+    const rows = previewOptions.map((opt, i) => {
+      const total = previewOptions.reduce((s, o) => s + o.votes, 0);
+      const pct = total > 0 ? Math.round((opt.votes / total) * 100) : 0;
+      const expectedLabel = labelById.get(String(opt.id));
+      if (expectedLabel !== undefined && expectedLabel !== opt.text) {
+        console.warn('[answer-mapping-warning] label/id mismatch', {
+          renderedIndex: i,
+          poll_answer_id: opt.id,
+          renderedLabel: opt.text,
+          expectedLabel,
+        });
+      }
       return {
-        index: i,
-        localId: String(a.id),
-        mappedUuid: mappedUuid ?? null,
-        liveVoteMapValue: mappedUuid ? (liveVoteMap[mappedUuid] ?? null) : null,
-        previewVotes: previewOptions[i]?.votes ?? 0,
+        label: opt.text,
+        renderedIndex: i,
+        poll_answer_id: opt.id,
+        live_votes: opt.votes,
+        computed_percent: pct,
       };
     });
-    console.log('[binding]', {
+    console.table(rows);
+    console.log('[answer-mapping-check]', {
       active_poll_id: activePollId,
       workspace_poll_id: pollId,
-      answer_uuid_list: activeAnswerUuids,
       liveVoteMap,
     });
-    console.log('[program-preview] live tally', {
-      pollId,
-      activePollId,
-      liveVoteMapKeys: Object.keys(liveVoteMap),
-      breakdown,
-    });
-  }, [liveState, pollId, activePollId, activeAnswerUuids, answers, liveAnswerIdMap, liveUuidsByOrder, liveVoteMap, previewOptions]);
+  }, [liveState, pollId, activePollId, activeAnswers, liveVoteMap, previewOptions]);
 
   const slugForUrl = slug || 'your-poll-slug';
   const fullUrl = `https://makovote.app/vote/${slugForUrl}`;
