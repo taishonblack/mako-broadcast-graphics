@@ -547,24 +547,14 @@ export function OperatorOutputMode({
     }
   }, [votingState, slateActive]);
 
-  // On mount, try to re-acquire an existing named popup so the close-poller
-  // works after navigation. window.open('', name) returns the existing
-  // window without navigating it.
-  useEffect(() => {
-    if (!outputOpen) return;
-    try {
-      const existing = window.open('', 'mako-output');
-      if (existing && existing.location && existing.location.href !== 'about:blank') {
-        outputWindowRef.current = existing;
-      } else if (existing) {
-        try { existing.close(); } catch { /* ignore */ }
-        // No real popup — clear stale flag.
-        sessionStorage.removeItem('mako-output-open');
-        setOutputOpen(false);
-      }
-    } catch { /* ignore */ }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  // NOTE: We intentionally do NOT probe for an existing popup with
+  // window.open('', 'mako-output') on mount. In Chrome, calling window.open
+  // against a popup that the operator has put into fullscreen drops it out
+  // of fullscreen (the call is treated as a focus/navigation on the target
+  // window). The `outputOpen` flag is rehydrated from sessionStorage above,
+  // and the close-poller below tolerates a null window ref — when the
+  // operator actually closes the popup, the heartbeat-driven flow and the
+  // next user-initiated Open Output click will reconcile the ref.
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
