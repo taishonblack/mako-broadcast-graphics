@@ -1612,24 +1612,23 @@ export function OperatorOutputMode({
                 "Program Preview must show…" acceptance list. */}
             <div className="space-y-1.5 rounded-md border border-border/60 p-2">
               <p className="text-[10px] font-mono uppercase text-muted-foreground">Vote Source</p>
-              <label className="flex items-center justify-between gap-2 rounded-md bg-background/40 px-1.5 py-1 cursor-pointer">
+              <div className="flex items-center justify-between gap-2 rounded-md bg-background/40 px-1.5 py-1 opacity-60">
                 <div className="min-w-0">
                   <span className="block text-[10px] font-mono uppercase text-foreground">
-                    Use Test Vote Bars
+                    Design / Test Data
                   </span>
                   <span className="block text-[9px] text-muted-foreground/70 leading-snug">
-                    {useMockVoteData
-                      ? 'Bars show per-answer test counts (off-air rehearsal)'
-                      : 'Bars read REAL votes only — never mock data'}
+                    Output Mode always reads REAL live votes. Mock bars are
+                    available in Build Mode only.
                   </span>
                 </div>
                 <Switch
-                  checked={useMockVoteData}
-                  onCheckedChange={(v) => setUseMockVoteData(Boolean(v))}
+                  checked={false}
+                  disabled
                   className="scale-75"
-                  aria-label="Toggle use test vote bars"
+                  aria-label="Test vote bars are Build-Mode only"
                 />
-              </label>
+              </div>
               <div className="grid grid-cols-2 gap-x-2 gap-y-0.5 font-mono text-[10px] leading-tight">
                 <span className="text-muted-foreground">poll id</span>
                 <span className="truncate text-foreground" title={currentPoll?.id ?? ''}>{currentPoll?.id ?? '∅'}</span>
@@ -1641,10 +1640,8 @@ export function OperatorOutputMode({
                 <span className="text-foreground">{liveState}</span>
                 <span className="text-muted-foreground">votingState</span>
                 <span className="text-foreground">{votingState}</span>
-                <span className="text-muted-foreground">useMockVoteData</span>
-                <span className={useMockVoteData ? 'text-mako-warning' : 'text-mako-success'}>
-                  {String(useMockVoteData)}
-                </span>
+                <span className="text-muted-foreground">mock allowed</span>
+                <span className="text-mako-success">false (output mode)</span>
                 <span className="text-muted-foreground">final total</span>
                 <span className="text-foreground tabular-nums">{(currentPoll?.totalVotes ?? 0).toLocaleString()}</span>
               </div>
