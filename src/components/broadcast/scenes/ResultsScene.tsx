@@ -5,6 +5,7 @@ import { AssetOverlay } from '@/components/broadcast/AssetOverlay';
 import { AssetColorMap, AssetTransformMap, AssetId } from '@/components/poll-create/polling-assets/types';
 import { getAssetTransformStyle } from '@/lib/asset-transforms';
 import { POLLING_GRAPHIC_DEFAULTS as PGD } from '@/lib/polling-graphic-defaults';
+import { SceneAssetTransformFrame } from './SceneAssetTransformFrame';
 
 interface ResultsSceneProps {
   question: string;
@@ -122,47 +123,46 @@ export function ResultsScene({
         }}
       />
 
-      <div className="relative z-20 flex flex-col items-center w-full px-32" style={{ maxWidth: `${PGD.pollGraphicWidth}px` }}>
+      <div className="relative z-20 w-full h-full">
+        {/* All polling-family assets render through SceneAssetTransformFrame
+            so X/Y/Scale apply to the same outer wrapper for every asset.
+            See SceneAssetTransformFrame.tsx. */}
+
         {visibleAssets.has('question') && (
-        <h1
-          className="font-bold mb-16 text-center"
-          style={{
-            color: assetColors?.question?.textPrimary ?? theme.textPrimary,
-            fontSize: `${PGD.questionFontSize}px`,
-            maxWidth: `${questionMaxWidthPx}px`,
-            lineHeight: questionLineHeight,
-            overflowWrap: 'break-word',
-            wordBreak: 'normal',
-            ...getAssetTransformStyle(transforms?.question),
-          }}
-        >
-          {question}
-        </h1>
+          <SceneAssetTransformFrame transform={transforms?.question}>
+            <h1
+              className="font-bold text-center"
+              style={{
+                color: assetColors?.question?.textPrimary ?? theme.textPrimary,
+                fontSize: `${PGD.questionFontSize}px`,
+                maxWidth: `${questionMaxWidthPx}px`,
+                lineHeight: questionLineHeight,
+                overflowWrap: 'break-word',
+                wordBreak: 'normal',
+                transform: `translateY(-${(50 - PGD.questionTopPercent) * 0.01 * 1080}px)`,
+              }}
+            >
+              {question}
+            </h1>
+          </SceneAssetTransformFrame>
         )}
 
-        {/* NOTE: `answerType` is voter-input only — it must NOT render on
-            Program / Output. Voter buttons live in Mobile/Desktop previews
-            and the real /vote page. Program shows Answer Bars. */}
+        {/* `answerType` is voter-input only — never renders here. */}
 
         {visibleAssets.has('answers') && (
-        <div
-          className="flex flex-col"
-          style={{
-            // Shared inner layout — matches Answer Bars on Fullscreen and
-            // Answer Type on the voter preview so X/Y/scale parity holds.
-            gap: `${PGD.answerGap}px`,
-            width: `${PGD.answerGroupWidthPercent}%`,
-            margin: '0 auto',
-            textAlign: PGD.answerTextAlign,
-            ...getAssetTransformStyle(transforms?.answers),
-          }}
-        >
+          <SceneAssetTransformFrame transform={transforms?.answers}>
+            <div
+              className="flex flex-col"
+              style={{
+                gap: `${PGD.answerGap}px`,
+                width: `${(PGD.pollGraphicWidth * PGD.answerGroupWidthPercent) / 100}px`,
+                textAlign: PGD.answerTextAlign,
+              }}
+            >
           {options.map((option, i) => {
             const finalPct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
             const pct = finalPct * progress;
             const displayVotes = Math.round(option.votes * progress);
-            // Default neutral white. Only use palette `colors[]` when the
-            // operator has explicitly set per-bar colors via the inspector.
             const operatorBarColors = assetColors?.answers?.barColors;
             const color = operatorBarColors?.[i] ?? PGD.answerTextColor;
             const labelColor = assetColors?.answers?.textPrimary ?? PGD.answerTextColor;
@@ -206,15 +206,18 @@ export function ResultsScene({
               </div>
             );
           })}
-        </div>
+            </div>
+          </SceneAssetTransformFrame>
         )}
 
         {visibleAssets.has('voterTally') && (
-          <div data-layer="votesText" className="mt-10 text-center" style={getAssetTransformStyle(transforms?.voterTally)}>
-            <span className="font-mono" style={{ color: assetColors?.voterTally?.textSecondary ?? theme.textSecondary, fontSize: '28px' }}>
-              {Math.round(totalVotes * progress).toLocaleString()} total votes
-            </span>
-          </div>
+          <SceneAssetTransformFrame transform={transforms?.voterTally}>
+            <div data-layer="votesText" className="text-center" style={{ transform: `translateY(${(50 - PGD.questionTopPercent) * 0.01 * 1080 * 0.6}px)` }}>
+              <span className="font-mono" style={{ color: assetColors?.voterTally?.textSecondary ?? theme.textSecondary, fontSize: '28px' }}>
+                {Math.round(totalVotes * progress).toLocaleString()} total votes
+              </span>
+            </div>
+          </SceneAssetTransformFrame>
         )}
       </div>
 
