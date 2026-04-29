@@ -324,23 +324,30 @@ export function usePollScenes(pollId: string | undefined) {
    */
   const saveSceneAssetTransforms = useCallback(
     async (sceneId: string, transforms: AssetTransformMap) => {
+      const currentScene = scenes.find((s) => s.id === sceneId);
+      const visibleAssetIds = Array.from(currentScene?.visibleAssetIds ?? []);
+      const visibleTransforms = Object.fromEntries(
+        visibleAssetIds
+          .filter((assetId) => transforms[assetId])
+          .map((assetId) => [assetId, transforms[assetId]]),
+      ) as AssetTransformMap;
       setScenes((prev) =>
-        prev.map((s) => (s.id === sceneId ? { ...s, assetTransforms: { ...transforms } } : s)),
+        prev.map((s) => (s.id === sceneId ? { ...s, assetTransforms: { ...visibleTransforms } } : s)),
       );
       const isDraft = sceneId.startsWith('draft-scene-');
       if (isDraft) {
         draftScenesRef.current = draftScenesRef.current.map((s) =>
-          s.id === sceneId ? { ...s, assetTransforms: { ...transforms } } : s,
+          s.id === sceneId ? { ...s, assetTransforms: { ...visibleTransforms } } : s,
         );
         return;
       }
-      try { await bulkSavePollSceneAssetTransforms(sceneId, transforms); }
+      try { await bulkSavePollSceneAssetTransforms(sceneId, visibleTransforms, visibleAssetIds); }
       catch (err) {
         console.error('[usePollScenes] save transforms failed', err);
         toast.error('Failed to save scene layout');
       }
     },
-    [],
+    [scenes],
   );
 
   return {
