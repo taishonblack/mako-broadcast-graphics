@@ -117,11 +117,22 @@ export default function ViewerVote() {
           _answer_id: answerId,
           _session_id: sessionId,
         })
-        .then(({ data, error }) => {
-          if (error) console.warn('cast_vote error', error);
-          else if (data && typeof data === 'object' && 'ok' in data && !(data as { ok: boolean }).ok) {
-            console.warn('cast_vote rejected', data);
-          }
+        .then(async ({ data, error }) => {
+          // Diagnostics: surface exactly what was sent and what landed in
+          // poll_answers.live_votes so Program Preview / Statistics drift
+          // is easy to debug from the browser console on the viewer page.
+          console.log('[vote] submit', { poll_id: pollId, answer_id: answerId });
+          if (error) console.warn('[vote] cast_vote error', error);
+          else console.log('[vote] cast_vote result', data);
+          // Read-back the tally for this answer so we can confirm the
+          // single-source-of-truth column moved by exactly +1.
+          const { data: row, error: readErr } = await supabase
+            .from('poll_answers')
+            .select('id, live_votes')
+            .eq('id', answerId)
+            .maybeSingle();
+          if (readErr) console.warn('[vote] live_votes read error', readErr);
+          else console.log('[vote] poll_answers.live_votes after vote', row);
         });
     }
 
