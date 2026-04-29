@@ -1175,18 +1175,11 @@ export default function PollCreate() {
     try {
       const existing = outputWindowRef.current;
       if (!existing || existing.closed) {
-        // Try to re-acquire an existing named popup (survived navigation
-        // and possibly in fullscreen) before opening a fresh one — opening
-        // with features re-navigates the named window and breaks fullscreen.
-        let reacquired: Window | null = null;
-        try {
-          reacquired = window.open('', 'mako-output');
-          if (reacquired && reacquired.location && reacquired.location.href === 'about:blank') {
-            try { reacquired.close(); } catch { /* ignore */ }
-            reacquired = null;
-          }
-        } catch { reacquired = null; }
-        outputWindowRef.current = reacquired ?? window.open(
+        // Open by name. The browser will reuse an existing named popup
+        // without breaking its fullscreen state, as long as we don't
+        // probe with window.open('', name) first (that call drops
+        // Chrome popups out of fullscreen).
+        outputWindowRef.current = window.open(
           `/output/${currentWorkspacePoll.id}`,
           'mako-output',
           'width=1920,height=1080',
