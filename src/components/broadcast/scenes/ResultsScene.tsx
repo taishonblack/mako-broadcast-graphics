@@ -140,40 +140,9 @@ export function ResultsScene({
         </h1>
         )}
 
-        {/* ANSWER TYPE — voter-style buttons in the same footprint as
-            Answer Bars so a Scene-1 Answer-Type → Scene-2 Answer-Bars cut
-            reads as a single graphic family. */}
-        {visibleAssets.has('answerType') && !visibleAssets.has('answers') && (
-          <div
-            className={
-              options.length === 2 &&
-              options.every((o) => ['yes','no','y','n'].includes((o.text || '').trim().toLowerCase()))
-                ? 'w-full grid grid-cols-2'
-                : 'w-full flex flex-col'
-            }
-            style={{ gap: `${PGD.answerSpacing}px`, ...getAssetTransformStyle(transforms?.answerType) }}
-          >
-            {options.map((option, i) => {
-              const bg = assetColors?.answerType?.barColors?.[i] ?? PGD.answerButtonIdleBg;
-              const fg = assetColors?.answerType?.textPrimary ?? theme.textPrimary;
-              return (
-                <div
-                  key={option.id}
-                  className="w-full text-center font-semibold border border-white/15"
-                  style={{
-                    background: bg,
-                    color: fg,
-                    padding: `${PGD.answerButtonPaddingY}px 32px`,
-                    borderRadius: `${PGD.answerBorderRadius}px`,
-                    fontSize: `${PGD.answerFontSize}px`,
-                  }}
-                >
-                  {option.text || `Answer ${i + 1}`}
-                </div>
-              );
-            })}
-          </div>
-        )}
+        {/* NOTE: `answerType` is voter-input only — it must NOT render on
+            Program / Output. Voter buttons live in Mobile/Desktop previews
+            and the real /vote page. Program shows Answer Bars. */}
 
         {visibleAssets.has('answers') && (
         <div className="w-full flex flex-col" style={{ gap: `${PGD.answerSpacing}px`, ...getAssetTransformStyle(transforms?.answers) }}>
