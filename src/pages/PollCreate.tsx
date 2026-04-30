@@ -688,11 +688,11 @@ export default function PollCreate() {
           // tab hide / page reload via beforeunload) — the operator
           // didn't initiate the save and shouldn't see a validation
           // error pop on every Cmd+R. Manual saves still surface it.
-          if (source === 'manual') toast.error(`Answer Type · Choice ${i + 1} is empty.`);
+          if (source === 'manual') toast.error(`Voter Selection · Choice ${i + 1} is empty.`);
           return false;
         }
         if (seen.has(norm)) {
-          if (source === 'manual') toast.error(`Answer Type · Choice ${i + 1} duplicates Choice ${(seen.get(norm) ?? 0) + 1}.`);
+          if (source === 'manual') toast.error(`Voter Selection · Choice ${i + 1} duplicates Choice ${(seen.get(norm) ?? 0) + 1}.`);
           return false;
         }
         seen.set(norm, i);
