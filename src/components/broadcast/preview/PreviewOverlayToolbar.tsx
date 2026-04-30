@@ -74,19 +74,19 @@ export function PreviewOverlayToolbar({ state, onToggle, onUpdate, onResetGuides
       </Tooltip>
 
       <Popover>
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <PopoverTrigger asChild>
+        <PopoverTrigger asChild>
+          <Tooltip>
+            <TooltipTrigger asChild>
               <button
                 className="mako-chip cursor-pointer text-[10px] gap-1 px-2 py-0.5 bg-muted/40 text-muted-foreground border border-border hover:text-foreground transition-colors"
                 aria-label="Overlay options"
               >
                 <Settings2 className="w-3 h-3" />
               </button>
-            </PopoverTrigger>
-          </TooltipTrigger>
-          <TooltipContent side="bottom" className="text-xs">Overlay opacity & grid density</TooltipContent>
-        </Tooltip>
+            </TooltipTrigger>
+            <TooltipContent side="bottom" className="text-xs">Overlay opacity & grid density</TooltipContent>
+          </Tooltip>
+        </PopoverTrigger>
         <PopoverContent side="bottom" align="end" className="w-56 p-3 space-y-3">
           <div className="space-y-1.5">
             <div className="flex items-center justify-between">
