@@ -44,7 +44,12 @@ export const BROADCAST_SCENES: BroadcastScene[] = [
     // Voting screen. Voter Selection (`answerType`) is allowed in the
     // visible set so it propagates to Mobile/Desktop voter views; on
     // Program output the FullscreenScene renderer never draws it.
-    visibleAssets: [...BASE, 'qr', 'answerType'],
+    // `answers` (Answer Bars) is also allowed: the renderer respects
+    // the folder-level enable, so operators who add bars to a Voting
+    // scene see them on Program. Without this, Output stripped the
+    // answer-bars asset even when the folder had it enabled — Build
+    // showed bars but Output went blank.
+    visibleAssets: [...BASE, 'qr', 'answerType', 'answers'],
   },
   {
     id: 'liveResults',
