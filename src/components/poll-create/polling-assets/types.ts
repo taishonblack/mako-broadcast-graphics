@@ -58,6 +58,15 @@ export interface AssetColorConfig {
    */
   barHeight?: number;
   /**
+   * When `barHeight` is set and the constrained box is shorter than the
+   * pill's natural content height, auto-shrink the label / percent font so
+   * the text always fits. Defaults to `true` (the previous behavior).
+   * Set to `false` to keep the font fixed at the surface's design size —
+   * useful when the operator wants the bar to clip rather than rescale,
+   * or when matching a brand spec that requires fixed type.
+   */
+  barAutoScaleText?: boolean;
+  /**
    * Horizontal text alignment inside each pill. Used by the Voter
    * Selection / Answer Bars renderer (AnswerChoices). Defaults to
    * the global PGD answer alignment when unset.
