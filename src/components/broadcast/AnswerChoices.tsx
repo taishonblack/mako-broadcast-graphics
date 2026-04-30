@@ -165,6 +165,7 @@ export function AnswerChoices({
               <div
                 className="relative flex items-center gap-3"
                 style={{
+                  width: '100%',
                   justifyContent:
                     variant === 'bars'
                       ? 'space-between'
