@@ -50,6 +50,12 @@ export interface AssetColorConfig {
   barPaddingY?: number;
   barPaddingX?: number;
   barBorderRadius?: number;
+  /**
+   * Horizontal text alignment inside each pill. Used by the Voter
+   * Selection / Answer Bars renderer (AnswerChoices). Defaults to
+   * the global PGD answer alignment when unset.
+   */
+  textAlign?: 'left' | 'center' | 'right';
 }
 
 export type TransformField =
