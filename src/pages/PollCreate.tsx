@@ -3305,6 +3305,15 @@ export default function PollCreate() {
                     resultsMode={activeFolder?.resultsMode ?? DEFAULT_RESULTS_MODE}
                     resultsAnimationMs={activeFolder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS}
                     resultsReplayKey={resultsReplayKey}
+                    /* Render Build's Program tab through the SAME node that
+                     * Output Mode uses for its Program Preview. This is the
+                     * single source of truth for the on-air composition —
+                     * scene component, `program`-viewport transforms/colors,
+                     * scene-asset intersection, background, QR, answer bars.
+                     * Build's editable Mobile/Desktop tabs continue to use
+                     * the local viewer renderer so transform editing is
+                     * unaffected. */
+                    programNode={renderOutputScene()}
                   />
                   <AssetTransformControls
                     assetId={selectedAssetId}

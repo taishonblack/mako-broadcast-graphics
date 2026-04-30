@@ -81,6 +81,17 @@ interface DraftPreviewMonitorProps {
    *  read as the active folder name (e.g. "1st Com") so it's obvious which
    *  folder is being previewed. */
   folderLabel?: string;
+  /**
+   * SHARED PROGRAM RENDERER. When provided, the "Program" viewport renders
+   * this node verbatim instead of the local `renderProgramContent()`.
+   * This is the same React subtree the operator's Output Mode uses for its
+   * Program Preview, so Build's Program tab and Output's Program Preview
+   * are guaranteed to be visually identical (same scene component, same
+   * `program` viewport transforms/colors, same scene-asset intersection,
+   * same background, QR, and answer bars). The local `renderProgramContent()`
+   * remains as a fallback for callers that don't yet pass `programNode`.
+   */
+  programNode?: React.ReactNode;
 }
 
 /**
@@ -119,6 +130,7 @@ export function DraftPreviewMonitor({
   slateSublineText,
   slateSublineStyle,
   folderLabel,
+  programNode,
 }: DraftPreviewMonitorProps) {
   const [previewModeUncontrolled, setPreviewModeUncontrolled] = useState<PreviewMode>('program');
   const previewMode = previewModeProp ?? previewModeUncontrolled;
@@ -331,7 +343,7 @@ export function DraftPreviewMonitor({
       <div className="flex flex-col items-center justify-start pt-2 px-4 pb-2 bg-background/30 min-h-0 overflow-auto gap-2">
         {previewMode === 'program' ? (
           <PreviewWithOverlays showLabel label="1920×1080" onApiReady={(api) => { overlayApiRef.current = api; }}>
-            {renderProgramContent()}
+            {programNode ?? renderProgramContent()}
           </PreviewWithOverlays>
         ) : (
           // When the poll has no content yet, show the same Polling Slate
