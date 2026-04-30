@@ -405,46 +405,30 @@ export function DraftPreviewMonitor({
           // question/qr/etc. We render question + QR (matching Program)
           // instead of the voter buttons, so Mobile/Desktop look identical
           // to the on-air composition.
-          (() => {
-            // Voter views show MakoVote slate when Voter Selection is absent.
-            const noVoterSelection = !enabledAssetIds.includes('answerType') && hasContent;
-            return slateActive || !hasContent || noVoterSelection;
-          })() ? (
-            <ViewerSlatePreview
-              mode={previewMode}
-              bgImage={bgImage}
-              bgColor={bgColor}
-              slateActive={slateActive}
-              slateText={slateText}
-              slateImage={slateImage}
-              textStyle={slateTextStyle}
-              sublineText={slateSublineText}
-              sublineStyle={slateSublineStyle}
-              votingOpen={hasContent && enabledAssetIds.includes('answerType')}
-              question={question}
-              subheadline={subheadline}
-              options={labelledOptions}
-              answerType={answerType}
-              enabledAssetIds={enabledAssetIds}
-              slug={slug}
-              assetColors={assetColors}
-              transforms={transforms}
-            />
-          ) : (
-            <div className={`bg-background border border-border rounded-lg overflow-hidden shadow-xl ${
-              previewMode === 'mobile' ? 'w-[280px] h-[500px]' : 'w-full max-w-lg h-[420px]'
-            }`} style={bgImage ? { backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: bgColor || undefined }}>
-              <div className="h-6 bg-card/80 border-b border-border flex items-center px-2 gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-destructive/60" />
-                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
-                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
-                <span className="text-[8px] text-muted-foreground ml-1 font-mono truncate">{shortUrl}</span>
-              </div>
-              <div className="h-[calc(100%-1.5rem)] overflow-auto p-5">
-                {renderViewerButtons()}
-              </div>
-            </div>
-          )
+          // Single source of truth for Mobile/Desktop voter previews:
+          // ViewerSlatePreview handles slate, voting, and MakoVote fallback
+          // identically to Output Mode — guarantees Build and Output match.
+          <ViewerSlatePreview
+            mode={previewMode}
+            bgImage={bgImage}
+            bgColor={bgColor}
+            slateActive={slateActive}
+            slateText={slateText}
+            slateImage={slateImage}
+            textStyle={slateTextStyle}
+            sublineText={slateSublineText}
+            sublineStyle={slateSublineStyle}
+            votingOpen={hasContent && enabledAssetIds.includes('answerType')}
+            question={question}
+            subheadline={subheadline}
+            options={labelledOptions}
+            answerType={answerType}
+            mcLabelStyle={mcLabelStyle}
+            enabledAssetIds={enabledAssetIds}
+            slug={slug}
+            assetColors={assetColors}
+            transforms={transforms}
+          />
         )}
 
         {/* URL display beneath preview */}
