@@ -77,6 +77,9 @@ export function AssetInspector(p: AssetInspectorProps) {
   // between Answer Type and Answer Bars. Lives on the inspector instance so
   // the operator can copy from one asset and paste into another without
   // changing answer text or colors.
+  // In-memory clipboard for copy/paste of pill style (padding + radius)
+  // within a single asset across viewports. Voter Selection and Answer Bars
+  // are independent and intentionally do NOT share this clipboard.
   const [styleClipboard, setStyleClipboard] = useState<{
     barPaddingY?: number;
     barPaddingX?: number;
@@ -197,40 +200,22 @@ export function AssetInspector(p: AssetInspectorProps) {
 
         {(id === 'answers' || id === 'answerType') && (
           <div className="space-y-3">
-            {id === 'answerType' && p.onConvertAnswerTypeToBars && (
-              <div className="rounded-md border border-primary/30 bg-primary/5 p-2.5 space-y-1.5">
+            {id === 'answerType' && (
+              <div className="rounded-md border border-border/50 bg-muted/20 p-2.5">
                 <p className="text-[10px] text-muted-foreground leading-tight">
-                  This is the on-device vote input. When you're ready to reveal results, convert it to Answer Bars — the QR in this folder will be muted.
+                  Voter Selection controls what audience members see and tap on mobile or desktop. It does not appear on Program output.
                 </p>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="w-full h-7 text-[10px]"
-                  onClick={p.onConvertAnswerTypeToBars}
-                >
-                  Convert to Answer Bars
-                </Button>
               </div>
             )}
-            {id === 'answers' && p.onConvertAnswerBarsToAnswerType && (
-              <div className="rounded-md border border-primary/30 bg-primary/5 p-2.5 space-y-1.5">
+            {id === 'answers' && (
+              <div className="rounded-md border border-border/50 bg-muted/20 p-2.5">
                 <p className="text-[10px] text-muted-foreground leading-tight">
-                  Need to collect votes again? Convert back to Answer Type — the on-device vote buttons return and the QR in this folder is re-activated.
+                  Answer Bars control the result graphic shown on Program output. They do not appear on mobile or desktop voter screens.
                 </p>
-                <Button
-                  type="button"
-                  size="sm"
-                  variant="outline"
-                  className="w-full h-7 text-[10px]"
-                  onClick={p.onConvertAnswerBarsToAnswerType}
-                >
-                  Convert to Answer Type
-                </Button>
               </div>
             )}
             <div className="space-y-1">
-              <Label className="text-[10px] text-muted-foreground">Answer Type</Label>
+              <Label className="text-[10px] text-muted-foreground">{id === 'answerType' ? 'Selection Type' : 'Answer Type'}</Label>
               <div className="grid grid-cols-3 gap-1">
                 {(['yes-no', 'multiple-choice', 'custom'] as AnswerType[]).map((t) => (
                   <button
