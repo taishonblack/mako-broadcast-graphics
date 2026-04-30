@@ -3404,6 +3404,21 @@ export default function PollCreate() {
                       activeViewport={transformViewport}
                       assetColors={assetColors}
                       setAssetColors={setAssetColors}
+                      onCenterActiveAsset={(assetId) => {
+                        pushUndoSnapshot();
+                        setAssetTransforms((current) => {
+                          const t = current[assetId];
+                          if (!t) return current;
+                          return { ...current, [assetId]: { ...t, x: 0, y: 0 } };
+                        });
+                      }}
+                      onApplyStandardDefaults={(assetId) => {
+                        pushUndoSnapshot();
+                        setAssetTransforms((current) => {
+                          const std = getStandardTransform(assetId, transformViewport);
+                          return { ...current, [assetId]: std };
+                        });
+                      }}
                     />
                   </Pane>
                 </ResizablePanel>

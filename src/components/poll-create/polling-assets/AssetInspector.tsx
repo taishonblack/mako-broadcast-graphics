@@ -8,7 +8,6 @@ import {
 } from '@/components/poll-create/ContentPanel';
 import { ASSET_REGISTRY } from './PollingAssetsPane';
 import { AssetColorMap, AssetId, AssetState, TransformViewport } from './types';
-import { getStandardTransform } from './types';
 import { POLLING_GRAPHIC_DEFAULTS as PGD } from '@/lib/polling-graphic-defaults';
 import { Trash2, PlusCircle, GripVertical, Crosshair, RotateCcw, Copy, ClipboardPaste } from 'lucide-react';
 import { BackgroundPicker } from '@/components/poll-create/BackgroundPicker';
