@@ -111,7 +111,8 @@ export function AnswerChoices({
   // feel like a true continuous adjustment instead of jumping between
   // "natural" and "min content" states.
   const naturalContentHeight = tokens.fontSize + tokens.padY * 2;
-  const effectiveFontSize = explicitHeight && explicitHeight < naturalContentHeight
+  const autoScale = style?.barAutoScaleText ?? true;
+  const effectiveFontSize = explicitHeight && explicitHeight < naturalContentHeight && autoScale
     ? Math.max(10, Math.round(explicitHeight * 0.55))
     : tokens.fontSize;
 
