@@ -86,6 +86,7 @@ export function AssetInspector(p: AssetInspectorProps) {
     barBorderRadius?: number;
     barHeight?: number;
     textAlign?: 'left' | 'center' | 'right';
+    barAutoScaleText?: boolean;
   } | null>(null);
   // Live validation for AnswerType choices: flag empty and duplicate (case-
   // insensitive, trimmed) entries so the operator can't ship a poll with
