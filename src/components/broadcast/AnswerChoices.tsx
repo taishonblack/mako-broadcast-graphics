@@ -30,6 +30,8 @@ export interface AnswerChoiceOption {
   id: string;
   text: string;
   votes?: number;
+  /** Optional label chip text (e.g. "A", "1"). Empty string = no chip. */
+  label?: string;
 }
 
 interface SurfaceTokens {
@@ -100,11 +102,13 @@ export function AnswerChoices({
   const padY = style?.barPaddingY ?? tokens.padY;
   const radius = style?.barBorderRadius ?? PGD.answerBorderRadius;
   const labelColor = textColor ?? PGD.answerTextColor;
+  const textAlign: 'left' | 'center' | 'right' =
+    style?.textAlign ?? (PGD.answerTextAlign as 'left' | 'center' | 'right');
 
   const containerStyle: CSSProperties = {
     width: `${tokens.groupWidthPx}px`,
     gap: `${tokens.gap}px`,
-    textAlign: PGD.answerTextAlign,
+    textAlign,
   };
 
   const containerClass = layout === 'side-by-side' ? 'grid grid-cols-2' : 'flex flex-col';
@@ -142,10 +146,43 @@ export function AnswerChoices({
                   }}
                 />
               )}
-              <div className="relative flex items-center justify-between gap-6">
+              <div
+                className="relative flex items-center gap-3"
+                style={{
+                  justifyContent:
+                    variant === 'bars'
+                      ? 'space-between'
+                      : textAlign === 'center'
+                        ? 'center'
+                        : textAlign === 'right'
+                          ? 'flex-end'
+                          : 'flex-start',
+                }}
+              >
+                {option.label ? (
+                  <span
+                    className="font-mono font-bold inline-flex items-center justify-center shrink-0 border"
+                    style={{
+                      color: labelColor,
+                      fontSize: `${Math.round(tokens.fontSize * 0.7)}px`,
+                      width: `${Math.round(tokens.fontSize * 1.6)}px`,
+                      height: `${Math.round(tokens.fontSize * 1.6)}px`,
+                      borderRadius: '6px',
+                      borderColor: 'rgba(255,255,255,0.2)',
+                      background: 'rgba(0,0,0,0.25)',
+                    }}
+                  >
+                    {option.label}
+                  </span>
+                ) : null}
                 <span
                   className={variant === 'bars' ? 'font-semibold' : 'font-medium'}
-                  style={{ color: labelColor, fontSize: `${tokens.fontSize}px` }}
+                  style={{
+                    color: labelColor,
+                    fontSize: `${tokens.fontSize}px`,
+                    flex: variant === 'bars' || textAlign === 'left' ? 1 : undefined,
+                    textAlign,
+                  }}
                 >
                   {option.text || (variant === 'voter' ? 'Answer' : '')}
                 </span>
