@@ -239,13 +239,12 @@ export function DraftPreviewMonitor({
     );
   };
 
-  // ---- VIEWER (mobile/desktop) CONTENT — reflects answerType ----
+  // ---- VIEWER (mobile/desktop) CONTENT — reflects Voter Selection ----
   const renderViewerButtons = () => {
-    // If the active folder doesn't include the answers asset, the voter
-    // surface has nothing to render — fall back to the default holding
-    // screen (MakoVote wordmark) so Mobile/Desktop match what the audience
-    // actually sees in that folder.
-    if (!hasContent || !enabledAssetIds.includes('answers')) {
+    // Voter views render ONLY when the folder includes Voter Selection
+    // (`answerType`). Answer Bars never appears on Mobile/Desktop. When
+    // Voter Selection is absent, fall back to the MakoVote slate.
+    if (!hasContent || !enabledAssetIds.includes('answerType')) {
       return (
         <div className="flex flex-col items-center justify-center h-full gap-4 px-6 text-center">
           <div className="flex items-baseline justify-center font-semibold leading-none select-none text-3xl">
@@ -253,16 +252,16 @@ export function DraftPreviewMonitor({
             <span className="text-primary">Vote</span>
           </div>
           <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/80">
-            Start building your poll to preview the voter view
+            Add Voter Selection to this scene to preview the voter view
           </p>
         </div>
       );
     }
 
-    // Resolve answer chip colors from the active viewport's color slice so
-    // operators can independently theme the Mobile / Desktop voter buttons.
-    const barColors = assetColors.answers?.barColors ?? [];
-    const answerTextColor = assetColors.answers?.textPrimary ?? 'hsl(var(--foreground))';
+    // Voter buttons read from the dedicated `answerType` slice — Voter
+    // Selection owns its colors independently of Answer Bars.
+    const barColors = assetColors.answerType?.barColors ?? [];
+    const answerTextColor = assetColors.answerType?.textPrimary ?? 'hsl(var(--foreground))';
     const questionTextColor = assetColors.question?.textPrimary ?? 'hsl(var(--foreground))';
     const subheadlineTextColor = assetColors.subheadline?.textPrimary ?? 'hsl(var(--muted-foreground))';
 
@@ -272,7 +271,7 @@ export function DraftPreviewMonitor({
     // transform style so question/subheadline/answers move independently.
     const questionStyle = getAssetTransformStyle(transforms.question);
     const subheadlineStyle = getAssetTransformStyle(transforms.subheadline);
-    const answersStyle = getAssetTransformStyle(transforms.answers);
+    const answersStyle = getAssetTransformStyle(transforms.answerType);
 
     if (answerType === 'yes-no') {
       const yesBg = barColors[0];
@@ -407,8 +406,9 @@ export function DraftPreviewMonitor({
           // instead of the voter buttons, so Mobile/Desktop look identical
           // to the on-air composition.
           (() => {
-            const isMirrorMode = !enabledAssetIds.includes('answers') && hasContent;
-            return slateActive || !hasContent || isMirrorMode;
+            // Voter views show MakoVote slate when Voter Selection is absent.
+            const noVoterSelection = !enabledAssetIds.includes('answerType') && hasContent;
+            return slateActive || !hasContent || noVoterSelection;
           })() ? (
             <ViewerSlatePreview
               mode={previewMode}
@@ -420,7 +420,7 @@ export function DraftPreviewMonitor({
               textStyle={slateTextStyle}
               sublineText={slateSublineText}
               sublineStyle={slateSublineStyle}
-              votingOpen={hasContent && !enabledAssetIds.includes('answers')}
+              votingOpen={hasContent && enabledAssetIds.includes('answerType')}
               question={question}
               subheadline={subheadline}
               options={labelledOptions}

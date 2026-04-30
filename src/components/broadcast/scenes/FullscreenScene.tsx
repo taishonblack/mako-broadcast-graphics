@@ -170,13 +170,16 @@ export function FullscreenScene({
                 </div>
               ) : (
                 <div data-layer="answerBars">
+                  {/* Answer Bars is the program-facing result graphic. It owns its
+                      own style/color slice — no fallback to Voter Selection
+                      (`answerType`). The two assets are independent on purpose. */}
                   <AnswerChoices
                     surface="program"
                     variant="bars"
                     options={options}
                     totalVotes={totalVotes}
                     style={assetColors?.answers}
-                    optionColors={assetColors?.answers?.barColors ?? assetColors?.answerType?.barColors}
+                    optionColors={assetColors?.answers?.barColors}
                     textColor={assetColors?.answers?.textPrimary ?? PGD.answerTextColor}
                     secondaryTextColor={assetColors?.answers?.textSecondary ?? PGD.answerTextColor}
                   />

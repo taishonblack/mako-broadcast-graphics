@@ -24,21 +24,25 @@ export interface ScenePresetMeta {
 export const SCENE_PRESETS: ScenePresetMeta[] = [
   {
     id: 'fullScreen',
-    label: 'Full Screen',
-    description: 'Text + QR + Answer Type + Background',
-    defaultVisibleAssets: ['question', 'qr', 'answerType', 'background'],
+    label: 'Voting',
+    description: 'Text + QR + Background + Voter Selection',
+    // Scene 1 — voting screen. Program shows QR/text. Mobile/Desktop show
+    // voter choices (Voter Selection). Answer Bars is NOT included.
+    defaultVisibleAssets: ['question', 'qr', 'background', 'answerType'],
   },
   {
     id: 'liveResults',
     label: 'Live Results',
-    description: 'Text + QR + Answer Bars + Tally + Background',
-    defaultVisibleAssets: ['question', 'qr', 'answers', 'voterTally', 'background'],
+    description: 'Text + QR + Background + Answer Bars + Voter Selection',
+    // Scene 2 — live results. Program shows live result bars. Mobile/Desktop
+    // continue to show voter choices while voting remains open.
+    defaultVisibleAssets: ['question', 'qr', 'background', 'answers', 'answerType'],
   },
   {
     id: 'final',
     label: 'Final',
-    description: 'Text + Answer Bars + Tally + Background',
-    defaultVisibleAssets: ['question', 'answers', 'voterTally', 'background'],
+    description: 'Text + Background + Answer Bars + Tally',
+    defaultVisibleAssets: ['question', 'background', 'answers', 'voterTally'],
   },
 ];
 
