@@ -3,6 +3,7 @@ import { AssetColorMap, AssetTransformMap } from '@/components/poll-create/polli
 import type { AnswerType } from '@/components/poll-create/ContentPanel';
 import { POLLING_GRAPHIC_DEFAULTS as PGD } from '@/lib/polling-graphic-defaults';
 import { SceneAssetTransformFrame } from '@/components/broadcast/scenes/SceneAssetTransformFrame';
+import { AnswerChoices } from '@/components/broadcast/AnswerChoices';
 
 /**
  * Operator-controlled typography for the polling slate. Drives the headline
@@ -188,13 +189,9 @@ export function ViewerSlatePreview({
     assetColors?.answerType?.textPrimary ?? assetColors?.answers?.textPrimary ?? '#ffffff';
   const answerBarColors =
     assetColors?.answerType?.barColors ?? assetColors?.answers?.barColors ?? [];
-  // Pill style overrides — read `answers` first so the admin's Answer Bars
-  // style flows into the voter buttons (unified family), then allow
-  // `answerType` to override per-viewport if explicitly tuned.
-  const styleSrc = assetColors?.answerType ?? assetColors?.answers;
-  const stylePadY = styleSrc?.barPaddingY;
-  const stylePadX = styleSrc?.barPaddingX;
-  const styleRadius = styleSrc?.barBorderRadius ?? PGD.answerBorderRadius;
+  // Style: read `answers` first so the admin's Answer Bars style flows into
+  // the voter buttons (unified pill family); `answerType` can override.
+  const pillStyle = assetColors?.answerType ?? assetColors?.answers;
 
   // Per-asset transforms render through SceneAssetTransformFrame so X/Y/Scale
   // mean the same thing on the voter canvas as they do on the program canvas.
@@ -241,10 +238,6 @@ export function ViewerSlatePreview({
                       fontWeight: 700,
                       fontSize: mode === 'mobile' ? 28 : 40,
                       maxWidth: '90%',
-                      // Match Program: question lives in the upper third of
-                      // the canvas. Translate INSIDE the frame so default
-                      // X=0/Y=0 already lands here.
-                      transform: `translateY(-${(50 - PGD.questionTopPercent) * 0.01 * NATIVE_H}px)`,
                     }}
                   >
                     {question}
@@ -259,7 +252,6 @@ export function ViewerSlatePreview({
                       color: subheadlineColor,
                       fontSize: mode === 'mobile' ? 14 : 18,
                       maxWidth: '85%',
-                      transform: `translateY(-${(50 - PGD.questionTopPercent - 8) * 0.01 * NATIVE_H}px)`,
                     }}
                   >
                     {subheadline}
@@ -272,44 +264,17 @@ export function ViewerSlatePreview({
                 //   MC / custom → stacked
                 // Falls back to stacked when `answerType` isn't supplied.
                 const isYesNo = answerType === 'yes-no' && options!.length === 2;
-                const containerClass = isYesNo
-                  ? 'grid grid-cols-2'
-                  : 'flex flex-col';
                 return (
                   <SceneAssetTransformFrame transform={answersTransform}>
-                    <div
-                      className={containerClass}
-                      style={{
-                        // Shared inner layout — width is set to the same
-                        // percentage of the canvas as Answer Bars on Program,
-                        // so X=0/Y=0/scale=1 lands the row block in the same
-                        // visual slot.
-                        gap: `${PGD.answerSpacingVoter}px`,
-                        width: `${(NATIVE_W * PGD.answerGroupWidthPercent) / 100}px`,
-                        textAlign: PGD.answerTextAlign,
-                      }}
-                    >
-                      {options!.map((opt, i) => (
-                        <div
-                          key={opt.id}
-                          className="w-full text-center font-medium border border-white/15"
-                          style={{
-                            background: answerBarColors[i] ?? PGD.answerButtonIdleBg,
-                            backdropFilter: 'blur(8px)',
-                            color: answerColor,
-                            // Unified pill family — admin-tunable padding/radius
-                            // (per active viewport) flows in from assetColors.
-                            padding:
-                              stylePadY != null || stylePadX != null
-                                ? `${stylePadY ?? (mode === 'mobile' ? 18 : 22)}px ${stylePadX ?? (mode === 'mobile' ? 20 : 28)}px`
-                                : mode === 'mobile' ? '18px 20px' : '22px 28px',
-                            borderRadius: `${styleRadius}px`,
-                          }}
-                        >
-                          <span style={{ fontSize: mode === 'mobile' ? 16 : PGD.answerFontSizeVoter, color: answerColor }}>{opt.text || 'Answer'}</span>
-                        </div>
-                      ))}
-                    </div>
+                    <AnswerChoices
+                      surface={mode}
+                      variant="voter"
+                      layout={isYesNo ? 'side-by-side' : 'stacked'}
+                      options={options!.map((o) => ({ id: o.id, text: o.text }))}
+                      style={pillStyle}
+                      optionColors={answerBarColors}
+                      textColor={answerColor}
+                    />
                   </SceneAssetTransformFrame>
                 );
               })()}

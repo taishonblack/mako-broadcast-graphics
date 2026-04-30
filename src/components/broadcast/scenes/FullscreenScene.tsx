@@ -7,6 +7,7 @@ import { getAssetTransformStyle } from '@/lib/asset-transforms';
 import { WordmarkLockup } from '@/components/broadcast/WordmarkLockup';
 import { POLLING_GRAPHIC_DEFAULTS as PGD } from '@/lib/polling-graphic-defaults';
 import { SceneAssetTransformFrame } from './SceneAssetTransformFrame';
+import { AnswerChoices } from '@/components/broadcast/AnswerChoices';
 
 interface FullscreenSceneProps {
   question: string;
@@ -138,11 +139,6 @@ export function FullscreenScene({
                   lineHeight: questionLineHeight,
                   overflowWrap: 'break-word',
                   wordBreak: 'normal',
-                  // Lift the question to the upper third of the canvas so it
-                  // matches the voter preview's question slot. Translate is
-                  // applied INSIDE the frame so it doesn't fight the outer
-                  // X/Y transform (which still means "nudge from default").
-                  transform: `translateY(-${(50 - PGD.questionTopPercent) * 0.01 * 1080}px)`,
                 }}
               >
                 {question}
@@ -173,61 +169,17 @@ export function FullscreenScene({
                   </div>
                 </div>
               ) : (
-                <div
-                  data-layer="answerBars"
-                  className="flex flex-col"
-                  style={{
-                    // Shared inner layout — identical math as Answer Type so
-                    // the answer rows live in the same internal slot at
-                    // identical X=0/Y=0/scale=1.
-                    gap: `${PGD.answerGap}px`,
-                    width: `${(PGD.pollGraphicWidth * PGD.answerGroupWidthPercent) / 100}px`,
-                    textAlign: PGD.answerTextAlign,
-                  }}
-                >
-                  {options.map((option, i) => {
-                    const pct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
-                    const operatorBarColors =
-                      assetColors?.answers?.barColors ?? assetColors?.answerType?.barColors;
-                    const color = operatorBarColors?.[i] ?? PGD.answerTextColor;
-                    const labelColor = assetColors?.answers?.textPrimary ?? PGD.answerTextColor;
-                    const padY = assetColors?.answers?.barPaddingY ?? PGD.answerButtonPaddingY;
-                    const padX = assetColors?.answers?.barPaddingX ?? 32;
-                    const radius = assetColors?.answers?.barBorderRadius ?? PGD.answerBorderRadius;
-                    return (
-                      <div
-                        key={option.id}
-                        className="relative w-full overflow-hidden border"
-                        style={{
-                          background: PGD.answerButtonIdleBg,
-                          borderColor: PGD.answerBorderColor,
-                          borderRadius: `${radius}px`,
-                          padding: `${padY}px ${padX}px`,
-                          backdropFilter: 'blur(8px)',
-                        }}
-                      >
-                        {/* Bar fill rendered INSIDE the pill so the button
-                            shape matches the voter buttons exactly. */}
-                        <div
-                          className="absolute inset-y-0 left-0"
-                          style={{
-                            width: `${pct}%`,
-                            backgroundColor: color,
-                            opacity: 0.35,
-                            transition: 'width 0.5s ease-out',
-                          }}
-                        />
-                        <div className="relative flex items-center justify-between gap-6">
-                          <span className="font-semibold" style={{ color: labelColor, fontSize: `${PGD.answerFontSize}px` }}>
-                            {option.text}
-                          </span>
-                          <span className="font-bold font-mono tabular-nums" style={{ color: labelColor, fontSize: `${PGD.answerFontSize}px` }}>
-                            {Math.round(pct)}%
-                          </span>
-                        </div>
-                      </div>
-                    );
-                  })}
+                <div data-layer="answerBars">
+                  <AnswerChoices
+                    surface="program"
+                    variant="bars"
+                    options={options}
+                    totalVotes={totalVotes}
+                    style={assetColors?.answers}
+                    optionColors={assetColors?.answers?.barColors ?? assetColors?.answerType?.barColors}
+                    textColor={assetColors?.answers?.textPrimary ?? PGD.answerTextColor}
+                    secondaryTextColor={assetColors?.answers?.textSecondary ?? PGD.answerTextColor}
+                  />
                 </div>
               )}
             </SceneAssetTransformFrame>
@@ -235,7 +187,7 @@ export function FullscreenScene({
 
           {visibleAssets.has('voterTally') && (
             <SceneAssetTransformFrame transform={transforms?.voterTally}>
-              <div data-layer="votesText" className="text-center" style={{ transform: `translateY(${(50 - PGD.questionTopPercent) * 0.01 * 1080 * 0.6}px)` }}>
+              <div data-layer="votesText" className="text-center">
                 <span className="font-mono" style={{ color: assetColors?.voterTally?.textSecondary ?? theme.textSecondary, fontSize: '28px' }}>
                   {totalVotes.toLocaleString()} total votes
                 </span>

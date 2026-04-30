@@ -9,7 +9,7 @@ import { PollingAssetsPane, SEEDED_ASSETS } from '@/components/poll-create/polli
 import { AssetInspector } from '@/components/poll-create/polling-assets/AssetInspector';
 import { AssetTransformControls } from '@/components/poll-create/AssetTransformControls';
 import { ASSET_REGISTRY } from '@/components/poll-create/polling-assets/PollingAssetsPane';
-import { AssetColorMap, AssetColorSet, AssetId, AssetState, AssetTransformMap, AssetTransformSet, DEFAULT_ASSET_COLORS, DEFAULT_ASSET_STATE, DEFAULT_ASSET_TRANSFORMS, TransformField, TransformViewport, createDefaultColorSet, createDefaultTransformSet } from '@/components/poll-create/polling-assets/types';
+import { AssetColorMap, AssetColorSet, AssetId, AssetState, AssetTransformMap, AssetTransformSet, DEFAULT_ASSET_COLORS, DEFAULT_ASSET_STATE, DEFAULT_ASSET_TRANSFORMS, TransformField, TransformViewport, createDefaultColorSet, createDefaultTransformSet, getStandardTransform } from '@/components/poll-create/polling-assets/types';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
@@ -3363,11 +3363,35 @@ export default function PollCreate() {
                         setAssetTransforms((current) => {
                           const t = current[assetId];
                           if (!t) return current;
-                          // Reset translate (and any clamped lock) so the new
-                          // anchor corner is honored. Other transforms are kept.
+                          // QR + Logo now render through the centered
+                          // SceneAssetTransformFrame (X=0/Y=0 = canvas
+                          // center). Corner Quick Placement therefore writes
+                          // the offset that lands the asset at that corner
+                          // on the 1920x1080 broadcast stage. All other
+                          // assets just snap back to dead center.
+                          const PADDING = 48;
+                          const CANVAS_W = 1920;
+                          const CANVAS_H = 1080;
+                          let nx = 0;
+                          let ny = 0;
+                          if (assetId === 'qr') {
+                            const size = (assetState.qrSize ?? 120) + 36; // qr + frame padding
+                            const half = size / 2;
+                            const dx = CANVAS_W / 2 - PADDING - half;
+                            const dy = CANVAS_H / 2 - PADDING - half;
+                            const pos = assetState.qrPosition;
+                            nx = pos.endsWith('left') ? -dx : dx;
+                            ny = pos.startsWith('top') ? -dy : dy;
+                          } else if (assetId === 'logo') {
+                            const dx = CANVAS_W / 2 - PADDING - 80; // approx half-width of bug + label
+                            const dy = CANVAS_H / 2 - PADDING - 16;
+                            const pos = assetState.logoPosition;
+                            nx = pos.endsWith('left') ? -dx : dx;
+                            ny = pos.startsWith('top') ? -dy : dy;
+                          }
                           return {
                             ...current,
-                            [assetId]: { ...t, x: 0, y: 0 },
+                            [assetId]: { ...t, x: nx, y: ny },
                           };
                         });
                       }}
@@ -3380,6 +3404,21 @@ export default function PollCreate() {
                       activeViewport={transformViewport}
                       assetColors={assetColors}
                       setAssetColors={setAssetColors}
+                      onCenterActiveAsset={(assetId) => {
+                        pushUndoSnapshot();
+                        setAssetTransforms((current) => {
+                          const t = current[assetId];
+                          if (!t) return current;
+                          return { ...current, [assetId]: { ...t, x: 0, y: 0 } };
+                        });
+                      }}
+                      onApplyStandardDefaults={(assetId) => {
+                        pushUndoSnapshot();
+                        setAssetTransforms((current) => {
+                          const std = getStandardTransform(assetId, transformViewport);
+                          return { ...current, [assetId]: std };
+                        });
+                      }}
                     />
                   </Pane>
                 </ResizablePanel>

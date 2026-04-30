@@ -6,6 +6,7 @@ import { AssetColorMap, AssetTransformMap, AssetId } from '@/components/poll-cre
 import { getAssetTransformStyle } from '@/lib/asset-transforms';
 import { POLLING_GRAPHIC_DEFAULTS as PGD } from '@/lib/polling-graphic-defaults';
 import { SceneAssetTransformFrame } from './SceneAssetTransformFrame';
+import { AnswerChoices } from '@/components/broadcast/AnswerChoices';
 
 interface ResultsSceneProps {
   question: string;
@@ -139,7 +140,6 @@ export function ResultsScene({
                 lineHeight: questionLineHeight,
                 overflowWrap: 'break-word',
                 wordBreak: 'normal',
-                transform: `translateY(-${(50 - PGD.questionTopPercent) * 0.01 * 1080}px)`,
               }}
             >
               {question}
@@ -151,81 +151,23 @@ export function ResultsScene({
 
         {visibleAssets.has('answers') && (
           <SceneAssetTransformFrame transform={transforms?.answers}>
-            <div
-              className="flex flex-col"
-              style={{
-                gap: `${PGD.answerGap}px`,
-                width: `${(PGD.pollGraphicWidth * PGD.answerGroupWidthPercent) / 100}px`,
-                textAlign: PGD.answerTextAlign,
-              }}
-            >
-          {options.map((option, i) => {
-            const finalPct = totalVotes > 0 ? (option.votes / totalVotes) * 100 : 0;
-            const pct = finalPct * progress;
-            const displayVotes = Math.round(option.votes * progress);
-            // Mirror Answer Type colors so Answer Bars Answer 1/2 share
-            // the same palette as the voter buttons unless the operator
-            // explicitly overrides per-bar.
-            const operatorBarColors =
-              assetColors?.answers?.barColors ?? assetColors?.answerType?.barColors;
-            const color = operatorBarColors?.[i] ?? PGD.answerTextColor;
-            const labelColor = assetColors?.answers?.textPrimary ?? PGD.answerTextColor;
-            const padY = assetColors?.answers?.barPaddingY ?? PGD.answerButtonPaddingY;
-            const padX = assetColors?.answers?.barPaddingX ?? 32;
-            const radius = assetColors?.answers?.barBorderRadius ?? PGD.answerBorderRadius;
-
-            return (
-              <div key={option.id} className="flex flex-col gap-2">
-                <div
-                  className="relative w-full overflow-hidden border"
-                  style={{
-                    background: PGD.answerButtonIdleBg,
-                    borderColor: PGD.answerBorderColor,
-                    borderRadius: `${radius}px`,
-                    padding: `${padY}px ${padX}px`,
-                    backdropFilter: 'blur(8px)',
-                  }}
-                >
-                  {/* Bar fill rendered INSIDE the pill — same shape as voter buttons. */}
-                  <div
-                    className="absolute inset-y-0 left-0"
-                    style={{
-                      width: `${pct}%`,
-                      backgroundColor: color,
-                      opacity: 0.35,
-                    }}
-                  />
-                  <div className="relative flex items-center justify-between gap-6">
-                    <span
-                      className="font-semibold"
-                      style={{ color: labelColor, fontSize: `${PGD.answerFontSize}px` }}
-                    >
-                      {option.text}
-                    </span>
-                    <span
-                      className="font-bold font-mono tabular-nums"
-                      style={{ color: labelColor, fontSize: `${PGD.answerFontSize}px` }}
-                    >
-                      {Math.round(pct)}%
-                    </span>
-                  </div>
-                </div>
-                <span
-                  className="font-mono"
-                  style={{ color: assetColors?.answers?.textSecondary ?? PGD.answerTextColor, fontSize: '22px', opacity: 0.75, paddingLeft: '12px' }}
-                >
-                  {displayVotes.toLocaleString()} votes
-                </span>
-              </div>
-            );
-          })}
-            </div>
+            <AnswerChoices
+              surface="program"
+              variant="bars"
+              options={options}
+              totalVotes={totalVotes}
+              progress={progress}
+              style={assetColors?.answers}
+              optionColors={assetColors?.answers?.barColors ?? assetColors?.answerType?.barColors}
+              textColor={assetColors?.answers?.textPrimary ?? PGD.answerTextColor}
+              secondaryTextColor={assetColors?.answers?.textSecondary ?? PGD.answerTextColor}
+            />
           </SceneAssetTransformFrame>
         )}
 
         {visibleAssets.has('voterTally') && (
           <SceneAssetTransformFrame transform={transforms?.voterTally}>
-            <div data-layer="votesText" className="text-center" style={{ transform: `translateY(${(50 - PGD.questionTopPercent) * 0.01 * 1080 * 0.6}px)` }}>
+            <div data-layer="votesText" className="text-center">
               <span className="font-mono" style={{ color: assetColors?.voterTally?.textSecondary ?? theme.textSecondary, fontSize: '28px' }}>
                 {Math.round(totalVotes * progress).toLocaleString()} total votes
               </span>
