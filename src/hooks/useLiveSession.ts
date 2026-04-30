@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/integrations/supabase/client';
 import { writePublicViewerState } from '@/lib/public-viewer-state';
+import { broadcastOutputLock } from '@/lib/output-state';
 
 export type LiveVotingState = 'not_open' | 'open' | 'closed';
 
@@ -126,6 +127,9 @@ export function useLiveSession(): LiveSession {
           pollSnapshot: null,
         });
       }
+      // Release the Program lock so any open Output window resumes
+      // mirroring the workspace (matches PollCreate.handleEndPoll).
+      broadcastOutputLock({ locked: false });
       // Drop the persisted live-session crumbs PollCreate uses for instant
       // rehydration so the workspace doesn't bounce back to "live" on remount.
       try { sessionStorage.removeItem('mako-live-session'); } catch { /* ignore */ }
