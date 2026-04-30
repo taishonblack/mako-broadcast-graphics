@@ -406,8 +406,9 @@ export function DraftPreviewMonitor({
           // instead of the voter buttons, so Mobile/Desktop look identical
           // to the on-air composition.
           (() => {
-            const isMirrorMode = !enabledAssetIds.includes('answers') && hasContent;
-            return slateActive || !hasContent || isMirrorMode;
+            // Voter views show MakoVote slate when Voter Selection is absent.
+            const noVoterSelection = !enabledAssetIds.includes('answerType') && hasContent;
+            return slateActive || !hasContent || noVoterSelection;
           })() ? (
             <ViewerSlatePreview
               mode={previewMode}
