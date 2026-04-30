@@ -84,6 +84,7 @@ export function AssetInspector(p: AssetInspectorProps) {
     barPaddingY?: number;
     barPaddingX?: number;
     barBorderRadius?: number;
+    barHeight?: number;
     textAlign?: 'left' | 'center' | 'right';
   } | null>(null);
   // Live validation for AnswerType choices: flag empty and duplicate (case-
@@ -435,6 +436,7 @@ export function AssetInspector(p: AssetInspectorProps) {
                         barPaddingY: cfg.barPaddingY,
                         barPaddingX: cfg.barPaddingX,
                         barBorderRadius: cfg.barBorderRadius,
+                        barHeight: cfg.barHeight,
                         textAlign: cfg.textAlign,
                       });
                     }}
