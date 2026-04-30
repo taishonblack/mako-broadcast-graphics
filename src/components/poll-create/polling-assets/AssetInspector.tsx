@@ -438,6 +438,7 @@ export function AssetInspector(p: AssetInspectorProps) {
                         barBorderRadius: cfg.barBorderRadius,
                         barHeight: cfg.barHeight,
                         textAlign: cfg.textAlign,
+                        barAutoScaleText: cfg.barAutoScaleText,
                       });
                     }}
                     title="Copy this asset's pill padding + border radius">
@@ -465,6 +466,7 @@ export function AssetInspector(p: AssetInspectorProps) {
                   const padX = cfg.barPaddingX ?? 32;
                   const radius = cfg.barBorderRadius ?? PGD.answerBorderRadius;
                   const barHeight = cfg.barHeight ?? 0; // 0 = auto / natural
+                  const autoScale = cfg.barAutoScaleText ?? true;
                   const align: 'left' | 'center' | 'right' =
                     cfg.textAlign ?? (PGD.answerTextAlign as 'left' | 'center' | 'right');
                   const setStyle = (patch: Partial<typeof cfg>) =>
@@ -550,6 +552,88 @@ export function AssetInspector(p: AssetInspectorProps) {
                           <p className="text-[9px] text-muted-foreground/70 leading-tight">
                             0 = auto (sized by padding + text). Shrink when adding more bars to keep them on-screen.
                           </p>
+                          {(() => {
+                            // Live mini preview: shows the current pill at
+                            // 1:1 height so the operator can see exactly how
+                            // the bar + text scale as they drag the slider.
+                            // Naturals match AnswerChoices' program tokens
+                            // (PGD.answerFontSize / answerButtonPaddingY) so
+                            // the math stays in sync.
+                            const naturalFont = PGD.answerFontSize;
+                            const naturalPadY = PGD.answerButtonPaddingY;
+                            const naturalHeight = naturalFont + naturalPadY * 2;
+                            const effHeight = barHeight > 0 ? barHeight : naturalHeight;
+                            const effFont =
+                              barHeight > 0 && barHeight < naturalHeight && autoScale
+                                ? Math.max(10, Math.round(barHeight * 0.55))
+                                : naturalFont;
+                            // Scale the whole preview down so a 160px bar
+                            // still fits comfortably inside the inspector.
+                            const scale = 0.45;
+                            return (
+                              <div className="mt-2 rounded-md border border-border/50 bg-accent/20 p-2">
+                                <div className="flex items-center justify-between mb-1.5">
+                                  <span className="text-[9px] uppercase tracking-wider text-muted-foreground/70">
+                                    Live preview
+                                  </span>
+                                  <span className="text-[9px] font-mono text-muted-foreground">
+                                    {Math.round(effHeight)}px · {effFont}px text
+                                  </span>
+                                </div>
+                                <div
+                                  className="relative w-full overflow-hidden border flex items-center"
+                                  style={{
+                                    height: `${effHeight * scale}px`,
+                                    background: PGD.answerButtonIdleBg,
+                                    borderColor: PGD.answerBorderColor,
+                                    borderRadius: `${radius * scale}px`,
+                                    padding: `0 ${padX * scale}px`,
+                                  }}
+                                >
+                                  <div
+                                    className="absolute inset-y-0 left-0"
+                                    style={{
+                                      width: '60%',
+                                      backgroundColor: 'hsl(var(--primary))',
+                                      opacity: 0.35,
+                                    }}
+                                  />
+                                  <span
+                                    className="relative font-semibold"
+                                    style={{
+                                      color: PGD.answerTextColor,
+                                      fontSize: `${effFont * scale}px`,
+                                      flex: 1,
+                                      textAlign: align,
+                                    }}
+                                  >
+                                    Sample answer
+                                  </span>
+                                  <span
+                                    className="relative font-bold font-mono tabular-nums"
+                                    style={{
+                                      color: PGD.answerTextColor,
+                                      fontSize: `${effFont * scale}px`,
+                                    }}
+                                  >
+                                    60%
+                                  </span>
+                                </div>
+                              </div>
+                            );
+                          })()}
+                          <div className="mt-2 flex items-center justify-between rounded-md border border-border/50 bg-accent/20 px-2 py-1.5">
+                            <div className="flex flex-col">
+                              <Label className="text-[10px] text-muted-foreground">Auto-scale text</Label>
+                              <span className="text-[9px] text-muted-foreground/60 leading-tight">
+                                Shrinks font when bar height is below natural size.
+                              </span>
+                            </div>
+                            <Switch
+                              checked={autoScale}
+                              onCheckedChange={(v) => setStyle({ barAutoScaleText: v })}
+                            />
+                          </div>
                         </div>
                       )}
                       <Button
@@ -564,6 +648,7 @@ export function AssetInspector(p: AssetInspectorProps) {
                             barBorderRadius: undefined,
                             barHeight: undefined,
                             textAlign: undefined,
+                            barAutoScaleText: undefined,
                           })
                         }
                       >
