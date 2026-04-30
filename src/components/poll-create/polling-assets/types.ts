@@ -122,18 +122,27 @@ const createDefaultTransform = (): AssetTransformConfig => ({
 /**
  * Polling-graphic-family seeded defaults.
  *
- * Operator-validated baseline transforms so that — without touching any
- * sliders — the question, answer type buttons, answer bars, and QR all land
- * in the visually agreed-upon position for each surface (Program / Mobile /
- * Desktop). Operators can still customize each scene afterward.
+ * CENTER-BASED COORDINATE SYSTEM.
  *
- * Rules captured here:
- *   • Question text:  program y=182, mobile y=40, desktop y=117
- *   • Answer Type:    program y=113 (matches scene 1), mobile y=-47, desktop y=113
- *   • Answer Bars:    Mobile/Desktop mirror Answer Type so switching scenes
- *                     between AnswerType ↔ AnswerBars feels like the same
- *                     graphic family.
- *   • QR code:        program x=-796, y=-314, scale=1.63
+ * X = 0, Y = 0 means dead center of the active viewport for EVERY asset.
+ * Positive Y = down, positive X = right. Defaults below are pure offsets
+ * from center and are applied identically by every renderer (Program,
+ * Mobile, Desktop) — no asset is allowed to use a different origin.
+ *
+ * The previous defaults baked an internal `translateY(...)` lift on top of
+ * the transform, so X=0/Y=0 meant "asset's hard-coded slot" instead of
+ * "canvas center". That made values non-portable between assets. Those
+ * internal lifts have been removed; the same visual placement is now
+ * encoded directly in the offsets below.
+ *
+ * Rules captured here (all values are offsets from CANVAS CENTER):
+ *   • Question text:    program y=-164,  mobile y=-173,  desktop y=-139
+ *   • Subheadline:      program y=-78,   mobile y=-83,   desktop y=-67
+ *   • Answer Type:      program y=113,   mobile y=-47,   desktop y=113
+ *   • Answer Bars:      mirror Answer Type on every viewport
+ *   • QR / Logo:        x=0, y=0, scale=1 (dead center) — operators move
+ *                       these explicitly per scene
+ *   • Voter Tally:      program y=207   (lower third under the Q)
  */
 const withTransform = (overrides: Partial<AssetTransformConfig>): AssetTransformConfig => ({
   ...createDefaultTransform(),
@@ -144,9 +153,15 @@ const withTransform = (overrides: Partial<AssetTransformConfig>): AssetTransform
 // independent transform instance. Shared object refs would let one scene's
 // edit leak into other scenes.
 const QUESTION_DEFAULTS = {
-  program: () => withTransform({ y: 182 }),
-  mobile: () => withTransform({ y: 40 }),
-  desktop: () => withTransform({ y: 117 }),
+  program: () => withTransform({ y: -164 }),
+  mobile:  () => withTransform({ y: -173 }),
+  desktop: () => withTransform({ y: -139 }),
+};
+
+const SUBHEADLINE_DEFAULTS = {
+  program: () => withTransform({ y: -78 }),
+  mobile:  () => withTransform({ y: -83 }),
+  desktop: () => withTransform({ y: -67 }),
 };
 
 const ANSWER_TYPE_DEFAULTS = {
@@ -155,17 +170,28 @@ const ANSWER_TYPE_DEFAULTS = {
   desktop: () => withTransform({ y: 113 }),
 };
 
-// Answer Bars: Mobile + Desktop mirror Answer Type so X/Y/Scale match.
-// Program keeps the neutral default (operators position bars per show).
+// Answer Bars MIRROR Answer Type on every viewport — switching a scene from
+// AnswerType to AnswerBars must feel like a clean reveal, not a reposition.
 const ANSWER_BARS_DEFAULTS = {
-  program: () => createDefaultTransform(),
-  mobile: () => withTransform({ y: -47 }),
+  program: () => withTransform({ y: 113 }),
+  mobile:  () => withTransform({ y: -47 }),
   desktop: () => withTransform({ y: 113 }),
 };
 
+// QR + Logo defaults: dead center on every viewport. Operators move them
+// to a corner / slot intentionally per scene.
 const QR_DEFAULTS = {
-  program: () => withTransform({ x: -796, y: -314, scale: 1.63 }),
-  mobile: () => createDefaultTransform(),
+  program: () => createDefaultTransform(),
+  mobile:  () => createDefaultTransform(),
+  desktop: () => createDefaultTransform(),
+};
+
+// Voter tally sits under the question on Program (y=207 keeps the visual
+// position from the prior internal translate). Mobile / Desktop default
+// to center; the tally is rarely shown on voter views.
+const VOTER_TALLY_DEFAULTS = {
+  program: () => withTransform({ y: 207 }),
+  mobile:  () => createDefaultTransform(),
   desktop: () => createDefaultTransform(),
 };
 
@@ -183,19 +209,19 @@ export const DEFAULT_ASSET_TRANSFORMS: AssetTransformMap = {
   question: QUESTION_DEFAULTS.program(),
   answers: ANSWER_BARS_DEFAULTS.program(),
   answerType: ANSWER_TYPE_DEFAULTS.program(),
-  subheadline: createDefaultTransform(),
+  subheadline: SUBHEADLINE_DEFAULTS.program(),
   background: createDefaultBackgroundTransform(),
   qr: QR_DEFAULTS.program(),
   logo: createDefaultTransform(),
-  voterTally: createDefaultTransform(),
+  voterTally: VOTER_TALLY_DEFAULTS.program(),
   image: createDefaultTransform(),
 };
 
 /** Build a fresh per-viewport transform set seeded with the same defaults. */
 export const createDefaultTransformSet = (): AssetTransformSet => ({
-  program: { question: QUESTION_DEFAULTS.program(), answers: ANSWER_BARS_DEFAULTS.program(), answerType: ANSWER_TYPE_DEFAULTS.program(), subheadline: createDefaultTransform(), background: createDefaultBackgroundTransform(), qr: QR_DEFAULTS.program(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
-  mobile:  { question: QUESTION_DEFAULTS.mobile(),  answers: ANSWER_BARS_DEFAULTS.mobile(),  answerType: ANSWER_TYPE_DEFAULTS.mobile(),  subheadline: createDefaultTransform(), background: createDefaultBackgroundTransform(), qr: QR_DEFAULTS.mobile(),  logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
-  desktop: { question: QUESTION_DEFAULTS.desktop(), answers: ANSWER_BARS_DEFAULTS.desktop(), answerType: ANSWER_TYPE_DEFAULTS.desktop(), subheadline: createDefaultTransform(), background: createDefaultBackgroundTransform(), qr: QR_DEFAULTS.desktop(), logo: createDefaultTransform(), voterTally: createDefaultTransform(), image: createDefaultTransform() },
+  program: { question: QUESTION_DEFAULTS.program(), answers: ANSWER_BARS_DEFAULTS.program(), answerType: ANSWER_TYPE_DEFAULTS.program(), subheadline: SUBHEADLINE_DEFAULTS.program(), background: createDefaultBackgroundTransform(), qr: QR_DEFAULTS.program(), logo: createDefaultTransform(), voterTally: VOTER_TALLY_DEFAULTS.program(), image: createDefaultTransform() },
+  mobile:  { question: QUESTION_DEFAULTS.mobile(),  answers: ANSWER_BARS_DEFAULTS.mobile(),  answerType: ANSWER_TYPE_DEFAULTS.mobile(),  subheadline: SUBHEADLINE_DEFAULTS.mobile(),  background: createDefaultBackgroundTransform(), qr: QR_DEFAULTS.mobile(),  logo: createDefaultTransform(), voterTally: VOTER_TALLY_DEFAULTS.mobile(),  image: createDefaultTransform() },
+  desktop: { question: QUESTION_DEFAULTS.desktop(), answers: ANSWER_BARS_DEFAULTS.desktop(), answerType: ANSWER_TYPE_DEFAULTS.desktop(), subheadline: SUBHEADLINE_DEFAULTS.desktop(), background: createDefaultBackgroundTransform(), qr: QR_DEFAULTS.desktop(), logo: createDefaultTransform(), voterTally: VOTER_TALLY_DEFAULTS.desktop(), image: createDefaultTransform() },
 });
 
 export const DEFAULT_ASSET_TRANSFORM_SET: AssetTransformSet = createDefaultTransformSet();
