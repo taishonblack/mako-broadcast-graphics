@@ -16,7 +16,6 @@ import { AssetColorMap, AssetId, AssetState, AssetTransformMap } from './polling
 import { QRPosition } from '@/lib/types';
 import { WordmarkLockup } from '@/components/broadcast/WordmarkLockup';
 import { usePreviewOverlays } from '@/lib/preview-overlays';
-import { getAssetTransformStyle } from '@/lib/asset-transforms';
 
 export type PreviewMode = 'program' | 'mobile' | 'desktop';
 
