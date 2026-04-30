@@ -263,6 +263,10 @@ export function OperatorOutputMode({
   // intentionally not rendered. Build Mode still uses them.
   void hasAnswerBars; void answers; void onSetAnswers;
   void testVoteRunning; void onStartTestVotes; void onStopTestVotes; void onResetTestVotes;
+  // Results Playback panel was removed — keep these props in the signature
+  // for parent compatibility but mark them unused.
+  void resultsMode; void resultsAnimationMs;
+  void onResultsModeChange; void onResultsAnimationMsChange; void onReplayResults;
 
   // (pollsByBlock removed — Scenes panel replaces the per-block polls list.)
 
