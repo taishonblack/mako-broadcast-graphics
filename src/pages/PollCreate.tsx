@@ -3053,7 +3053,7 @@ export default function PollCreate() {
             }}
             onRescanPolls={async () => {
               await rescanProjectPolls();
-              toast.success('Polls re-scanned');
+              toast.success('Votes re-scanned.');
             }}
             liveState={liveState}
             votingState={votingState}

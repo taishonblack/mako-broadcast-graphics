@@ -93,7 +93,7 @@ export function SceneSelector({ previewScene, programScene, onSceneChange, onTak
                 key={scene.id}
                 onClick={() => !isDisabled && onSceneChange(scene.sceneType)}
                 disabled={isDisabled}
-                title={isDisabled ? 'Not available yet' : undefined}
+                title={isDisabled ? 'Coming soon' : undefined}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 border relative ${
                   isDisabled
                     ? 'bg-accent/10 border-border/30 text-muted-foreground/40 cursor-not-allowed opacity-50'
@@ -111,6 +111,9 @@ export function SceneSelector({ previewScene, programScene, onSceneChange, onTak
                 )}
                 <Icon className="w-3.5 h-3.5" />
                 {scene.shortLabel}
+                {isDisabled && (
+                  <span className="ml-1 text-[8px] font-mono uppercase tracking-wider opacity-70">Soon</span>
+                )}
               </button>
             );
           })}
