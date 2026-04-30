@@ -51,6 +51,13 @@ export interface AssetColorConfig {
   barPaddingX?: number;
   barBorderRadius?: number;
   /**
+   * Explicit pill / bar height (px). When set, the renderer applies it as
+   * a fixed height on each Answer Bar so the operator can shrink thick
+   * defaults (useful when many bars need to fit in the same slot). Leave
+   * unset to size naturally from font + padding.
+   */
+  barHeight?: number;
+  /**
    * Horizontal text alignment inside each pill. Used by the Voter
    * Selection / Answer Bars renderer (AnswerChoices). Defaults to
    * the global PGD answer alignment when unset.
