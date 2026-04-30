@@ -226,6 +226,19 @@ export const createDefaultTransformSet = (): AssetTransformSet => ({
 
 export const DEFAULT_ASSET_TRANSFORM_SET: AssetTransformSet = createDefaultTransformSet();
 
+/**
+ * Standard (Scene-1-equivalent) transform for the given asset on the given
+ * viewport. The "Apply Standard Defaults" inspector button writes this back
+ * into the active slice so operators can recover the canonical pose without
+ * resetting the whole scene.
+ */
+export function getStandardTransform(
+  assetId: AssetId,
+  viewport: TransformViewport,
+): AssetTransformConfig {
+  return createDefaultTransformSet()[viewport][assetId];
+}
+
 export const DEFAULT_ASSET_COLORS: AssetColorMap = {
   question: { textPrimary: 'hsl(0 0% 100%)' },
   answers: {
