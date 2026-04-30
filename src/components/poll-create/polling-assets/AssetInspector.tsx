@@ -380,6 +380,11 @@ export function AssetInspector(p: AssetInspectorProps) {
                   These are the choices voters tap on mobile/desktop. Add as many as you need.
                 </p>
               )}
+              {id === 'answers' && (
+                <p className="text-[9px] text-muted-foreground/70 leading-tight">
+                  These rows feed the Program-only result graphic. Voters never see them.
+                </p>
+              )}
             </div>
 
             {/* ----------------------------------------------------------
