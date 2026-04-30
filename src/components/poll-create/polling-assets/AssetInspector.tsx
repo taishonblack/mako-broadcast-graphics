@@ -84,6 +84,7 @@ export function AssetInspector(p: AssetInspectorProps) {
     barPaddingY?: number;
     barPaddingX?: number;
     barBorderRadius?: number;
+    textAlign?: 'left' | 'center' | 'right';
   } | null>(null);
   // Live validation for AnswerType choices: flag empty and duplicate (case-
   // insensitive, trimmed) entries so the operator can't ship a poll with
@@ -434,6 +435,7 @@ export function AssetInspector(p: AssetInspectorProps) {
                         barPaddingY: cfg.barPaddingY,
                         barPaddingX: cfg.barPaddingX,
                         barBorderRadius: cfg.barBorderRadius,
+                        textAlign: cfg.textAlign,
                       });
                     }}
                     title="Copy this asset's pill padding + border radius">
