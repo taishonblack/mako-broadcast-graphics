@@ -118,6 +118,7 @@ export default function ViewerVote() {
           _session_id: sessionId,
         })
         .then(async ({ data, error }) => {
+          console.log('[vote submitted]', { poll_id: pollId, answer_id: answerId });
           // Diagnostics: surface exactly what was sent and what landed in
           // poll_answers.live_votes so Program Preview / Statistics drift
           // is easy to debug from the browser console on the viewer page.
