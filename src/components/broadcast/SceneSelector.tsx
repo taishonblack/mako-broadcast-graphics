@@ -6,7 +6,7 @@ import {
   broadcastSceneFromSceneType,
 } from '@/lib/scene-presets';
 import { QrCode, BarChart3, Columns2 } from 'lucide-react';
-import { useState } from 'react';
+import { useState, useRef } from 'react';
 import { loadHotkeys, formatHotkey, OperatorHotkeys } from '@/lib/operator-settings';
 
 const sceneIcons: Record<BroadcastSceneId, React.ElementType> = {
@@ -78,6 +78,26 @@ export function SceneSelector({ previewScene, programScene, onSceneChange, onTak
   const takeLabel = formatHotkey(hotkeys.takeKey);
   const cutLabel = formatHotkey(hotkeys.cutKey);
 
+  // Brief click-flash so operators get a visual confirmation that
+  // TAKE / CUT actually fired. TAKE flashes green (success), CUT
+  // flashes red (program-hot) — both default colors per spec are
+  // red (TAKE) and yellow (CUT).
+  const [takeFlash, setTakeFlash] = useState(false);
+  const [cutFlash, setCutFlash] = useState(false);
+  const flashTimer = useRef<{ take: number | null; cut: number | null }>({ take: null, cut: null });
+  const fireTake = () => {
+    onTake();
+    setTakeFlash(true);
+    if (flashTimer.current.take) window.clearTimeout(flashTimer.current.take);
+    flashTimer.current.take = window.setTimeout(() => setTakeFlash(false), 260);
+  };
+  const fireCut = () => {
+    onCut();
+    setCutFlash(true);
+    if (flashTimer.current.cut) window.clearTimeout(flashTimer.current.cut);
+    flashTimer.current.cut = window.setTimeout(() => setCutFlash(false), 260);
+  };
+
   return (
     <div className="flex flex-col gap-2 w-full">
       <div className="flex items-center gap-3 w-full">
@@ -93,7 +113,7 @@ export function SceneSelector({ previewScene, programScene, onSceneChange, onTak
                 key={scene.id}
                 onClick={() => !isDisabled && onSceneChange(scene.sceneType)}
                 disabled={isDisabled}
-                title={isDisabled ? 'Not available yet' : undefined}
+                title={isDisabled ? 'Coming soon' : undefined}
                 className={`flex items-center gap-1.5 px-3 py-2 rounded-lg text-xs font-medium transition-all duration-200 border relative ${
                   isDisabled
                     ? 'bg-accent/10 border-border/30 text-muted-foreground/40 cursor-not-allowed opacity-50'
@@ -111,6 +131,9 @@ export function SceneSelector({ previewScene, programScene, onSceneChange, onTak
                 )}
                 <Icon className="w-3.5 h-3.5" />
                 {scene.shortLabel}
+                {isDisabled && (
+                  <span className="ml-1 text-[8px] font-mono uppercase tracking-wider opacity-70">Soon</span>
+                )}
               </button>
             );
           })}
@@ -122,22 +145,28 @@ export function SceneSelector({ previewScene, programScene, onSceneChange, onTak
         {/* Transition controls */}
         <div className="flex items-center gap-1.5">
           <button
-            onClick={onTake}
+            onClick={fireTake}
             title={`TAKE — animated cut to program (Hotkey: ${takeLabel})`}
             aria-label={`TAKE (hotkey ${takeLabel})`}
             className={`px-4 py-2 rounded-lg text-xs font-bold font-mono uppercase border transition-all duration-200 ${
-              dirty
-                ? 'bg-mako-live/25 border-mako-live/70 text-[hsl(var(--mako-live))] shadow-[0_0_16px_-2px_hsl(var(--mako-live)/0.5)] hover:bg-mako-live/35'
-                : 'bg-mako-live/15 border-mako-live/40 text-[hsl(var(--mako-live))] hover:bg-mako-live/25'
+              takeFlash
+                ? 'bg-mako-success/30 border-mako-success/80 text-mako-success shadow-[0_0_18px_-2px_hsl(var(--mako-success)/0.6)]'
+                : dirty
+                  ? 'bg-destructive/25 border-destructive/70 text-destructive shadow-[0_0_16px_-2px_hsl(var(--destructive)/0.5)] hover:bg-destructive/35'
+                  : 'bg-destructive/15 border-destructive/40 text-destructive hover:bg-destructive/25'
             }`}
           >
             TAKE
           </button>
           <button
-            onClick={onCut}
+            onClick={fireCut}
             title={`CUT — instant cut to program (Hotkey: ${cutLabel})`}
             aria-label={`CUT (hotkey ${cutLabel})`}
-            className="px-3 py-2 rounded-lg text-xs font-bold font-mono uppercase bg-accent/30 border border-border/50 text-muted-foreground hover:bg-accent/60 hover:text-foreground transition-all duration-200"
+            className={`px-3 py-2 rounded-lg text-xs font-bold font-mono uppercase border transition-all duration-200 ${
+              cutFlash
+                ? 'bg-destructive/30 border-destructive/80 text-destructive shadow-[0_0_18px_-2px_hsl(var(--destructive)/0.6)]'
+                : 'bg-amber-500/20 border-amber-500/60 text-amber-400 hover:bg-amber-500/30'
+            }`}
           >
             CUT
           </button>
