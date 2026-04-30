@@ -980,23 +980,19 @@ export default function PollCreate() {
     const programColors = programAssetColors.answers.barColors?.length
       ? programAssetColors.answers.barColors
       : ['#ffffff', '#ffffff', '#ffffff', '#ffffff'];
-    // Scene-driven visibility: the operator picks a broadcast scene
-    // (Full Frame / Results / Lower Third) at the top of Output. That
-    // selection — NOT the active poll-scene's saved visibility — is the
-    // source of truth for what the program preview should show. We
-    // intersect with the folder's enabled assets so an asset that was
-    // never added to the poll never appears, but the broadcast scene
-    // gets to OPT IN to assets like `answers` even when the active poll
-    // scene (e.g. "Voting") didn't pre-include them. Without this, the
-    // Results scene would render with no Answer Bars whenever the
-    // operator was viewing a Voting-style poll scene.
+    // Scene-driven visibility: Output's program preview must MIRROR
+    // Build's program preview exactly. The admin's per-scene visibility
+    // (`sceneFilteredEnabled`) is the source of truth — what the admin
+    // built into Scene 1 / Scene 2 in Build is what Output airs. We then
+    // intersect with the broadcast preset as a safety net so an asset
+    // that doesn't belong on a given broadcast scene can never leak in.
     const broadcastSceneId = broadcastSceneFromSceneType(previewScene);
     const broadcastSceneAssets = new Set<AssetId>(
       getBroadcastScene(broadcastSceneId).visibleAssets,
     );
-    const folderEnabledSet = new Set<AssetId>(enabledAssets as AssetId[]);
-    const sceneEnabled = (Array.from(broadcastSceneAssets) as AssetId[])
-      .filter((id) => folderEnabledSet.has(id));
+    const adminSceneSet = new Set<AssetId>(sceneFilteredEnabled as AssetId[]);
+    const sceneEnabled = (Array.from(adminSceneSet) as AssetId[])
+      .filter((id) => broadcastSceneAssets.has(id));
     const activeFolderForResults = getFolderById(folderState, folderState.activeFolderId);
     const sharedAssets = {
       slug: slugForUrl,
