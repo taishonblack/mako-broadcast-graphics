@@ -8,8 +8,9 @@ import {
 } from '@/components/poll-create/ContentPanel';
 import { ASSET_REGISTRY } from './PollingAssetsPane';
 import { AssetColorMap, AssetId, AssetState, TransformViewport } from './types';
+import { getStandardTransform } from './types';
 import { POLLING_GRAPHIC_DEFAULTS as PGD } from '@/lib/polling-graphic-defaults';
-import { Trash2, PlusCircle, GripVertical } from 'lucide-react';
+import { Trash2, PlusCircle, GripVertical, Crosshair, RotateCcw, Copy, ClipboardPaste } from 'lucide-react';
 import { BackgroundPicker } from '@/components/poll-create/BackgroundPicker';
 import { MediaPicker } from '@/components/poll-create/MediaPicker';
 import { Dispatch, SetStateAction, useState } from 'react';
@@ -64,11 +65,24 @@ interface AssetInspectorProps {
   assetColors?: AssetColorMap;
   /** Writer for the active-viewport color slice. */
   setAssetColors?: (updater: (current: AssetColorMap) => AssetColorMap) => void;
+  /** Snap the active asset's X/Y back to canvas center (0,0). */
+  onCenterActiveAsset?: (assetId: AssetId) => void;
+  /** Apply the seeded "Scene 1 standard" transform for this asset. */
+  onApplyStandardDefaults?: (assetId: AssetId) => void;
 }
 
 export function AssetInspector(p: AssetInspectorProps) {
   const id = p.selectedAssetId;
   const [draggedAnswerId, setDraggedAnswerId] = useState<string | null>(null);
+  // In-memory clipboard for copy/paste of pill style (padding + radius)
+  // between Answer Type and Answer Bars. Lives on the inspector instance so
+  // the operator can copy from one asset and paste into another without
+  // changing answer text or colors.
+  const [styleClipboard, setStyleClipboard] = useState<{
+    barPaddingY?: number;
+    barPaddingX?: number;
+    barBorderRadius?: number;
+  } | null>(null);
   // Live validation for AnswerType choices: flag empty and duplicate (case-
   // insensitive, trimmed) entries so the operator can't ship a poll with
   // ambiguous voter buttons.
@@ -401,6 +415,47 @@ export function AssetInspector(p: AssetInspectorProps) {
                   <span className="text-[9px] font-mono uppercase text-primary/80">
                     {p.activeViewport ?? 'program'}
                   </span>
+                </div>
+                {/* Quick actions: center the active asset, restore the
+                    Scene-1 baseline transform, and copy/paste pill style
+                    between Answer Type and Answer Bars. */}
+                <div className="grid grid-cols-2 gap-1">
+                  {p.onCenterActiveAsset && (
+                    <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-[10px]"
+                      onClick={() => p.onCenterActiveAsset!(id)}>
+                      <Crosshair className="h-3 w-3" /> Center asset
+                    </Button>
+                  )}
+                  {p.onApplyStandardDefaults && (
+                    <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-[10px]"
+                      onClick={() => p.onApplyStandardDefaults!(id)}>
+                      <RotateCcw className="h-3 w-3" /> Apply standard
+                    </Button>
+                  )}
+                  <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-[10px]"
+                    onClick={() => {
+                      const cfg = p.assetColors?.answers ?? {};
+                      setStyleClipboard({
+                        barPaddingY: cfg.barPaddingY,
+                        barPaddingX: cfg.barPaddingX,
+                        barBorderRadius: cfg.barBorderRadius,
+                      });
+                    }}
+                    title="Copy this asset's pill padding + border radius">
+                    <Copy className="h-3 w-3" /> Copy style
+                  </Button>
+                  <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-[10px]"
+                    disabled={!styleClipboard}
+                    onClick={() => {
+                      if (!styleClipboard || !p.setAssetColors) return;
+                      p.setAssetColors!((current) => ({
+                        ...current,
+                        answers: { ...(current.answers ?? {}), ...styleClipboard },
+                      }));
+                    }}
+                    title={styleClipboard ? 'Paste copied style here' : 'Copy a style first'}>
+                    <ClipboardPaste className="h-3 w-3" /> Paste style
+                  </Button>
                 </div>
                 {(() => {
                   // Style is stored under the `answers` key so a single edit
