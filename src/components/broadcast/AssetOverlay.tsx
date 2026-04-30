@@ -23,7 +23,6 @@ interface AssetOverlayProps {
 // center of the canvas — same coordinate origin as every other asset.
 // Quick-placement buttons in the inspector write the offsets needed to
 // land the asset at a corner; this overlay just respects the transform.
-const _UNUSED_QR_POSITION: QRPosition = 'bottom-right';
 
 /**
  * Renders QR + bug at fixed broadcast positions, independent of scene content.
