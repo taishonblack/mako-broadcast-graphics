@@ -9,7 +9,7 @@ import { PollingAssetsPane, SEEDED_ASSETS } from '@/components/poll-create/polli
 import { AssetInspector } from '@/components/poll-create/polling-assets/AssetInspector';
 import { AssetTransformControls } from '@/components/poll-create/AssetTransformControls';
 import { ASSET_REGISTRY } from '@/components/poll-create/polling-assets/PollingAssetsPane';
-import { AssetColorMap, AssetColorSet, AssetId, AssetState, AssetTransformMap, AssetTransformSet, DEFAULT_ASSET_COLORS, DEFAULT_ASSET_STATE, DEFAULT_ASSET_TRANSFORMS, TransformField, TransformViewport, createDefaultColorSet, createDefaultTransformSet } from '@/components/poll-create/polling-assets/types';
+import { AssetColorMap, AssetColorSet, AssetId, AssetState, AssetTransformMap, AssetTransformSet, DEFAULT_ASSET_COLORS, DEFAULT_ASSET_STATE, DEFAULT_ASSET_TRANSFORMS, TransformField, TransformViewport, createDefaultColorSet, createDefaultTransformSet, getStandardTransform } from '@/components/poll-create/polling-assets/types';
 import { Button } from '@/components/ui/button';
 import {
   AlertDialog,
