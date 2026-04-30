@@ -3053,7 +3053,24 @@ export default function PollCreate() {
             }}
             onRescanPolls={async () => {
               await rescanProjectPolls();
-              toast.success('Votes re-scanned.');
+              // Recount votes for the on-air poll from the votes table so any
+              // drift between poll_answers.live_votes and the source-of-truth
+              // votes rows is repaired. Reads use active_poll_id (votes belong
+              // to the poll, never to a scene).
+              if (activePollId) {
+                const { data, error } = await supabase.rpc(
+                  'recount_poll_votes' as never,
+                  { _poll_id: activePollId } as never,
+                );
+                console.log('[tally fetched]', { poll_id: activePollId, result: data, error });
+                if (error) {
+                  toast.error(`Re-scan failed: ${error.message}`);
+                } else {
+                  toast.success('Votes re-scanned for active poll.');
+                }
+              } else {
+                toast.success('Votes re-scanned.');
+              }
             }}
             liveState={liveState}
             votingState={votingState}
