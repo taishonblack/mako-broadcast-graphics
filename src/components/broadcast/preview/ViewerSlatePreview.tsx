@@ -158,46 +158,26 @@ export function ViewerSlatePreview({
   //   live bars; mobile/desktop show the MakoVote wordmark (no polling UI
   //   to interact with — viewers are just watching results).
   // - Other          (text/branding only): MakoVote wordmark fallback.
+  // Voter views (Mobile/Desktop) ONLY render the Voter Selection asset
+  // (`answerType`). Answer Bars is a Program-only graphic and is never
+  // mirrored to voters. If Voter Selection is absent or hidden, the voter
+  // view falls back to the MakoVote branding/slate.
   const enabledList = Array.isArray(enabledAssetIds) ? enabledAssetIds : null;
-  const folderHasQR = enabledList ? enabledList.includes('qr') : false;
-  const folderHasAnswerType = enabledList ? enabledList.includes('answerType') : false;
-  const folderHasAnswers = enabledList ? enabledList.includes('answers') : true;
-  // Mobile/Desktop show the vote-input buttons whenever the folder is set
-  // up to collect votes — that's any folder with `qr` or `answerType`. A
-  // folder with only `answers` (bars graphic) is "results display only" and
-  // should fall through to the MakoVote wordmark.
-  const folderCollectsVotes = folderHasQR || folderHasAnswerType;
-  // Slate always wins. When the operator forces the slate (Test Viewer View
-  // or "Start Slate Now"), hide the answer-types entirely so mobile/desktop
-  // mirror what voters would actually see during a slate hold.
+  const hasVoterSelection = enabledList ? enabledList.includes('answerType') : true;
   const showVoting =
     !slateActive &&
-    (votingOpen || folderCollectsVotes) &&
-    folderCollectsVotes &&
+    hasVoterSelection &&
     options &&
     options.length > 0;
 
-  // Resolve colors from the active viewport's asset color map. Falls back to
-  // the previous hard-coded white / light-gray values so existing previews
-  // keep working when no overrides are set.
+  // Resolve colors from the active viewport's asset color map. Voter
+  // Selection is its OWN asset — no fallback to Answer Bars colors/style.
   const questionColor = assetColors?.question?.textPrimary ?? '#ffffff';
   const subheadlineColor = assetColors?.subheadline?.textPrimary ?? '#e5e7eb';
-  // Voter button styling reads from the dedicated `answerType` asset so the
-  // operator can theme the on-device buttons independently of the broadcast
-  // results bars (`answers`). Falls back to `answers` colors, then defaults.
-  const answerColor =
-    assetColors?.answerType?.textPrimary ?? assetColors?.answers?.textPrimary ?? '#ffffff';
-  const answerBarColors =
-    assetColors?.answerType?.barColors ?? assetColors?.answers?.barColors ?? [];
-  // Style: read `answers` first so the admin's Answer Bars style flows into
-  // the voter buttons (unified pill family); `answerType` can override.
-  const pillStyle = assetColors?.answerType ?? assetColors?.answers;
-
-  // Per-asset transforms render through SceneAssetTransformFrame so X/Y/Scale
-  // mean the same thing on the voter canvas as they do on the program canvas.
-  // Voter button group reads from `answerType` transform (falls back to
-  // `answers` for legacy polls authored before the split).
-  const answersTransform = transforms?.answerType ?? transforms?.answers;
+  const answerColor = assetColors?.answerType?.textPrimary ?? '#ffffff';
+  const answerBarColors = assetColors?.answerType?.barColors ?? [];
+  const pillStyle = assetColors?.answerType;
+  const answersTransform = transforms?.answerType;
 
   return (
     <div
