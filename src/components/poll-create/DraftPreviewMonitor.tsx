@@ -420,7 +420,7 @@ export function DraftPreviewMonitor({
               textStyle={slateTextStyle}
               sublineText={slateSublineText}
               sublineStyle={slateSublineStyle}
-              votingOpen={hasContent && !enabledAssetIds.includes('answers')}
+              votingOpen={hasContent && enabledAssetIds.includes('answerType')}
               question={question}
               subheadline={subheadline}
               options={labelledOptions}
