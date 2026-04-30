@@ -6,7 +6,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip
 import { PlusCircle, GripVertical, Trash2, HelpCircle } from 'lucide-react';
 
 export type AnswerType = 'yes-no' | 'multiple-choice' | 'custom';
-export type MCLabelStyle = 'letters' | 'numbers' | 'custom';
+export type MCLabelStyle = 'letters' | 'numbers' | 'none' | 'custom';
 export type PreviewDataMode = 'test' | 'real';
 
 interface AnswerItem {
@@ -54,12 +54,14 @@ const answerTypes: { value: AnswerType; label: string }[] = [
 const mcLabelStyles: { value: MCLabelStyle; label: string }[] = [
   { value: 'letters', label: 'A / B / C' },
   { value: 'numbers', label: '1 / 2 / 3' },
+  { value: 'none', label: 'None' },
   { value: 'custom', label: 'Custom' },
 ];
 
 export function getMCLabel(index: number, style: MCLabelStyle, customLabel?: string): string {
   if (style === 'letters') return String.fromCharCode(65 + index);
   if (style === 'numbers') return String(index + 1);
+  if (style === 'none') return '';
   return customLabel || String.fromCharCode(65 + index);
 }
 

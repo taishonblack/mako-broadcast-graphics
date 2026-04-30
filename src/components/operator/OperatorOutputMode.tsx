@@ -170,6 +170,8 @@ interface OperatorOutputModeProps {
   assetColorSet?: import('@/components/poll-create/polling-assets/types').AssetColorSet;
   /** Full per-viewport transform set — same intent as `assetColorSet`. */
   assetTransformSet?: import('@/components/poll-create/polling-assets/types').AssetTransformSet;
+  /** MC label style for voter buttons (A/B/C, 1/2/3, none, custom). */
+  mcLabelStyle?: import('@/components/poll-create/ContentPanel').MCLabelStyle;
 }
 
 // PostgREST will return a 400 when filtering a UUID column with a value that
@@ -244,6 +246,7 @@ export function OperatorOutputMode({
   assetTransforms,
   assetColorSet,
   assetTransformSet,
+  mcLabelStyle,
 }: OperatorOutputModeProps) {
   const navigate = useNavigate();
   // Suppress unused-prop warnings until those features come back. Kept in the
@@ -1060,6 +1063,7 @@ export function OperatorOutputMode({
                 slug={currentPoll.slug}
                 assetColors={assetColorSet?.[previewMode] ?? assetColors}
                 transforms={assetTransformSet?.[previewMode] ?? assetTransforms}
+                mcLabelStyle={mcLabelStyle}
               />
             </div>
           )}

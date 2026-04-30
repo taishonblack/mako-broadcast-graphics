@@ -1,6 +1,7 @@
 import { PollOption } from '@/lib/types';
 import { AssetColorMap, AssetTransformMap } from '@/components/poll-create/polling-assets/types';
-import type { AnswerType } from '@/components/poll-create/ContentPanel';
+import type { AnswerType, MCLabelStyle } from '@/components/poll-create/ContentPanel';
+import { getMCLabel } from '@/components/poll-create/ContentPanel';
 import { POLLING_GRAPHIC_DEFAULTS as PGD } from '@/lib/polling-graphic-defaults';
 import { SceneAssetTransformFrame } from '@/components/broadcast/scenes/SceneAssetTransformFrame';
 import { AnswerChoices } from '@/components/broadcast/AnswerChoices';
@@ -71,6 +72,8 @@ export interface ViewerSlatePreviewProps {
    *  No right); multiple-choice / custom render stacked. Without this,
    *  the preview defaulted to stacked for every type. */
   answerType?: AnswerType;
+  /** MC label style for the chip on each voter button (A/B/C, 1/2/3, none, custom). */
+  mcLabelStyle?: MCLabelStyle;
   /** Folder asset toggles. Drives Mirror Mode: when `answers` is not in the
    *  enabled list but `question` or `qr` is, the mobile/desktop preview
    *  renders the question + QR (matching Program) instead of the answer
@@ -122,6 +125,7 @@ export function ViewerSlatePreview({
   question,
   options,
   answerType,
+  mcLabelStyle,
   enabledAssetIds,
   subheadline,
   slug,
@@ -250,7 +254,14 @@ export function ViewerSlatePreview({
                       surface={mode}
                       variant="voter"
                       layout={isYesNo ? 'side-by-side' : 'stacked'}
-                      options={options!.map((o) => ({ id: o.id, text: o.text }))}
+                      options={options!.map((o, i) => ({
+                        id: o.id,
+                        text: o.text,
+                        label:
+                          answerType === 'multiple-choice' && mcLabelStyle && mcLabelStyle !== 'none'
+                            ? getMCLabel(i, mcLabelStyle, o.shortLabel)
+                            : '',
+                      }))}
                       style={pillStyle}
                       optionColors={answerBarColors}
                       textColor={answerColor}

@@ -84,6 +84,7 @@ export function AssetInspector(p: AssetInspectorProps) {
     barPaddingY?: number;
     barPaddingX?: number;
     barBorderRadius?: number;
+    textAlign?: 'left' | 'center' | 'right';
   } | null>(null);
   // Live validation for AnswerType choices: flag empty and duplicate (case-
   // insensitive, trimmed) entries so the operator can't ship a poll with
@@ -240,8 +241,8 @@ export function AssetInspector(p: AssetInspectorProps) {
             {p.answerType === 'multiple-choice' && (
               <div className="space-y-1">
                 <Label className="text-[10px] text-muted-foreground">Label Style</Label>
-                <div className="grid grid-cols-3 gap-1">
-                  {(['letters', 'numbers', 'custom'] as MCLabelStyle[]).map((s) => (
+                <div className="grid grid-cols-4 gap-1">
+                  {(['letters', 'numbers', 'none', 'custom'] as MCLabelStyle[]).map((s) => (
                     <button
                       key={s}
                       onClick={() => { if (s !== 'custom') p.setMcLabelStyle(s); }}
@@ -255,10 +256,15 @@ export function AssetInspector(p: AssetInspectorProps) {
                             : 'bg-accent/30 border-border/50 text-muted-foreground hover:bg-accent/50'
                       }`}
                     >
-                      {s === 'letters' ? 'A/B/C' : s === 'numbers' ? '1/2/3' : 'Custom'}
+                      {s === 'letters' ? 'A/B/C' : s === 'numbers' ? '1/2/3' : s === 'none' ? 'None' : 'Custom'}
                     </button>
                   ))}
                 </div>
+                {p.mcLabelStyle === 'none' && (
+                  <p className="text-[9px] text-muted-foreground/70 leading-tight">
+                    No prefix — voters see only the choice text.
+                  </p>
+                )}
               </div>
             )}
 
@@ -429,6 +435,7 @@ export function AssetInspector(p: AssetInspectorProps) {
                         barPaddingY: cfg.barPaddingY,
                         barPaddingX: cfg.barPaddingX,
                         barBorderRadius: cfg.barBorderRadius,
+                        textAlign: cfg.textAlign,
                       });
                     }}
                     title="Copy this asset's pill padding + border radius">
@@ -455,6 +462,8 @@ export function AssetInspector(p: AssetInspectorProps) {
                   const padY = cfg.barPaddingY ?? PGD.answerButtonPaddingY;
                   const padX = cfg.barPaddingX ?? 32;
                   const radius = cfg.barBorderRadius ?? PGD.answerBorderRadius;
+                  const align: 'left' | 'center' | 'right' =
+                    cfg.textAlign ?? (PGD.answerTextAlign as 'left' | 'center' | 'right');
                   const setStyle = (patch: Partial<typeof cfg>) =>
                     p.setAssetColors!((current) => ({
                       ...current,
@@ -462,6 +471,25 @@ export function AssetInspector(p: AssetInspectorProps) {
                     }));
                   return (
                     <>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Text Align</Label>
+                        <div className="grid grid-cols-3 gap-1">
+                          {(['left', 'center', 'right'] as const).map((a) => (
+                            <button
+                              key={a}
+                              type="button"
+                              onClick={() => setStyle({ textAlign: a })}
+                              className={`p-1.5 rounded-md text-[10px] font-medium border capitalize transition-all ${
+                                align === a
+                                  ? 'bg-primary/10 border-primary/30 text-primary'
+                                  : 'bg-accent/30 border-border/50 text-muted-foreground hover:bg-accent/50'
+                              }`}
+                            >
+                              {a}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                       <div className="space-y-1">
                         <div className="flex items-center justify-between">
                           <Label className="text-[10px] text-muted-foreground">Padding Y</Label>
@@ -511,6 +539,7 @@ export function AssetInspector(p: AssetInspectorProps) {
                             barPaddingY: undefined,
                             barPaddingX: undefined,
                             barBorderRadius: undefined,
+                            textAlign: undefined,
                           })
                         }
                       >

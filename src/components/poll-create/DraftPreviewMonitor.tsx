@@ -16,7 +16,6 @@ import { AssetColorMap, AssetId, AssetState, AssetTransformMap } from './polling
 import { QRPosition } from '@/lib/types';
 import { WordmarkLockup } from '@/components/broadcast/WordmarkLockup';
 import { usePreviewOverlays } from '@/lib/preview-overlays';
-import { getAssetTransformStyle } from '@/lib/asset-transforms';
 
 export type PreviewMode = 'program' | 'mobile' | 'desktop';
 
@@ -239,111 +238,6 @@ export function DraftPreviewMonitor({
     );
   };
 
-  // ---- VIEWER (mobile/desktop) CONTENT — reflects Voter Selection ----
-  const renderViewerButtons = () => {
-    // Voter views render ONLY when the folder includes Voter Selection
-    // (`answerType`). Answer Bars never appears on Mobile/Desktop. When
-    // Voter Selection is absent, fall back to the MakoVote slate.
-    if (!hasContent || !enabledAssetIds.includes('answerType')) {
-      return (
-        <div className="flex flex-col items-center justify-center h-full gap-4 px-6 text-center">
-          <div className="flex items-baseline justify-center font-semibold leading-none select-none text-3xl">
-            <span className="text-foreground/90">Mako</span>
-            <span className="text-primary">Vote</span>
-          </div>
-          <p className="text-[11px] font-mono uppercase tracking-wider text-muted-foreground/80">
-            Add Voter Selection to this scene to preview the voter view
-          </p>
-        </div>
-      );
-    }
-
-    // Voter buttons read from the dedicated `answerType` slice — Voter
-    // Selection owns its colors independently of Answer Bars.
-    const barColors = assetColors.answerType?.barColors ?? [];
-    const answerTextColor = assetColors.answerType?.textPrimary ?? 'hsl(var(--foreground))';
-    const questionTextColor = assetColors.question?.textPrimary ?? 'hsl(var(--foreground))';
-    const subheadlineTextColor = assetColors.subheadline?.textPrimary ?? 'hsl(var(--muted-foreground))';
-
-    // Per-viewport transforms also drive the voter mock so the operator's
-    // Mobile/Desktop slider tweaks (translate, scale, rotate, opacity, crop)
-    // are reflected in real time. Each section is wrapped in its own
-    // transform style so question/subheadline/answers move independently.
-    const questionStyle = getAssetTransformStyle(transforms.question);
-    const subheadlineStyle = getAssetTransformStyle(transforms.subheadline);
-    const answersStyle = getAssetTransformStyle(transforms.answerType);
-
-    if (answerType === 'yes-no') {
-      const yesBg = barColors[0];
-      const noBg = barColors[1];
-      return (
-        <div className="space-y-4">
-          <div className="text-center space-y-1.5">
-            <h2 className="text-base font-bold" style={{ color: questionTextColor, ...questionStyle }}>{question}</h2>
-            {subheadline && <p className="text-xs" style={{ color: subheadlineTextColor, ...subheadlineStyle }}>{subheadline}</p>}
-          </div>
-          <div className="grid grid-cols-2 gap-3 pt-2" style={answersStyle}>
-            <button
-              className="py-6 rounded-2xl border border-white/15 transition-colors text-base font-bold"
-              style={{ background: yesBg ?? 'hsl(var(--primary) / 0.15)', color: answerTextColor }}
-            >
-              YES
-            </button>
-            <button
-              className="py-6 rounded-2xl border border-white/15 transition-colors text-base font-bold"
-              style={{ background: noBg ?? 'hsl(var(--muted) / 0.4)', color: answerTextColor }}
-            >
-              NO
-            </button>
-          </div>
-        </div>
-      );
-    }
-
-    return (
-      <div className="space-y-4">
-        <div className="text-center space-y-1.5">
-          <h2 className="text-base font-bold" style={{ color: questionTextColor, ...questionStyle }}>{question}</h2>
-          {subheadline && <p className="text-xs" style={{ color: subheadlineTextColor, ...subheadlineStyle }}>{subheadline}</p>}
-        </div>
-        <div className="space-y-2" style={answersStyle}>
-          {labelledOptions.map((opt, i) => {
-            const showLabelChip = answerType === 'multiple-choice';
-            const buttonText = answerType === 'custom'
-              ? (opt.text || `Answer ${i + 1}`)
-              : (opt.text || `Answer ${i + 1}`);
-            const chipBg = barColors[i];
-            return (
-              <button
-                key={opt.id}
-                className="w-full flex items-center gap-3 p-3 rounded-xl border border-white/10 transition-colors text-left text-sm"
-                style={{
-                  color: answerTextColor,
-                  // Honor per-bar custom color as the row background so the chip
-                  // and the bar share a coherent fill in the voter mock.
-                  background: chipBg ?? 'hsla(220, 18%, 13%, 0.5)',
-                }}
-              >
-                {showLabelChip && (
-                  <span
-                    className="w-7 h-7 rounded-md font-mono text-xs font-bold flex items-center justify-center shrink-0 border border-white/20"
-                    style={{
-                      background: 'rgba(0,0,0,0.25)',
-                      color: answerTextColor,
-                    }}
-                  >
-                    {opt.shortLabel}
-                  </span>
-                )}
-                <span className="flex-1">{buttonText}</span>
-              </button>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
-
   const modeButtons: { mode: PreviewMode; icon: typeof Monitor; label: string; tooltip: string }[] = [
     { mode: 'program', icon: Monitor, label: 'Program', tooltip: 'Broadcast Output — what goes to air' },
     { mode: 'mobile', icon: Smartphone, label: 'Mobile', tooltip: 'Viewer Mobile — what audiences see on phone' },
@@ -405,46 +299,30 @@ export function DraftPreviewMonitor({
           // question/qr/etc. We render question + QR (matching Program)
           // instead of the voter buttons, so Mobile/Desktop look identical
           // to the on-air composition.
-          (() => {
-            // Voter views show MakoVote slate when Voter Selection is absent.
-            const noVoterSelection = !enabledAssetIds.includes('answerType') && hasContent;
-            return slateActive || !hasContent || noVoterSelection;
-          })() ? (
-            <ViewerSlatePreview
-              mode={previewMode}
-              bgImage={bgImage}
-              bgColor={bgColor}
-              slateActive={slateActive}
-              slateText={slateText}
-              slateImage={slateImage}
-              textStyle={slateTextStyle}
-              sublineText={slateSublineText}
-              sublineStyle={slateSublineStyle}
-              votingOpen={hasContent && enabledAssetIds.includes('answerType')}
-              question={question}
-              subheadline={subheadline}
-              options={labelledOptions}
-              answerType={answerType}
-              enabledAssetIds={enabledAssetIds}
-              slug={slug}
-              assetColors={assetColors}
-              transforms={transforms}
-            />
-          ) : (
-            <div className={`bg-background border border-border rounded-lg overflow-hidden shadow-xl ${
-              previewMode === 'mobile' ? 'w-[280px] h-[500px]' : 'w-full max-w-lg h-[420px]'
-            }`} style={bgImage ? { backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' } : { background: bgColor || undefined }}>
-              <div className="h-6 bg-card/80 border-b border-border flex items-center px-2 gap-1">
-                <div className="w-1.5 h-1.5 rounded-full bg-destructive/60" />
-                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
-                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/30" />
-                <span className="text-[8px] text-muted-foreground ml-1 font-mono truncate">{shortUrl}</span>
-              </div>
-              <div className="h-[calc(100%-1.5rem)] overflow-auto p-5">
-                {renderViewerButtons()}
-              </div>
-            </div>
-          )
+          // Single source of truth for Mobile/Desktop voter previews:
+          // ViewerSlatePreview handles slate, voting, and MakoVote fallback
+          // identically to Output Mode — guarantees Build and Output match.
+          <ViewerSlatePreview
+            mode={previewMode}
+            bgImage={bgImage}
+            bgColor={bgColor}
+            slateActive={slateActive}
+            slateText={slateText}
+            slateImage={slateImage}
+            textStyle={slateTextStyle}
+            sublineText={slateSublineText}
+            sublineStyle={slateSublineStyle}
+            votingOpen={hasContent && enabledAssetIds.includes('answerType')}
+            question={question}
+            subheadline={subheadline}
+            options={labelledOptions}
+            answerType={answerType}
+            mcLabelStyle={mcLabelStyle}
+            enabledAssetIds={enabledAssetIds}
+            slug={slug}
+            assetColors={assetColors}
+            transforms={transforms}
+          />
         )}
 
         {/* URL display beneath preview */}
