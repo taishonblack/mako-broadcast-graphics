@@ -106,6 +106,15 @@ export function AnswerChoices({
   const textAlign: 'left' | 'center' | 'right' =
     style?.textAlign ?? (PGD.answerTextAlign as 'left' | 'center' | 'right');
 
+  // When the operator pins an explicit pill height, scale the font down so
+  // text fits inside the constrained box. This makes the Bar Height slider
+  // feel like a true continuous adjustment instead of jumping between
+  // "natural" and "min content" states.
+  const naturalContentHeight = tokens.fontSize + tokens.padY * 2;
+  const effectiveFontSize = explicitHeight && explicitHeight < naturalContentHeight
+    ? Math.max(10, Math.round(explicitHeight * 0.55))
+    : tokens.fontSize;
+
   const containerStyle: CSSProperties = {
     width: `${tokens.groupWidthPx}px`,
     gap: `${tokens.gap}px`,
