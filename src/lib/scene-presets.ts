@@ -41,18 +41,18 @@ export const BROADCAST_SCENES: BroadcastScene[] = [
     label: 'Full Frame',
     shortLabel: 'Full Frame',
     sceneType: 'fullscreen',
-    // Show the full scene frame (including answer bars + voter tally).
-    // Operators who want a stripped-down Q+QR-only layout should build
-    // a dedicated scene with those assets disabled instead of having
-    // the preset hide them silently.
-    visibleAssets: [...BASE, 'qr', 'answerType', 'answers', 'voterTally'],
+    // Voting screen. Voter Selection (`answerType`) is allowed in the
+    // visible set so it propagates to Mobile/Desktop voter views; on
+    // Program output the FullscreenScene renderer never draws it.
+    visibleAssets: [...BASE, 'qr', 'answerType'],
   },
   {
     id: 'liveResults',
     label: 'Results',
     shortLabel: 'Results',
     sceneType: 'results',
-    // QR stays visible — voting is still open during live results.
+    // Live results: Program shows Answer Bars; voters keep seeing Voter
+    // Selection while voting remains open.
     visibleAssets: [...BASE, 'qr', 'answers', 'voterTally', 'answerType'],
   },
   {
