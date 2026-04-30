@@ -234,7 +234,7 @@ export function OperatorOutputMode({
   answers,
   onSetAnswers,
   tallyMode = 'live',
-  tallyIntervalSeconds = 5,
+  tallyIntervalSeconds = 3,
   onTallyModeChange,
   onTallyIntervalChange,
   resultsMode = 'animated',
@@ -1105,7 +1105,7 @@ export function OperatorOutputMode({
               {tallyMode === 'stopMotion' && (
                 <div className="space-y-1">
                   <div className="flex items-center justify-between">
-                    <span className="text-[10px] uppercase text-muted-foreground">Interval</span>
+                    <span className="text-[10px] uppercase text-muted-foreground">Check every</span>
                     <span className="text-[10px] font-mono text-foreground">{tallyIntervalSeconds}s</span>
                   </div>
                   <Slider
