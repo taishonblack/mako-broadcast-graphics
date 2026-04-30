@@ -402,7 +402,8 @@ export function AssetInspector(p: AssetInspectorProps) {
                 </div>
                 {/* Quick actions: center the active asset, restore the
                     Scene-1 baseline transform, and copy/paste pill style
-                    between Answer Type and Answer Bars. */}
+                    between viewports of THIS asset (Voter Selection and
+                    Answer Bars do not share style). */}
                 <div className="grid grid-cols-2 gap-1">
                   {p.onCenterActiveAsset && (
                     <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-[10px]"
@@ -418,7 +419,7 @@ export function AssetInspector(p: AssetInspectorProps) {
                   )}
                   <Button type="button" variant="outline" size="sm" className="h-7 gap-1 text-[10px]"
                     onClick={() => {
-                      const cfg = p.assetColors?.answers ?? {};
+                      const cfg = p.assetColors?.[id] ?? {};
                       setStyleClipboard({
                         barPaddingY: cfg.barPaddingY,
                         barPaddingX: cfg.barPaddingX,
@@ -434,7 +435,7 @@ export function AssetInspector(p: AssetInspectorProps) {
                       if (!styleClipboard || !p.setAssetColors) return;
                       p.setAssetColors!((current) => ({
                         ...current,
-                        answers: { ...(current.answers ?? {}), ...styleClipboard },
+                        [id]: { ...(current[id] ?? {}), ...styleClipboard },
                       }));
                     }}
                     title={styleClipboard ? 'Paste copied style here' : 'Copy a style first'}>
@@ -442,19 +443,17 @@ export function AssetInspector(p: AssetInspectorProps) {
                   </Button>
                 </div>
                 {(() => {
-                  // Style is stored under the `answers` key so a single edit
-                  // drives both Answer Bars AND the voter buttons (the voter
-                  // renderer reads `answers` first). Operators can still
-                  // override `answerType` separately if they want device-only
-                  // styling — but the default is unified.
-                  const cfg = p.assetColors?.answers ?? {};
+                  // Style is stored under THIS asset's key. Voter Selection
+                  // and Answer Bars own independent style/colors — editing
+                  // one never mutates the other.
+                  const cfg = p.assetColors?.[id] ?? {};
                   const padY = cfg.barPaddingY ?? PGD.answerButtonPaddingY;
                   const padX = cfg.barPaddingX ?? 32;
                   const radius = cfg.barBorderRadius ?? PGD.answerBorderRadius;
                   const setStyle = (patch: Partial<typeof cfg>) =>
                     p.setAssetColors!((current) => ({
                       ...current,
-                      answers: { ...(current.answers ?? {}), ...patch },
+                      [id]: { ...(current[id] ?? {}), ...patch },
                     }));
                   return (
                     <>
