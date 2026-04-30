@@ -240,8 +240,8 @@ export function AssetInspector(p: AssetInspectorProps) {
             {p.answerType === 'multiple-choice' && (
               <div className="space-y-1">
                 <Label className="text-[10px] text-muted-foreground">Label Style</Label>
-                <div className="grid grid-cols-3 gap-1">
-                  {(['letters', 'numbers', 'custom'] as MCLabelStyle[]).map((s) => (
+                <div className="grid grid-cols-4 gap-1">
+                  {(['letters', 'numbers', 'none', 'custom'] as MCLabelStyle[]).map((s) => (
                     <button
                       key={s}
                       onClick={() => { if (s !== 'custom') p.setMcLabelStyle(s); }}
@@ -255,10 +255,15 @@ export function AssetInspector(p: AssetInspectorProps) {
                             : 'bg-accent/30 border-border/50 text-muted-foreground hover:bg-accent/50'
                       }`}
                     >
-                      {s === 'letters' ? 'A/B/C' : s === 'numbers' ? '1/2/3' : 'Custom'}
+                      {s === 'letters' ? 'A/B/C' : s === 'numbers' ? '1/2/3' : s === 'none' ? 'None' : 'Custom'}
                     </button>
                   ))}
                 </div>
+                {p.mcLabelStyle === 'none' && (
+                  <p className="text-[9px] text-muted-foreground/70 leading-tight">
+                    No prefix — voters see only the choice text.
+                  </p>
+                )}
               </div>
             )}
 
