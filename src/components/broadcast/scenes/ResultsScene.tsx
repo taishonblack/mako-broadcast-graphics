@@ -147,10 +147,12 @@ export function ResultsScene({
           </SceneAssetTransformFrame>
         )}
 
-        {/* `answerType` is voter-input only — never renders here. */}
+        {/* `answerType` (Voter Selection) is voter-input only — never renders on Program. */}
 
         {visibleAssets.has('answers') && (
           <SceneAssetTransformFrame transform={transforms?.answers}>
+            {/* Answer Bars owns its own style/color slice — no fallback to
+                Voter Selection. The two assets are independent. */}
             <AnswerChoices
               surface="program"
               variant="bars"
@@ -158,7 +160,7 @@ export function ResultsScene({
               totalVotes={totalVotes}
               progress={progress}
               style={assetColors?.answers}
-              optionColors={assetColors?.answers?.barColors ?? assetColors?.answerType?.barColors}
+              optionColors={assetColors?.answers?.barColors}
               textColor={assetColors?.answers?.textPrimary ?? PGD.answerTextColor}
               secondaryTextColor={assetColors?.answers?.textSecondary ?? PGD.answerTextColor}
             />
