@@ -179,9 +179,9 @@ export function AnswerChoices({
                     className="font-mono font-bold inline-flex items-center justify-center shrink-0 border"
                     style={{
                       color: labelColor,
-                      fontSize: `${Math.round(tokens.fontSize * 0.7)}px`,
-                      width: `${Math.round(tokens.fontSize * 1.6)}px`,
-                      height: `${Math.round(tokens.fontSize * 1.6)}px`,
+                      fontSize: `${Math.round(effectiveFontSize * 0.7)}px`,
+                      width: `${Math.round(effectiveFontSize * 1.6)}px`,
+                      height: `${Math.round(effectiveFontSize * 1.6)}px`,
                       borderRadius: '6px',
                       borderColor: 'rgba(255,255,255,0.2)',
                       background: 'rgba(0,0,0,0.25)',
@@ -194,7 +194,7 @@ export function AnswerChoices({
                   className={variant === 'bars' ? 'font-semibold' : 'font-medium'}
                   style={{
                     color: labelColor,
-                    fontSize: `${tokens.fontSize}px`,
+                    fontSize: `${effectiveFontSize}px`,
                     flex: variant === 'bars' || textAlign === 'left' ? 1 : undefined,
                     textAlign,
                   }}
@@ -204,7 +204,7 @@ export function AnswerChoices({
                 {variant === 'bars' && (
                   <span
                     className="font-bold font-mono tabular-nums"
-                    style={{ color: labelColor, fontSize: `${tokens.fontSize}px` }}
+                    style={{ color: labelColor, fontSize: `${effectiveFontSize}px` }}
                   >
                     {Math.round(pct)}%
                   </span>
