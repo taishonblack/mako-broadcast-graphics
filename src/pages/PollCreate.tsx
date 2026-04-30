@@ -3064,6 +3064,7 @@ export default function PollCreate() {
             assetTransforms={assetTransforms}
             assetColorSet={assetColorSet}
             assetTransformSet={assetTransformSet}
+            mcLabelStyle={mcLabelStyle}
             onSelectBlock={(letter) => {
               setOutputActiveBlock(letter);
               setOutputBlockSource(outputBlockPinned ? 'pinned' : 'manual');
