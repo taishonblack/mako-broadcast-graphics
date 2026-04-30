@@ -3301,6 +3301,10 @@ export default function PollCreate() {
                     previewMode={transformViewport}
                     onPreviewModeChange={setTransformViewport}
                     folderLabel={activeFolder?.name}
+                    previewScene={previewScene}
+                    resultsMode={activeFolder?.resultsMode ?? DEFAULT_RESULTS_MODE}
+                    resultsAnimationMs={activeFolder?.resultsAnimationMs ?? DEFAULT_RESULTS_ANIMATION_MS}
+                    resultsReplayKey={resultsReplayKey}
                   />
                   <AssetTransformControls
                     assetId={selectedAssetId}
