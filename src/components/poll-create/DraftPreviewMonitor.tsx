@@ -2,6 +2,8 @@ import { useEffect, useRef, useState } from 'react';
 import { PreviewWithOverlays } from '@/components/broadcast/preview/PreviewWithOverlays';
 import { LowerThirdScene } from '@/components/broadcast/scenes/LowerThirdScene';
 import { FullscreenScene } from '@/components/broadcast/scenes/FullscreenScene';
+import { ResultsScene } from '@/components/broadcast/scenes/ResultsScene';
+import type { SceneType } from '@/lib/scenes';
 import {
   ViewerSlatePreview,
   SlateTextStyle,
@@ -51,6 +53,15 @@ interface DraftPreviewMonitorProps {
   assetColors: AssetColorMap;
   qrVisible: boolean;
   qrUrlVisible: boolean;
+  /** Active broadcast scene template. When set, the program preview
+   *  switches between Fullscreen / Results / Lower Third so Build mirrors
+   *  exactly what Output renders for the same scene. */
+  previewScene?: SceneType;
+  /** Results playback config — forwarded to ResultsScene so the animated
+   *  reveal in Build matches Output. */
+  resultsMode?: 'animated' | 'static';
+  resultsAnimationMs?: number;
+  resultsReplayKey?: number;
   /** When provided, the preview-mode tabs become controlled. Lets the parent
    *  keep the editing viewport (Program / Mobile / Desktop) in sync with the
    *  transform inspector. */
@@ -97,6 +108,10 @@ export function DraftPreviewMonitor({
   qrUrlVisible,
   previewMode: previewModeProp,
   onPreviewModeChange,
+  previewScene,
+  resultsMode,
+  resultsAnimationMs,
+  resultsReplayKey,
   slateActive = false,
   slateText = '',
   slateImage,
@@ -167,7 +182,7 @@ export function DraftPreviewMonitor({
       ? { backgroundImage: `url(${bgImage})`, backgroundSize: 'cover', backgroundPosition: 'center' }
       : { background: `linear-gradient(135deg, ${bgColor || theme.tintColor}, hsla(220, 20%, 8%, 0.95))` };
 
-    if (isLowerThird) {
+    if (isLowerThird || previewScene === 'lowerThird') {
       return (
         <div className="absolute inset-0" style={bgStyle}>
           <LowerThirdScene
@@ -187,6 +202,40 @@ export function DraftPreviewMonitor({
             enabledAssetIds={enabledAssetIds}
             transforms={transforms}
             assetColors={assetColors}
+            debugVoteUrl={voteUrl}
+            bgImage={bgImage}
+            bgColor={bgColor}
+          />
+        </div>
+      );
+    }
+
+    // Results scene (Scene 2): mirror Output by rendering ResultsScene.
+    // Without this branch Build would draw the Voting (Fullscreen) scene
+    // even when the operator selected Results, so Program preview drifted
+    // away from what Output actually airs.
+    if (previewScene === 'results' && !isZeroState) {
+      return (
+        <div className="absolute inset-0" style={bgImage ? bgStyle : undefined}>
+          <ResultsScene
+            question={question}
+            options={labelledOptions}
+            totalVotes={totalVotes}
+            colors={colors}
+            theme={theme}
+            slug={slug}
+            qrSize={qrSize}
+            qrPosition={qrPosition}
+            qrVisible={qrVisible}
+            qrUrlVisible={qrUrlVisible}
+            showBranding={showBranding}
+            brandingPosition={brandingPosition}
+            enabledAssetIds={enabledAssetIds}
+            transforms={transforms}
+            assetColors={assetColors}
+            resultsMode={resultsMode}
+            resultsAnimationMs={resultsAnimationMs}
+            resultsReplayKey={resultsReplayKey}
             debugVoteUrl={voteUrl}
             bgImage={bgImage}
             bgColor={bgColor}
