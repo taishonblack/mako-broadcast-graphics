@@ -132,7 +132,9 @@ export function AnswerChoices({
                 background: buttonBg,
                 borderColor: PGD.answerBorderColor,
                 borderRadius: `${radius}px`,
-                padding: `${padY}px ${padX}px`,
+                padding: explicitHeight
+                  ? `0px ${padX}px`
+                  : `${padY}px ${padX}px`,
                 height: explicitHeight ? `${explicitHeight}px` : undefined,
                 display: explicitHeight ? 'flex' : undefined,
                 alignItems: explicitHeight ? 'center' : undefined,
