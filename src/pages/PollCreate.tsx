@@ -40,7 +40,7 @@ import { pollImportSchema, formatZodIssues, ImportIssue, ImportSection } from '@
 import { themePresets } from '@/lib/themes';
 import { TemplateName, Poll, PollOption, QRPosition, VotingState, LiveState } from '@/lib/types';
 import { SceneType } from '@/lib/scenes';
-import { broadcastSceneFromSceneType, filterAssetsForScene } from '@/lib/scene-presets';
+import { broadcastSceneFromSceneType, filterAssetsForScene, getBroadcastScene } from '@/lib/scene-presets';
 import { broadcastOutputHeartbeat, broadcastOutputLock, broadcastOutputState, OUTPUT_REQUEST_CHANNEL } from '@/lib/output-state';
 import { supabase } from '@/integrations/supabase/client';
 import { writePublicViewerState, type PublicViewerPollSnapshot } from '@/lib/public-viewer-state';
@@ -980,13 +980,23 @@ export default function PollCreate() {
     const programColors = programAssetColors.answers.barColors?.length
       ? programAssetColors.answers.barColors
       : ['#ffffff', '#ffffff', '#ffffff', '#ffffff'];
-    // Scene-driven visibility: the operator picks a scene, the scene
-    // narrows the poll's enabled assets down to what should appear on
-    // air (e.g. Question+QR hides answer bars; Lower Third hides QR).
-    const sceneEnabled = filterAssetsForScene(
-      sceneFilteredEnabled,
-      broadcastSceneFromSceneType(previewScene),
+    // Scene-driven visibility: the operator picks a broadcast scene
+    // (Full Frame / Results / Lower Third) at the top of Output. That
+    // selection — NOT the active poll-scene's saved visibility — is the
+    // source of truth for what the program preview should show. We
+    // intersect with the folder's enabled assets so an asset that was
+    // never added to the poll never appears, but the broadcast scene
+    // gets to OPT IN to assets like `answers` even when the active poll
+    // scene (e.g. "Voting") didn't pre-include them. Without this, the
+    // Results scene would render with no Answer Bars whenever the
+    // operator was viewing a Voting-style poll scene.
+    const broadcastSceneId = broadcastSceneFromSceneType(previewScene);
+    const broadcastSceneAssets = new Set<AssetId>(
+      getBroadcastScene(broadcastSceneId).visibleAssets,
     );
+    const folderEnabledSet = new Set<AssetId>(enabledAssets as AssetId[]);
+    const sceneEnabled = (Array.from(broadcastSceneAssets) as AssetId[])
+      .filter((id) => folderEnabledSet.has(id));
     const activeFolderForResults = getFolderById(folderState, folderState.activeFolderId);
     const sharedAssets = {
       slug: slugForUrl,

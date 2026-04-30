@@ -101,6 +101,7 @@ export function AnswerChoices({
   const padX = style?.barPaddingX ?? tokens.padX;
   const padY = style?.barPaddingY ?? tokens.padY;
   const radius = style?.barBorderRadius ?? PGD.answerBorderRadius;
+  const explicitHeight = style?.barHeight;
   const labelColor = textColor ?? PGD.answerTextColor;
   const textAlign: 'left' | 'center' | 'right' =
     style?.textAlign ?? (PGD.answerTextAlign as 'left' | 'center' | 'right');
@@ -132,6 +133,9 @@ export function AnswerChoices({
                 borderColor: PGD.answerBorderColor,
                 borderRadius: `${radius}px`,
                 padding: `${padY}px ${padX}px`,
+                height: explicitHeight ? `${explicitHeight}px` : undefined,
+                display: explicitHeight ? 'flex' : undefined,
+                alignItems: explicitHeight ? 'center' : undefined,
                 backdropFilter: 'blur(8px)',
               }}
             >

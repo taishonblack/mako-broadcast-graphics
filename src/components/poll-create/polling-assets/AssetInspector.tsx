@@ -84,6 +84,7 @@ export function AssetInspector(p: AssetInspectorProps) {
     barPaddingY?: number;
     barPaddingX?: number;
     barBorderRadius?: number;
+    barHeight?: number;
     textAlign?: 'left' | 'center' | 'right';
   } | null>(null);
   // Live validation for AnswerType choices: flag empty and duplicate (case-
@@ -435,6 +436,7 @@ export function AssetInspector(p: AssetInspectorProps) {
                         barPaddingY: cfg.barPaddingY,
                         barPaddingX: cfg.barPaddingX,
                         barBorderRadius: cfg.barBorderRadius,
+                        barHeight: cfg.barHeight,
                         textAlign: cfg.textAlign,
                       });
                     }}
@@ -462,6 +464,7 @@ export function AssetInspector(p: AssetInspectorProps) {
                   const padY = cfg.barPaddingY ?? PGD.answerButtonPaddingY;
                   const padX = cfg.barPaddingX ?? 32;
                   const radius = cfg.barBorderRadius ?? PGD.answerBorderRadius;
+                  const barHeight = cfg.barHeight ?? 0; // 0 = auto / natural
                   const align: 'left' | 'center' | 'right' =
                     cfg.textAlign ?? (PGD.answerTextAlign as 'left' | 'center' | 'right');
                   const setStyle = (patch: Partial<typeof cfg>) =>
@@ -529,6 +532,26 @@ export function AssetInspector(p: AssetInspectorProps) {
                           onValueChange={([v]) => setStyle({ barBorderRadius: v })}
                         />
                       </div>
+                      {id === 'answers' && (
+                        <div className="space-y-1">
+                          <div className="flex items-center justify-between">
+                            <Label className="text-[10px] text-muted-foreground">Bar Height</Label>
+                            <span className="text-[10px] font-mono text-muted-foreground">
+                              {barHeight > 0 ? `${barHeight}px` : 'Auto'}
+                            </span>
+                          </div>
+                          <Slider
+                            min={0}
+                            max={160}
+                            step={1}
+                            value={[barHeight]}
+                            onValueChange={([v]) => setStyle({ barHeight: v > 0 ? v : undefined })}
+                          />
+                          <p className="text-[9px] text-muted-foreground/70 leading-tight">
+                            0 = auto (sized by padding + text). Shrink when adding more bars to keep them on-screen.
+                          </p>
+                        </div>
+                      )}
                       <Button
                         type="button"
                         variant="outline"
@@ -539,6 +562,7 @@ export function AssetInspector(p: AssetInspectorProps) {
                             barPaddingY: undefined,
                             barPaddingX: undefined,
                             barBorderRadius: undefined,
+                            barHeight: undefined,
                             textAlign: undefined,
                           })
                         }
