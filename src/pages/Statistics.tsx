@@ -206,6 +206,17 @@ export default function Statistics() {
   const activePollId = live?.active_poll_id ?? null;
   const isLive = live?.voting_state === 'open';
 
+  // Diagnostic: confirm Statistics is following the same active_poll_id as
+  // Output Inspector / Program Preview. Votes belong to the poll, never to
+  // the scene — so this id is what every tally surface must agree on.
+  useEffect(() => {
+    console.log('[statistics fetched]', {
+      poll_id: activePollId,
+      voting_state: live?.voting_state,
+      rows: rows.filter((r) => r.poll_id === activePollId).length,
+    });
+  }, [activePollId, live?.voting_state, rows]);
+
   // Build folder list (unique block_letter values across the user's polls).
   const folderOptions = useMemo(() => {
     const seen = new Map<string, string>();

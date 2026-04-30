@@ -35,6 +35,7 @@ export function useLiveVotes(pollId: string | undefined, enabled: boolean) {
       const next: Record<string, number> = {};
       for (const row of data) next[row.id as string] = (row.live_votes as number) ?? 0;
       setVoteMap(next);
+      console.log('[tally fetched]', { poll_id: pollId, totals: next });
     })();
 
     // Realtime: scope to this poll so we don't get noise from other polls.

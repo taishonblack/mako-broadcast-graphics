@@ -48,7 +48,9 @@ export function useActivePollBinding(
         .eq('project_id', projectId)
         .maybeSingle();
       if (cancelled) return;
-      setActivePollId((data?.active_poll_id as string | null) ?? null);
+      const next = (data?.active_poll_id as string | null) ?? null;
+      console.log('[active poll]', { project_id: projectId, active_poll_id: next });
+      setActivePollId(next);
     })();
 
     const channel = supabase
