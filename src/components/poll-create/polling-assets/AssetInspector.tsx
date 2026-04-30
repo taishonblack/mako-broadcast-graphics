@@ -460,6 +460,8 @@ export function AssetInspector(p: AssetInspectorProps) {
                   const padY = cfg.barPaddingY ?? PGD.answerButtonPaddingY;
                   const padX = cfg.barPaddingX ?? 32;
                   const radius = cfg.barBorderRadius ?? PGD.answerBorderRadius;
+                  const align: 'left' | 'center' | 'right' =
+                    cfg.textAlign ?? (PGD.answerTextAlign as 'left' | 'center' | 'right');
                   const setStyle = (patch: Partial<typeof cfg>) =>
                     p.setAssetColors!((current) => ({
                       ...current,
@@ -467,6 +469,25 @@ export function AssetInspector(p: AssetInspectorProps) {
                     }));
                   return (
                     <>
+                      <div className="space-y-1">
+                        <Label className="text-[10px] text-muted-foreground">Text Align</Label>
+                        <div className="grid grid-cols-3 gap-1">
+                          {(['left', 'center', 'right'] as const).map((a) => (
+                            <button
+                              key={a}
+                              type="button"
+                              onClick={() => setStyle({ textAlign: a })}
+                              className={`p-1.5 rounded-md text-[10px] font-medium border capitalize transition-all ${
+                                align === a
+                                  ? 'bg-primary/10 border-primary/30 text-primary'
+                                  : 'bg-accent/30 border-border/50 text-muted-foreground hover:bg-accent/50'
+                              }`}
+                            >
+                              {a}
+                            </button>
+                          ))}
+                        </div>
+                      </div>
                       <div className="space-y-1">
                         <div className="flex items-center justify-between">
                           <Label className="text-[10px] text-muted-foreground">Padding Y</Label>
@@ -516,6 +537,7 @@ export function AssetInspector(p: AssetInspectorProps) {
                             barPaddingY: undefined,
                             barPaddingX: undefined,
                             barBorderRadius: undefined,
+                            textAlign: undefined,
                           })
                         }
                       >
