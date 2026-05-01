@@ -326,6 +326,51 @@ export function VotePipelineCheck() {
           <Field label="vote_analytics (poll)" value={snapshot ? String(snapshot.analytics_count) : '—'} />
         </div>
 
+        {/* Stale slug — slug published but no active poll. Operator probably
+         *  ended live and the slug pointer wasn't cleared, or Go Live half-
+         *  succeeded. Either way, the audience link points to nothing. */}
+        {showStaleSlugWarning && (
+          <div className="flex items-start gap-2 rounded-md border border-mako-warning/40 bg-mako-warning/10 px-3 py-2 text-xs text-mako-warning">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <div className="font-semibold">Live slug exists, but no active poll is published.</div>
+              <div className="text-[11px] font-mono text-foreground/80 mt-0.5">
+                /vote/{snapshot?.live_slug} → no active_poll_id. Go Live again to publish this slug.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Operator helper — shown when there's no active poll OR voting
+         *  isn't open yet. Walks the operator through the exact steps to
+         *  get the pipeline into a runnable state. */}
+        {showOpenOutputHelper && (
+          <div className="rounded-md border border-mako-orange/30 bg-mako-orange/5 p-3 space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Activity className="h-4 w-4 text-mako-orange" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                  Get the pipeline live
+                </span>
+              </div>
+              <Button asChild size="sm" variant="default">
+                <Link to="/workspace?mode=output" target="_blank" rel="noreferrer">
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Open Output Mode
+                </Link>
+              </Button>
+            </div>
+            <ol className="space-y-1 text-[11px] font-mono text-muted-foreground list-decimal pl-5">
+              <li>Select a poll / folder</li>
+              <li>Confirm viewer slug exists</li>
+              <li>Click <span className="text-foreground">Full Screen Output</span></li>
+              <li>Click <span className="text-foreground">Go Live</span></li>
+              <li>Confirm <span className="text-foreground">voting_state = open</span></li>
+              <li>Return to Statistics and click <span className="text-foreground">Re-check Pipeline</span></li>
+            </ol>
+          </div>
+        )}
+
         {/* 2 + 4. Action row */}
         <div className="flex items-center gap-3">
           <Button onClick={() => void sendTestVote()} disabled={!canSendTest || running} size="sm">
