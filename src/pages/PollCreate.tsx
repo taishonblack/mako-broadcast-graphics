@@ -75,6 +75,12 @@ import {
   normalizeFolderState,
 } from '@/lib/polling-asset-folders';
 import { DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes, loadConfirmationlessMode } from '@/lib/operator-settings';
+import {
+  runGoLivePreflight,
+  syncSceneAnswersToPollAnswers,
+  type PreflightResult,
+} from '@/lib/go-live-preflight';
+import { GoLivePreflightDialog } from '@/components/operator/GoLivePreflightDialog';
 
 type OperatorMode = 'build' | 'output';
 
