@@ -138,6 +138,18 @@ export function PollingAssetsPane({
   const [draggedId, setDraggedId] = useState<AssetId | null>(null);
   const [pendingRemoval, setPendingRemoval] = useState<{ folderId: string; assetId: AssetId } | null>(null);
   const [pendingSceneDelete, setPendingSceneDelete] = useState<PollScene | null>(null);
+  // Independent per-scene collapse state. A scene is expanded by default;
+  // adding its id here collapses it regardless of selection. This lets the
+  // operator collapse all scenes (including the active one) at any time.
+  const [collapsedSceneIds, setCollapsedSceneIds] = useState<Set<string>>(new Set());
+  const toggleSceneCollapsed = (id: string) => {
+    setCollapsedSceneIds((prev) => {
+      const next = new Set(prev);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
+      return next;
+    });
+  };
 
   const confirmRemoval = () => {
     if (!pendingRemoval) return;
