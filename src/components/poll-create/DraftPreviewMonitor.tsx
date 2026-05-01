@@ -409,6 +409,19 @@ export function DraftPreviewMonitor({
               </div>
             </div>
           )}
+          {isLive && drift?.drift && (
+            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-mako-danger/10 border border-mako-danger/40 text-mako-danger">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              <div className="flex flex-col min-w-0">
+                <span className="text-[10px] uppercase tracking-wider font-semibold leading-tight">
+                  Audience drift detected
+                </span>
+                <span className="text-[10px] font-mono text-foreground/80 truncate">
+                  Live: {drift.voting_state}/{drift.live_slug ?? '—'} · Audience: {drift.audience_state ?? '—'}/{drift.audience_slug ?? '—'}
+                </span>
+              </div>
+            </div>
+          )}
           <div className="flex items-stretch gap-2">
             <div className="shrink-0 flex flex-col items-center gap-1 p-1.5 rounded-md bg-white border border-border">
               <QRCodeSVG value={fullUrl} size={56} level="M" />
