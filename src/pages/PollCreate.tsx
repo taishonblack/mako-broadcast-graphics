@@ -371,6 +371,11 @@ export default function PollCreate() {
     liveState: LiveState;
     votingState: VotingState;
     liveAnswerIdMap: Record<string, string>;
+    /** UUID of the live poll. Persisted so navigating away (e.g. to
+     *  /statistics) and back to /workspace re-keys usePollScenes against
+     *  the live poll — otherwise the hook falls back to the empty draft
+     *  cache and the operator sees "scenes disappeared". */
+    pollId?: string;
   };
   const loadPersistedLiveSession = (): PersistedLiveSession | null => {
     if (typeof window === 'undefined') return null;
