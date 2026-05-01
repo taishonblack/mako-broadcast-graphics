@@ -581,6 +581,7 @@ export type Database = {
         Row: {
           active_folder_id: string | null
           active_poll_id: string | null
+          live_audience_snapshot: Json | null
           live_folder_id: string | null
           live_poll_id: string | null
           live_poll_snapshot: Json | null
@@ -599,6 +600,7 @@ export type Database = {
         Insert: {
           active_folder_id?: string | null
           active_poll_id?: string | null
+          live_audience_snapshot?: Json | null
           live_folder_id?: string | null
           live_poll_id?: string | null
           live_poll_snapshot?: Json | null
@@ -617,6 +619,7 @@ export type Database = {
         Update: {
           active_folder_id?: string | null
           active_poll_id?: string | null
+          live_audience_snapshot?: Json | null
           live_folder_id?: string | null
           live_poll_id?: string | null
           live_poll_snapshot?: Json | null
@@ -906,6 +909,7 @@ export type Database = {
         Args: { _options: Json; _poll_id: string }
         Returns: Json
       }
+      viewer_state_drift: { Args: { _project_id: string }; Returns: Json }
     }
     Enums: {
       [_ in never]: never
