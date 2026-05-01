@@ -727,13 +727,84 @@ export default function PollCreate() {
 
     setSaving('project');
     try {
-      const saved = await savePoll({
-        id: pollId,
-        payload: buildPayload(),
-        userId: user.id,
-        status: 'saved',
-        projectId: selectedProjectId,
-      });
+      const basePayload = buildPayload();
+      let saved: SavedPoll;
+      try {
+        saved = await savePoll({
+          id: pollId,
+          payload: basePayload,
+          userId: user.id,
+          status: 'saved',
+          projectId: selectedProjectId,
+        });
+      } catch (err) {
+        // Block-position collision: another poll in this project already
+        // owns (block_letter, block_position). Either silently bump to
+        // the next free slot, or prompt the operator with a one-click fix.
+        if (!isBlockPositionConflict(err)) throw err;
+        const policy = loadBlockCollisionPolicy();
+        const targetLetter = (basePayload.blockLetter ?? 'A') as BlockLetter;
+        const nextPos = await findNextAvailableBlockPosition({
+          projectId: selectedProjectId,
+          blockLetter: targetLetter,
+          excludePollId: pollId,
+        });
+
+        const retrySave = async () => {
+          const fixedPayload = { ...basePayload, blockPosition: nextPos };
+          const result = await savePoll({
+            id: pollId,
+            payload: fixedPayload,
+            userId: user.id,
+            status: 'saved',
+            projectId: selectedProjectId,
+          });
+          // Reflect the new slot in the editor so the operator sees it.
+          setBlockPosition(nextPos);
+          return result;
+        };
+
+        if (policy === 'auto-next') {
+          saved = await retrySave();
+          if (source === 'manual') {
+            toast.success(`Slot ${targetLetter}${basePayload.blockPosition} was taken — moved to ${targetLetter}${nextPos}.`);
+          }
+        } else {
+          // 'prompt' — never silently mutate; offer the fix as an action.
+          // For autosaves we still surface the toast so the operator knows
+          // the autosave didn't land, but we don't auto-resolve.
+          toast.error(
+            `Block ${targetLetter}${basePayload.blockPosition} is already used in this project.`,
+            {
+              action: {
+                label: `Move to ${targetLetter}${nextPos}`,
+                onClick: () => {
+                  void (async () => {
+                    setSaving('project');
+                    try {
+                      const result = await retrySave();
+                      if (!pollId) {
+                        setPollId(result.id);
+                        navigate(`/polls/${result.id}`, { replace: true });
+                      }
+                      setProjectId(selectedProjectId);
+                      if (selectedProjectName) setProjectName(selectedProjectName);
+                      setDraftStatus('saved-to-project');
+                      toast.success(`Saved to slot ${targetLetter}${nextPos}.`);
+                    } catch (e2) {
+                      toast.error(`Save failed: ${(e2 as Error).message}`);
+                    } finally {
+                      setSaving(null);
+                    }
+                  })();
+                },
+              },
+              duration: 10000,
+            },
+          );
+          return false;
+        }
+      }
       if (!pollId) {
         setPollId(saved.id);
         navigate(`/polls/${saved.id}`, { replace: true });
