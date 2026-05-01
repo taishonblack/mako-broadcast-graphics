@@ -3329,7 +3329,7 @@ export default function PollCreate() {
               outputWindowRef.current = win;
               return win ?? null;
             }}
-            onGoLive={handleGoLive}
+            onGoLive={() => { void guardWithPreflight('go_live', handleGoLive); }}
             onEndPoll={handleEndPoll}
             confirmationlessMode={confirmationlessMode}
             onConfirmationlessModeChange={(next) => {
@@ -3345,11 +3345,13 @@ export default function PollCreate() {
               // Don't flip the UI optimistically — only flip after the DB
               // write actually lands an active_poll_id. Otherwise the badge
               // says VOTING OPEN while Statistics correctly reports
-              // "No active poll" because nothing was bound.
-              void (async () => {
+              // "No active poll" because nothing was bound. Pre-flight
+              // gates this so we never publish voting_state='open' against
+              // a half-configured poll.
+              void guardWithPreflight('open_voting', async () => {
                 const ok = await syncViewerVotingOpen();
                 if (ok) setVotingState('open');
-              })();
+              });
             }}
             onCloseVoting={() => {
               setVotingState('closed');
