@@ -410,7 +410,7 @@ export function DraftPreviewMonitor({
             </div>
           )}
           {isLive && drift?.drift && (
-            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-mako-danger/10 border border-mako-danger/40 text-mako-danger">
+            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-destructive/10 border border-destructive/40 text-destructive">
               <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
               <div className="flex flex-col min-w-0">
                 <span className="text-[10px] uppercase tracking-wider font-semibold leading-tight">
