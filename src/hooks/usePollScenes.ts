@@ -334,30 +334,30 @@ export function usePollScenes(pollId: string | undefined) {
    */
   const saveSceneAssetTransforms = useCallback(
     async (sceneId: string, transforms: AssetTransformMap) => {
-      const currentScene = scenes.find((s) => s.id === sceneId);
-      const visibleAssetIds = Array.from(currentScene?.visibleAssetIds ?? []);
-      const visibleTransforms = Object.fromEntries(
-        visibleAssetIds
-          .filter((assetId) => transforms[assetId])
-          .map((assetId) => [assetId, transforms[assetId]]),
-      ) as AssetTransformMap;
+      // Persist EVERY transform the operator has authored, not just the
+      // currently visible ones. Filtering by visibility caused transforms
+      // to disappear on save when an asset was temporarily hidden in the
+      // scene — the operator would see their layout snap back to defaults
+      // after a save/reload cycle.
+      const allTransforms = { ...transforms } as AssetTransformMap;
+      const allAssetIds = Object.keys(allTransforms);
       setScenes((prev) =>
-        prev.map((s) => (s.id === sceneId ? { ...s, assetTransforms: { ...visibleTransforms } } : s)),
+        prev.map((s) => (s.id === sceneId ? { ...s, assetTransforms: { ...allTransforms } } : s)),
       );
       const isDraft = sceneId.startsWith('draft-scene-');
       if (isDraft) {
         draftScenesRef.current = draftScenesRef.current.map((s) =>
-          s.id === sceneId ? { ...s, assetTransforms: { ...visibleTransforms } } : s,
+          s.id === sceneId ? { ...s, assetTransforms: { ...allTransforms } } : s,
         );
         return;
       }
-      try { await bulkSavePollSceneAssetTransforms(sceneId, visibleTransforms, visibleAssetIds); }
+      try { await bulkSavePollSceneAssetTransforms(sceneId, allTransforms, allAssetIds); }
       catch (err) {
         console.error('[usePollScenes] save transforms failed', err);
         toast.error('Failed to save scene layout');
       }
     },
-    [scenes],
+    [],
   );
 
   return {
