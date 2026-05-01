@@ -386,6 +386,19 @@ export function DraftPreviewMonitor({
 
         {/* URL display beneath preview */}
         <div className="w-full max-w-[880px] space-y-1.5">
+          {isLive && liveSlug && liveSlug !== slug && (
+            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-mako-warning/10 border border-mako-warning/40 text-mako-warning">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              <div className="flex flex-col min-w-0">
+                <span className="text-[10px] uppercase tracking-wider font-semibold leading-tight">
+                  Slug changed — not live
+                </span>
+                <span className="text-[10px] font-mono text-foreground/80 truncate">
+                  Live: /vote/{liveSlug} · Draft: /vote/{slug}
+                </span>
+              </div>
+            </div>
+          )}
           <div className="flex items-stretch gap-2">
             <div className="shrink-0 flex flex-col items-center gap-1 p-1.5 rounded-md bg-white border border-border">
               <QRCodeSVG value={fullUrl} size={56} level="M" />
