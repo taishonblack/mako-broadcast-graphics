@@ -1260,9 +1260,19 @@ export default function PollCreate() {
         live_poll_snapshot: snapshot as never,
         voting_state: 'open',
         output_state: 'program_live',
+        // Persist the slug + poll id currently on-air. These are the source of
+        // truth for the "Live voter link" label and slug-divergence warnings.
+        // Once written, the operator-side UI locks the slug input until End
+        // Live so the published QR / link can't drift mid-show.
+        live_slug: livePoll.slug,
+        live_poll_id: isUuid(livePoll.id) ? livePoll.id : null,
       } as never);
       if (error) {
         toast.error(`Go Live viewer sync failed: ${error.message}`);
+      } else {
+        // Optimistic local update so the lock + label flip immediately
+        // without waiting for the realtime echo.
+        setLiveSlug(livePoll.slug);
       }
       // Write to public_viewer_state — the audience-only source of truth.
       const audienceSnapshot: PublicViewerPollSnapshot = {
