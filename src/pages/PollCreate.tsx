@@ -304,6 +304,18 @@ export default function PollCreate() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [autosaveMinutes, setAutosaveMinutes] = useState<number>(DEFAULT_AUTOSAVE_MINUTES);
 
+  // Currently-published voter slug (read from project_live_state.live_slug).
+  // Distinct from `slug` below, which is the editable draft slug. When the two
+  // diverge while live, DraftPreviewMonitor surfaces a "Slug changed — Go Live
+  // again" warning so the operator never assumes their edit is on-air.
+  const [liveSlug, setLiveSlug] = useState<string | null>(null);
+
+  // Modal that intercepts slug edits while live. The slug input is read-only
+  // in that state; clicking it (or programmatic setSlug calls) opens this so
+  // the operator must explicitly End Live or Duplicate the poll first.
+  const [slugLockDialogOpen, setSlugLockDialogOpen] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
+
   const [question, setQuestion] = useState('');
   const [internalName, setInternalName] = useState('');
   const [slug, setSlug] = useState('');
