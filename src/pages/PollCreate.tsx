@@ -298,7 +298,20 @@ export default function PollCreate() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
 
-  const [pollId, setPollId] = useState<string | undefined>(routeId);
+  // On first mount, prefer the route id; otherwise rehydrate the live
+  // poll id from sessionStorage so returning from /statistics during a
+  // live session keeps usePollScenes pointed at the same cache key.
+  const [pollId, setPollId] = useState<string | undefined>(() => {
+    if (routeId) return routeId;
+    if (typeof window === 'undefined') return undefined;
+    try {
+      const raw = sessionStorage.getItem('mako-live-session');
+      if (!raw) return undefined;
+      const parsed = JSON.parse(raw) as { pollId?: string; liveState?: string };
+      if (parsed?.liveState === 'live' && parsed.pollId) return parsed.pollId;
+    } catch { /* ignore */ }
+    return undefined;
+  });
   const [loadingExisting, setLoadingExisting] = useState(!!routeId);
   // Scene management — Project > Block > Folder/Poll > Scene > Assets.
   // When a poll has zero scenes, the assets pane is greyed out until the
@@ -371,6 +384,11 @@ export default function PollCreate() {
     liveState: LiveState;
     votingState: VotingState;
     liveAnswerIdMap: Record<string, string>;
+    /** UUID of the live poll. Persisted so navigating away (e.g. to
+     *  /statistics) and back to /workspace re-keys usePollScenes against
+     *  the live poll — otherwise the hook falls back to the empty draft
+     *  cache and the operator sees "scenes disappeared". */
+    pollId?: string;
   };
   const loadPersistedLiveSession = (): PersistedLiveSession | null => {
     if (typeof window === 'undefined') return null;
@@ -542,13 +560,13 @@ export default function PollCreate() {
       if (liveState === 'live') {
         sessionStorage.setItem(
           LIVE_SESSION_KEY,
-          JSON.stringify({ liveState, votingState, liveAnswerIdMap }),
+          JSON.stringify({ liveState, votingState, liveAnswerIdMap, pollId }),
         );
       } else {
         sessionStorage.removeItem(LIVE_SESSION_KEY);
       }
     } catch { /* ignore quota / private mode */ }
-  }, [liveState, votingState, liveAnswerIdMap]);
+  }, [liveState, votingState, liveAnswerIdMap, pollId]);
 
   // Reconcile live state from the DB on mount / when projectId resolves.
   // If the operator went Live then navigated away, project_live_state is
