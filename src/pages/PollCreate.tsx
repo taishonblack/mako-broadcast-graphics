@@ -2578,6 +2578,38 @@ export default function PollCreate() {
     }));
   };
 
+  /**
+   * Duplicate the currently-loaded poll via the `clone_poll` SECURITY DEFINER
+   * RPC. The original keeps running on-air with its locked slug; the copy is
+   * a draft with a fresh "-copy" slug the operator can edit and Go Live on
+   * when ready. We navigate to the copy so the workspace is ready to edit it.
+   */
+  const handleDuplicateLivePoll = async () => {
+    if (!isUuid(pollId ?? '')) {
+      toast.error('Save the poll before duplicating.');
+      return;
+    }
+    setDuplicating(true);
+    try {
+      const { data, error } = await supabase.rpc('clone_poll' as never, { _poll_id: pollId } as never);
+      if (error) {
+        toast.error(`Duplicate failed: ${error.message}`);
+        return;
+      }
+      const result = data as { ok?: boolean; poll_id?: string; viewer_slug?: string; error?: string } | null;
+      if (!result?.ok || !result.poll_id) {
+        toast.error(`Duplicate failed: ${result?.error ?? 'unknown'}`);
+        return;
+      }
+      toast.success(`Duplicated as /vote/${result.viewer_slug}`);
+      setSlugLockDialogOpen(false);
+      // Navigate to the new draft poll. The original stays on-air.
+      navigate(`/polls/${result.poll_id}`);
+    } finally {
+      setDuplicating(false);
+    }
+  };
+
   const syncActiveFolderBackground = (nextBackground: { bgColor?: string; bgImage?: string }) => {
     updateFolderState((current) => ({
       ...current,
