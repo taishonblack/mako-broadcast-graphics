@@ -133,6 +133,7 @@ export function DraftPreviewMonitor({
   folderLabel,
   isLive = false,
   liveSlug = null,
+  projectId = null,
 }: DraftPreviewMonitorProps) {
   const [previewModeUncontrolled, setPreviewModeUncontrolled] = useState<PreviewMode>('program');
   const previewMode = previewModeProp ?? previewModeUncontrolled;
