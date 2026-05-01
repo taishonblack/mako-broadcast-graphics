@@ -47,7 +47,7 @@ import { writePublicViewerState, type PublicViewerPollSnapshot } from '@/lib/pub
 import { EQUAL_BASE, equalShareAnswers } from '@/lib/answer-percents';
 import { FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Monitor, Radio, Undo2, Redo2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { loadPoll, savePoll, listPolls, listProjects, DraftPollPayload, SavedPoll, BlockLetter, isBlockPositionConflict, findNextAvailableBlockPosition } from '@/lib/poll-persistence';
+import { loadPoll, savePoll, listPolls, listProjects, DraftPollPayload, SavedPoll, BlockLetter, isBlockPositionConflict, findNextAvailableBlockPosition, isViewerSlugConflict, findNextAvailableViewerSlug } from '@/lib/poll-persistence';
 import { OperatorOutputMode } from '@/components/operator/OperatorOutputMode';
 import { takeToProgram, cutToProgram, setPreviewScene as dbSetPreviewScene, type SceneName } from '@/lib/broadcast-state';
 import { toast } from 'sonner';
@@ -738,10 +738,73 @@ export default function PollCreate() {
           projectId: selectedProjectId,
         });
       } catch (err) {
+        // Viewer-slug collision: another poll in this project already
+        // owns the same `/vote/:slug`. Mirror the block-position policy —
+        // either silently suffix `-2`, `-3`, … or prompt with a one-click fix.
+        if (isViewerSlugConflict(err)) {
+          const policy = loadBlockCollisionPolicy();
+          const baseSlug = (basePayload.slug || basePayload.internalName || 'poll')
+            .trim().toLowerCase().replace(/[^a-z0-9-]+/g, '-').replace(/^-+|-+$/g, '') || 'poll';
+          const nextSlug = await findNextAvailableViewerSlug({
+            projectId: selectedProjectId,
+            baseSlug,
+            excludePollId: pollId,
+          });
+
+          const retrySlugSave = async () => {
+            return await savePoll({
+              id: pollId,
+              payload: basePayload,
+              userId: user.id,
+              status: 'saved',
+              projectId: selectedProjectId,
+              viewerSlugOverride: nextSlug,
+            });
+          };
+
+          if (policy === 'auto-next') {
+            saved = await retrySlugSave();
+            if (source === 'manual') {
+              toast.success(`Viewer URL "/vote/${baseSlug}" was taken — saved as "/vote/${nextSlug}".`);
+            }
+          } else {
+            toast.error(
+              `Viewer URL "/vote/${baseSlug}" is already used in this project.`,
+              {
+                action: {
+                  label: `Use /vote/${nextSlug}`,
+                  onClick: () => {
+                    void (async () => {
+                      setSaving('project');
+                      try {
+                        const result = await retrySlugSave();
+                        if (!pollId) {
+                          setPollId(result.id);
+                          navigate(`/polls/${result.id}`, { replace: true });
+                        }
+                        setProjectId(selectedProjectId);
+                        if (selectedProjectName) setProjectName(selectedProjectName);
+                        setDraftStatus('saved-to-project');
+                        toast.success(`Saved as /vote/${nextSlug}.`);
+                      } catch (e2) {
+                        toast.error(`Save failed: ${(e2 as Error).message}`);
+                      } finally {
+                        setSaving(null);
+                      }
+                    })();
+                  },
+                },
+                duration: 10000,
+              },
+            );
+            return false;
+          }
+        } else if (!isBlockPositionConflict(err)) {
+          throw err;
+        } else {
         // Block-position collision: another poll in this project already
         // owns (block_letter, block_position). Either silently bump to
         // the next free slot, or prompt the operator with a one-click fix.
-        if (!isBlockPositionConflict(err)) throw err;
         const policy = loadBlockCollisionPolicy();
         const targetLetter = (basePayload.blockLetter ?? 'A') as BlockLetter;
         const nextPos = await findNextAvailableBlockPosition({
@@ -803,6 +866,7 @@ export default function PollCreate() {
             },
           );
           return false;
+        }
         }
       }
       if (!pollId) {

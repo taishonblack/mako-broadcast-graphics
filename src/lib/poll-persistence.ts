@@ -127,11 +127,18 @@ export async function savePoll(opts: {
   userId: string;
   status: 'draft' | 'saved';
   projectId?: string;
+  /** When provided, force-write this viewer_slug (used by conflict-retry). */
+  viewerSlugOverride?: string;
 }): Promise<SavedPoll> {
   const row = toRow(opts.payload, opts.userId, opts.status, opts.projectId);
+  if (opts.viewerSlugOverride) {
+    row.viewer_slug = opts.viewerSlugOverride.trim().toLowerCase();
+  }
   if (opts.id) {
-    // On update, omit viewer_slug so we don't churn it on every autosave.
-    const { viewer_slug: _vs, ...updateRow } = row;
+    // On update, omit viewer_slug so we don't churn it on every autosave —
+    // unless the caller explicitly wants to set it (conflict-retry path).
+    const { viewer_slug: _vs, ...rest } = row;
+    const updateRow = opts.viewerSlugOverride ? { ...rest, viewer_slug: row.viewer_slug } : rest;
     const { data, error } = await supabase
       .from('polls').update(updateRow as never).eq('id', opts.id).select().single();
     if (error) throw error;
@@ -198,6 +205,50 @@ export function isBlockPositionConflict(err: unknown): boolean {
   const blob = `${e.message ?? ''} ${e.details ?? ''}`;
   if (e.code === '23505' && /block_position/i.test(blob)) return true;
   return /polls_project_block_position_unique/i.test(blob);
+}
+
+/**
+ * Detect the `(project_id, viewer_slug)` unique-violation that fires when
+ * two polls in the same project try to publish the same `/vote/:slug`.
+ * Mirrors {@link isBlockPositionConflict} — match the constraint name first,
+ * fall back to a substring check.
+ */
+export function isViewerSlugConflict(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const e = err as { code?: string; message?: string; details?: string };
+  const blob = `${e.message ?? ''} ${e.details ?? ''}`;
+  if (e.code === '23505' && /viewer_slug/i.test(blob)) return true;
+  return /polls_project_viewer_slug_unique/i.test(blob);
+}
+
+/**
+ * Find the lowest unused suffixed viewer_slug within (projectId), starting
+ * from the requested base. Returns the base itself if it's free, otherwise
+ * `base-2`, `base-3`, … The current poll (if any) is excluded so re-saving
+ * its own slug is always allowed.
+ */
+export async function findNextAvailableViewerSlug(opts: {
+  projectId: string;
+  baseSlug: string;
+  excludePollId?: string | null;
+}): Promise<string> {
+  const base = (opts.baseSlug || '').trim().toLowerCase() || `poll-${Math.random().toString(36).slice(2, 8)}`;
+  let query = supabase
+    .from('polls')
+    .select('viewer_slug')
+    .eq('project_id', opts.projectId);
+  if (opts.excludePollId) {
+    query = query.neq('id', opts.excludePollId);
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  const taken = new Set(((data ?? []) as Array<{ viewer_slug: string | null }>)
+    .map((r) => (r.viewer_slug ?? '').toLowerCase())
+    .filter((s) => s.length > 0));
+  if (!taken.has(base)) return base;
+  let n = 2;
+  while (taken.has(`${base}-${n}`)) n += 1;
+  return `${base}-${n}`;
 }
 
 /**
