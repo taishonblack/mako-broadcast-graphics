@@ -154,9 +154,17 @@ export function VotePipelineCheck() {
     void refresh();
   }, [refresh]);
 
+  // Hard gates for Send Test Vote — every condition must be green or we
+  // refuse, otherwise the test would assert against a half-published state
+  // and produce misleading pass/fail rows.
   const canSendTest = useMemo(() => {
     if (!snapshot) return false;
-    return Boolean(snapshot.active_poll_id) && snapshot.voting_state === 'open' && Boolean(snapshot.first_answer_id);
+    return (
+      Boolean(snapshot.active_poll_id) &&
+      snapshot.pvs_has_snapshot &&
+      snapshot.voting_state === 'open' &&
+      Boolean(snapshot.first_answer_id)
+    );
   }, [snapshot]);
 
   const sendTestVote = useCallback(async () => {
