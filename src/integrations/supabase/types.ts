@@ -874,6 +874,7 @@ export type Database = {
         Returns: Json
       }
       cleanup_vote_analytics: { Args: never; Returns: undefined }
+      clone_poll: { Args: { _poll_id: string }; Returns: Json }
       get_viewer_poll_by_slug: {
         Args: { _slug: string }
         Returns: {
