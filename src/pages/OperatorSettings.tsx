@@ -1,7 +1,7 @@
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { AUTOSAVE_MINUTE_OPTIONS, DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes, loadConfirmationlessMode, saveAutosaveMinutes, saveConfirmationlessMode, loadHotkeys, saveHotkeys, DEFAULT_HOTKEYS, formatHotkey, OperatorHotkeys } from '@/lib/operator-settings';
+import { AUTOSAVE_MINUTE_OPTIONS, DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes, loadConfirmationlessMode, saveAutosaveMinutes, saveConfirmationlessMode, loadHotkeys, saveHotkeys, DEFAULT_HOTKEYS, formatHotkey, OperatorHotkeys, loadBlockCollisionPolicy, saveBlockCollisionPolicy, type BlockCollisionPolicy } from '@/lib/operator-settings';
 import { useColorSwatches, MAX_SWATCHES } from '@/lib/color-swatches';
 import { Keyboard, Palette, Plus, Settings2, ShieldCheck, Trash2, Zap } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -13,6 +13,7 @@ export default function OperatorSettings() {
   const [autosaveMinutes, setAutosaveMinutes] = useState(loadAutosaveMinutes());
   const { swatches, addSwatch, renameSwatch, updateSwatchValue, removeSwatch, clearSwatches } = useColorSwatches();
   const [quickSwitch, setQuickSwitch] = useState(loadConfirmationlessMode());
+  const [blockPolicy, setBlockPolicy] = useState<BlockCollisionPolicy>(loadBlockCollisionPolicy());
   const [hotkeys, setHotkeys] = useState<OperatorHotkeys>(loadHotkeys());
   const [capturing, setCapturing] = useState<null | 'take' | 'cut'>(null);
   const [newName, setNewName] = useState('');
@@ -230,6 +231,42 @@ export default function OperatorSettings() {
                 }}
                 aria-label="Enable Quick Switch"
               />
+            </div>
+          </section>
+
+          {/* ── Block-position collision policy ──────────────────────────
+              Two polls in the same project can't share a (block_letter,
+              block_position) slot — the unique index rejects the second
+              save. This setting decides what happens when that fires.
+          */}
+          <section className="rounded-lg border border-border bg-card/40 p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 text-foreground">
+                  <Settings2 className="h-4 w-4" />
+                  <h2 className="text-sm font-medium">Block slot conflicts on save</h2>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  When you save a poll into a block slot that's already taken in this project
+                  (e.g. another poll already owns <span className="font-mono text-foreground">B&nbsp;3</span>),
+                  decide whether the save should auto-move the poll to the next free slot
+                  in the same block, or stop and ask first.
+                </p>
+              </div>
+              <div className="shrink-0">
+                <Switch
+                  checked={blockPolicy === 'auto-next'}
+                  onCheckedChange={(v) => {
+                    const next: BlockCollisionPolicy = v ? 'auto-next' : 'prompt';
+                    setBlockPolicy(next);
+                    saveBlockCollisionPolicy(next);
+                    toast.success(next === 'auto-next'
+                      ? 'Auto-move to next free block slot enabled'
+                      : 'Will prompt before changing block slot');
+                  }}
+                  aria-label="Auto-move to next free block slot on conflict"
+                />
+              </div>
             </div>
           </section>
 

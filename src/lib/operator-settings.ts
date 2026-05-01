@@ -102,3 +102,31 @@ export function formatHotkey(key: string): string {
   if (key === 'Enter') return 'ENTER';
   return key.toUpperCase();
 }
+
+/**
+ * Block-position collision policy. Saving two polls into the same
+ * (project, block_letter, block_position) triggers a unique-violation
+ * from Postgres (`polls_project_block_position_unique`). The save
+ * handler can react in two ways:
+ *   - 'prompt' (default): show a toast with an "Auto-fix slot" action
+ *     that bumps to the lowest unused position in the same block.
+ *   - 'auto-next':        silently bump to the lowest unused position
+ *     and retry the save without operator intervention.
+ * `block_position` is NOT NULL in the schema, so a true "clear" isn't
+ * possible — the only safe recovery is moving to another free slot.
+ */
+export type BlockCollisionPolicy = 'prompt' | 'auto-next';
+export const OPERATOR_BLOCK_COLLISION_KEY = 'mako-operator-block-collision-policy';
+export const DEFAULT_BLOCK_COLLISION_POLICY: BlockCollisionPolicy = 'prompt';
+
+export function loadBlockCollisionPolicy(): BlockCollisionPolicy {
+  if (typeof window === 'undefined') return DEFAULT_BLOCK_COLLISION_POLICY;
+  const raw = window.localStorage.getItem(OPERATOR_BLOCK_COLLISION_KEY);
+  if (raw === 'auto-next' || raw === 'prompt') return raw;
+  return DEFAULT_BLOCK_COLLISION_POLICY;
+}
+
+export function saveBlockCollisionPolicy(policy: BlockCollisionPolicy) {
+  if (typeof window === 'undefined') return;
+  window.localStorage.setItem(OPERATOR_BLOCK_COLLISION_KEY, policy);
+}
