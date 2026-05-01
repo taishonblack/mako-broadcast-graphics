@@ -128,6 +128,7 @@ export function DraftPreviewMonitor({
   slateSublineStyle,
   folderLabel,
   isLive = false,
+  liveSlug = null,
 }: DraftPreviewMonitorProps) {
   const [previewModeUncontrolled, setPreviewModeUncontrolled] = useState<PreviewMode>('program');
   const previewMode = previewModeProp ?? previewModeUncontrolled;
