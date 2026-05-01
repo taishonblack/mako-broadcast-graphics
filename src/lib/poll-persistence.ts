@@ -184,3 +184,47 @@ export async function listPolls(): Promise<SavedPoll[]> {
   if (error) throw error;
   return (data ?? []).map(fromRow);
 }
+
+/**
+ * Detects whether a thrown Supabase error corresponds to the
+ * `(project_id, block_letter, block_position)` unique-violation that
+ * fires when two polls in the same project try to occupy the same
+ * block slot. We match on the constraint name (preferred) and fall
+ * back to a substring check so a renamed constraint still trips it.
+ */
+export function isBlockPositionConflict(err: unknown): boolean {
+  if (!err || typeof err !== 'object') return false;
+  const e = err as { code?: string; message?: string; details?: string };
+  const blob = `${e.message ?? ''} ${e.details ?? ''}`;
+  if (e.code === '23505' && /block_position/i.test(blob)) return true;
+  return /polls_project_block_position_unique/i.test(blob);
+}
+
+/**
+ * Find the lowest unused block_position within (projectId, blockLetter),
+ * starting at 1. The current poll (if it already has a row) is excluded
+ * from the "occupied" set so renaming/saving it back into its own slot
+ * is always allowed.
+ */
+export async function findNextAvailableBlockPosition(opts: {
+  projectId: string;
+  blockLetter: BlockLetter;
+  excludePollId?: string | null;
+}): Promise<number> {
+  let query = supabase
+    .from('polls')
+    .select('block_position')
+    .eq('project_id', opts.projectId)
+    .eq('block_letter', opts.blockLetter);
+  if (opts.excludePollId) {
+    query = query.neq('id', opts.excludePollId);
+  }
+  const { data, error } = await query;
+  if (error) throw error;
+  const taken = new Set(((data ?? []) as Array<{ block_position: number | null }>)
+    .map((r) => r.block_position)
+    .filter((n): n is number => typeof n === 'number'));
+  let candidate = 1;
+  while (taken.has(candidate)) candidate += 1;
+  return candidate;
+}
