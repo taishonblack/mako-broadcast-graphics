@@ -625,7 +625,7 @@ export default function PollCreate() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'project_live_state', filter: `project_id=eq.${projectId}` },
         (payload) => {
-          const row = (payload.new ?? null) as { output_state?: string; voting_state?: string } | null;
+          const row = (payload.new ?? null) as { output_state?: string; voting_state?: string; live_slug?: string | null } | null;
           if (!row) return;
           const dbLive = row.output_state === 'program_live';
           if (dbLive) {
@@ -643,6 +643,10 @@ export default function PollCreate() {
           }
           const v = row.voting_state;
           if (v === 'open' || v === 'closed' || v === 'not_open') setVotingState(v);
+          if (Object.prototype.hasOwnProperty.call(row, 'live_slug')) {
+            const ls = row.live_slug ?? null;
+            setLiveSlug(ls && ls.length > 0 ? ls : null);
+          }
         },
       )
       .subscribe();
