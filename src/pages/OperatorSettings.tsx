@@ -1,7 +1,7 @@
 import { OperatorLayout } from '@/components/layout/OperatorLayout';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { AUTOSAVE_MINUTE_OPTIONS, DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes, loadConfirmationlessMode, saveAutosaveMinutes, saveConfirmationlessMode, loadHotkeys, saveHotkeys, DEFAULT_HOTKEYS, formatHotkey, OperatorHotkeys } from '@/lib/operator-settings';
+import { AUTOSAVE_MINUTE_OPTIONS, DEFAULT_AUTOSAVE_MINUTES, loadAutosaveMinutes, loadConfirmationlessMode, saveAutosaveMinutes, saveConfirmationlessMode, loadHotkeys, saveHotkeys, DEFAULT_HOTKEYS, formatHotkey, OperatorHotkeys, loadBlockCollisionPolicy, saveBlockCollisionPolicy, type BlockCollisionPolicy } from '@/lib/operator-settings';
 import { useColorSwatches, MAX_SWATCHES } from '@/lib/color-swatches';
 import { Keyboard, Palette, Plus, Settings2, ShieldCheck, Trash2, Zap } from 'lucide-react';
 import { Switch } from '@/components/ui/switch';
@@ -13,6 +13,7 @@ export default function OperatorSettings() {
   const [autosaveMinutes, setAutosaveMinutes] = useState(loadAutosaveMinutes());
   const { swatches, addSwatch, renameSwatch, updateSwatchValue, removeSwatch, clearSwatches } = useColorSwatches();
   const [quickSwitch, setQuickSwitch] = useState(loadConfirmationlessMode());
+  const [blockPolicy, setBlockPolicy] = useState<BlockCollisionPolicy>(loadBlockCollisionPolicy());
   const [hotkeys, setHotkeys] = useState<OperatorHotkeys>(loadHotkeys());
   const [capturing, setCapturing] = useState<null | 'take' | 'cut'>(null);
   const [newName, setNewName] = useState('');
