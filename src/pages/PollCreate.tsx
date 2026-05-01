@@ -1462,6 +1462,10 @@ export default function PollCreate() {
         // slug input and the "Live voter link" label reverts to "Draft".
         live_slug: null,
         live_poll_id: null,
+        // Clear the audience snapshot too — the DB trigger will mirror this
+        // into public_viewer_state so no stale poll lingers for late viewers.
+        live_audience_snapshot: null,
+        active_poll_id: null,
       } as never);
       setLiveSlug(null);
       // Audience returns to MakoVote branding.
