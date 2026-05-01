@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, XCircle, Loader2, Activity, RefreshCw, AlertTriangle } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Activity, RefreshCw, AlertTriangle, ExternalLink } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -153,9 +154,17 @@ export function VotePipelineCheck() {
     void refresh();
   }, [refresh]);
 
+  // Hard gates for Send Test Vote — every condition must be green or we
+  // refuse, otherwise the test would assert against a half-published state
+  // and produce misleading pass/fail rows.
   const canSendTest = useMemo(() => {
     if (!snapshot) return false;
-    return Boolean(snapshot.active_poll_id) && snapshot.voting_state === 'open' && Boolean(snapshot.first_answer_id);
+    return (
+      Boolean(snapshot.active_poll_id) &&
+      snapshot.pvs_has_snapshot &&
+      snapshot.voting_state === 'open' &&
+      Boolean(snapshot.first_answer_id)
+    );
   }, [snapshot]);
 
   const sendTestVote = useCallback(async () => {
@@ -266,9 +275,22 @@ export function VotePipelineCheck() {
     if (!snapshot) return null;
     if (!snapshot.active_poll_id) return 'No active poll. Go Live or Open Voting first.';
     if (snapshot.voting_state !== 'open') return 'Open voting before running a test vote.';
+    if (!snapshot.pvs_has_snapshot) return 'poll_snapshot missing — Go Live again to publish a snapshot.';
     if (!snapshot.first_answer_id) return 'No answers configured for the active poll.';
     return null;
   }, [snapshot]);
+
+  // Surfaced when the operator ended a show but a stale slug is lingering.
+  // Real cause: live_slug persisted but active_poll_id was cleared. The
+  // public_viewer_state row may still be `voting` until the next Go Live
+  // overwrites it via the sync trigger.
+  const showStaleSlugWarning = Boolean(snapshot && snapshot.live_slug && !snapshot.active_poll_id);
+
+  // Show the "Open Output Mode" helper whenever we can't run the pipeline:
+  // either no active poll at all, or voting hasn't been opened yet.
+  const showOpenOutputHelper = Boolean(
+    snapshot && (!snapshot.active_poll_id || snapshot.voting_state !== 'open'),
+  );
 
   return (
     <Card className="border-mako-orange/30">
@@ -303,6 +325,51 @@ export function VotePipelineCheck() {
           <Field label="poll_answers Σ live_votes" value={snapshot ? String(snapshot.total_live_votes) : '—'} />
           <Field label="vote_analytics (poll)" value={snapshot ? String(snapshot.analytics_count) : '—'} />
         </div>
+
+        {/* Stale slug — slug published but no active poll. Operator probably
+         *  ended live and the slug pointer wasn't cleared, or Go Live half-
+         *  succeeded. Either way, the audience link points to nothing. */}
+        {showStaleSlugWarning && (
+          <div className="flex items-start gap-2 rounded-md border border-mako-warning/40 bg-mako-warning/10 px-3 py-2 text-xs text-mako-warning">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <div className="font-semibold">Live slug exists, but no active poll is published.</div>
+              <div className="text-[11px] font-mono text-foreground/80 mt-0.5">
+                /vote/{snapshot?.live_slug} → no active_poll_id. Go Live again to publish this slug.
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Operator helper — shown when there's no active poll OR voting
+         *  isn't open yet. Walks the operator through the exact steps to
+         *  get the pipeline into a runnable state. */}
+        {showOpenOutputHelper && (
+          <div className="rounded-md border border-mako-orange/30 bg-mako-orange/5 p-3 space-y-2.5">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex items-center gap-2">
+                <Activity className="h-4 w-4 text-mako-orange" />
+                <span className="text-xs font-semibold uppercase tracking-wider text-foreground">
+                  Get the pipeline live
+                </span>
+              </div>
+              <Button asChild size="sm" variant="default">
+                <Link to="/workspace?mode=output" target="_blank" rel="noreferrer">
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  Open Output Mode
+                </Link>
+              </Button>
+            </div>
+            <ol className="space-y-1 text-[11px] font-mono text-muted-foreground list-decimal pl-5">
+              <li>Select a poll / folder</li>
+              <li>Confirm viewer slug exists</li>
+              <li>Click <span className="text-foreground">Full Screen Output</span></li>
+              <li>Click <span className="text-foreground">Go Live</span></li>
+              <li>Confirm <span className="text-foreground">voting_state = open</span></li>
+              <li>Return to Statistics and click <span className="text-foreground">Re-check Pipeline</span></li>
+            </ol>
+          </div>
+        )}
 
         {/* 2 + 4. Action row */}
         <div className="flex items-center gap-3">
