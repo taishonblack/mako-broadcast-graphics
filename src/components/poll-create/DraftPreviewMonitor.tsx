@@ -18,6 +18,7 @@ import { AssetColorMap, AssetId, AssetState, AssetTransformMap } from './polling
 import { QRPosition } from '@/lib/types';
 import { WordmarkLockup } from '@/components/broadcast/WordmarkLockup';
 import { usePreviewOverlays } from '@/lib/preview-overlays';
+import { useViewerStateDrift } from '@/hooks/useViewerStateDrift';
 
 export type PreviewMode = 'program' | 'mobile' | 'desktop';
 
@@ -61,6 +62,9 @@ interface DraftPreviewMonitorProps {
    *  prop while live, we render a "Slug changed — Go Live again" warning so
    *  the operator can see at a glance that their edit isn't on-air. */
   liveSlug?: string | null;
+  /** Project id, used by the audience-drift watcher to compare
+   *  public_viewer_state vs project_live_state. */
+  projectId?: string | null;
   /** Active broadcast scene template. When set, the program preview
    *  switches between Fullscreen / Results / Lower Third so Build mirrors
    *  exactly what Output renders for the same scene. */
