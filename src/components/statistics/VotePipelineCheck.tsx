@@ -165,18 +165,60 @@ export function VotePipelineCheck() {
     void refresh();
   }, [refresh]);
 
+  // Auto re-check when the operator returns to the Statistics tab — covers
+  // the "open Output Mode in a new tab → Go Live → come back" loop so the
+  // checklist updates immediately without a manual click.
+  useEffect(() => {
+    const onFocus = () => { void refresh(); };
+    const onVisible = () => { if (document.visibilityState === 'visible') void refresh(); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [refresh]);
+
+  // Snapshot/slug mismatch — pvs has a poll_snapshot but its embedded
+  // poll id doesn't correspond to the currently published live_slug's
+  // expected active_poll_id (or the audience row's slug differs from
+  // live_slug). Either way, viewers are looking at the wrong poll.
+  const slugMismatch = useMemo(() => {
+    if (!snapshot || !snapshot.pvs_has_snapshot) return false;
+    if (snapshot.live_slug && snapshot.pvs_slug && snapshot.live_slug !== snapshot.pvs_slug) return true;
+    if (snapshot.active_poll_id && snapshot.pvs_snapshot_poll_id && snapshot.active_poll_id !== snapshot.pvs_snapshot_poll_id) return true;
+    return false;
+  }, [snapshot]);
+
   // Hard gates for Send Test Vote — every condition must be green or we
   // refuse, otherwise the test would assert against a half-published state
   // and produce misleading pass/fail rows.
-  const canSendTest = useMemo(() => {
-    if (!snapshot) return false;
-    return (
-      Boolean(snapshot.active_poll_id) &&
-      snapshot.pvs_has_snapshot &&
-      snapshot.voting_state === 'open' &&
-      Boolean(snapshot.first_answer_id)
-    );
-  }, [snapshot]);
+  // Per-gate evaluation — drives both the disable logic and the
+  // diagnostic breakdown shown under the Send Test Vote button.
+  const gates = useMemo(() => {
+    const s = snapshot;
+    return [
+      { key: 'active_poll_id', label: 'active_poll_id present',
+        ok: Boolean(s?.active_poll_id),
+        detail: s?.active_poll_id ?? 'no active_poll_id in project_live_state' },
+      { key: 'pvs_has_snapshot', label: 'public_viewer_state has poll_snapshot',
+        ok: Boolean(s?.pvs_has_snapshot),
+        detail: s?.pvs_has_snapshot ? `snapshot.id = ${s?.pvs_snapshot_poll_id ?? '—'}` : 'poll_snapshot missing' },
+      { key: 'snapshot_matches_slug', label: 'poll_snapshot matches live_slug',
+        ok: !slugMismatch,
+        detail: slugMismatch
+          ? `live_slug=${snapshot?.live_slug ?? '—'} · pvs_slug=${snapshot?.pvs_slug ?? '—'} · snapshot.id=${snapshot?.pvs_snapshot_poll_id ?? '—'}`
+          : 'snapshot aligned with live_slug' },
+      { key: 'voting_state', label: 'voting_state = open',
+        ok: s?.voting_state === 'open',
+        detail: `voting_state = ${s?.voting_state ?? 'unknown'}` },
+      { key: 'first_answer_id', label: 'at least one poll answer exists',
+        ok: Boolean(s?.first_answer_id),
+        detail: s?.first_answer_id ? `first answer = ${s?.first_answer_label ?? s?.first_answer_id}` : 'no answers configured' },
+    ];
+  }, [snapshot, slugMismatch]);
+
+  const canSendTest = useMemo(() => snapshot != null && gates.every((g) => g.ok), [snapshot, gates]);
 
   const sendTestVote = useCallback(async () => {
     if (!snapshot) return;
