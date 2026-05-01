@@ -154,8 +154,29 @@ export function ContentPanel({
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] text-muted-foreground font-mono shrink-0">/vote/</span>
-              <Input value={slug} onChange={e => setSlug(e.target.value)} placeholder="penalty-call" className="bg-background/50 h-8 text-xs" />
+              <Input
+                value={slug}
+                onChange={e => setSlug(e.target.value)}
+                onMouseDown={(e) => {
+                  // Intercept the click before the input takes focus so the
+                  // parent can open the End Live / Duplicate modal without the
+                  // operator typing into a field that won't accept changes.
+                  if (slugLocked) {
+                    e.preventDefault();
+                    setSlug(slug);
+                  }
+                }}
+                readOnly={slugLocked}
+                placeholder="penalty-call"
+                className={`bg-background/50 h-8 text-xs ${slugLocked ? 'cursor-not-allowed opacity-70' : ''}`}
+              />
             </div>
+            {slugLocked && (
+              <div className="mt-1.5 flex items-center gap-1.5 text-[10px] font-semibold text-mako-success/90">
+                <Lock className="w-3 h-3" />
+                <span className="uppercase tracking-wider">Live link locked</span>
+              </div>
+            )}
           </div>
         </div>
       </div>
