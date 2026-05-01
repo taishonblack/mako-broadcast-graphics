@@ -3,7 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { PlusCircle, GripVertical, Trash2, HelpCircle } from 'lucide-react';
+import { PlusCircle, GripVertical, Trash2, HelpCircle, Lock } from 'lucide-react';
 
 export type AnswerType = 'yes-no' | 'multiple-choice' | 'custom';
 export type MCLabelStyle = 'letters' | 'numbers' | 'none' | 'custom';
@@ -25,6 +25,11 @@ interface ContentPanelProps {
   setSubheadline: (v: string) => void;
   slug: string;
   setSlug: (v: string) => void;
+  /** When true, the viewer slug is locked because a poll is currently on-air.
+   *  The input becomes read-only and a "LIVE LINK LOCKED" chip is shown. The
+   *  parent intercepts edit attempts via setSlug to surface the End Live /
+   *  Duplicate modal. */
+  slugLocked?: boolean;
   answerType: AnswerType;
   setAnswerType: (v: AnswerType) => void;
   mcLabelStyle: MCLabelStyle;
@@ -69,7 +74,7 @@ export function ContentPanel({
   internalName, setInternalName,
   question, setQuestion,
   subheadline, setSubheadline,
-  slug, setSlug,
+  slug, setSlug, slugLocked = false,
   answerType, setAnswerType,
   mcLabelStyle, setMcLabelStyle,
   answers, setAnswers,
