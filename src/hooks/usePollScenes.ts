@@ -196,10 +196,12 @@ export function usePollScenes(pollId: string | undefined) {
 
   const addScene = useCallback(async (preset: ScenePreset) => {
     const meta = getScenePreset(preset);
-    const name = nextSceneName(scenes);
-    const sortOrder = scenes.length;
     if (pollId) {
       try {
+        // Use the latest scenes snapshot, not the closure capture, so two
+        // quick "Add" clicks don't both compute the same sortOrder/name.
+        const name = nextSceneName(scenes);
+        const sortOrder = scenes.length;
         const created = await createPollScene(pollId, preset, name, sortOrder);
         // Strip preset-seeded visibility so the operator must explicitly
         // add assets to each scene. Otherwise an asset added later to the
@@ -207,7 +209,12 @@ export function usePollScenes(pollId: string | undefined) {
         // (e.g. adding "Answer Bars" while Scene 2 (Live Results) is
         // active also makes it show up in any other Live-Results scene).
         const blank: PollScene = { ...created, visibleAssetIds: new Set<AssetId>() };
-        setScenes((prev) => [...prev, blank]);
+        setScenes((prev) => {
+          const next = [...prev, blank];
+          // Cache eagerly so a fast reload after add doesn't lose the scene.
+          cacheScenes(activeStorageKey, next);
+          return next;
+        });
         setActiveSceneId(created.id);
         toast.success(`Added ${meta.label}`);
       } catch (err) {
@@ -216,24 +223,27 @@ export function usePollScenes(pollId: string | undefined) {
       }
     } else {
       // Draft mode — store in memory.
-      const draft: PollScene = {
-        id: `draft-scene-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
-        pollId: 'draft',
-        name,
-        preset,
-        sortOrder,
-        // See note above — start scenes empty so each asset must be added
-        // explicitly to the scene the operator currently has selected.
-        visibleAssetIds: new Set<AssetId>(),
-        assetTransforms: {},
-      };
-      const next = [...scenes, draft];
-      draftScenesRef.current = next;
-      setScenes(next);
-      setActiveSceneId(draft.id);
+      setScenes((prev) => {
+        const draft: PollScene = {
+          id: `draft-scene-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`,
+          pollId: 'draft',
+          name: nextSceneName(prev),
+          preset,
+          sortOrder: prev.length,
+          // See note above — start scenes empty so each asset must be added
+          // explicitly to the scene the operator currently has selected.
+          visibleAssetIds: new Set<AssetId>(),
+          assetTransforms: {},
+        };
+        const next = [...prev, draft];
+        draftScenesRef.current = next;
+        cacheScenes(draftStorageKey, next);
+        setActiveSceneId(draft.id);
+        return next;
+      });
       toast.success(`Added ${meta.label}`);
     }
-  }, [pollId, scenes]);
+  }, [pollId, scenes, activeStorageKey, draftStorageKey]);
 
   const renameScene = useCallback(async (sceneId: string, name: string) => {
     setScenes((prev) => prev.map((s) => (s.id === sceneId ? { ...s, name } : s)));
