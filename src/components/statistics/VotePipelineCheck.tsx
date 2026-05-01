@@ -389,6 +389,26 @@ export function VotePipelineCheck() {
           <Field label="vote_analytics (poll)" value={snapshot ? String(snapshot.analytics_count) : '—'} />
         </div>
 
+        {/* Slug mismatch — pvs_has_snapshot is true but the snapshot's slug
+         *  or embedded poll id doesn't match what's currently live. The
+         *  audience is voting on the wrong poll until this is fixed. */}
+        {slugMismatch && (
+          <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <div className="font-semibold">Snapshot does not match live_slug.</div>
+              <div className="text-[11px] font-mono text-foreground/80 mt-0.5">
+                live_slug=<span className="text-foreground">{snapshot?.live_slug ?? '—'}</span>
+                {' · '}pvs_slug=<span className="text-foreground">{snapshot?.pvs_slug ?? '—'}</span>
+                {' · '}snapshot.id=<span className="text-foreground">{snapshot?.pvs_snapshot_poll_id ?? '—'}</span>
+              </div>
+              <div className="text-[11px] text-foreground/80 mt-1">
+                Send Test Vote is blocked. Go Live again on the current draft to re-publish a snapshot for this slug.
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Stale slug — slug published but no active poll. Operator probably
          *  ended live and the slug pointer wasn't cleared, or Go Live half-
          *  succeeded. Either way, the audience link points to nothing. */}
