@@ -2560,6 +2560,13 @@ export default function PollCreate() {
   };
 
   const handleSlugChange = (nextSlug: string) => {
+    // Slug edits are blocked while a poll is on-air. Even if the operator
+    // bypasses the read-only input (e.g. paste, devtools), every write goes
+    // through here so we surface the End Live / Duplicate dialog instead.
+    if (liveState === 'live') {
+      setSlugLockDialogOpen(true);
+      return;
+    }
     setSlug(nextSlug);
     updateFolderState((current) => ({
       ...current,
