@@ -275,9 +275,22 @@ export function VotePipelineCheck() {
     if (!snapshot) return null;
     if (!snapshot.active_poll_id) return 'No active poll. Go Live or Open Voting first.';
     if (snapshot.voting_state !== 'open') return 'Open voting before running a test vote.';
+    if (!snapshot.pvs_has_snapshot) return 'poll_snapshot missing — Go Live again to publish a snapshot.';
     if (!snapshot.first_answer_id) return 'No answers configured for the active poll.';
     return null;
   }, [snapshot]);
+
+  // Surfaced when the operator ended a show but a stale slug is lingering.
+  // Real cause: live_slug persisted but active_poll_id was cleared. The
+  // public_viewer_state row may still be `voting` until the next Go Live
+  // overwrites it via the sync trigger.
+  const showStaleSlugWarning = Boolean(snapshot && snapshot.live_slug && !snapshot.active_poll_id);
+
+  // Show the "Open Output Mode" helper whenever we can't run the pipeline:
+  // either no active poll at all, or voting hasn't been opened yet.
+  const showOpenOutputHelper = Boolean(
+    snapshot && (!snapshot.active_poll_id || snapshot.voting_state !== 'open'),
+  );
 
   return (
     <Card className="border-mako-orange/30">
