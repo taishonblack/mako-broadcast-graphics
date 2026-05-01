@@ -3341,7 +3341,7 @@ export default function PollCreate() {
                 question={question} setQuestion={handleFolderQuestionChange}
                   subheadline={subheadline} setSubheadline={setSubheadline}
                   internalName={internalName} setInternalName={setInternalName}
-                  slug={slug} setSlug={handleSlugChange}
+                  slug={slug} setSlug={handleSlugChange} slugLocked={liveState === 'live'}
                   answerType={answerType} setAnswerType={setAnswerType}
                   mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
                   answers={answers} setAnswers={setAnswers}
@@ -3449,7 +3449,7 @@ export default function PollCreate() {
                 question={question} setQuestion={handleFolderQuestionChange}
                       subheadline={subheadline} setSubheadline={setSubheadline}
                       internalName={internalName} setInternalName={setInternalName}
-                      slug={slug} setSlug={handleSlugChange}
+                      slug={slug} setSlug={handleSlugChange} slugLocked={liveState === 'live'}
                       answerType={answerType} setAnswerType={setAnswerType}
                       mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
                       answers={answers} setAnswers={setAnswers}
