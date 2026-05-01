@@ -89,6 +89,9 @@ interface PollingAssetsPaneProps {
   subheadline: string; setSubheadline: (v: string) => void;
   internalName: string; setInternalName: (v: string) => void;
   slug: string; setSlug: (v: string) => void;
+  /** When true, the viewer slug input is read-only and the parent intercepts
+   *  edit attempts (because a poll is on-air). */
+  slugLocked?: boolean;
   answerType: AnswerType; setAnswerType: (v: AnswerType) => void;
   mcLabelStyle: MCLabelStyle; setMcLabelStyle: (v: MCLabelStyle) => void;
   answers: { id: string; text: string; shortLabel: string; testVotes?: number }[];
@@ -126,6 +129,7 @@ export function PollingAssetsPane({
   subheadline, setSubheadline,
   internalName, setInternalName,
   slug, setSlug,
+  slugLocked = false,
   answerType, setAnswerType,
   mcLabelStyle, setMcLabelStyle,
   answers, setAnswers,
