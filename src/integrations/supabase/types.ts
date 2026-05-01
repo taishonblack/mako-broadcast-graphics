@@ -582,7 +582,9 @@ export type Database = {
           active_folder_id: string | null
           active_poll_id: string | null
           live_folder_id: string | null
+          live_poll_id: string | null
           live_poll_snapshot: Json | null
+          live_slug: string | null
           output_state: string
           preview_poll_id: string | null
           preview_scene: string
@@ -598,7 +600,9 @@ export type Database = {
           active_folder_id?: string | null
           active_poll_id?: string | null
           live_folder_id?: string | null
+          live_poll_id?: string | null
           live_poll_snapshot?: Json | null
+          live_slug?: string | null
           output_state?: string
           preview_poll_id?: string | null
           preview_scene?: string
@@ -614,7 +618,9 @@ export type Database = {
           active_folder_id?: string | null
           active_poll_id?: string | null
           live_folder_id?: string | null
+          live_poll_id?: string | null
           live_poll_snapshot?: Json | null
+          live_slug?: string | null
           output_state?: string
           preview_poll_id?: string | null
           preview_scene?: string
@@ -868,6 +874,7 @@ export type Database = {
         Returns: Json
       }
       cleanup_vote_analytics: { Args: never; Returns: undefined }
+      clone_poll: { Args: { _poll_id: string }; Returns: Json }
       get_viewer_poll_by_slug: {
         Args: { _slug: string }
         Returns: {

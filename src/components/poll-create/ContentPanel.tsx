@@ -3,7 +3,7 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { PlusCircle, GripVertical, Trash2, HelpCircle } from 'lucide-react';
+import { PlusCircle, GripVertical, Trash2, HelpCircle, Lock } from 'lucide-react';
 
 export type AnswerType = 'yes-no' | 'multiple-choice' | 'custom';
 export type MCLabelStyle = 'letters' | 'numbers' | 'none' | 'custom';
@@ -25,6 +25,11 @@ interface ContentPanelProps {
   setSubheadline: (v: string) => void;
   slug: string;
   setSlug: (v: string) => void;
+  /** When true, the viewer slug is locked because a poll is currently on-air.
+   *  The input becomes read-only and a "LIVE LINK LOCKED" chip is shown. The
+   *  parent intercepts edit attempts via setSlug to surface the End Live /
+   *  Duplicate modal. */
+  slugLocked?: boolean;
   answerType: AnswerType;
   setAnswerType: (v: AnswerType) => void;
   mcLabelStyle: MCLabelStyle;
@@ -69,7 +74,7 @@ export function ContentPanel({
   internalName, setInternalName,
   question, setQuestion,
   subheadline, setSubheadline,
-  slug, setSlug,
+  slug, setSlug, slugLocked = false,
   answerType, setAnswerType,
   mcLabelStyle, setMcLabelStyle,
   answers, setAnswers,
@@ -149,8 +154,29 @@ export function ContentPanel({
             </div>
             <div className="flex items-center gap-1.5">
               <span className="text-[10px] text-muted-foreground font-mono shrink-0">/vote/</span>
-              <Input value={slug} onChange={e => setSlug(e.target.value)} placeholder="penalty-call" className="bg-background/50 h-8 text-xs" />
+              <Input
+                value={slug}
+                onChange={e => setSlug(e.target.value)}
+                onMouseDown={(e) => {
+                  // Intercept the click before the input takes focus so the
+                  // parent can open the End Live / Duplicate modal without the
+                  // operator typing into a field that won't accept changes.
+                  if (slugLocked) {
+                    e.preventDefault();
+                    setSlug(slug);
+                  }
+                }}
+                readOnly={slugLocked}
+                placeholder="penalty-call"
+                className={`bg-background/50 h-8 text-xs ${slugLocked ? 'cursor-not-allowed opacity-70' : ''}`}
+              />
             </div>
+            {slugLocked && (
+              <div className="mt-1.5 flex items-center gap-1.5 text-[10px] font-semibold text-mako-success/90">
+                <Lock className="w-3 h-3" />
+                <span className="uppercase tracking-wider">Live link locked</span>
+              </div>
+            )}
           </div>
         </div>
       </div>

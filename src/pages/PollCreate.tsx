@@ -304,6 +304,18 @@ export default function PollCreate() {
   const [pickerOpen, setPickerOpen] = useState(false);
   const [autosaveMinutes, setAutosaveMinutes] = useState<number>(DEFAULT_AUTOSAVE_MINUTES);
 
+  // Currently-published voter slug (read from project_live_state.live_slug).
+  // Distinct from `slug` below, which is the editable draft slug. When the two
+  // diverge while live, DraftPreviewMonitor surfaces a "Slug changed — Go Live
+  // again" warning so the operator never assumes their edit is on-air.
+  const [liveSlug, setLiveSlug] = useState<string | null>(null);
+
+  // Modal that intercepts slug edits while live. The slug input is read-only
+  // in that state; clicking it (or programmatic setSlug calls) opens this so
+  // the operator must explicitly End Live or Duplicate the poll first.
+  const [slugLockDialogOpen, setSlugLockDialogOpen] = useState(false);
+  const [duplicating, setDuplicating] = useState(false);
+
   const [question, setQuestion] = useState('');
   const [internalName, setInternalName] = useState('');
   const [slug, setSlug] = useState('');
@@ -543,7 +555,7 @@ export default function PollCreate() {
     let cancelled = false;
     void supabase
       .from('project_live_state')
-      .select('output_state, voting_state, active_poll_id, live_poll_snapshot')
+      .select('output_state, voting_state, active_poll_id, live_poll_snapshot, live_slug')
       .eq('project_id', projectId)
       .maybeSingle()
       .then(({ data }) => {
@@ -555,6 +567,10 @@ export default function PollCreate() {
         if (dbVoting === 'open' || dbVoting === 'closed' || dbVoting === 'not_open') {
           setVotingState(dbVoting);
         }
+        // Capture the on-air slug for the divergence warning. Falls back to
+        // null when the project has never gone live.
+        const ls = (data as { live_slug?: string | null }).live_slug ?? null;
+        setLiveSlug(ls && ls.length > 0 ? ls : null);
       });
     return () => { cancelled = true; };
   }, [projectId]);
@@ -609,7 +625,7 @@ export default function PollCreate() {
         'postgres_changes',
         { event: '*', schema: 'public', table: 'project_live_state', filter: `project_id=eq.${projectId}` },
         (payload) => {
-          const row = (payload.new ?? null) as { output_state?: string; voting_state?: string } | null;
+          const row = (payload.new ?? null) as { output_state?: string; voting_state?: string; live_slug?: string | null } | null;
           if (!row) return;
           const dbLive = row.output_state === 'program_live';
           if (dbLive) {
@@ -627,6 +643,10 @@ export default function PollCreate() {
           }
           const v = row.voting_state;
           if (v === 'open' || v === 'closed' || v === 'not_open') setVotingState(v);
+          if (Object.prototype.hasOwnProperty.call(row, 'live_slug')) {
+            const ls = row.live_slug ?? null;
+            setLiveSlug(ls && ls.length > 0 ? ls : null);
+          }
         },
       )
       .subscribe();
@@ -1240,9 +1260,19 @@ export default function PollCreate() {
         live_poll_snapshot: snapshot as never,
         voting_state: 'open',
         output_state: 'program_live',
+        // Persist the slug + poll id currently on-air. These are the source of
+        // truth for the "Live voter link" label and slug-divergence warnings.
+        // Once written, the operator-side UI locks the slug input until End
+        // Live so the published QR / link can't drift mid-show.
+        live_slug: livePoll.slug,
+        live_poll_id: isUuid(livePoll.id) ? livePoll.id : null,
       } as never);
       if (error) {
         toast.error(`Go Live viewer sync failed: ${error.message}`);
+      } else {
+        // Optimistic local update so the lock + label flip immediately
+        // without waiting for the realtime echo.
+        setLiveSlug(livePoll.slug);
       }
       // Write to public_viewer_state — the audience-only source of truth.
       const audienceSnapshot: PublicViewerPollSnapshot = {
@@ -1419,7 +1449,12 @@ export default function PollCreate() {
         live_folder_id: null,
         voting_state: 'closed',
         output_state: 'preview',
+        // Clear the on-air slug/poll pointers so the Build UI unlocks the
+        // slug input and the "Live voter link" label reverts to "Draft".
+        live_slug: null,
+        live_poll_id: null,
       } as never);
+      setLiveSlug(null);
       // Audience returns to MakoVote branding.
       void writePublicViewerState({
         projectId,
@@ -2525,6 +2560,13 @@ export default function PollCreate() {
   };
 
   const handleSlugChange = (nextSlug: string) => {
+    // Slug edits are blocked while a poll is on-air. Even if the operator
+    // bypasses the read-only input (e.g. paste, devtools), every write goes
+    // through here so we surface the End Live / Duplicate dialog instead.
+    if (liveState === 'live') {
+      setSlugLockDialogOpen(true);
+      return;
+    }
     setSlug(nextSlug);
     updateFolderState((current) => ({
       ...current,
@@ -2534,6 +2576,38 @@ export default function PollCreate() {
           : folder
       )),
     }));
+  };
+
+  /**
+   * Duplicate the currently-loaded poll via the `clone_poll` SECURITY DEFINER
+   * RPC. The original keeps running on-air with its locked slug; the copy is
+   * a draft with a fresh "-copy" slug the operator can edit and Go Live on
+   * when ready. We navigate to the copy so the workspace is ready to edit it.
+   */
+  const handleDuplicateLivePoll = async () => {
+    if (!isUuid(pollId ?? '')) {
+      toast.error('Save the poll before duplicating.');
+      return;
+    }
+    setDuplicating(true);
+    try {
+      const { data, error } = await supabase.rpc('clone_poll' as never, { _poll_id: pollId } as never);
+      if (error) {
+        toast.error(`Duplicate failed: ${error.message}`);
+        return;
+      }
+      const result = data as { ok?: boolean; poll_id?: string; viewer_slug?: string; error?: string } | null;
+      if (!result?.ok || !result.poll_id) {
+        toast.error(`Duplicate failed: ${result?.error ?? 'unknown'}`);
+        return;
+      }
+      toast.success(`Duplicated as /vote/${result.viewer_slug}`);
+      setSlugLockDialogOpen(false);
+      // Navigate to the new draft poll. The original stays on-air.
+      navigate(`/polls/${result.poll_id}`);
+    } finally {
+      setDuplicating(false);
+    }
   };
 
   const syncActiveFolderBackground = (nextBackground: { bgColor?: string; bgImage?: string }) => {
@@ -3032,6 +3106,45 @@ export default function PollCreate() {
         onJumpToField={handleJumpToField}
       />
 
+      {/* Slug-edit attempted while live. Operator must End Live or Duplicate. */}
+      <AlertDialog open={slugLockDialogOpen} onOpenChange={setSlugLockDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Voter link is locked while live</AlertDialogTitle>
+            <AlertDialogDescription>
+              Changing the voter link during a live poll can break viewer access and invalidate the published QR code. End Live first, or duplicate this poll to edit a draft copy with a new slug.
+              {liveSlug && (
+                <span className="block mt-2 font-mono text-[11px] text-foreground/80">
+                  Currently live: /vote/{liveSlug}
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={duplicating}>Cancel</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={duplicating}
+              onClick={handleDuplicateLivePoll}
+            >
+              {duplicating ? 'Duplicating…' : 'Duplicate Poll'}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={duplicating}
+              onClick={() => {
+                setSlugLockDialogOpen(false);
+                handleEndPoll();
+              }}
+            >
+              End Live
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {mode === 'output' ? (
         <div className="flex-1 min-h-0">
           <OperatorOutputMode
@@ -3267,7 +3380,7 @@ export default function PollCreate() {
                 question={question} setQuestion={handleFolderQuestionChange}
                   subheadline={subheadline} setSubheadline={setSubheadline}
                   internalName={internalName} setInternalName={setInternalName}
-                  slug={slug} setSlug={handleSlugChange}
+                  slug={slug} setSlug={handleSlugChange} slugLocked={liveState === 'live'}
                   answerType={answerType} setAnswerType={setAnswerType}
                   mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
                   answers={answers} setAnswers={setAnswers}
@@ -3302,6 +3415,7 @@ export default function PollCreate() {
                     fullUrl={fullUrl}
                     shortUrl={shortUrl}
                     isLive={Boolean(activePollId) && (votingState === 'open' || votingState === 'closed')}
+                    liveSlug={liveSlug}
                     wordmark={assetState}
                   qrSize={qrSize}
                   qrPosition={assetState.qrPosition}
@@ -3375,7 +3489,7 @@ export default function PollCreate() {
                 question={question} setQuestion={handleFolderQuestionChange}
                       subheadline={subheadline} setSubheadline={setSubheadline}
                       internalName={internalName} setInternalName={setInternalName}
-                      slug={slug} setSlug={handleSlugChange}
+                      slug={slug} setSlug={handleSlugChange} slugLocked={liveState === 'live'}
                       answerType={answerType} setAnswerType={setAnswerType}
                       mcLabelStyle={mcLabelStyle} setMcLabelStyle={setMcLabelStyle}
                       answers={answers} setAnswers={setAnswers}
