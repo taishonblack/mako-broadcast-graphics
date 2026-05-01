@@ -1958,20 +1958,27 @@ export default function PollCreate() {
   const persistTransformsRef = useRef(sceneController.saveSceneAssetTransforms);
   useEffect(() => { persistTransformsRef.current = sceneController.saveSceneAssetTransforms; });
   const lastSavedTransformsRef = useRef<Record<string, string>>({});
+  // Debounced persistence for ALL scenes whose program slice has dirty
+  // changes — not just the active one. When the operator drags an asset
+  // and immediately switches scenes (or hits Save Project), we still
+  // flush the pending transform write for the previous scene so it
+  // survives reload.
   useEffect(() => {
-    const sceneId = sceneController.activeSceneId;
-    if (!sceneId) return;
-    const set = sceneTransformSets[sceneId];
-    if (!set) return;
-    const programMap = set.program;
-    const serialized = JSON.stringify(programMap);
-    if (lastSavedTransformsRef.current[sceneId] === serialized) return;
-    const handle = window.setTimeout(() => {
-      lastSavedTransformsRef.current[sceneId] = serialized;
-      void persistTransformsRef.current(sceneId, programMap);
-    }, 600);
-    return () => window.clearTimeout(handle);
-  }, [sceneTransformSets, sceneController.activeSceneId]);
+    const handles: number[] = [];
+    for (const [sceneId, set] of Object.entries(sceneTransformSets)) {
+      if (sceneId === NO_SCENE_KEY) continue;
+      if (!set) continue;
+      const programMap = set.program;
+      const serialized = JSON.stringify(programMap);
+      if (lastSavedTransformsRef.current[sceneId] === serialized) continue;
+      const handle = window.setTimeout(() => {
+        lastSavedTransformsRef.current[sceneId] = serialized;
+        void persistTransformsRef.current(sceneId, programMap);
+      }, 600);
+      handles.push(handle);
+    }
+    return () => { handles.forEach((h) => window.clearTimeout(h)); };
+  }, [sceneTransformSets]);
   // Per-viewport answer / text colors. The active slice is exposed as
   // `assetColors`; `setAssetColors` writes only into the active viewport's
   // slice, so changing colors on the Mobile tab does not affect Program or
