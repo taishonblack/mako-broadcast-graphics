@@ -56,6 +56,11 @@ interface DraftPreviewMonitorProps {
   /** Whether this voter URL is currently published live (voting open/closed
    *  with active poll). Drives the "Live voter link" vs "Draft link" label. */
   isLive?: boolean;
+  /** The viewer slug currently published to viewers (read from
+   *  `project_live_state.live_slug`). When this differs from the draft `slug`
+   *  prop while live, we render a "Slug changed — Go Live again" warning so
+   *  the operator can see at a glance that their edit isn't on-air. */
+  liveSlug?: string | null;
   /** Active broadcast scene template. When set, the program preview
    *  switches between Fullscreen / Results / Lower Third so Build mirrors
    *  exactly what Output renders for the same scene. */
