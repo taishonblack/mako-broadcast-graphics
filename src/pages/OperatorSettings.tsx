@@ -234,6 +234,42 @@ export default function OperatorSettings() {
             </div>
           </section>
 
+          {/* ── Block-position collision policy ──────────────────────────
+              Two polls in the same project can't share a (block_letter,
+              block_position) slot — the unique index rejects the second
+              save. This setting decides what happens when that fires.
+          */}
+          <section className="rounded-lg border border-border bg-card/40 p-6">
+            <div className="flex items-start justify-between gap-4">
+              <div className="space-y-1.5">
+                <div className="flex items-center gap-2 text-foreground">
+                  <Settings2 className="h-4 w-4" />
+                  <h2 className="text-sm font-medium">Block slot conflicts on save</h2>
+                </div>
+                <p className="text-sm text-muted-foreground">
+                  When you save a poll into a block slot that's already taken in this project
+                  (e.g. another poll already owns <span className="font-mono text-foreground">B&nbsp;3</span>),
+                  decide whether the save should auto-move the poll to the next free slot
+                  in the same block, or stop and ask first.
+                </p>
+              </div>
+              <div className="shrink-0">
+                <Switch
+                  checked={blockPolicy === 'auto-next'}
+                  onCheckedChange={(v) => {
+                    const next: BlockCollisionPolicy = v ? 'auto-next' : 'prompt';
+                    setBlockPolicy(next);
+                    saveBlockCollisionPolicy(next);
+                    toast.success(next === 'auto-next'
+                      ? 'Auto-move to next free block slot enabled'
+                      : 'Will prompt before changing block slot');
+                  }}
+                  aria-label="Auto-move to next free block slot on conflict"
+                />
+              </div>
+            </div>
+          </section>
+
           {/* ── Swatch Manager ───────────────────────────────────────────
               Operator's personal color palette. Available everywhere the
               "Use Swatch" dropdown appears (QR fill, backgrounds, voter
