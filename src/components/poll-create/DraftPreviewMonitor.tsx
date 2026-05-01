@@ -122,6 +122,7 @@ export function DraftPreviewMonitor({
   slateSublineText,
   slateSublineStyle,
   folderLabel,
+  isLive = false,
 }: DraftPreviewMonitorProps) {
   const [previewModeUncontrolled, setPreviewModeUncontrolled] = useState<PreviewMode>('program');
   const previewMode = previewModeProp ?? previewModeUncontrolled;
@@ -382,11 +383,26 @@ export function DraftPreviewMonitor({
           <div className="flex items-stretch gap-2">
             <div className="shrink-0 flex flex-col items-center gap-1 p-1.5 rounded-md bg-white border border-border">
               <QRCodeSVG value={fullUrl} size={56} level="M" />
-              <span className="text-[8px] font-mono uppercase tracking-wider text-muted-foreground leading-none">Live</span>
+              <span
+                className={`text-[8px] font-mono uppercase tracking-wider leading-none ${
+                  isLive ? 'text-mako-success' : 'text-muted-foreground'
+                }`}
+              >
+                {isLive ? 'Live' : 'Draft'}
+              </span>
             </div>
             <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-card/50 border border-border flex-1 min-w-0">
               <Link2 className="w-3 h-3 text-muted-foreground shrink-0" />
-              <span className="text-[10px] font-mono text-foreground truncate flex-1" title={fullUrl}>{fullUrl}</span>
+              <div className="flex flex-col min-w-0 flex-1">
+                <span
+                  className={`text-[9px] uppercase tracking-wider font-mono leading-none ${
+                    isLive ? 'text-mako-success' : 'text-muted-foreground/80'
+                  }`}
+                >
+                  {isLive ? 'Live voter link' : 'Draft link — not live yet'}
+                </span>
+                <span className="text-[10px] font-mono text-foreground truncate" title={fullUrl}>{fullUrl}</span>
+              </div>
               <Tooltip>
                 <TooltipTrigger asChild>
                   <Button
