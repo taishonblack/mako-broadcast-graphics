@@ -127,11 +127,18 @@ export async function savePoll(opts: {
   userId: string;
   status: 'draft' | 'saved';
   projectId?: string;
+  /** When provided, force-write this viewer_slug (used by conflict-retry). */
+  viewerSlugOverride?: string;
 }): Promise<SavedPoll> {
   const row = toRow(opts.payload, opts.userId, opts.status, opts.projectId);
+  if (opts.viewerSlugOverride) {
+    row.viewer_slug = opts.viewerSlugOverride.trim().toLowerCase();
+  }
   if (opts.id) {
-    // On update, omit viewer_slug so we don't churn it on every autosave.
-    const { viewer_slug: _vs, ...updateRow } = row;
+    // On update, omit viewer_slug so we don't churn it on every autosave —
+    // unless the caller explicitly wants to set it (conflict-retry path).
+    const { viewer_slug: _vs, ...rest } = row;
+    const updateRow = opts.viewerSlugOverride ? { ...rest, viewer_slug: row.viewer_slug } : rest;
     const { data, error } = await supabase
       .from('polls').update(updateRow as never).eq('id', opts.id).select().single();
     if (error) throw error;
