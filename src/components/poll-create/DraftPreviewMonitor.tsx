@@ -18,6 +18,7 @@ import { AssetColorMap, AssetId, AssetState, AssetTransformMap } from './polling
 import { QRPosition } from '@/lib/types';
 import { WordmarkLockup } from '@/components/broadcast/WordmarkLockup';
 import { usePreviewOverlays } from '@/lib/preview-overlays';
+import { useViewerStateDrift } from '@/hooks/useViewerStateDrift';
 
 export type PreviewMode = 'program' | 'mobile' | 'desktop';
 
@@ -61,6 +62,9 @@ interface DraftPreviewMonitorProps {
    *  prop while live, we render a "Slug changed — Go Live again" warning so
    *  the operator can see at a glance that their edit isn't on-air. */
   liveSlug?: string | null;
+  /** Project id, used by the audience-drift watcher to compare
+   *  public_viewer_state vs project_live_state. */
+  projectId?: string | null;
   /** Active broadcast scene template. When set, the program preview
    *  switches between Fullscreen / Results / Lower Third so Build mirrors
    *  exactly what Output renders for the same scene. */
@@ -129,6 +133,7 @@ export function DraftPreviewMonitor({
   folderLabel,
   isLive = false,
   liveSlug = null,
+  projectId = null,
 }: DraftPreviewMonitorProps) {
   const [previewModeUncontrolled, setPreviewModeUncontrolled] = useState<PreviewMode>('program');
   const previewMode = previewModeProp ?? previewModeUncontrolled;
@@ -142,6 +147,11 @@ export function DraftPreviewMonitor({
   const labelledOptions = resolveOptionLabels(options, answerType, mcLabelStyle, answers);
   const isLowerThird = template === 'lower-third';
   const voteUrl = `https://makovote.app/vote/${slug}`;
+
+  // Watch for divergence between public_viewer_state and project_live_state.
+  // The DB trigger should keep them in sync; if drift is reported, something
+  // bypassed it (RLS error, manual edit, race) and the operator needs to know.
+  const drift = useViewerStateDrift(projectId, isLive);
 
   useEffect(() => {
     const api = overlayApiRef.current;
@@ -395,6 +405,19 @@ export function DraftPreviewMonitor({
                 </span>
                 <span className="text-[10px] font-mono text-foreground/80 truncate">
                   Live: /vote/{liveSlug} · Draft: /vote/{slug}
+                </span>
+              </div>
+            </div>
+          )}
+          {isLive && drift?.drift && (
+            <div className="flex items-center gap-2 px-2.5 py-1.5 rounded-md bg-destructive/10 border border-destructive/40 text-destructive">
+              <AlertTriangle className="w-3.5 h-3.5 shrink-0" />
+              <div className="flex flex-col min-w-0">
+                <span className="text-[10px] uppercase tracking-wider font-semibold leading-tight">
+                  Audience drift detected
+                </span>
+                <span className="text-[10px] font-mono text-foreground/80 truncate">
+                  Live: {drift.voting_state}/{drift.live_slug ?? '—'} · Audience: {drift.audience_state ?? '—'}/{drift.audience_slug ?? '—'}
                 </span>
               </div>
             </div>

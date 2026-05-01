@@ -1274,7 +1274,12 @@ export default function PollCreate() {
         // without waiting for the realtime echo.
         setLiveSlug(livePoll.slug);
       }
-      // Write to public_viewer_state — the audience-only source of truth.
+      // Build the audience-shaped snapshot. Written to BOTH:
+      //   1. project_live_state.live_audience_snapshot (DB trigger mirrors
+      //      it into public_viewer_state — safety net so the audience can
+      //      never drift from on-air state).
+      //   2. public_viewer_state directly via writePublicViewerState (kept
+      //      for low-latency optimistic updates from the operator).
       const audienceSnapshot: PublicViewerPollSnapshot = {
         id: isUuid(livePoll.id) ? livePoll.id : undefined,
         question: snapshotPoll.question,
@@ -1293,6 +1298,10 @@ export default function PollCreate() {
         showThankYou: snapshotPoll.showThankYou,
         assetColors: assetColorsRef.current ?? ({} as AssetColorMap),
       };
+      // Persist the audience snapshot for the DB trigger to mirror.
+      void supabase.from('project_live_state').update({
+        live_audience_snapshot: audienceSnapshot as never,
+      } as never).eq('project_id', projectId);
       const audience = await writePublicViewerState({
         projectId,
         viewerSlug: livePoll.slug,
@@ -1453,6 +1462,10 @@ export default function PollCreate() {
         // slug input and the "Live voter link" label reverts to "Draft".
         live_slug: null,
         live_poll_id: null,
+        // Clear the audience snapshot too — the DB trigger will mirror this
+        // into public_viewer_state so no stale poll lingers for late viewers.
+        live_audience_snapshot: null,
+        active_poll_id: null,
       } as never);
       setLiveSlug(null);
       // Audience returns to MakoVote branding.
@@ -3416,6 +3429,7 @@ export default function PollCreate() {
                     shortUrl={shortUrl}
                     isLive={Boolean(activePollId) && (votingState === 'open' || votingState === 'closed')}
                     liveSlug={liveSlug}
+                    projectId={projectId}
                     wordmark={assetState}
                   qrSize={qrSize}
                   qrPosition={assetState.qrPosition}
