@@ -17,9 +17,20 @@ import {
 import {
   Type, ListChecks, AlignLeft, Image as ImageIcon, QrCode,
   Sparkles, Users, Plus, X, GripVertical, ChevronDown, MoreVertical, FolderOpen,
-  Trash2, Camera, Link2, Copy, MessageCircleQuestion, Layers, Pencil, Check, EyeOff,
+  Trash2, Camera, Link2, Copy, MessageCircleQuestion, Layers, Pencil, Check, EyeOff, Shuffle,
 } from 'lucide-react';
 import { AnswerType, MCLabelStyle } from '@/components/poll-create/ContentPanel';
+
+/** Random short slug code (lowercase letters + digits, 8 chars).
+ *  Mirrors the helper in ContentPanel — uniqueness is enforced server-side. */
+function generateSlugCode(): string {
+  const alphabet = 'abcdefghijkmnpqrstuvwxyz23456789';
+  let out = '';
+  for (let i = 0; i < 8; i += 1) {
+    out += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return out;
+}
 import { AssetId, AssetMeta } from './types';
 import { BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-persistence';
 import { SCENE_PRESETS, type ScenePreset, type PollScene, getScenePreset } from '@/lib/poll-scenes';
