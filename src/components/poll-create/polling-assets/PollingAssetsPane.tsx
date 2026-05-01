@@ -610,6 +610,7 @@ export function PollingAssetsPane({
                                           setInternalName={setInternalName}
                                           slug={slug}
                                           setSlug={setSlug}
+                                          slugLocked={slugLocked}
                                           answerType={answerType}
                                           setAnswerType={setAnswerType}
                                           mcLabelStyle={mcLabelStyle}
