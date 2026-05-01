@@ -3185,6 +3185,14 @@ export default function PollCreate() {
         onJumpToField={handleJumpToField}
       />
 
+      <GoLivePreflightDialog
+        open={preflightOpen}
+        onOpenChange={setPreflightOpen}
+        result={preflightResult}
+        intent={preflightIntent}
+        onSyncAndRetry={handlePreflightSyncAndRetry}
+      />
+
       {/* Slug-edit attempted while live. Operator must End Live or Duplicate. */}
       <AlertDialog open={slugLockDialogOpen} onOpenChange={setSlugLockDialogOpen}>
         <AlertDialogContent>
