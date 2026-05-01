@@ -1178,6 +1178,66 @@ export default function PollCreate() {
     fireSwitch('cut');
   };
 
+  // ── Go Live / Open Voting pre-flight ─────────────────────────────────
+  // Modal-backed gate that refuses to flip voting_state = 'open' unless
+  // the full pipeline (poll UUID + slug + scene answers ↔ poll_answers +
+  // viewer state targets) is consistent. See lib/go-live-preflight.ts.
+  const [preflightOpen, setPreflightOpen] = useState(false);
+  const [preflightResult, setPreflightResult] = useState<PreflightResult | null>(null);
+  const [preflightIntent, setPreflightIntent] = useState<'go_live' | 'open_voting'>('go_live');
+
+  const buildPreflightInput = useCallback(() => ({
+    pollId: pollId ?? currentWorkspacePoll.id,
+    viewerSlug: slugForUrl,
+    projectId: projectId ?? currentWorkspacePoll.projectId,
+    sceneAnswers: answers.map((a) => ({ id: a.id, text: a.text })),
+  }), [answers, currentWorkspacePoll.id, currentWorkspacePoll.projectId, pollId, projectId, slugForUrl]);
+
+  /** Run preflight; if everything passes invoke `proceed`. Otherwise open
+   *  the checklist modal so the operator can fix the failures. */
+  const guardWithPreflight = useCallback(async (
+    intent: 'go_live' | 'open_voting',
+    proceed: () => void | Promise<void>,
+  ) => {
+    setPreflightIntent(intent);
+    const input = buildPreflightInput();
+    const result = await runGoLivePreflight(input);
+    if (result.ok) {
+      await proceed();
+      return;
+    }
+    setPreflightResult(result);
+    setPreflightOpen(true);
+  }, [buildPreflightInput]);
+
+  const handlePreflightSyncAndRetry = useCallback(async () => {
+    const input = buildPreflightInput();
+    if (!input.pollId) {
+      toast.error('Save the poll before syncing answers.');
+      return;
+    }
+    const sync = await syncSceneAnswersToPollAnswers({
+      pollId: input.pollId,
+      sceneAnswers: answers.map((a) => ({ id: a.id, text: a.text, shortLabel: a.shortLabel })),
+    });
+    if (!sync.ok) {
+      toast.error(`Sync failed: ${sync.error ?? 'unknown error'}`);
+      // Re-run preflight anyway so the modal reflects the latest state.
+    }
+    const next = await runGoLivePreflight(buildPreflightInput());
+    setPreflightResult(next);
+    if (next.ok) {
+      // Auto-close and proceed with the original intent.
+      setPreflightOpen(false);
+      if (preflightIntent === 'go_live') {
+        await handleGoLive();
+      } else {
+        const ok = await syncViewerVotingOpen();
+        if (ok) setVotingState('open');
+      }
+    }
+  }, [answers, buildPreflightInput, preflightIntent]); // handleGoLive / syncViewerVotingOpen referenced lazily — declared below.
+
   const handleGoLive = async () => {
     let livePoll = currentWorkspacePoll;
     if (!isUuid(livePoll.id) && projectId) {
