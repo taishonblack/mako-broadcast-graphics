@@ -50,6 +50,17 @@ interface CheckRow {
   detail?: string;
 }
 
+/** Per-gate UI row. `fix` is the short, plain-English instruction shown
+ *  under failing gates so the operator knows EXACTLY what to click — not
+ *  just which raw DB field is wrong. */
+interface GateRow {
+  key: string;
+  label: string;
+  ok: boolean;
+  detail: string;
+  fix?: string;
+}
+
 function StatusIcon({ status }: { status: CheckStatus }) {
   if (status === 'pass') return <CheckCircle2 className="h-4 w-4 text-mako-success shrink-0" />;
   if (status === 'fail') return <XCircle className="h-4 w-4 text-destructive shrink-0" />;
