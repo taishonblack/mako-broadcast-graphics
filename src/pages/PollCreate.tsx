@@ -555,7 +555,7 @@ export default function PollCreate() {
     let cancelled = false;
     void supabase
       .from('project_live_state')
-      .select('output_state, voting_state, active_poll_id, live_poll_snapshot')
+      .select('output_state, voting_state, active_poll_id, live_poll_snapshot, live_slug')
       .eq('project_id', projectId)
       .maybeSingle()
       .then(({ data }) => {
@@ -567,6 +567,10 @@ export default function PollCreate() {
         if (dbVoting === 'open' || dbVoting === 'closed' || dbVoting === 'not_open') {
           setVotingState(dbVoting);
         }
+        // Capture the on-air slug for the divergence warning. Falls back to
+        // null when the project has never gone live.
+        const ls = (data as { live_slug?: string | null }).live_slug ?? null;
+        setLiveSlug(ls && ls.length > 0 ? ls : null);
       });
     return () => { cancelled = true; };
   }, [projectId]);
