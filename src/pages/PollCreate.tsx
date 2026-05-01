@@ -47,7 +47,7 @@ import { writePublicViewerState, type PublicViewerPollSnapshot } from '@/lib/pub
 import { EQUAL_BASE, equalShareAnswers } from '@/lib/answer-percents';
 import { FolderPlus, Loader2, RotateCcw, LayoutPanelLeft, FileIcon, FolderOpen, Upload, Copy, ChevronDown, Monitor, Radio, Undo2, Redo2 } from 'lucide-react';
 import { useAuth } from '@/hooks/useAuth';
-import { loadPoll, savePoll, listPolls, listProjects, DraftPollPayload, SavedPoll, BlockLetter, isBlockPositionConflict, findNextAvailableBlockPosition } from '@/lib/poll-persistence';
+import { loadPoll, savePoll, listPolls, listProjects, DraftPollPayload, SavedPoll, BlockLetter, isBlockPositionConflict, findNextAvailableBlockPosition, isViewerSlugConflict, findNextAvailableViewerSlug } from '@/lib/poll-persistence';
 import { OperatorOutputMode } from '@/components/operator/OperatorOutputMode';
 import { takeToProgram, cutToProgram, setPreviewScene as dbSetPreviewScene, type SceneName } from '@/lib/broadcast-state';
 import { toast } from 'sonner';
