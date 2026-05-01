@@ -857,6 +857,7 @@ function AssetEditor(props: {
   subheadline: string; setSubheadline: (v: string) => void;
   internalName: string; setInternalName: (v: string) => void;
   slug: string; setSlug: (v: string) => void;
+  slugLocked?: boolean;
   answerType: AnswerType; setAnswerType: (v: AnswerType) => void;
   mcLabelStyle: MCLabelStyle; setMcLabelStyle: (v: MCLabelStyle) => void;
   answers: { id: string; text: string; shortLabel: string; testVotes?: number }[];
