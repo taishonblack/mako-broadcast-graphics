@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, XCircle, Loader2, Activity, RefreshCw, AlertTriangle, ExternalLink } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Activity, RefreshCw, AlertTriangle, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -62,6 +62,17 @@ export function VotePipelineCheck() {
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
   const [checks, setChecks] = useState<CheckRow[]>([]);
+  // Collapsed by default once it's healthy — operators want it out of the
+  // way when the pipeline is green. Persisted so a refresh keeps the
+  // operator's chosen state.
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try { return sessionStorage.getItem('makovote.pipelineCheck.collapsed') === '1'; }
+    catch { return false; }
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem('makovote.pipelineCheck.collapsed', collapsed ? '1' : '0'); }
+    catch { /* ignore */ }
+  }, [collapsed]);
 
   const refresh = useCallback(async (): Promise<PipelineSnapshot | null> => {
     setLoading(true);
@@ -154,18 +165,60 @@ export function VotePipelineCheck() {
     void refresh();
   }, [refresh]);
 
+  // Auto re-check when the operator returns to the Statistics tab — covers
+  // the "open Output Mode in a new tab → Go Live → come back" loop so the
+  // checklist updates immediately without a manual click.
+  useEffect(() => {
+    const onFocus = () => { void refresh(); };
+    const onVisible = () => { if (document.visibilityState === 'visible') void refresh(); };
+    window.addEventListener('focus', onFocus);
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      window.removeEventListener('focus', onFocus);
+      document.removeEventListener('visibilitychange', onVisible);
+    };
+  }, [refresh]);
+
+  // Snapshot/slug mismatch — pvs has a poll_snapshot but its embedded
+  // poll id doesn't correspond to the currently published live_slug's
+  // expected active_poll_id (or the audience row's slug differs from
+  // live_slug). Either way, viewers are looking at the wrong poll.
+  const slugMismatch = useMemo(() => {
+    if (!snapshot || !snapshot.pvs_has_snapshot) return false;
+    if (snapshot.live_slug && snapshot.pvs_slug && snapshot.live_slug !== snapshot.pvs_slug) return true;
+    if (snapshot.active_poll_id && snapshot.pvs_snapshot_poll_id && snapshot.active_poll_id !== snapshot.pvs_snapshot_poll_id) return true;
+    return false;
+  }, [snapshot]);
+
   // Hard gates for Send Test Vote — every condition must be green or we
   // refuse, otherwise the test would assert against a half-published state
   // and produce misleading pass/fail rows.
-  const canSendTest = useMemo(() => {
-    if (!snapshot) return false;
-    return (
-      Boolean(snapshot.active_poll_id) &&
-      snapshot.pvs_has_snapshot &&
-      snapshot.voting_state === 'open' &&
-      Boolean(snapshot.first_answer_id)
-    );
-  }, [snapshot]);
+  // Per-gate evaluation — drives both the disable logic and the
+  // diagnostic breakdown shown under the Send Test Vote button.
+  const gates = useMemo(() => {
+    const s = snapshot;
+    return [
+      { key: 'active_poll_id', label: 'active_poll_id present',
+        ok: Boolean(s?.active_poll_id),
+        detail: s?.active_poll_id ?? 'no active_poll_id in project_live_state' },
+      { key: 'pvs_has_snapshot', label: 'public_viewer_state has poll_snapshot',
+        ok: Boolean(s?.pvs_has_snapshot),
+        detail: s?.pvs_has_snapshot ? `snapshot.id = ${s?.pvs_snapshot_poll_id ?? '—'}` : 'poll_snapshot missing' },
+      { key: 'snapshot_matches_slug', label: 'poll_snapshot matches live_slug',
+        ok: !slugMismatch,
+        detail: slugMismatch
+          ? `live_slug=${snapshot?.live_slug ?? '—'} · pvs_slug=${snapshot?.pvs_slug ?? '—'} · snapshot.id=${snapshot?.pvs_snapshot_poll_id ?? '—'}`
+          : 'snapshot aligned with live_slug' },
+      { key: 'voting_state', label: 'voting_state = open',
+        ok: s?.voting_state === 'open',
+        detail: `voting_state = ${s?.voting_state ?? 'unknown'}` },
+      { key: 'first_answer_id', label: 'at least one poll answer exists',
+        ok: Boolean(s?.first_answer_id),
+        detail: s?.first_answer_id ? `first answer = ${s?.first_answer_label ?? s?.first_answer_id}` : 'no answers configured' },
+    ];
+  }, [snapshot, slugMismatch]);
+
+  const canSendTest = useMemo(() => snapshot != null && gates.every((g) => g.ok), [snapshot, gates]);
 
   const sendTestVote = useCallback(async () => {
     if (!snapshot) return;
@@ -271,15 +324,6 @@ export function VotePipelineCheck() {
     toast.success('Test vote sent');
   }, [snapshot, refresh]);
 
-  const reasonForDisable = useMemo(() => {
-    if (!snapshot) return null;
-    if (!snapshot.active_poll_id) return 'No active poll. Go Live or Open Voting first.';
-    if (snapshot.voting_state !== 'open') return 'Open voting before running a test vote.';
-    if (!snapshot.pvs_has_snapshot) return 'poll_snapshot missing — Go Live again to publish a snapshot.';
-    if (!snapshot.first_answer_id) return 'No answers configured for the active poll.';
-    return null;
-  }, [snapshot]);
-
   // Surfaced when the operator ended a show but a stale slug is lingering.
   // Real cause: live_slug persisted but active_poll_id was cleared. The
   // public_viewer_state row may still be `voting` until the next Go Live
@@ -295,16 +339,35 @@ export function VotePipelineCheck() {
   return (
     <Card className="border-mako-orange/30">
       <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2 space-y-0">
-        <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground font-mono flex items-center gap-2">
-          <Activity className="h-4 w-4 text-mako-orange" />
-          Vote Pipeline Check
-          <Badge variant="outline" className="text-[10px] font-mono uppercase">Diagnostic</Badge>
-        </CardTitle>
-        <Button variant="outline" size="sm" onClick={() => void refresh()} disabled={loading || running}>
+        <button
+          type="button"
+          onClick={() => setCollapsed((c) => !c)}
+          className="flex items-center gap-2 text-left group"
+          aria-expanded={!collapsed}
+        >
+          {collapsed
+            ? <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+            : <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />}
+          <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground font-mono flex items-center gap-2">
+            <Activity className="h-4 w-4 text-mako-orange" />
+            Vote Pipeline Check
+            <Badge variant="outline" className="text-[10px] font-mono uppercase">Diagnostic</Badge>
+            {collapsed && snapshot && (
+              <Badge
+                variant="outline"
+                className={`text-[10px] font-mono uppercase ${canSendTest ? 'text-mako-success border-mako-success/40' : 'text-mako-warning border-mako-warning/40'}`}
+              >
+                {canSendTest ? 'Ready' : 'Blocked'}
+              </Badge>
+            )}
+          </CardTitle>
+        </button>
+        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); void refresh(); }} disabled={loading || running}>
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
           Re-check Pipeline
         </Button>
       </CardHeader>
+      {!collapsed && (
       <CardContent className="space-y-4">
         {/* 1. Active poll status grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs font-mono">
@@ -325,6 +388,26 @@ export function VotePipelineCheck() {
           <Field label="poll_answers Σ live_votes" value={snapshot ? String(snapshot.total_live_votes) : '—'} />
           <Field label="vote_analytics (poll)" value={snapshot ? String(snapshot.analytics_count) : '—'} />
         </div>
+
+        {/* Slug mismatch — pvs_has_snapshot is true but the snapshot's slug
+         *  or embedded poll id doesn't match what's currently live. The
+         *  audience is voting on the wrong poll until this is fixed. */}
+        {slugMismatch && (
+          <div className="flex items-start gap-2 rounded-md border border-destructive/40 bg-destructive/10 px-3 py-2 text-xs text-destructive">
+            <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+            <div className="flex-1">
+              <div className="font-semibold">Snapshot does not match live_slug.</div>
+              <div className="text-[11px] font-mono text-foreground/80 mt-0.5">
+                live_slug=<span className="text-foreground">{snapshot?.live_slug ?? '—'}</span>
+                {' · '}pvs_slug=<span className="text-foreground">{snapshot?.pvs_slug ?? '—'}</span>
+                {' · '}snapshot.id=<span className="text-foreground">{snapshot?.pvs_snapshot_poll_id ?? '—'}</span>
+              </div>
+              <div className="text-[11px] text-foreground/80 mt-1">
+                Send Test Vote is blocked. Go Live again on the current draft to re-publish a snapshot for this slug.
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Stale slug — slug published but no active poll. Operator probably
          *  ended live and the slug pointer wasn't cleared, or Go Live half-
@@ -377,15 +460,23 @@ export function VotePipelineCheck() {
             {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Activity className="h-4 w-4" />}
             Send Test Vote
           </Button>
-          {reasonForDisable && (
-            <div className="flex items-center gap-1.5 text-xs text-mako-warning">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              {reasonForDisable}
-            </div>
-          )}
           <span className="ml-auto text-[10px] font-mono text-muted-foreground">
             Test session id prefix: <span className="text-foreground">{HEALTHCHECK_PREFIX}-…</span>
           </span>
+        </div>
+
+        {/* Per-gate breakdown — directly under the button so the operator
+         *  can see which condition is blocking Send Test Vote. */}
+        <div className="rounded-md border border-border bg-card/40 divide-y divide-border">
+          {gates.map((g) => (
+            <div key={g.key} className="flex items-start gap-2 px-3 py-1.5 text-[11px]">
+              <StatusIcon status={g.ok ? 'pass' : 'fail'} />
+              <div className="flex-1 min-w-0">
+                <div className={g.ok ? 'text-foreground' : 'text-mako-warning'}>{g.label}</div>
+                <div className="text-[10px] font-mono text-muted-foreground truncate">{g.detail}</div>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* 3. Result checklist */}
@@ -405,6 +496,7 @@ export function VotePipelineCheck() {
           </div>
         )}
       </CardContent>
+      )}
     </Card>
   );
 }
