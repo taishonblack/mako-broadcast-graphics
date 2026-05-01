@@ -53,6 +53,9 @@ interface DraftPreviewMonitorProps {
   assetColors: AssetColorMap;
   qrVisible: boolean;
   qrUrlVisible: boolean;
+  /** Whether this voter URL is currently published live (voting open/closed
+   *  with active poll). Drives the "Live voter link" vs "Draft link" label. */
+  isLive?: boolean;
   /** Active broadcast scene template. When set, the program preview
    *  switches between Fullscreen / Results / Lower Third so Build mirrors
    *  exactly what Output renders for the same scene. */
