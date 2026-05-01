@@ -491,6 +491,7 @@ export function PollingAssetsPane({
                         {scenes.map((scene) => {
                           const isActiveScene = scene.id === activeSceneId;
                           const preset = getScenePreset(scene.preset);
+                          const isExpanded = !collapsedSceneIds.has(scene.id);
                           // Assets shown in this scene = poll's enabled assets
                           // intersected with the scene's visibility set.
                           const sceneAssetIds = folderAssets.filter((id) =>
@@ -508,15 +509,26 @@ export function PollingAssetsPane({
                               <div className="flex items-center gap-1.5 px-2 py-1.5 border-b border-border/40 bg-background/30">
                                 <button
                                   type="button"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    toggleSceneCollapsed(scene.id);
+                                  }}
+                                  className="p-0.5 rounded hover:bg-muted/50 shrink-0"
+                                  aria-label={isExpanded ? `Collapse ${scene.name}` : `Expand ${scene.name}`}
+                                  title={isExpanded ? 'Collapse scene' : 'Expand scene'}
+                                >
+                                  <ChevronDown
+                                    className={`w-3 h-3 transition-transform ${
+                                      isExpanded ? '' : '-rotate-90'
+                                    } ${isActiveScene ? 'text-primary' : 'text-muted-foreground'}`}
+                                  />
+                                </button>
+                                <button
+                                  type="button"
                                   onClick={() => onSelectScene(scene.id)}
                                   className="flex min-w-0 flex-1 items-center gap-1.5 text-left"
                                   title={preset.description}
                                 >
-                                  <ChevronDown
-                                    className={`w-3 h-3 transition-transform ${
-                                      isActiveScene ? '' : '-rotate-90'
-                                    } ${isActiveScene ? 'text-primary' : 'text-muted-foreground'}`}
-                                  />
                                   <span
                                     className={`text-[11px] font-medium truncate ${
                                       isActiveScene ? 'text-primary' : 'text-foreground'
@@ -566,7 +578,7 @@ export function PollingAssetsPane({
                                 </DropdownMenu>
                               </div>
 
-                              {isActiveScene && (
+                              {isExpanded && (
                                 <div className="p-2 space-y-2">
                                   {sceneAssetIds.length === 0 ? (
                                     <div className="rounded-md border border-dashed border-border/60 bg-background/30 px-3 py-3 text-center">
