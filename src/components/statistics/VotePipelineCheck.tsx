@@ -339,16 +339,35 @@ export function VotePipelineCheck() {
   return (
     <Card className="border-mako-orange/30">
       <CardHeader className="pb-3 flex flex-row items-center justify-between gap-2 space-y-0">
-        <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground font-mono flex items-center gap-2">
-          <Activity className="h-4 w-4 text-mako-orange" />
-          Vote Pipeline Check
-          <Badge variant="outline" className="text-[10px] font-mono uppercase">Diagnostic</Badge>
-        </CardTitle>
-        <Button variant="outline" size="sm" onClick={() => void refresh()} disabled={loading || running}>
+        <button
+          type="button"
+          onClick={() => setCollapsed((c) => !c)}
+          className="flex items-center gap-2 text-left group"
+          aria-expanded={!collapsed}
+        >
+          {collapsed
+            ? <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />
+            : <ChevronDown className="h-4 w-4 text-muted-foreground group-hover:text-foreground" />}
+          <CardTitle className="text-sm uppercase tracking-wider text-muted-foreground font-mono flex items-center gap-2">
+            <Activity className="h-4 w-4 text-mako-orange" />
+            Vote Pipeline Check
+            <Badge variant="outline" className="text-[10px] font-mono uppercase">Diagnostic</Badge>
+            {collapsed && snapshot && (
+              <Badge
+                variant="outline"
+                className={`text-[10px] font-mono uppercase ${canSendTest ? 'text-mako-success border-mako-success/40' : 'text-mako-warning border-mako-warning/40'}`}
+              >
+                {canSendTest ? 'Ready' : 'Blocked'}
+              </Badge>
+            )}
+          </CardTitle>
+        </button>
+        <Button variant="outline" size="sm" onClick={(e) => { e.stopPropagation(); void refresh(); }} disabled={loading || running}>
           <RefreshCw className={`h-3.5 w-3.5 ${loading ? 'animate-spin' : ''}`} />
           Re-check Pipeline
         </Button>
       </CardHeader>
+      {!collapsed && (
       <CardContent className="space-y-4">
         {/* 1. Active poll status grid */}
         <div className="grid grid-cols-2 md:grid-cols-3 gap-3 text-xs font-mono">
