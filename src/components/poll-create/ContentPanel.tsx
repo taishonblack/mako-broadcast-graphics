@@ -3,7 +3,21 @@ import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
-import { PlusCircle, GripVertical, Trash2, HelpCircle, Lock } from 'lucide-react';
+import { PlusCircle, GripVertical, Trash2, HelpCircle, Lock, Shuffle } from 'lucide-react';
+
+/**
+ * Random short slug code (lowercase letters + digits, 8 chars). Generated
+ * client-side; uniqueness is enforced server-side by the
+ * (project_id, viewer_slug) unique index, with retry-on-conflict.
+ */
+function generateSlugCode(): string {
+  const alphabet = 'abcdefghijkmnpqrstuvwxyz23456789';
+  let out = '';
+  for (let i = 0; i < 8; i += 1) {
+    out += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return out;
+}
 
 export type AnswerType = 'yes-no' | 'multiple-choice' | 'custom';
 export type MCLabelStyle = 'letters' | 'numbers' | 'none' | 'custom';
@@ -167,9 +181,25 @@ export function ContentPanel({
                   }
                 }}
                 readOnly={slugLocked}
-                placeholder="penalty-call"
+                placeholder="slug text"
                 className={`bg-background/50 h-8 text-xs ${slugLocked ? 'cursor-not-allowed opacity-70' : ''}`}
               />
+              <Tooltip>
+                <TooltipTrigger asChild>
+                  <Button
+                    type="button"
+                    size="icon"
+                    variant="outline"
+                    disabled={slugLocked}
+                    onClick={() => setSlug(generateSlugCode())}
+                    className="h-8 w-8 shrink-0"
+                    aria-label="Generate random slug"
+                  >
+                    <Shuffle className="w-3.5 h-3.5" />
+                  </Button>
+                </TooltipTrigger>
+                <TooltipContent>Generate random slug</TooltipContent>
+              </Tooltip>
             </div>
             {slugLocked && (
               <div className="mt-1.5 flex items-center gap-1.5 text-[10px] font-semibold text-mako-success/90">
