@@ -122,7 +122,7 @@ export const DEFAULT_BLOCK_COLLISION_POLICY: BlockCollisionPolicy = 'prompt';
 export function loadBlockCollisionPolicy(): BlockCollisionPolicy {
   if (typeof window === 'undefined') return DEFAULT_BLOCK_COLLISION_POLICY;
   const raw = window.localStorage.getItem(OPERATOR_BLOCK_COLLISION_KEY);
-  if (raw === 'auto-next' || raw === 'auto-clear' || raw === 'prompt') return raw;
+  if (raw === 'auto-next' || raw === 'prompt') return raw;
   return DEFAULT_BLOCK_COLLISION_POLICY;
 }
 
