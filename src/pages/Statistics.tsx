@@ -8,6 +8,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useAuth } from '@/hooks/useAuth';
 import { LineChart, Line, XAxis, YAxis, ResponsiveContainer, Tooltip, CartesianGrid } from 'recharts';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
+import { VotePipelineCheck } from '@/components/statistics/VotePipelineCheck';
 
 interface AnalyticsRow {
   id: string;
@@ -391,6 +392,10 @@ export default function Statistics() {
             )}
           </div>
         </div>
+
+        {/* Diagnostic: end-to-end vote pipeline. Sits at the very top so the
+         *  operator can confirm health before trusting the live numbers. */}
+        <VotePipelineCheck />
 
         {/* Scope filter — choose which folder + scene the live cards reflect. */}
         <div className="flex flex-wrap items-end gap-3">
