@@ -3106,6 +3106,45 @@ export default function PollCreate() {
         onJumpToField={handleJumpToField}
       />
 
+      {/* Slug-edit attempted while live. Operator must End Live or Duplicate. */}
+      <AlertDialog open={slugLockDialogOpen} onOpenChange={setSlugLockDialogOpen}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Voter link is locked while live</AlertDialogTitle>
+            <AlertDialogDescription>
+              Changing the voter link during a live poll can break viewer access and invalidate the published QR code. End Live first, or duplicate this poll to edit a draft copy with a new slug.
+              {liveSlug && (
+                <span className="block mt-2 font-mono text-[11px] text-foreground/80">
+                  Currently live: /vote/{liveSlug}
+                </span>
+              )}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={duplicating}>Cancel</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="outline"
+              disabled={duplicating}
+              onClick={handleDuplicateLivePoll}
+            >
+              {duplicating ? 'Duplicating…' : 'Duplicate Poll'}
+            </Button>
+            <Button
+              type="button"
+              variant="destructive"
+              disabled={duplicating}
+              onClick={() => {
+                setSlugLockDialogOpen(false);
+                handleEndPoll();
+              }}
+            >
+              End Live
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+
       {mode === 'output' ? (
         <div className="flex-1 min-h-0">
           <OperatorOutputMode
