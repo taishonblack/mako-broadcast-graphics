@@ -27,6 +27,8 @@ interface AssetInspectorProps {
   subheadline: string; setSubheadline: (v: string) => void;
   internalName: string; setInternalName: (v: string) => void;
   slug: string; setSlug: (v: string) => void;
+  /** When true, viewer slug input is read-only because a poll is on-air. */
+  slugLocked?: boolean;
   answerType: AnswerType; setAnswerType: (v: AnswerType) => void;
   mcLabelStyle: MCLabelStyle; setMcLabelStyle: (v: MCLabelStyle) => void;
   answers: { id: string; text: string; shortLabel: string; testVotes?: number }[];
@@ -174,10 +176,22 @@ export function AssetInspector(p: AssetInspectorProps) {
               <Input
                 value={p.slug}
                 onChange={(e) => p.setSlug(e.target.value)}
+                onMouseDown={(e) => {
+                  if (p.slugLocked) {
+                    e.preventDefault();
+                    p.setSlug(p.slug);
+                  }
+                }}
+                readOnly={p.slugLocked}
                 className={`bg-background/50 h-8 text-xs ${hl('slug')}`}
                 placeholder="penalty-call"
               />
             </div>
+            {p.slugLocked && (
+              <p className="text-[10px] mt-1 text-mako-success/90 font-semibold uppercase tracking-wider">
+                Live link locked
+              </p>
+            )}
             {(p.highlightField === 'blockLetter' || p.highlightField === 'blockPosition') && (
               <p className={`text-[10px] mt-1 px-2 py-1 rounded bg-primary/10 text-primary border border-primary/30 ${hl(p.highlightField)}`}>
                 Open the block folder controls in Polling Assets to fix <span className="font-mono">{p.highlightField}</span>.
