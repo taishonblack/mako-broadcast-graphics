@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
-import { CheckCircle2, XCircle, Loader2, Activity, RefreshCw, AlertTriangle, ExternalLink } from 'lucide-react';
+import { CheckCircle2, XCircle, Loader2, Activity, RefreshCw, AlertTriangle, ExternalLink, ChevronDown, ChevronRight } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { toast } from 'sonner';
 
@@ -62,6 +62,17 @@ export function VotePipelineCheck() {
   const [loading, setLoading] = useState(false);
   const [running, setRunning] = useState(false);
   const [checks, setChecks] = useState<CheckRow[]>([]);
+  // Collapsed by default once it's healthy — operators want it out of the
+  // way when the pipeline is green. Persisted so a refresh keeps the
+  // operator's chosen state.
+  const [collapsed, setCollapsed] = useState<boolean>(() => {
+    try { return sessionStorage.getItem('makovote.pipelineCheck.collapsed') === '1'; }
+    catch { return false; }
+  });
+  useEffect(() => {
+    try { sessionStorage.setItem('makovote.pipelineCheck.collapsed', collapsed ? '1' : '0'); }
+    catch { /* ignore */ }
+  }, [collapsed]);
 
   const refresh = useCallback(async (): Promise<PipelineSnapshot | null> => {
     setLoading(true);
