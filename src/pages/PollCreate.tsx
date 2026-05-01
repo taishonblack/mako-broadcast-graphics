@@ -1236,6 +1236,7 @@ export default function PollCreate() {
         if (ok) setVotingState('open');
       }
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [answers, buildPreflightInput, preflightIntent]); // handleGoLive / syncViewerVotingOpen referenced lazily — declared below.
 
   const handleGoLive = async () => {
