@@ -1375,8 +1375,23 @@ export default function PollCreate() {
   }, [answers, buildPreflightInput, preflightIntent]); // handleGoLive / syncViewerVotingOpen referenced lazily — declared below.
 
   const handleGoLive = async () => {
+    // ── HARD GUARDS ────────────────────────────────────────────────────
+    // We must NEVER write `active_poll_id: null` while
+    // `voting_state: 'open'` — that produces a phantom live state where
+    // the operator UI says LIVE but viewers see "No active poll found"
+    // because cast_vote can't match a null active_poll_id. Every failure
+    // path below bails out BEFORE flipping any DB state.
+    if (!projectId) {
+      toast.error('Save the poll into a project before going live.');
+      return;
+    }
+
     let livePoll = currentWorkspacePoll;
-    if (!isUuid(livePoll.id) && projectId) {
+
+    // 1. Resolve the current poll. If the workspace poll already matches
+    //    a saved row in this project, hydrate from that row so we get the
+    //    real UUID without re-saving.
+    if (!isUuid(livePoll.id)) {
       const match = projectPolls.find((poll) => poll.projectId === projectId && poll.slug === slugForUrl);
       if (match) {
         livePoll = {
@@ -1392,6 +1407,89 @@ export default function PollCreate() {
       }
     }
 
+    // 2. Still no UUID → save it now, then re-resolve. Mirrors
+    //    syncViewerVotingOpen's save-and-resolve flow.
+    if (!isUuid(livePoll.id)) {
+      const ok = await persistProjectSave(projectId, projectName, 'manual');
+      if (!ok) {
+        toast.error("Couldn't save the poll. Fix the save error and try Go Live again.");
+        return;
+      }
+      const refreshed = projectPolls.find((p) => p.projectId === projectId && p.slug === slugForUrl);
+      const newId = refreshed?.id ?? pollId;
+      if (!newId || !isUuid(newId)) {
+        toast.error('Could not resolve a saved poll id. Save the poll, then try Go Live.');
+        return;
+      }
+      livePoll = { ...livePoll, id: newId, projectId };
+    }
+
+    // 3. Viewer slug must exist — /vote/:slug needs a target.
+    const slug = (livePoll.slug ?? '').trim();
+    if (!slug) {
+      toast.error('Set a /vote/:slug value before going live.');
+      return;
+    }
+
+    // 4. The active scene's Voter Selection is the SOURCE OF TRUTH for
+    //    the choices voters see. `answers` is the editable scene state
+    //    bound to that asset. Require ≥2 non-empty entries.
+    const sceneChoices = answers
+      .map((a) => ({ ...a, text: (a.text ?? '').trim() }))
+      .filter((a) => a.text.length > 0);
+    if (sceneChoices.length < 2) {
+      toast.error(`Voter Selection has only ${sceneChoices.length} choice(s); need at least 2.`);
+      return;
+    }
+    // Use the scene choices (not livePoll.options / previewOptions) as
+    // the canonical option list so what's on-screen == what's in
+    // poll_answers == what viewers see.
+    const canonicalOptions = sceneChoices.map((a, i) => ({
+      id: String(a.id),
+      text: a.text,
+      shortLabel: a.shortLabel ?? '',
+      votes: 0,
+      order: i,
+    }));
+    livePoll = { ...livePoll, options: canonicalOptions };
+
+    // 5. Sync scene choices into poll_answers (with retry). Bail if we
+    //    can't get back ≥2 rows — without those rows cast_vote rejects
+    //    every viewer vote as `invalid_answer`.
+    const optionsForSync = canonicalOptions.map((o, i) => ({
+      client_id: String(o.id),
+      label: o.text || `Answer ${i + 1}`,
+      shortLabel: o.shortLabel ?? '',
+    }));
+    let answerIdMap: Record<string, string> = {};
+    let syncRows: Array<{ client_id: string; id: string }> = [];
+    let lastSyncErr: string | null = null;
+    for (let attempt = 0; attempt < 3; attempt++) {
+      const { data: syncData, error: syncErr } = await supabase.rpc(
+        'sync_poll_answers' as never,
+        { _poll_id: livePoll.id, _options: optionsForSync as never } as never,
+      );
+      if (syncErr) {
+        lastSyncErr = syncErr.message;
+      } else if (syncData && typeof syncData === 'object' && 'answers' in (syncData as object)) {
+        const rows = ((syncData as { answers?: Array<{ client_id: string; id: string }> }).answers) ?? [];
+        if (rows.length >= 2) {
+          syncRows = rows;
+          for (const r of rows) answerIdMap[r.client_id] = r.id;
+          lastSyncErr = null;
+          break;
+        }
+        lastSyncErr = `sync returned ${rows.length} answer row(s); need at least 2`;
+      }
+      await new Promise((r) => setTimeout(r, 250 * (attempt + 1)));
+    }
+    if (lastSyncErr || syncRows.length < 2) {
+      toast.error(`Can't go live: vote tally setup failed${lastSyncErr ? ` — ${lastSyncErr}` : ''}.`);
+      return;
+    }
+    setLiveAnswerIdMap(answerIdMap);
+
+    // ── All preconditions satisfied — flip live state. ─────────────────
     setLiveState('live');
     // Build the canonical Program payload for the lock snapshot. We push it
     // through handleTake() (so existing listeners + DB sync stay in sync) AND
@@ -1401,62 +1499,23 @@ export default function PollCreate() {
     const snapshotPoll = {
       ...livePoll,
       viewer_slug: livePoll.slug,
-      options: livePoll.options?.length ? livePoll.options : previewOptions,
-      answers: livePoll.options?.length ? livePoll.options : previewOptions,
+      options: canonicalOptions,
+      answers: canonicalOptions,
     };
-    // ── Sync option rows into poll_answers so cast_vote can increment real
-    //    UUIDs and useLiveVotes can subscribe to live tallies. We need the
-    //    real UUIDs back so the audience snapshot uses ids that match the
-    //    rows the operator's bar graph subscribes to. Without this, votes
-    //    from /vote/:slug land on string ids that don't exist in
-    //    poll_answers and the bar graph stays at 0%.
-    let answerIdMap: Record<string, string> = {};
-    if (isUuid(livePoll.id)) {
-      const optionsForSync = (snapshotPoll.options ?? []).map((o, i) => ({
-        client_id: String(o.id),
-        label: o.text || `Answer ${i + 1}`,
-        shortLabel: o.shortLabel ?? '',
-      }));
-      // Retry up to 3× with a short backoff. Transient network/RLS hiccups
-      // would otherwise leave poll_answers empty and every viewer vote would
-      // be rejected as `invalid_answer` until the next Go Live.
-      let lastErr: string | null = null;
-      for (let attempt = 0; attempt < 3; attempt++) {
-        const { data: syncData, error: syncErr } = await supabase.rpc(
-          'sync_poll_answers' as never,
-          { _poll_id: livePoll.id, _options: optionsForSync as never } as never,
-        );
-        if (syncErr) {
-          lastErr = syncErr.message;
-        } else if (syncData && typeof syncData === 'object' && 'answers' in (syncData as object)) {
-          const rows = ((syncData as { answers?: Array<{ client_id: string; id: string }> }).answers) ?? [];
-          if (rows.length > 0) {
-            answerIdMap = {};
-            for (const r of rows) answerIdMap[r.client_id] = r.id;
-            setLiveAnswerIdMap(answerIdMap);
-            lastErr = null;
-            break;
-          }
-          lastErr = 'sync returned no answers';
-        }
-        await new Promise((r) => setTimeout(r, 250 * (attempt + 1)));
-      }
-      if (lastErr) toast.error(`Vote tally setup failed: ${lastErr}`);
-      // Arm the self-healing watcher for this live window.
-      liveResyncAttemptsRef.current = 0;
-      lastResyncAtRef.current = Date.now();
-    } else {
-      toast.warning('Live votes need a saved poll. Save the poll first to enable real-time tallies.');
-    }
+    // Arm the self-healing watcher for this live window.
+    liveResyncAttemptsRef.current = 0;
+    lastResyncAtRef.current = Date.now();
     const snapshot = { ...getProgramOutputPayload(snapshotPoll), slateActive: false };
     broadcastOutputLock({ locked: true, snapshot, lockedAt: Date.now() });
     // Persist the snapshot to project_live_state so cross-network viewers
     // (mobile/desktop on /vote/:slug) can read the operator's color
     // assignments and enabled-asset list and render in parity with Program.
-    if (projectId) {
+    {
       const { error } = await supabase.from('project_live_state').upsert({
         project_id: projectId,
-        active_poll_id: isUuid(livePoll.id) ? livePoll.id : null,
+        // INVARIANT: voting_state='open' is only ever paired with a real
+        // UUID. The hard guards above ensure livePoll.id is a UUID here.
+        active_poll_id: livePoll.id,
         active_folder_id: folderState.activeFolderId ?? null,
         live_folder_id: folderState.activeFolderId ?? null,
         live_poll_snapshot: snapshot as never,
@@ -1467,15 +1526,21 @@ export default function PollCreate() {
         // Once written, the operator-side UI locks the slug input until End
         // Live so the published QR / link can't drift mid-show.
         live_slug: livePoll.slug,
-        live_poll_id: isUuid(livePoll.id) ? livePoll.id : null,
+        live_poll_id: livePoll.id,
       } as never);
       if (error) {
         toast.error(`Go Live viewer sync failed: ${error.message}`);
+        // Roll back local live state so the badge doesn't lie.
+        setLiveState('not_live');
+        return;
       } else {
         // Optimistic local update so the lock + label flip immediately
         // without waiting for the realtime echo.
         setLiveSlug(livePoll.slug);
       }
+      // Reflect on-air status on the poll row itself for downstream
+      // queries (Statistics, Project list status pills).
+      void supabase.from('polls').update({ status: 'open' } as never).eq('id', livePoll.id);
       // Build the audience-shaped snapshot. Written to BOTH:
       //   1. project_live_state.live_audience_snapshot (DB trigger mirrors
       //      it into public_viewer_state — safety net so the audience can
@@ -1483,14 +1548,13 @@ export default function PollCreate() {
       //   2. public_viewer_state directly via writePublicViewerState (kept
       //      for low-latency optimistic updates from the operator).
       const audienceSnapshot: PublicViewerPollSnapshot = {
-        id: isUuid(livePoll.id) ? livePoll.id : undefined,
+        id: livePoll.id,
         question: snapshotPoll.question,
         subheadline: snapshotPoll.subheadline,
         bgColor: snapshotPoll.bgColor,
         bgImage: snapshotPoll.bgImage,
-        answers: (snapshotPoll.options ?? []).map((o, i) => ({
+        answers: canonicalOptions.map((o, i) => ({
           // Use the real poll_answers UUID so cast_vote can locate the row.
-          // Falls back to the local id only when sync failed (already toasted).
           id: answerIdMap[String(o.id)] ?? o.id,
           label: o.text || `Answer ${i + 1}`,
           shortLabel: o.shortLabel,
