@@ -106,12 +106,16 @@ export function formatHotkey(key: string): string {
 /**
  * Block-position collision policy. Saving two polls into the same
  * (project, block_letter, block_position) triggers a unique-violation
- * from Postgres. The operator can choose how the save handler reacts:
- *   - 'prompt' (default): show a toast with "Use next slot" / "Clear slot" actions.
- *   - 'auto-next':       silently bump to the lowest unused position and retry.
- *   - 'auto-clear':      silently null out the position and retry (block stays set).
+ * from Postgres (`polls_project_block_position_unique`). The save
+ * handler can react in two ways:
+ *   - 'prompt' (default): show a toast with an "Auto-fix slot" action
+ *     that bumps to the lowest unused position in the same block.
+ *   - 'auto-next':        silently bump to the lowest unused position
+ *     and retry the save without operator intervention.
+ * `block_position` is NOT NULL in the schema, so a true "clear" isn't
+ * possible — the only safe recovery is moving to another free slot.
  */
-export type BlockCollisionPolicy = 'prompt' | 'auto-next' | 'auto-clear';
+export type BlockCollisionPolicy = 'prompt' | 'auto-next';
 export const OPERATOR_BLOCK_COLLISION_KEY = 'mako-operator-block-collision-policy';
 export const DEFAULT_BLOCK_COLLISION_POLICY: BlockCollisionPolicy = 'prompt';
 
