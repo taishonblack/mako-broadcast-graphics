@@ -174,7 +174,18 @@ export default function ViewerVote() {
   const effective: PublicViewerStateName | 'thank_you' =
     localStage === 'thank_you' ? 'thank_you' : operatorState;
 
-  const decision = effective; // 1:1 mapping; the switch below renders it.
+  // No row at all for this slug → show explicit empty state instead of silently
+  // rendering MakoVote branding (which makes broken QR codes look "fine").
+  const slugMissing = loaded && !row;
+  const decision: PublicViewerStateName | 'thank_you' | 'no_poll' = slugMissing
+    ? 'no_poll'
+    : effective;
+
+  // Voting requires a real poll_snapshot.id — without it we cannot call
+  // cast_vote, so degrade voting → no_poll rather than rendering dead buttons.
+  const votingButNoPoll =
+    decision === 'voting' && !snapshot?.id;
+  const finalDecision = votingButNoPoll ? 'no_poll' : decision;
 
   console.log('Viewer decision', {
     state: operatorState,
@@ -182,9 +193,17 @@ export default function ViewerVote() {
     answerCount: snapshot?.answers?.length,
     routeSlug: slug,
     rowSlug: row?.viewer_slug,
-    decision,
+    decision: finalDecision,
+    snapshotId: snapshot?.id ?? null,
     loaded,
   });
+
+  const isDev = import.meta.env.DEV;
+  const debugLine = isDev ? (
+    <div className="fixed bottom-2 left-2 z-50 text-[10px] font-mono text-muted-foreground/70 bg-background/60 backdrop-blur-md rounded px-2 py-1 border border-white/10 max-w-[90vw]">
+      slug: {slug || '∅'} · viewer_state: {row?.state ?? 'missing'} · poll_snapshot: {snapshot?.id ? 'present' : 'missing'}
+    </div>
+  ) : null;
 
   // ---- Render ----
   if (!loaded) {
@@ -192,11 +211,27 @@ export default function ViewerVote() {
       <div className="min-h-screen flex items-center justify-center px-6" style={bgStyle}>
         <RefreshButton onClick={refreshNow} busy={refreshing} />
         <MakoVoteSlate />
+        {debugLine}
       </div>
     );
   }
 
-  switch (decision) {
+  switch (finalDecision) {
+    case 'no_poll':
+      return (
+        <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={{ background: 'hsl(220, 20%, 7%)' }}>
+          <RefreshButton onClick={refreshNow} busy={refreshing} />
+          <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10 w-full max-w-sm">
+            <h1 className="text-xl font-bold text-foreground">No active poll found for this link</h1>
+            <p className="text-sm text-muted-foreground">
+              Please check the QR code or wait for the operator to open voting.
+            </p>
+            <BrandBug />
+          </div>
+          {debugLine}
+        </div>
+      );
+
     case 'slate':
       return (
         <div className="min-h-screen flex items-center justify-center px-6 animate-fade-in" style={bgStyle}>
@@ -206,19 +241,23 @@ export default function ViewerVote() {
               {row?.slate_text || 'Polling will open soon'}
             </h1>
           </div>
+          {debugLine}
         </div>
       );
 
     case 'voting':
       return (
-        <VotingView
-          snapshot={snapshot}
-          bgStyle={bgStyle}
-          selectedAnswerId={selectedAnswerId}
-          onVote={handleVote}
-          onRefresh={refreshNow}
-          refreshing={refreshing}
-        />
+        <>
+          <VotingView
+            snapshot={snapshot}
+            bgStyle={bgStyle}
+            selectedAnswerId={selectedAnswerId}
+            onVote={handleVote}
+            onRefresh={refreshNow}
+            refreshing={refreshing}
+          />
+          {debugLine}
+        </>
       );
 
     case 'thank_you':
@@ -233,6 +272,7 @@ export default function ViewerVote() {
             <p className="text-sm text-muted-foreground">Your vote has been counted</p>
             <BrandBug />
           </div>
+          {debugLine}
         </div>
       );
 
@@ -244,6 +284,7 @@ export default function ViewerVote() {
             <h1 className="text-xl font-bold text-foreground">Voting is closed</h1>
             <BrandBug />
           </div>
+          {debugLine}
         </div>
       );
 
@@ -255,6 +296,7 @@ export default function ViewerVote() {
           <div className="text-center space-y-4 bg-background/40 backdrop-blur-md rounded-2xl px-8 py-10 border border-white/10">
             <MakoVoteSlate />
           </div>
+          {debugLine}
         </div>
       );
   }
