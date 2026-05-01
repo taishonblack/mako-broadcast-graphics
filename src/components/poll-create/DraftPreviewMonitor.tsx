@@ -148,6 +148,11 @@ export function DraftPreviewMonitor({
   const isLowerThird = template === 'lower-third';
   const voteUrl = `https://makovote.app/vote/${slug}`;
 
+  // Watch for divergence between public_viewer_state and project_live_state.
+  // The DB trigger should keep them in sync; if drift is reported, something
+  // bypassed it (RLS error, manual edit, race) and the operator needs to know.
+  const drift = useViewerStateDrift(projectId, isLive);
+
   useEffect(() => {
     const api = overlayApiRef.current;
     if (!api) return;
