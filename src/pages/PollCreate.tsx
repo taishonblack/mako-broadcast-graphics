@@ -1449,7 +1449,12 @@ export default function PollCreate() {
         live_folder_id: null,
         voting_state: 'closed',
         output_state: 'preview',
+        // Clear the on-air slug/poll pointers so the Build UI unlocks the
+        // slug input and the "Live voter link" label reverts to "Draft".
+        live_slug: null,
+        live_poll_id: null,
       } as never);
+      setLiveSlug(null);
       // Audience returns to MakoVote branding.
       void writePublicViewerState({
         projectId,
