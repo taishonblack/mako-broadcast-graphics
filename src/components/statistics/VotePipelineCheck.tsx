@@ -440,15 +440,23 @@ export function VotePipelineCheck() {
             {running ? <Loader2 className="h-4 w-4 animate-spin" /> : <Activity className="h-4 w-4" />}
             Send Test Vote
           </Button>
-          {reasonForDisable && (
-            <div className="flex items-center gap-1.5 text-xs text-mako-warning">
-              <AlertTriangle className="h-3.5 w-3.5" />
-              {reasonForDisable}
-            </div>
-          )}
           <span className="ml-auto text-[10px] font-mono text-muted-foreground">
             Test session id prefix: <span className="text-foreground">{HEALTHCHECK_PREFIX}-…</span>
           </span>
+        </div>
+
+        {/* Per-gate breakdown — directly under the button so the operator
+         *  can see which condition is blocking Send Test Vote. */}
+        <div className="rounded-md border border-border bg-card/40 divide-y divide-border">
+          {gates.map((g) => (
+            <div key={g.key} className="flex items-start gap-2 px-3 py-1.5 text-[11px]">
+              <StatusIcon status={g.ok ? 'pass' : 'fail'} />
+              <div className="flex-1 min-w-0">
+                <div className={g.ok ? 'text-foreground' : 'text-mako-warning'}>{g.label}</div>
+                <div className="text-[10px] font-mono text-muted-foreground truncate">{g.detail}</div>
+              </div>
+            </div>
+          ))}
         </div>
 
         {/* 3. Result checklist */}
@@ -468,6 +476,7 @@ export function VotePipelineCheck() {
           </div>
         )}
       </CardContent>
+      )}
     </Card>
   );
 }
