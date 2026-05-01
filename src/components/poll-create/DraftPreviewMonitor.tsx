@@ -9,7 +9,7 @@ import {
   SlateTextStyle,
 } from '@/components/broadcast/preview/ViewerSlatePreview';
 import { PollOption, TemplateName, ThemePreset } from '@/lib/types';
-import { Monitor, Smartphone, Globe, Copy, Link2, Check } from 'lucide-react';
+import { Monitor, Smartphone, Globe, Copy, Link2, Check, AlertTriangle } from 'lucide-react';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { QRCodeSVG } from 'qrcode.react';
