@@ -547,13 +547,13 @@ export default function PollCreate() {
       if (liveState === 'live') {
         sessionStorage.setItem(
           LIVE_SESSION_KEY,
-          JSON.stringify({ liveState, votingState, liveAnswerIdMap }),
+          JSON.stringify({ liveState, votingState, liveAnswerIdMap, pollId }),
         );
       } else {
         sessionStorage.removeItem(LIVE_SESSION_KEY);
       }
     } catch { /* ignore quota / private mode */ }
-  }, [liveState, votingState, liveAnswerIdMap]);
+  }, [liveState, votingState, liveAnswerIdMap, pollId]);
 
   // Reconcile live state from the DB on mount / when projectId resolves.
   // If the operator went Live then navigated away, project_live_state is
