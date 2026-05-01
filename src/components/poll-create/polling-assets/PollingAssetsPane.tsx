@@ -17,9 +17,20 @@ import {
 import {
   Type, ListChecks, AlignLeft, Image as ImageIcon, QrCode,
   Sparkles, Users, Plus, X, GripVertical, ChevronDown, MoreVertical, FolderOpen,
-  Trash2, Camera, Link2, Copy, MessageCircleQuestion, Layers, Pencil, Check, EyeOff,
+  Trash2, Camera, Link2, Copy, MessageCircleQuestion, Layers, Pencil, Check, EyeOff, Shuffle,
 } from 'lucide-react';
 import { AnswerType, MCLabelStyle } from '@/components/poll-create/ContentPanel';
+
+/** Random short slug code (lowercase letters + digits, 8 chars).
+ *  Mirrors the helper in ContentPanel — uniqueness is enforced server-side. */
+function generateSlugCode(): string {
+  const alphabet = 'abcdefghijkmnpqrstuvwxyz23456789';
+  let out = '';
+  for (let i = 0; i < 8; i += 1) {
+    out += alphabet[Math.floor(Math.random() * alphabet.length)];
+  }
+  return out;
+}
 import { AssetId, AssetMeta } from './types';
 import { BlockLetter, BLOCK_LETTERS, DEFAULT_BLOCK_LABELS } from '@/lib/poll-persistence';
 import { SCENE_PRESETS, type ScenePreset, type PollScene, getScenePreset } from '@/lib/poll-scenes';
@@ -443,21 +454,35 @@ export function PollingAssetsPane({
                         /vote/{slug || 'your-poll-slug'}
                       </span>
                     </div>
-                    <Input
-                      value={slug}
-                      onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'))}
-                      onMouseDown={(e) => {
-                        if (slugLocked) {
-                          e.preventDefault();
-                          // Bounce through setSlug so the parent's lock dialog opens.
-                          setSlug(slug);
-                        }
-                      }}
-                      readOnly={slugLocked}
-                      placeholder="asl"
-                      className={`bg-background/60 h-7 text-[11px] font-mono ${slugLocked ? 'cursor-not-allowed opacity-70' : ''}`}
-                      aria-label="Viewer slug for QR destination"
-                    />
+                    <div className="flex items-center gap-1">
+                      <Input
+                        value={slug}
+                        onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'))}
+                        onMouseDown={(e) => {
+                          if (slugLocked) {
+                            e.preventDefault();
+                            // Bounce through setSlug so the parent's lock dialog opens.
+                            setSlug(slug);
+                          }
+                        }}
+                        readOnly={slugLocked}
+                        placeholder="slug text"
+                        className={`bg-background/60 h-7 text-[11px] font-mono ${slugLocked ? 'cursor-not-allowed opacity-70' : ''}`}
+                        aria-label="Viewer slug for QR destination"
+                      />
+                      <Button
+                        type="button"
+                        size="icon"
+                        variant="outline"
+                        disabled={slugLocked}
+                        onClick={() => setSlug(generateSlugCode())}
+                        className="h-7 w-7 shrink-0"
+                        aria-label="Generate random slug"
+                        title="Generate random slug"
+                      >
+                        <Shuffle className="w-3 h-3" />
+                      </Button>
+                    </div>
                     <p className="mt-1 text-[9px] text-muted-foreground/70">
                       {slugLocked
                         ? 'Live link locked — End Live or duplicate the poll to change the slug.'
