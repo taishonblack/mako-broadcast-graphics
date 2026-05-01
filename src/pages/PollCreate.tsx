@@ -3301,6 +3301,7 @@ export default function PollCreate() {
                   slug={slugForUrl}
                     fullUrl={fullUrl}
                     shortUrl={shortUrl}
+                    isLive={Boolean(activePollId) && (votingState === 'open' || votingState === 'closed')}
                     wordmark={assetState}
                   qrSize={qrSize}
                   qrPosition={assetState.qrPosition}
