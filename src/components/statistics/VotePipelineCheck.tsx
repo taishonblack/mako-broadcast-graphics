@@ -206,26 +206,45 @@ export function VotePipelineCheck() {
   // and produce misleading pass/fail rows.
   // Per-gate evaluation — drives both the disable logic and the
   // diagnostic breakdown shown under the Send Test Vote button.
-  const gates = useMemo(() => {
+  const gates = useMemo<GateRow[]>(() => {
     const s = snapshot;
     return [
       { key: 'active_poll_id', label: 'active_poll_id present',
         ok: Boolean(s?.active_poll_id),
-        detail: s?.active_poll_id ?? 'no active_poll_id in project_live_state' },
+        detail: s?.active_poll_id ?? 'No poll is currently published.',
+        fix: s?.active_poll_id ? undefined
+          : 'Open Output Mode, pick a poll, then click Go Live.' },
       { key: 'pvs_has_snapshot', label: 'public_viewer_state has poll_snapshot',
         ok: Boolean(s?.pvs_has_snapshot),
-        detail: s?.pvs_has_snapshot ? `snapshot.id = ${s?.pvs_snapshot_poll_id ?? '—'}` : 'poll_snapshot missing' },
+        detail: s?.pvs_has_snapshot
+          ? `snapshot.id = ${s?.pvs_snapshot_poll_id ?? '—'}`
+          : 'No audience snapshot — voters would see a blank screen.',
+        fix: s?.pvs_has_snapshot ? undefined
+          : (s?.voting_state === 'open'
+              ? 'End live, then Go Live again to re-publish the snapshot.'
+              : 'Click Go Live on a poll. The snapshot is only written when voting opens.') },
       { key: 'snapshot_matches_slug', label: 'poll_snapshot matches live_slug',
         ok: !slugMismatch,
         detail: slugMismatch
           ? `live_slug=${snapshot?.live_slug ?? '—'} · pvs_slug=${snapshot?.pvs_slug ?? '—'} · snapshot.id=${snapshot?.pvs_snapshot_poll_id ?? '—'}`
-          : 'snapshot aligned with live_slug' },
+          : 'snapshot aligned with live_slug',
+        fix: slugMismatch
+          ? 'In Output Mode, click Go Live again on the current draft to re-publish the snapshot for this slug.'
+          : undefined },
       { key: 'voting_state', label: 'voting_state = open',
         ok: s?.voting_state === 'open',
-        detail: `voting_state = ${s?.voting_state ?? 'unknown'}` },
+        detail: `voting_state = ${s?.voting_state ?? 'unknown'}`,
+        fix: s?.voting_state === 'open' ? undefined
+          : (s?.voting_state === 'closed'
+              ? 'Voting was ended. Open Output Mode and click Go Live to reopen voting.'
+              : 'Open Output Mode and click Go Live to start voting.') },
       { key: 'first_answer_id', label: 'at least one poll answer exists',
         ok: Boolean(s?.first_answer_id),
-        detail: s?.first_answer_id ? `first answer = ${s?.first_answer_label ?? s?.first_answer_id}` : 'no answers configured' },
+        detail: s?.first_answer_id
+          ? `first answer = ${s?.first_answer_label ?? s?.first_answer_id}`
+          : 'This poll has no answer rows in the database.',
+        fix: s?.first_answer_id ? undefined
+          : 'Open the poll, add at least 2 choices to the Voter Selection scene, then run Go Live (it will sync answers automatically).' },
     ];
   }, [snapshot, slugMismatch]);
 
