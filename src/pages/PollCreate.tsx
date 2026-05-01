@@ -298,7 +298,20 @@ export default function PollCreate() {
   const [searchParams, setSearchParams] = useSearchParams();
   const { user } = useAuth();
 
-  const [pollId, setPollId] = useState<string | undefined>(routeId);
+  // On first mount, prefer the route id; otherwise rehydrate the live
+  // poll id from sessionStorage so returning from /statistics during a
+  // live session keeps usePollScenes pointed at the same cache key.
+  const [pollId, setPollId] = useState<string | undefined>(() => {
+    if (routeId) return routeId;
+    if (typeof window === 'undefined') return undefined;
+    try {
+      const raw = sessionStorage.getItem('mako-live-session');
+      if (!raw) return undefined;
+      const parsed = JSON.parse(raw) as { pollId?: string; liveState?: string };
+      if (parsed?.liveState === 'live' && parsed.pollId) return parsed.pollId;
+    } catch { /* ignore */ }
+    return undefined;
+  });
   const [loadingExisting, setLoadingExisting] = useState(!!routeId);
   // Scene management — Project > Block > Folder/Poll > Scene > Assets.
   // When a poll has zero scenes, the assets pane is greyed out until the
