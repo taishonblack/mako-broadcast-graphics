@@ -340,7 +340,7 @@ export function usePollScenes(pollId: string | undefined) {
       // scene — the operator would see their layout snap back to defaults
       // after a save/reload cycle.
       const allTransforms = { ...transforms } as AssetTransformMap;
-      const allAssetIds = Object.keys(allTransforms);
+      const allAssetIds = Object.keys(allTransforms) as AssetId[];
       setScenes((prev) =>
         prev.map((s) => (s.id === sceneId ? { ...s, assetTransforms: { ...allTransforms } } : s)),
       );
