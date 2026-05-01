@@ -434,11 +434,23 @@ export function PollingAssetsPane({
                     <Input
                       value={slug}
                       onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, '-').replace(/-+/g, '-'))}
+                      onMouseDown={(e) => {
+                        if (slugLocked) {
+                          e.preventDefault();
+                          // Bounce through setSlug so the parent's lock dialog opens.
+                          setSlug(slug);
+                        }
+                      }}
+                      readOnly={slugLocked}
                       placeholder="asl"
-                      className="bg-background/60 h-7 text-[11px] font-mono"
+                      className={`bg-background/60 h-7 text-[11px] font-mono ${slugLocked ? 'cursor-not-allowed opacity-70' : ''}`}
                       aria-label="Viewer slug for QR destination"
                     />
-                    <p className="mt-1 text-[9px] text-muted-foreground/70">QR points here. Change per show (ASL, Beyond, DataCast…). When voting is closed viewers see the MakoVote slate.</p>
+                    <p className="mt-1 text-[9px] text-muted-foreground/70">
+                      {slugLocked
+                        ? 'Live link locked — End Live or duplicate the poll to change the slug.'
+                        : 'QR points here. Change per show (ASL, Beyond, DataCast…). When voting is closed viewers see the MakoVote slate.'}
+                    </p>
                   </div>
                 )}
                 {/* Scenes list (only shown for the active folder; inactive
