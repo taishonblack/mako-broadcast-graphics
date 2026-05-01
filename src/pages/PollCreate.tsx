@@ -2238,11 +2238,12 @@ export default function PollCreate() {
     const audience = await writePublicViewerState({
       projectId,
       viewerSlug: livePoll.slug,
-      // Audience only sees the multiple-choice voting UI when the operator
-      // is actually on-air (Go Live). Opening voting from the workspace
-      // without going live keeps voters on the MakoVote branding screen so
-      // we never expose the answers prematurely.
-      state: liveState === 'live' ? 'voting' : 'branding',
+      // If voting_state is being flipped to 'open', the audience MUST see
+      // the voting UI. Holding them on 'branding' here was a previous
+      // guard against premature exposure, but it now produces the
+      // confusing "voting open + viewers see slate" state — the operator
+      // explicitly opened voting, so show the voting screen.
+      state: 'voting',
       pollSnapshot: audienceSnapshot,
     });
     if (audience.error) {
