@@ -504,6 +504,11 @@ export function VotePipelineCheck() {
               <div className="flex-1 min-w-0">
                 <div className={g.ok ? 'text-foreground' : 'text-mako-warning'}>{g.label}</div>
                 <div className="text-[10px] font-mono text-muted-foreground truncate">{g.detail}</div>
+                {!g.ok && g.fix && (
+                  <div className="text-[11px] text-mako-orange mt-0.5">
+                    → {g.fix}
+                  </div>
+                )}
               </div>
             </div>
           ))}
